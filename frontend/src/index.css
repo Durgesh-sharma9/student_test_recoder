@@ -1,27 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 210 60% 97%;
+    --foreground: 210 29% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --card-foreground: 210 29% 16%;
+    --primary: 210 80% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 60% 93%;
+    --secondary-foreground: 210 60% 30%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 200 16% 47%;
+    --accent: 210 60% 93%;
+    --accent-foreground: 210 60% 30%;
+    --destructive: 338 70% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 50% 87%;
+    --input: 210 50% 87%;
+    --ring: 210 80% 46%;
+    --radius: 0.625rem;
   }
 }
 
@@ -31,5 +32,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Poppins', sans-serif;
   }
 }

@@ -44,8 +44,8 @@ export const login = asyncHandler(async (req, res) => {
 export const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id)
     .select('-password')
-    .populate('assignedClasses', 'name section grade')
-    .populate('children', 'name rollNumber class');
+    .populate('assignedClasses', 'className section academicYear')
+    .populate('assignments.class', 'className section academicYear');
 
   res.json({ success: true, user });
 });
