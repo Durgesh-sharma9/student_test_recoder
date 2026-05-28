@@ -2,43 +2,35 @@ import Class from '../models/Class.js';
 import Student from '../models/Student.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import User from '../models/User.js';
 
 export const getClasses = asyncHandler(async (req, res) => {
   const filter = { isActive: true };
-
   if (req.user.role === 'teacher') {
-    filter.teacher = req.user._id;
+    const teacher = await User.findById(req.user._id).select('assignedClasses');
+    filter._id = { $in: teacher?.assignedClasses || [] };
   }
-
-  const classes = await Class.find(filter)
-    .populate('teacher', 'name email')
-    .sort('grade name section');
+  const classes = await Class.find(filter).sort('className section');
 
   res.json({ success: true, count: classes.length, classes });
 });
 
 export const getClass = asyncHandler(async (req, res) => {
-  const classDoc = await Class.findById(req.params.id).populate('teacher', 'name email');
+  const classDoc = await Class.findById(req.params.id);
   if (!classDoc) throw new ApiError(404, 'Class not found.');
 
-  if (req.user.role === 'teacher' && classDoc.teacher?._id?.toString() !== req.user._id.toString()) {
-    throw new ApiError(403, 'Not authorized for this class.');
+  if (req.user.role === 'teacher') {
+    const teacher = await User.findById(req.user._id).select('assignedClasses');
+    const allowed = (teacher?.assignedClasses || []).map((c) => c.toString());
+    if (!allowed.includes(classDoc._id.toString())) throw new ApiError(403, 'Not authorized for this class.');
   }
 
   res.json({ success: true, class: classDoc });
 });
 
 export const createClass = asyncHandler(async (req, res) => {
-  const classDoc = await Class.create(req.body);
-
-  if (classDoc.teacher) {
-    await Class.findByIdAndUpdate(classDoc._id, { teacher: classDoc.teacher });
-    const User = (await import('../models/User.js')).default;
-    await User.findByIdAndUpdate(classDoc.teacher, {
-      $addToSet: { assignedClasses: classDoc._id },
-    });
-  }
-
+  const payload = { ...req.body, className: String(req.body.className || '').toUpperCase() };
+  const classDoc = await Class.create(payload);
   res.status(201).json({ success: true, class: classDoc });
 });
 
@@ -64,8 +56,7 @@ export const deleteClass = asyncHandler(async (req, res) => {
 
 export const getClassStudents = asyncHandler(async (req, res) => {
   const students = await Student.find({ class: req.params.id, isActive: true })
-    .populate('parent', 'name email phone')
-    .sort('rollNumber');
+    .sort('rollNo');
 
   res.json({ success: true, count: students.length, students });
 });

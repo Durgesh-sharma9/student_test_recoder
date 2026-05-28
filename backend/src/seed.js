@@ -4,89 +4,62 @@ import { connectDB } from './config/db.js';
 import User from './models/User.js';
 import Class from './models/Class.js';
 import Student from './models/Student.js';
-import TestResult from './models/TestResult.js';
+import ResultSession from './models/ResultSession.js';
+import MarkEntry from './models/MarkEntry.js';
 
 const seed = async () => {
   await connectDB();
-
   await Promise.all([
     User.deleteMany({}),
     Class.deleteMany({}),
     Student.deleteMany({}),
-    TestResult.deleteMany({}),
+    ResultSession.deleteMany({}),
+    MarkEntry.deleteMany({}),
   ]);
 
   const admin = await User.create({
-    name: 'System Admin',
+    name: 'Admin',
     email: 'admin@school.com',
     password: 'admin123',
     role: 'admin',
-    phone: '9876543210',
+    phoneNo: '9999999999',
   });
 
   const teacher = await User.create({
+    teacherName: 'John Teacher',
     name: 'John Teacher',
     email: 'teacher@school.com',
     password: 'teacher123',
     role: 'teacher',
-    phone: '9876543211',
+    phoneNo: '8888888888',
   });
 
-  const parent = await User.create({
-    name: 'Mary Parent',
-    email: 'parent@school.com',
-    password: 'parent123',
-    role: 'parent',
-    phone: '9876543212',
-  });
+  const class10A = await Class.create({ className: '10', section: 'A', academicYear: '2026-27' });
+  const class9B = await Class.create({ className: '9', section: 'B', academicYear: '2026-27' });
 
-  const class10A = await Class.create({
-    name: 'Class 10',
-    section: 'A',
-    grade: '10',
-    academicYear: '2025-26',
-    teacher: teacher._id,
-  });
-
-  teacher.assignedClasses = [class10A._id];
+  teacher.assignedClasses = [class10A._id, class9B._id];
+  teacher.assignments = [
+    { class: class10A._id, subject: 'MATHS' },
+    { class: class10A._id, subject: 'SCIENCE' },
+    { class: class9B._id, subject: 'ENGLISH' },
+  ];
   await teacher.save();
 
-  const students = await Student.insertMany([
-    {
-      name: 'Alice Johnson',
-      rollNumber: '101',
-      class: class10A._id,
-      parent: parent._id,
-      gender: 'female',
-    },
-    {
-      name: 'Bob Smith',
-      rollNumber: '102',
-      class: class10A._id,
-      gender: 'male',
-    },
-    {
-      name: 'Charlie Brown',
-      rollNumber: '103',
-      class: class10A._id,
-      gender: 'male',
-    },
+  await Student.insertMany([
+    { rollNo: '1', name: 'Alice', gender: 'female', class: class10A._id },
+    { rollNo: '2', name: 'Bob', gender: 'male', class: class10A._id },
+    { rollNo: '3', name: 'Cindy', gender: 'female', class: class10A._id },
+    { rollNo: '1', name: 'David', gender: 'male', class: class9B._id },
   ]);
 
-  parent.children = [students[0]._id];
-  await parent.save();
-
-  console.log('Seed completed successfully!');
-  console.log('--- Login Credentials ---');
-  console.log('Admin:   admin@school.com / admin123');
+  console.log('Seeded successfully');
+  console.log('Admin: admin@school.com / admin123');
   console.log('Teacher: teacher@school.com / teacher123');
-  console.log('Parent:  parent@school.com / parent123');
-  console.log(`Class ID: ${class10A._id}`);
-
+  console.log(`Admin id: ${admin._id}`);
   await mongoose.disconnect();
 };
 
-seed().catch((err) => {
-  console.error(err);
+seed().catch((e) => {
+  console.error(e);
   process.exit(1);
 });

@@ -12,13 +12,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    api
-      .get('/auth/me')
+    if (!token) { setLoading(false); return; }
+    api.get('/auth/me')
       .then((res) => {
         setUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));

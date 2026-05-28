@@ -9,7 +9,7 @@ const Table = React.forwardRef(({ className, ...props }, ref) => (
 Table.displayName = 'Table';
 
 const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+  <thead ref={ref} className={cn('bg-[#e3f2fd]', className)} {...props} />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -19,17 +19,31 @@ const TableBody = React.forwardRef(({ className, ...props }, ref) => (
 TableBody.displayName = 'TableBody';
 
 const TableRow = React.forwardRef(({ className, ...props }, ref) => (
-  <tr ref={ref} className={cn('border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted', className)} {...props} />
+  <tr
+    ref={ref}
+    className={cn(
+      'border-b border-[#e3eaf5] transition-colors odd:bg-white even:bg-[#f5f9ff] hover:bg-[#e3f2fd]',
+      className
+    )}
+    {...props}
+  />
 ));
 TableRow.displayName = 'TableRow';
 
 const TableHead = React.forwardRef(({ className, ...props }, ref) => (
-  <th ref={ref} className={cn('h-12 px-4 text-left align-middle font-medium text-muted-foreground', className)} {...props} />
+  <th
+    ref={ref}
+    className={cn(
+      'h-10 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-[#1565c0]',
+      className
+    )}
+    {...props}
+  />
 ));
 TableHead.displayName = 'TableHead';
 
 const TableCell = React.forwardRef(({ className, ...props }, ref) => (
-  <td ref={ref} className={cn('p-4 align-middle', className)} {...props} />
+  <td ref={ref} className={cn('px-4 py-2.5 align-middle text-[#455a64]', className)} {...props} />
 ));
 TableCell.displayName = 'TableCell';
 

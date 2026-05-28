@@ -7,7 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import classRoutes from './routes/classRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
-import testRoutes from './routes/testRoutes.js';
+import resultRoutes from './routes/resultRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,7 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/students', studentRoutes);
-app.use('/api/tests', testRoutes);
+app.use('/api/results', resultRoutes);
 
 app.use(errorHandler);
 
