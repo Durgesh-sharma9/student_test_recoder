@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Filter, FileBarChart, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 import { useSubjects } from '@/hooks/useSubjects';
 import SubjectSelect from '@/components/SubjectSelect';
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -54,75 +55,103 @@ export default function TeacherResults() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Results</h1>
-      <Card>
-        <CardHeader><CardTitle>Filters</CardTitle></CardHeader>
-        <CardContent className="grid md:grid-cols-3 gap-2">
-          <Select value={view} onValueChange={setView}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="daily">Daily Test</SelectItem>
-              <SelectItem value="main">Main Exam</SelectItem>
-              <SelectItem value="overall">Overall</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={filters.classId || undefined}
-            onValueChange={(v) => setFilters({ ...filters, classId: v, subject: '' })}
-          >
-            <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
-            <SelectContent>
-              {classes.map((c) => (
-                <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <SubjectSelect
-            value={filters.subject}
-            onChange={(subject) => setFilters({ ...filters, subject })}
-            subjects={subjects}
-            loading={subjectsLoading}
-            allowCustom={allowCustom}
-            canAddSubjects={canAddSubjects}
-            onRegisterSubject={registerSubject}
-            emptyMessage={emptyMessage}
-            placeholder="Filter by subject"
-          />
+    <PageStack>
+      <PageHeader
+        title="Results"
+        description="View and export results for your assigned classes and subjects."
+      />
+
+      <ErpSection title="Filters" icon={Filter} tone="blue">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <FormField label="View">
+            <Select value={view} onValueChange={setView}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily Test</SelectItem>
+                <SelectItem value="main">Main Exam</SelectItem>
+                <SelectItem value="overall">Overall</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Class">
+            <Select
+              value={filters.classId || undefined}
+              onValueChange={(v) => setFilters({ ...filters, classId: v, subject: '' })}
+            >
+              <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Subject">
+            <SubjectSelect
+              value={filters.subject}
+              onChange={(subject) => setFilters({ ...filters, subject })}
+              subjects={subjects}
+              loading={subjectsLoading}
+              allowCustom={allowCustom}
+              canAddSubjects={canAddSubjects}
+              onRegisterSubject={registerSubject}
+              emptyMessage={emptyMessage}
+              placeholder="Filter by subject"
+            />
+          </FormField>
           {view === 'daily' && (
             <>
-              <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
-              <Input type="date" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
-              <Input type="date" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+              <FormField label="Test Date">
+                <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+              </FormField>
+              <FormField label="From">
+                <Input type="date" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+              </FormField>
+              <FormField label="To">
+                <Input type="date" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+              </FormField>
             </>
           )}
           {view === 'main' && (
             <>
-              <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
-                <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
-                <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
-              </Select>
-              <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
+              <FormField label="Exam Type">
+                <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
+                  <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
+                  <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Exam Date">
+                <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
+              </FormField>
             </>
           )}
-          <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="marks_desc">High → Low</SelectItem>
-              <SelectItem value="marks_asc">Low → High</SelectItem>
-              <SelectItem value="rollNo">Roll No</SelectItem>
-              <SelectItem value="name">Student Name</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2 flex-wrap">
+          <FormField label="Sort By">
+            <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="marks_desc">High → Low</SelectItem>
+                <SelectItem value="marks_asc">Low → High</SelectItem>
+                <SelectItem value="rollNo">Roll No</SelectItem>
+                <SelectItem value="name">Student Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
+          <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3">
             <Button onClick={load}>Load</Button>
-            <Button variant="outline" onClick={() => download('csv')}>CSV</Button>
-            <Button variant="outline" onClick={() => download('pdf')}>PDF</Button>
+            <Button variant="purple" onClick={() => download('csv')}>
+              <Download className="mr-2 h-4 w-4" />
+              CSV
+            </Button>
+            <Button variant="purple" onClick={() => download('pdf')}>
+              <Download className="mr-2 h-4 w-4" />
+              PDF
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="pt-6 overflow-x-auto">
+        </div>
+      </ErpSection>
+
+      <ErpSection title="Results" icon={FileBarChart} tone="green">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -139,7 +168,7 @@ export default function TeacherResults() {
                 <TableRow key={i}>
                   <TableCell>{r.rank ?? '-'}</TableCell>
                   <TableCell>{r.student?.rollNo}</TableCell>
-                  <TableCell>{r.student?.name}</TableCell>
+                  <TableCell className="font-medium">{r.student?.name}</TableCell>
                   <TableCell>
                     {view === 'main' && r.examDate
                       ? new Date(r.examDate).toLocaleDateString('en-GB')
@@ -153,8 +182,8 @@ export default function TeacherResults() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </ErpSection>
+    </PageStack>
   );
 }

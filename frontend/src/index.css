@@ -1,28 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 60% 97%;
-    --foreground: 210 29% 16%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 210 29% 16%;
-    --primary: 210 80% 46%;
+    --card-foreground: 222 47% 11%;
+    --primary: 217 91% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 60% 93%;
-    --secondary-foreground: 210 60% 30%;
-    --muted: 210 40% 94%;
-    --muted-foreground: 200 16% 47%;
-    --accent: 210 60% 93%;
-    --accent-foreground: 210 60% 30%;
-    --destructive: 338 70% 42%;
+    --secondary: 214 32% 96%;
+    --secondary-foreground: 215 25% 27%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 32% 96%;
+    --accent-foreground: 215 25% 27%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 50% 87%;
-    --input: 210 50% 87%;
-    --ring: 210 80% 46%;
-    --radius: 0.625rem;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 50%;
+    --radius: 0.75rem;
   }
 }
 
@@ -31,7 +31,13 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Poppins', sans-serif;
+    @apply bg-slate-50 text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .erp-page {
+    @apply space-y-5;
   }
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CreditCard, Plus } from 'lucide-react';
 import api from '@/lib/api';
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function SuperPlans() {
@@ -25,31 +26,57 @@ export default function SuperPlans() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Plan Management</h1>
-      <Card>
-        <CardHeader><CardTitle>Create / Update Plan</CardTitle></CardHeader>
-        <CardContent>
-          <form className="grid md:grid-cols-3 gap-2" onSubmit={submit}>
+    <PageStack>
+      <PageHeader
+        title="Plan Management"
+        description="Create and manage subscription plans for schools."
+      />
+
+      <ErpSection title="Create / Update Plan" icon={Plus} tone="orange">
+        <form className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" onSubmit={submit}>
+          <FormField label="Slug">
             <Input placeholder="Slug (trial)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+          </FormField>
+          <FormField label="Name">
             <Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </FormField>
+          <FormField label="Duration (days)">
             <Input type="number" placeholder="Duration (days)" value={form.durationDays} onChange={(e) => setForm({ ...form, durationDays: e.target.value })} />
+          </FormField>
+          <FormField label="Price">
             <Input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          </FormField>
+          <FormField label="Max Teachers">
             <Input type="number" placeholder="Max Teachers" value={form.maxTeachers} onChange={(e) => setForm({ ...form, maxTeachers: e.target.value })} />
+          </FormField>
+          <FormField label="Max Students">
             <Input type="number" placeholder="Max Students" value={form.maxStudents} onChange={(e) => setForm({ ...form, maxStudents: e.target.value })} />
-            <Button type="submit">Save Plan</Button>
-          </form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Plans</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
+          </FormField>
+          <div className="flex items-end md:col-span-2 lg:col-span-3">
+            <Button type="submit" variant="success">
+              <Plus className="mr-2 h-4 w-4" />
+              Save Plan
+            </Button>
+          </div>
+        </form>
+      </ErpSection>
+
+      <ErpSection title="Plans" icon={CreditCard} tone="green">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Slug</TableHead><TableHead>Days</TableHead><TableHead>Price</TableHead><TableHead>Limits</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>Days</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Limits</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {plans.map((p) => (
                 <TableRow key={p._id}>
-                  <TableCell>{p.name}</TableCell>
+                  <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell>{p.slug}</TableCell>
                   <TableCell>{p.durationDays}</TableCell>
                   <TableCell>{p.price}</TableCell>
@@ -58,8 +85,8 @@ export default function SuperPlans() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </ErpSection>
+    </PageStack>
   );
 }

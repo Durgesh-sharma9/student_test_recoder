@@ -3,56 +3,199 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const Dialog        = DialogPrimitive.Root;
+const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
-const DialogPortal  = DialogPrimitive.Portal;
-const DialogClose   = DialogPrimitive.Close;
+const DialogPortal = DialogPrimitive.Portal;
+const DialogClose = DialogPrimitive.Close;
 
-const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn('fixed inset-0 z-50 bg-[rgba(25,118,210,0.18)]', className)}
-    {...props}
-  />
-));
-DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
-
-const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
+const DialogOverlay = React.forwardRef(
+  ({ className, ...props }, ref) => (
+    <DialogPrimitive.Overlay
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 w-full max-w-[420px] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-xl bg-white shadow-[0_4px_24px_rgba(25,118,210,0.18)] duration-200',
+        `
+          fixed
+          inset-0
+          z-50
+          bg-black/50
+          backdrop-blur-sm
+          data-[state=open]:animate-in
+          data-[state=closed]:animate-out
+          data-[state=closed]:fade-out-0
+          data-[state=open]:fade-in-0
+        `,
         className
       )}
       {...props}
-    >
-      {/* Blue modal header strip */}
-      <div className="flex items-center justify-between bg-[#1976d2] px-5 py-3.5">
-        <span className="text-sm font-semibold text-white">Dialog</span>
-        <DialogPrimitive.Close className="text-[#bbdefb] hover:text-white transition-colors">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </div>
-      <div className="p-5">{children}</div>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
-DialogContent.displayName = DialogPrimitive.Content.displayName;
-
-const DialogHeader = ({ className, ...props }) => (
-  <div className={cn('mb-4 flex flex-col space-y-1', className)} {...props} />
+    />
+  )
 );
 
-const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn('text-sm font-semibold text-white', className)}
+DialogOverlay.displayName =
+  DialogPrimitive.Overlay.displayName;
+
+const DialogContent = React.forwardRef(
+  (
+    {
+      className,
+      children,
+      ...props
+    },
+    ref
+  ) => (
+    <DialogPortal>
+      <DialogOverlay />
+
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          `
+            fixed
+            left-1/2
+            top-1/2
+            z-50
+            w-full
+            max-w-lg
+            -translate-x-1/2
+            -translate-y-1/2
+            rounded-3xl
+            border
+            border-slate-200
+            bg-white
+            shadow-2xl
+            duration-200
+            overflow-hidden
+
+            data-[state=open]:animate-in
+            data-[state=closed]:animate-out
+            data-[state=closed]:fade-out-0
+            data-[state=open]:fade-in-0
+            data-[state=closed]:zoom-out-95
+            data-[state=open]:zoom-in-95
+          `,
+          className
+        )}
+        {...props}
+      >
+        <DialogPrimitive.Close
+          className="
+            absolute
+            right-5
+            top-5
+            rounded-full
+            p-2
+            text-slate-500
+            hover:bg-slate-100
+            hover:text-slate-800
+            transition
+          "
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">
+            Close
+          </span>
+        </DialogPrimitive.Close>
+
+        {children}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+);
+
+DialogContent.displayName =
+  DialogPrimitive.Content.displayName;
+
+const DialogHeader = ({
+  className,
+  ...props
+}) => (
+  <div
+    className={cn(
+      `
+        flex
+        flex-col
+        space-y-2
+        p-6
+        pb-4
+      `,
+      className
+    )}
     {...props}
   />
-));
-DialogTitle.displayName = DialogPrimitive.Title.displayName;
+);
 
-export { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogClose };
+DialogHeader.displayName = 'DialogHeader';
+
+const DialogTitle = React.forwardRef(
+  ({ className, ...props }, ref) => (
+    <DialogPrimitive.Title
+      ref={ref}
+      className={cn(
+        `
+          text-xl
+          font-bold
+          tracking-tight
+          text-slate-800
+        `,
+        className
+      )}
+      {...props}
+    />
+  )
+);
+
+DialogTitle.displayName =
+  DialogPrimitive.Title.displayName;
+
+const DialogDescription = React.forwardRef(
+  ({ className, ...props }, ref) => (
+    <DialogPrimitive.Description
+      ref={ref}
+      className={cn(
+        `
+          text-sm
+          text-slate-500
+          leading-relaxed
+        `,
+        className
+      )}
+      {...props}
+    />
+  )
+);
+
+DialogDescription.displayName =
+  DialogPrimitive.Description.displayName;
+
+const DialogFooter = ({
+  className,
+  ...props
+}) => (
+  <div
+    className={cn(
+      `
+        flex
+        items-center
+        justify-end
+        gap-3
+        p-6
+        pt-0
+      `,
+      className
+    )}
+    {...props}
+  />
+);
+
+DialogFooter.displayName = 'DialogFooter';
+
+export {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+};
