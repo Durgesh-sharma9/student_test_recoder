@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Users, UserPlus, Search } from 'lucide-react';
 import api from '@/lib/api';
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -45,47 +46,142 @@ export default function ManageUsers() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <h1 className="text-2xl font-semibold">Teacher Management</h1>
-        <Button onClick={() => setOpen(true)}>Add Teacher</Button>
-      </div>
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>Teachers</CardTitle>
-          <Input className="max-w-xs" placeholder="Search teacher" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} />
-        </CardHeader>
-        <CardContent>
+    <PageStack>
+      <PageHeader
+        title="Teacher Management"
+        description="Register teachers, manage credentials, and maintain your school teaching staff."
+      >
+        <Button onClick={() => setOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Teacher
+        </Button>
+      </PageHeader>
+
+      <ErpSection title="Search Teachers" icon={Search} tone="blue">
+        <FormField label="Search by name or email">
+          <Input
+            placeholder="Search teacher"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+        </FormField>
+      </ErpSection>
+
+      <ErpSection title="Teachers List" icon={Users} tone="green">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Phone</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-            <TableBody>{paged.map((t) => (
-              <TableRow key={t._id}>
-                <TableCell>{t.teacherName || t.name}</TableCell>
-                <TableCell>{t.email}</TableCell>
-                <TableCell>{t.phoneNo || '-'}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button size="sm" variant="outline" onClick={() => { setEdit(t); setForm({ teacherName: t.teacherName || t.name, email: t.email, password: '', phoneNo: t.phoneNo || '' }); setOpen(true); }}>Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={async () => { await api.delete(`/users/${t._id}`); toast.success('Teacher deleted'); refresh(); }}>Delete</Button>
-                </TableCell>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}</TableBody>
+            </TableHeader>
+            <TableBody>
+              {paged.map((t) => (
+                <TableRow key={t._id}>
+                  <TableCell className="font-medium">{t.teacherName || t.name}</TableCell>
+                  <TableCell>{t.email}</TableCell>
+                  <TableCell>{t.phoneNo || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEdit(t);
+                          setForm({
+                            teacherName: t.teacherName || t.name,
+                            email: t.email,
+                            password: '',
+                            phoneNo: t.phoneNo || '',
+                          });
+                          setOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={async () => {
+                          await api.delete(`/users/${t._id}`);
+                          toast.success('Teacher deleted');
+                          refresh();
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
           </Table>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-            <span className="text-sm">{page}/{pages}</span>
-            <Button size="sm" variant="outline" disabled={page === pages} onClick={() => setPage((p) => p + 1)}>Next</Button>
-          </div>
-        </CardContent>
-      </Card>
-      <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle></DialogHeader>
-        <form className="space-y-3" onSubmit={submit}>
-          <Input placeholder="Teacher Name" value={form.teacherName} onChange={(e) => setForm({ ...form, teacherName: e.target.value })} required />
-          <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <Input type="password" placeholder={edit ? 'Password (optional)' : 'Password'} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required={!edit} />
-          <Input placeholder="Phone No" value={form.phoneNo} onChange={(e) => setForm({ ...form, phoneNo: e.target.value })} required />
-          <Button className="w-full">{edit ? 'Save' : 'Create'}</Button>
-        </form>
-      </DialogContent></Dialog>
-    </div>
+        </div>
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            Prev
+          </Button>
+          <span className="text-sm text-slate-600">
+            {page}/{pages}
+          </span>
+          <Button size="sm" variant="outline" disabled={page === pages} onClick={() => setPage((p) => p + 1)}>
+            Next
+          </Button>
+        </div>
+      </ErpSection>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={submit}>
+            <FormField label="Teacher Name">
+              <Input
+                placeholder="Teacher Name"
+                value={form.teacherName}
+                onChange={(e) => setForm({ ...form, teacherName: e.target.value })}
+                required
+              />
+            </FormField>
+            <FormField label="Email">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </FormField>
+            <FormField label={edit ? 'Password (optional)' : 'Password'}>
+              <Input
+                type="password"
+                placeholder={edit ? 'Password (optional)' : 'Password'}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required={!edit}
+              />
+            </FormField>
+            <FormField label="Phone No">
+              <Input
+                placeholder="Phone No"
+                value={form.phoneNo}
+                onChange={(e) => setForm({ ...form, phoneNo: e.target.value })}
+                required
+              />
+            </FormField>
+            <Button className="w-full" variant={edit ? 'default' : 'success'}>
+              {edit ? 'Save' : 'Create'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </PageStack>
   );
 }

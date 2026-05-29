@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { GraduationCap, Search, UserPlus } from 'lucide-react';
 import api from '@/lib/api';
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ManageStudents() {
@@ -53,27 +54,135 @@ export default function ManageStudents() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between">
-        <h1 className="text-2xl font-semibold">Student Management</h1>
-        <div className="flex gap-2">
-          <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger className="w-56"><SelectValue placeholder="Select class" /></SelectTrigger><SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>)}</SelectContent></Select>
-          <Button onClick={() => setOpen(true)} disabled={!selectedClass}>Add Student</Button>
+    <PageStack>
+      <PageHeader
+        title="Student Management"
+        description="Manage student records by class — roll numbers, names, and profiles."
+      >
+        <Button onClick={() => setOpen(true)} disabled={!selectedClass}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Student
+        </Button>
+      </PageHeader>
+
+      <ErpSection title="Select Class" icon={GraduationCap} tone="blue">
+        <FormField label="Class">
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-full sm:max-w-xs">
+              <SelectValue placeholder="Select class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((c) => (
+                <SelectItem key={c._id} value={c._id}>
+                  {c.className}-{c.section}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+      </ErpSection>
+
+      <ErpSection title="Search Students" icon={Search} tone="blue">
+        <FormField label="Search by roll no or name">
+          <Input
+            placeholder="Search student"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="max-w-sm"
+          />
+        </FormField>
+      </ErpSection>
+
+      <ErpSection title="Students List" icon={GraduationCap} tone="green">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Roll No</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Gender</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((s) => (
+                <TableRow key={s._id}>
+                  <TableCell>{s.rollNo}</TableCell>
+                  <TableCell className="font-medium">{s.name}</TableCell>
+                  <TableCell className="capitalize">{s.gender}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEdit(s);
+                          setForm({ rollNo: s.rollNo, name: s.name, gender: s.gender });
+                          setOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={async () => {
+                          await api.delete(`/students/${s._id}`);
+                          toast.success('Deleted');
+                          loadStudents(selectedClass);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
-      </div>
-      <Card><CardContent className="pt-6 space-y-3">
-        <Input placeholder="Search student" value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-sm" />
-        <Table><TableHeader><TableRow><TableHead>Roll No</TableHead><TableHead>Name</TableHead><TableHead>Gender</TableHead><TableHead>Action</TableHead></TableRow></TableHeader>
-          <TableBody>{filtered.map((s) => (
-            <TableRow key={s._id}><TableCell>{s.rollNo}</TableCell><TableCell>{s.name}</TableCell><TableCell className="capitalize">{s.gender}</TableCell>
-              <TableCell className="space-x-2"><Button size="sm" variant="outline" onClick={() => { setEdit(s); setForm({ rollNo: s.rollNo, name: s.name, gender: s.gender }); setOpen(true); }}>Edit</Button><Button size="sm" variant="destructive" onClick={async () => { await api.delete(`/students/${s._id}`); toast.success('Deleted'); loadStudents(selectedClass); }}>Delete</Button></TableCell>
-            </TableRow>
-          ))}</TableBody>
-        </Table>
-      </CardContent></Card>
-      <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>{edit ? 'Edit' : 'Add'} Student</DialogTitle></DialogHeader>
-        <form className="space-y-3" onSubmit={submit}><Input placeholder="Roll No" value={form.rollNo} onChange={(e) => setForm({ ...form, rollNo: e.target.value })} required /><Input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /><Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><Button className="w-full">{edit ? 'Save' : 'Create'}</Button></form>
-      </DialogContent></Dialog>
-    </div>
+      </ErpSection>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{edit ? 'Edit' : 'Add'} Student</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={submit}>
+            <FormField label="Roll No">
+              <Input
+                placeholder="Roll No"
+                value={form.rollNo}
+                onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
+                required
+              />
+            </FormField>
+            <FormField label="Name">
+              <Input
+                placeholder="Name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+              />
+            </FormField>
+            <FormField label="Gender">
+              <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+            <Button className="w-full" variant={edit ? 'default' : 'success'}>
+              {edit ? 'Save' : 'Create'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </PageStack>
   );
 }

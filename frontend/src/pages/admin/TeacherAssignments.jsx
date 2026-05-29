@@ -1,65 +1,522 @@
 import { useEffect, useState } from 'react';
+
 import { toast } from 'sonner';
+
 import api from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+import {
+
+  Users,
+
+  ClipboardList,
+
+  Plus,
+
+  Save,
+
+} from 'lucide-react';
+
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
+
 import { Button } from '@/components/ui/button';
+
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+import {
+
+  Select,
+
+  SelectContent,
+
+  SelectItem,
+
+  SelectTrigger,
+
+  SelectValue,
+
+} from '@/components/ui/select';
+const COMMON_SUBJECTS = [
+  'Maths',
+  'Science',
+  'English',
+  'Hindi',
+  'Social Science',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Computer',
+  'GK',
+  'Sanskrit',
+  'EVS',
+  'Drawing',
+  'PT',
+];
+
+
 
 export default function TeacherAssignments() {
+
   const [teachers, setTeachers] = useState([]);
+
   const [classes, setClasses] = useState([]);
+
   const [teacherId, setTeacherId] = useState('');
+
   const [selectedClass, setSelectedClass] = useState('');
+
   const [subject, setSubject] = useState('');
+
   const [items, setItems] = useState([]);
 
+
+
   useEffect(() => {
-    Promise.all([api.get('/users?role=teacher'), api.get('/classes')]).then(([t, c]) => {
+
+    Promise.all([
+
+      api.get('/users?role=teacher'),
+
+      api.get('/classes'),
+
+    ]).then(([t, c]) => {
+
       setTeachers(t.data.users || []);
+
       setClasses(c.data.classes || []);
-      if (t.data.users?.length) setTeacherId(t.data.users[0]._id);
+
+
+
+      if (t.data.users?.length) {
+
+        setTeacherId(t.data.users[0]._id);
+
+      }
+
     });
+
   }, []);
 
+
+
   useEffect(() => {
-    const t = teachers.find((x) => x._id === teacherId);
-    setItems((t?.assignments || []).map((a) => ({ class: a.class?._id || a.class, subject: a.subject })));
+
+    const teacher = teachers.find(
+
+      (t) => t._id === teacherId
+
+    );
+
+
+
+    setItems(
+
+      (teacher?.assignments || []).map((a) => ({
+
+        class: a.class?._id || a.class,
+
+        subject: a.subject,
+
+      }))
+
+    );
+
   }, [teacherId, teachers]);
 
+
+
   const addItem = () => {
-    if (!selectedClass || !subject) return;
-    setItems((prev) => [...prev, { class: selectedClass, subject: subject.toUpperCase() }]);
+
+    if (!selectedClass || !subject.trim()) {
+
+      toast.error(
+
+        'Please select class and enter subject'
+
+      );
+
+      return;
+
+    }
+
+
+
+    setItems((prev) => [
+
+      ...prev,
+
+      {
+
+        class: selectedClass,
+
+        subject: subject.toUpperCase(),
+
+      },
+
+    ]);
+
+
+
     setSubject('');
+
   };
+
+
 
   const save = async () => {
-    const uniqueClassIds = [...new Set(items.map((i) => i.class))];
-    const uniqueSubjects = [...new Set(items.map((i) => i.subject).filter(Boolean))];
-    for (const subject of uniqueSubjects) {
-      try {
-        await api.post('/subjects', { subject });
-      } catch {
-        /* already in catalog */
+
+    try {
+
+      const uniqueClassIds = [
+
+        ...new Set(items.map((i) => i.class)),
+
+      ];
+
+
+
+      const uniqueSubjects = [
+
+        ...new Set(
+
+          items
+
+            .map((i) => i.subject)
+
+            .filter(Boolean)
+
+        ),
+
+      ];
+
+
+
+      for (const subject of uniqueSubjects) {
+
+        try {
+
+          await api.post('/subjects', {
+
+            subject,
+
+          });
+
+        } catch {
+
+          // ignore duplicate
+
+        }
+
       }
+
+
+
+      await api.put(
+
+        `/users/${teacherId}/assignments`,
+
+        {
+
+          assignedClasses: uniqueClassIds,
+
+          assignments: items,
+
+        }
+
+      );
+
+
+
+      toast.success(
+
+        'Assignments saved successfully'
+
+      );
+
+    } catch (error) {
+
+      toast.error(
+
+        error?.response?.data?.message ||
+
+        'Failed to save assignments'
+
+      );
+
     }
-    await api.put(`/users/${teacherId}/assignments`, { assignedClasses: uniqueClassIds, assignments: items });
-    toast.success('Assignments saved');
+
   };
 
+
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Teacher Assignment</h1>
-      <Card><CardHeader><CardTitle>Assign Classes and Subjects</CardTitle></CardHeader><CardContent className="space-y-3">
-        <Select value={teacherId} onValueChange={setTeacherId}><SelectTrigger><SelectValue placeholder="Teacher" /></SelectTrigger><SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.teacherName || t.name}</SelectItem>)}</SelectContent></Select>
-        <div className="grid md:grid-cols-3 gap-2">
-          <Select value={selectedClass} onValueChange={setSelectedClass}><SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger><SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>)}</SelectContent></Select>
-          <Input placeholder="Subject (Maths)" value={subject} onChange={(e) => setSubject(e.target.value)} />
-          <Button onClick={addItem}>Add</Button>
+
+    <PageStack>
+
+      <PageHeader
+
+        title="Teacher Assignments"
+
+        description="Manage teacher classes and subjects"
+
+      />
+
+
+
+      <ErpSection title="Select Teacher" icon={Users} tone="blue">
+
+        <FormField label="Teacher">
+
+          <Select
+
+            value={teacherId}
+
+            onValueChange={setTeacherId}
+
+          >
+
+            <SelectTrigger>
+
+              <SelectValue placeholder="Select Teacher" />
+
+            </SelectTrigger>
+
+            <SelectContent>
+
+              {teachers.map((teacher) => (
+
+                <SelectItem
+
+                  key={teacher._id}
+
+                  value={teacher._id}
+
+                >
+
+                  {teacher.teacherName || teacher.name}
+
+                </SelectItem>
+
+              ))}
+
+            </SelectContent>
+
+          </Select>
+
+        </FormField>
+
+      </ErpSection>
+
+
+
+      <ErpSection title="Add New Assignment" icon={Plus} tone="orange">
+
+        <div className="grid gap-4 lg:grid-cols-3">
+
+          <FormField label="Class">
+
+            <Select
+
+              value={selectedClass}
+
+              onValueChange={setSelectedClass}
+
+            >
+
+              <SelectTrigger>
+
+                <SelectValue placeholder="Select Class" />
+
+              </SelectTrigger>
+
+              <SelectContent>
+
+                {classes.map((cls) => (
+
+                  <SelectItem
+
+                    key={cls._id}
+
+                    value={cls._id}
+
+                  >
+
+                    {cls.className}-{cls.section}
+
+                  </SelectItem>
+
+                ))}
+
+              </SelectContent>
+
+            </Select>
+
+          </FormField>
+
+
+
+          <FormField label="Subject">
+
+            <Input
+
+              placeholder="Enter Subject"
+
+              value={subject}
+
+              onChange={(e) =>
+
+                setSubject(e.target.value)
+
+              }
+
+            />
+
+          </FormField>
+
+
+
+          <div className="flex items-end">
+
+            <Button
+
+              onClick={addItem}
+
+              className="w-full"
+
+              variant="success"
+
+            >
+
+              <Plus className="mr-2 h-4 w-4" />
+
+              Add Assignment
+
+            </Button>
+
+          </div>
+
         </div>
-        <div className="space-y-2">{items.map((i, idx) => <div key={`${i.class}-${i.subject}-${idx}`} className="border rounded p-2 flex justify-between text-sm"><span>{classes.find((c) => c._id === i.class)?.className}-{classes.find((c) => c._id === i.class)?.section} / {i.subject}</span><Button variant="ghost" size="sm" onClick={() => setItems((prev) => prev.filter((_, pidx) => pidx !== idx))}>Remove</Button></div>)}</div>
-        <Button onClick={save}>Save Assignment</Button>
-      </CardContent></Card>
-    </div>
+
+      </ErpSection>
+
+
+
+      <ErpSection title="Current Assignments" icon={ClipboardList} tone="green">
+
+        {items.length === 0 ? (
+
+          <div className="py-8 text-center text-slate-500">
+
+            No assignments added yet
+
+          </div>
+
+        ) : (
+
+          <div className="space-y-3">
+
+            {items.map((item, index) => {
+
+              const classInfo = classes.find(
+
+                (c) => c._id === item.class
+
+              );
+
+
+
+              return (
+
+                <div
+
+                  key={`${item.class}-${item.subject}-${index}`}
+
+                  className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+
+                >
+
+                  <div>
+
+                    <div className="font-medium text-slate-800">
+
+                      Class {classInfo?.className}-
+
+                      {classInfo?.section}
+
+                    </div>
+
+                    <div className="text-sm text-slate-500">
+
+                      Subject: {item.subject}
+
+                    </div>
+
+                  </div>
+
+
+
+                  <Button
+
+                    variant="destructive"
+
+                    size="sm"
+
+                    onClick={() =>
+
+                      setItems((prev) =>
+
+                        prev.filter(
+
+                          (_, idx) => idx !== index
+
+                        )
+
+                      )
+
+                    }
+
+                  >
+
+                    Remove
+
+                  </Button>
+
+                </div>
+
+              );
+
+            })}
+
+          </div>
+
+        )}
+
+      </ErpSection>
+
+
+
+      <div className="flex justify-end">
+
+        <Button
+
+          size="lg"
+
+          onClick={save}
+
+          className="px-8"
+
+        >
+
+          <Save className="mr-2 h-4 w-4" />
+
+          Save Assignments
+
+        </Button>
+
+      </div>
+
+    </PageStack>
+
   );
+
 }
+

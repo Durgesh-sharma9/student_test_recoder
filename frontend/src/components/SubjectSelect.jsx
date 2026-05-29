@@ -61,7 +61,7 @@ export default function SubjectSelect({
   return (
     <div ref={wrapRef} className={cn('relative', className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           className="pl-9 pr-9"
           placeholder={loading ? 'Loading subjects...' : placeholder}
@@ -76,7 +76,7 @@ export default function SubjectSelect({
         />
         <button
           type="button"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           onClick={() => setOpen((v) => !v)}
           tabIndex={-1}
         >
@@ -85,18 +85,18 @@ export default function SubjectSelect({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border bg-white shadow-lg">
-          {loading && <p className="px-3 py-2 text-sm text-muted-foreground">Loading...</p>}
+        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+          {loading && <p className="px-3 py-2 text-sm text-slate-500">Loading...</p>}
           {!loading && filtered.length === 0 && !showCustom && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">{emptyMessage}</p>
+            <p className="px-3 py-2 text-sm text-slate-500">{emptyMessage}</p>
           )}
           {filtered.map((s) => (
             <button
               key={s}
               type="button"
               className={cn(
-                'w-full px-3 py-2 text-left text-sm hover:bg-slate-100',
-                value === s && 'bg-primary/10 font-medium text-primary'
+                'w-full px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50',
+                value === s && 'bg-blue-50 font-medium text-blue-700'
               )}
               onClick={() => pick(s)}
             >
@@ -106,14 +106,14 @@ export default function SubjectSelect({
           {showCustom && (
             <button
               type="button"
-              className="w-full border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-slate-50"
+              className="w-full border-t border-slate-100 px-3 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50"
               onClick={() => pick(customValue)}
             >
               {canAddSubjects ? `Add & use "${customValue}"` : `Use custom "${customValue}"`}
             </button>
           )}
           {!loading && allowCustom && !canAddSubjects && (
-            <p className="border-t px-3 py-2 text-xs text-muted-foreground">
+            <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
               Custom subjects must match your assignment or save will be rejected.
             </p>
           )}

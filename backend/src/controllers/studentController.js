@@ -7,13 +7,21 @@ import { withSchool } from '../utils/tenantQuery.js';
 
 export const getStudents = asyncHandler(async (req, res) => {
   const filter = withSchool(req, { isActive: true });
-  if (req.query.class) filter.class = req.query.class;
+
+  if (req.query.class) {
+    filter.class = req.query.class;
+  }
 
   const students = await Student.find(filter)
-    .populate('class', 'className section')
-    .sort('rollNo');
+    .populate('class', 'className section');
 
-  res.json({ success: true, count: students.length, students });
+  students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
+
+  res.json({
+    success: true,
+    count: students.length,
+    students,
+  });
 });
 
 export const getStudent = asyncHandler(async (req, res) => {

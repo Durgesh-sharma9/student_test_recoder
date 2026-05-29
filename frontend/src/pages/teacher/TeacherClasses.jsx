@@ -1,21 +1,37 @@
 import { useEffect, useState } from 'react';
+import { BookOpen, GraduationCap } from 'lucide-react';
 import api from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 
 export default function TeacherClasses() {
   const [user, setUser] = useState(null);
   useEffect(() => { api.get('/auth/me').then((r) => setUser(r.data.user)); }, []);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">My Classes & Subjects</h1>
-      {(user?.assignments || []).map((a, idx) => (
-        <Card key={idx}>
-          <CardHeader><CardTitle>{a.class?.className}-{a.class?.section}</CardTitle></CardHeader>
-          <CardContent><p className="text-sm text-muted-foreground">Subject: {a.subject}</p></CardContent>
-        </Card>
-      ))}
-      {!user?.assignments?.length && <p className="text-muted-foreground">No assignments yet.</p>}
-    </div>
+    <PageStack>
+      <PageHeader
+        title="My Classes & Subjects"
+        description="View your assigned classes and subjects."
+      />
+
+      {(user?.assignments || []).length === 0 ? (
+        <ErpSection title="Assignments" icon={GraduationCap} tone="green">
+          <p className="text-sm text-slate-500">No assignments yet.</p>
+        </ErpSection>
+      ) : (
+        (user?.assignments || []).map((a, idx) => (
+          <ErpSection
+            key={idx}
+            title={`${a.class?.className}-${a.class?.section}`}
+            icon={BookOpen}
+            tone="green"
+          >
+            <p className="text-sm text-slate-600">
+              <span className="font-medium text-slate-800">Subject:</span> {a.subject}
+            </p>
+          </ErpSection>
+        ))
+      )}
+    </PageStack>
   );
 }

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Settings2, ClipboardList, Download, Save } from 'lucide-react';
 import api from '@/lib/api';
 import { useSubjects } from '@/hooks/useSubjects';
 import SubjectSelect from '@/components/SubjectSelect';
+import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
@@ -154,106 +155,120 @@ export default function MarksEntryForm({ category, title }) {
   const loadButtonLabel = isDaily ? 'Load Daily Test' : 'Load Main Exam';
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <Card>
-        <CardHeader><CardTitle>Session Setup</CardTitle></CardHeader>
-        <CardContent className="grid md:grid-cols-3 gap-2">
-          <Select
-            value={form.classId || undefined}
-            onValueChange={(v) => {
-              setForm({ ...form, classId: v, subject: '' });
-              clearLoadedData();
-            }}
-          >
-            <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
-            <SelectContent>
-              {classes.map((c) => (
-                <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <PageStack>
+      <PageHeader title={title} description={`Enter and save ${isDaily ? 'daily test' : 'main exam'} marks for your students.`} />
 
-          <SubjectSelect
-            value={form.subject}
-            onChange={(subject) => {
-              setForm((f) => ({ ...f, subject }));
-              clearLoadedData();
-            }}
-            subjects={subjectOptions}
-            loading={subjectsLoading}
-            allowCustom={allowCustom}
-            canAddSubjects={canAddSubjects}
-            onRegisterSubject={registerSubject}
-            emptyMessage={emptyMessage}
-            placeholder="Search assigned subject"
-          />
-
-          {isDaily ? (
-            <Input
-              type="date"
-              value={form.testDate}
-              onChange={(e) => {
-                setForm({ ...form, testDate: e.target.value });
+      <ErpSection title="Session Setup" icon={Settings2} tone="orange">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <FormField label="Class">
+            <Select
+              value={form.classId || undefined}
+              onValueChange={(v) => {
+                setForm({ ...form, classId: v, subject: '' });
                 clearLoadedData();
               }}
+            >
+              <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="Subject">
+            <SubjectSelect
+              value={form.subject}
+              onChange={(subject) => {
+                setForm((f) => ({ ...f, subject }));
+                clearLoadedData();
+              }}
+              subjects={subjectOptions}
+              loading={subjectsLoading}
+              allowCustom={allowCustom}
+              canAddSubjects={canAddSubjects}
+              onRegisterSubject={registerSubject}
+              emptyMessage={emptyMessage}
+              placeholder="Search assigned subject"
             />
-          ) : (
-            <>
-              <Select
-                value={form.examType}
-                onValueChange={(v) => {
-                  setForm({ ...form, examType: v });
-                  clearLoadedData();
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
-                <SelectContent>
-                  {MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          </FormField>
+
+          {isDaily ? (
+            <FormField label="Test Date">
               <Input
                 type="date"
-                value={form.examDate}
+                value={form.testDate}
                 onChange={(e) => {
-                  setForm({ ...form, examDate: e.target.value });
+                  setForm({ ...form, testDate: e.target.value });
                   clearLoadedData();
                 }}
               />
+            </FormField>
+          ) : (
+            <>
+              <FormField label="Exam Type">
+                <Select
+                  value={form.examType}
+                  onValueChange={(v) => {
+                    setForm({ ...form, examType: v });
+                    clearLoadedData();
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
+                  <SelectContent>
+                    {MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Exam Date">
+                <Input
+                  type="date"
+                  value={form.examDate}
+                  onChange={(e) => {
+                    setForm({ ...form, examDate: e.target.value });
+                    clearLoadedData();
+                  }}
+                />
+              </FormField>
             </>
           )}
 
-          <Input
-            type="number"
-            placeholder="Max Marks"
-            value={form.maxMarks}
-            onChange={(e) => setForm({ ...form, maxMarks: e.target.value })}
-          />
+          <FormField label="Max Marks">
+            <Input
+              type="number"
+              placeholder="Max Marks"
+              value={form.maxMarks}
+              onChange={(e) => setForm({ ...form, maxMarks: e.target.value })}
+            />
+          </FormField>
 
-          <Button type="button" onClick={loadEntry} disabled={loadingStudents}>
-            {loadingStudents ? 'Loading...' : loadButtonLabel}
-          </Button>
-        </CardContent>
-      </Card>
+          <div className="flex items-end">
+            <Button type="button" onClick={loadEntry} disabled={loadingStudents} className="w-full">
+              {loadingStudents ? 'Loading...' : loadButtonLabel}
+            </Button>
+          </div>
+        </div>
+      </ErpSection>
 
       {loaded && rows.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-center gap-2">
-              Marks Table
-              {session && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {isDaily ? 'Existing test — editing saved marks' : 'Existing exam — editing saved marks'}
-                </span>
-              )}
-              {!session && isDaily && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  New test — marks will be saved on Submit
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 overflow-x-auto">
+        <ErpSection
+          title="Marks Table"
+          icon={ClipboardList}
+          tone="green"
+          action={
+            session ? (
+              <span className="text-xs font-normal text-slate-500">
+                {isDaily ? 'Existing test — editing saved marks' : 'Existing exam — editing saved marks'}
+              </span>
+            ) : isDaily ? (
+              <span className="text-xs font-normal text-slate-500">
+                New test — marks will be saved on Submit
+              </span>
+            ) : null
+          }
+        >
+          <div className="space-y-4 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -267,7 +282,7 @@ export default function MarksEntryForm({ category, title }) {
                 {rows.map((r, idx) => (
                   <TableRow key={r.studentId}>
                     <TableCell>{r.rollNo}</TableCell>
-                    <TableCell>{r.name}</TableCell>
+                    <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell>
                       <Input
                         type="number"
@@ -286,21 +301,25 @@ export default function MarksEntryForm({ category, title }) {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex gap-2">
-              <Button onClick={save} disabled={saving}>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={save} disabled={saving} variant="success">
+                <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : session ? 'Update Marks' : 'Save Marks'}
               </Button>
-              <Button variant="outline" onClick={download}>Download CSV</Button>
+              <Button variant="outline" onClick={download}>
+                <Download className="mr-2 h-4 w-4" />
+                Download CSV
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </ErpSection>
       )}
 
       {!loaded && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-slate-500">
           Select class, subject, and {isDaily ? 'date' : 'exam details'}, then click &quot;{loadButtonLabel}&quot;.
         </p>
       )}
-    </div>
+    </PageStack>
   );
 }
