@@ -13,8 +13,16 @@ export const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     statusCode = 400;
-    const field = Object.keys(err.keyPattern || {})[0] || 'field';
-    message = `Duplicate value for ${field}.`;
+    const keys = Object.keys(err.keyPattern || {});
+    if (keys.includes('testDate') || keys.includes('examDate')) {
+      message = 'A test already exists for this class, subject, and date. Open it from the marks entry screen to edit.';
+    } else if (keys.includes('className') && keys.includes('section')) {
+      message = 'This class and section already exists for your school.';
+    } else if (keys.includes('rollNo')) {
+      message = 'Roll number already exists in this class.';
+    } else {
+      message = 'Duplicate record. Please check your input and try again.';
+    }
   }
 
   if (err.name === 'JsonWebTokenError') {

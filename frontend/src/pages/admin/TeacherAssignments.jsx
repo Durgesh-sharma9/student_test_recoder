@@ -35,6 +35,14 @@ export default function TeacherAssignments() {
 
   const save = async () => {
     const uniqueClassIds = [...new Set(items.map((i) => i.class))];
+    const uniqueSubjects = [...new Set(items.map((i) => i.subject).filter(Boolean))];
+    for (const subject of uniqueSubjects) {
+      try {
+        await api.post('/subjects', { subject });
+      } catch {
+        /* already in catalog */
+      }
+    }
     await api.put(`/users/${teacherId}/assignments`, { assignedClasses: uniqueClassIds, assignments: items });
     toast.success('Assignments saved');
   };

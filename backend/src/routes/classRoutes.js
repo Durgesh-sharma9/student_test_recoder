@@ -6,19 +6,22 @@ import {
   updateClass,
   deleteClass,
   getClassStudents,
+  getSuggestions,
 } from '../controllers/classController.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { requireSchoolActive } from '../middleware/tenant.js';
 
 const router = Router();
 
-router.use(protect);
+router.use(protect, requireSchoolActive);
 
+router.get('/suggestions', getSuggestions);
 router.get('/', getClasses);
 router.get('/:id', getClass);
 router.get('/:id/students', getClassStudents);
 
-router.post('/', authorize('admin'), createClass);
-router.put('/:id', authorize('admin'), updateClass);
-router.delete('/:id', authorize('admin'), deleteClass);
+router.post('/', authorize('school_admin'), createClass);
+router.put('/:id', authorize('school_admin'), updateClass);
+router.delete('/:id', authorize('school_admin'), deleteClass);
 
 export default router;

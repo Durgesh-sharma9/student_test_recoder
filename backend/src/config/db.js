@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
 import Student from '../models/Student.js';
+import ResultSession from '../models/ResultSession.js';
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/school-daily-test';
   await mongoose.connect(uri);
 
-  // Keep DB indexes aligned with current schemas. This removes stale indexes
-  // (like old rollNumber unique index) that can cause false duplicate errors.
+  // Keep DB indexes aligned with current schemas (drops stale unique indexes).
   await Student.syncIndexes();
+  await ResultSession.syncIndexes();
 
   console.log(`MongoDB connected: ${mongoose.connection.host}`);
 };
