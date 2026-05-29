@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.js';
+import { requireSchoolActive } from '../middleware/tenant.js';
 import {
-  upsertSession,
+  previewMarksEntry,
+  saveMarksEntry,
   saveMarks,
   getMarksEntryData,
   getSessions,
@@ -12,12 +14,13 @@ import {
 
 const router = Router();
 
-router.use(protect);
+router.use(protect, requireSchoolActive);
 router.get('/dashboard', dashboardSummary);
 router.get('/sessions', getSessions);
-router.post('/sessions', authorize('admin', 'teacher'), upsertSession);
-router.get('/sessions/:sessionId/marks', authorize('admin', 'teacher'), getMarksEntryData);
-router.put('/sessions/:sessionId/marks', authorize('admin', 'teacher'), saveMarks);
+router.get('/entry-preview', authorize('school_admin', 'teacher'), previewMarksEntry);
+router.post('/entry-save', authorize('school_admin', 'teacher'), saveMarksEntry);
+router.get('/sessions/:sessionId/marks', authorize('school_admin', 'teacher'), getMarksEntryData);
+router.put('/sessions/:sessionId/marks', authorize('school_admin', 'teacher'), saveMarks);
 router.get('/', getResults);
 router.get('/download', downloadResults);
 

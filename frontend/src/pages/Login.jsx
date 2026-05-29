@@ -29,7 +29,10 @@ export default function Login() {
 
       toast.success('Login successful');
 
-      navigate(`/${user.role}`);
+      const role = user.role === 'admin' ? 'school_admin' : user.role;
+      if (role === 'super_admin') navigate('/super-admin');
+      else if (role === 'school_admin') navigate('/admin');
+      else navigate('/teacher');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
     } finally {
@@ -484,7 +487,7 @@ export default function Login() {
 
             <div className="live-badge">
               <div className="live-dot" />
-              Academic Session 2025 - 2026
+              Multi-Tenant School SaaS
             </div>
 
             <h1>
@@ -654,39 +657,16 @@ export default function Login() {
               </div>
 
               <div className="demo-row">
-
-                <span
-                  className="role-badge"
-                  style={{
-                    background:'#eef2ff',
-                    color:'#4f46e5'
-                  }}
-                >
-                  Admin
-                </span>
-
-                <span className="demo-cred">
-                  admin@school.com / admin123
-                </span>
-
+                <span className="role-badge" style={{ background:'#fef3c7', color:'#b45309' }}>Super</span>
+                <span className="demo-cred">super@school.com / super123</span>
               </div>
-
               <div className="demo-row">
-
-                <span
-                  className="role-badge"
-                  style={{
-                    background:'#ecfdf5',
-                    color:'#10b981'
-                  }}
-                >
-                  Teacher
-                </span>
-
-                <span className="demo-cred">
-                  teacher@school.com / teacher123
-                </span>
-
+                <span className="role-badge" style={{ background:'#eef2ff', color:'#4f46e5' }}>Admin</span>
+                <span className="demo-cred">admin@school.com / admin123</span>
+              </div>
+              <div className="demo-row">
+                <span className="role-badge" style={{ background:'#ecfdf5', color:'#10b981' }}>Teacher</span>
+                <span className="demo-cred">teacher@school.com / teacher123</span>
               </div>
 
             </div>

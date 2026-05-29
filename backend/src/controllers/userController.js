@@ -13,10 +13,11 @@ export const getUsers = asyncHandler(async (req, res) => {
     filter.role = role;
   }
 
-  const users = await User.find({ ...filter, isActive: true })
+  const schoolFilter = req.user.role === 'super_admin' ? {} : { school: req.user.school };
+  const users = await User.find({ ...filter, ...schoolFilter, isActive: true })
     .select('-password')
-    .populate('assignedClasses', 'className section academicYear')
-    .populate('assignments.class', 'className section academicYear')
+    .populate('assignedClasses', 'className section')
+    .populate('assignments.class', 'className section')
     .sort('-createdAt');
 
   res.json({
@@ -45,6 +46,8 @@ export const getUser = asyncHandler(async (req, res) => {
 
 });
 
+const schoolIdFromUser = (user) => user.school?._id ?? user.school;
+
 export const createUser = asyncHandler(async (req, res) => {
   const {
     teacherName,
@@ -56,6 +59,11 @@ export const createUser = asyncHandler(async (req, res) => {
     assignedClasses,
     assignments,
   } = req.body;
+
+  const schoolId = schoolIdFromUser(req.user);
+  if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
+
+  const userRole = role || 'teacher';
 
   // Check only active users
   const existing = await User.findOne({
@@ -73,23 +81,24 @@ export const createUser = asyncHandler(async (req, res) => {
 
   // Create user
   const user = await User.create({
+    school: schoolId,
     teacherName: teacherName || name,
-    name: role === 'teacher' ? teacherName || name : name,
+    name: userRole === 'teacher' ? teacherName || name : name,
     email,
     password: generatedPassword,
-    role,
+    role: userRole,
     phoneNo,
     assignedClasses,
     assignments,
   });
 
   // Send email only to teachers
-  if (role === 'teacher') {
+  if (userRole === 'teacher') {
 
     await sendTeacherMail(
       email,
       generatedPassword,
-      name
+      teacherName || name || 'Teacher'
     );
 
   }
@@ -101,7 +110,7 @@ export const createUser = asyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     message:
-      role === 'teacher'
+      userRole === 'teacher'
         ? 'Teacher created and email sent.'
         : 'User created successfully.',
     user: userObj,
@@ -174,7 +183,7 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
 
   const updated = await User.findById(teacher._id)
     .select('-password')
-    .populate('assignedClasses', 'className section academicYear')
-    .populate('assignments.class', 'className section academicYear');
+    .populate('assignedClasses', 'className section')
+    .populate('assignments.class', 'className section');
   res.json({ success: true, teacher: updated });
 });

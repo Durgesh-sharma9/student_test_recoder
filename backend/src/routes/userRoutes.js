@@ -8,10 +8,11 @@ import {
   assignTeacherWorkload,
 } from '../controllers/userController.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { requireSchoolActive } from '../middleware/tenant.js';
 
 const router = Router();
 
-router.use(protect, authorize('admin'));
+router.use(protect, requireSchoolActive, authorize('school_admin'));
 
 router.route('/').get(getUsers).post(createUser);
 router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);

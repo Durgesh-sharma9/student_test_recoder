@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const studentSchema = new mongoose.Schema(
   {
+    school: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
     name: { type: String, required: true, trim: true },
     rollNo: { type: String, required: true, trim: true },
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
@@ -12,11 +13,10 @@ const studentSchema = new mongoose.Schema(
 );
 
 studentSchema.index(
-  { rollNo: 1, class: 1 },
+  { school: 1, class: 1, rollNo: 1 },
   {
     unique: true,
-    // Ignore old legacy docs where rollNo is null/missing.
-    partialFilterExpression: { rollNo: { $type: 'string' } },
+    partialFilterExpression: { rollNo: { $type: 'string' }, isActive: true },
   }
 );
 

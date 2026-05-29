@@ -1,4 +1,3 @@
-import ExcelJS from 'exceljs';
 import Class from '../models/Class.js';
 import Student from '../models/Student.js';
 import User from '../models/User.js';
@@ -7,6 +6,19 @@ import MarkEntry from '../models/MarkEntry.js';
 import Activity from '../models/Activity.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { withSchool } from '../utils/tenantQuery.js';
+import { sendCsv, sendPdfTable, sendDailyTestCsv, sendDailyTestPdf, formatExportDate } from '../utils/exportService.js';
+import { buildDailyTestExport } from '../utils/dailyTestExport.js';
+import { OVERALL_EXAM_TYPES } from '../utils/constants.js';
+import { checkTeacherAccess, normalizeSubject } from '../utils/subjectAccess.js';
+import {
+  startOfDay,
+  endOfDay,
+  normalizeStoredDate,
+  findDailySession,
+  findMainSession,
+  buildMarksRows,
+} from '../utils/sessionHelpers.js';
 
 const round2 = (v) => Math.round(v * 100) / 100;
 
@@ -21,61 +33,172 @@ const computeCompetitionRanks = (items, valueKey) => {
   });
 };
 
-const checkTeacherAccess = async (userId, classId, subject) => {
-  const teacher = await User.findById(userId).select('assignments assignedClasses');
-  if (!teacher) throw new ApiError(404, 'Teacher not found.');
-  const hasAccess = (teacher.assignments || []).some(
-    (a) => a.class.toString() === classId.toString() && a.subject === String(subject).toUpperCase()
-  );
-  if (!hasAccess) throw new ApiError(403, 'Access denied for selected class and subject.');
-};
-
 const recalcSubjectRanks = async (sessionId) => {
   const entries = await MarkEntry.find({ session: sessionId });
-  const ranked = computeCompetitionRanks(entries.map((e) => ({ id: e._id.toString(), marks: e.marksObtained })), 'marks');
+  const ranked = computeCompetitionRanks(
+    entries.map((e) => ({ id: e._id.toString(), marks: e.marksObtained })),
+    'marks'
+  );
   for (const row of ranked) {
     await MarkEntry.findByIdAndUpdate(row.id, { rankSubject: row.rank });
   }
 };
 
-export const upsertSession = asyncHandler(async (req, res) => {
-  const { classId, subject, month, year, examType, maxMarks } = req.body;
+const schoolIdFromReq = (req) => req.user.school?._id ?? req.user.school;
+
+export const previewMarksEntry = asyncHandler(async (req, res) => {
+  const { classId, subject, category, testDate, examType, examDate, maxMarks } = req.query;
+  const cat = category === 'main' ? 'main' : 'daily';
+
+  if (!classId || !subject) throw new ApiError(400, 'Class and subject are required.');
+  if (cat === 'daily' && !testDate) throw new ApiError(400, 'Test date is required.');
+  if (cat === 'main' && (!examType || !examDate)) {
+    throw new ApiError(400, 'Exam type and exam date are required.');
+  }
+
   if (req.user.role === 'teacher') await checkTeacherAccess(req.user._id, classId, subject);
-  const classDoc = await Class.findById(classId);
-  if (!classDoc || !classDoc.isActive) throw new ApiError(404, 'Class not found.');
 
-  const session = await ResultSession.findOneAndUpdate(
-    { class: classId, subject: String(subject).toUpperCase(), month, year, examType },
-    {
+  const classDoc = await Class.findOne(withSchool(req, { _id: classId }));
+  if (!classDoc?.isActive) throw new ApiError(404, 'Class not found.');
+
+  const schoolId = schoolIdFromReq(req);
+  let session =
+    cat === 'daily'
+      ? await findDailySession(schoolId, classId, subject, testDate)
+      : await findMainSession(schoolId, classId, subject, examType, examDate);
+
+  const rows = await buildMarksRows(session, classId, schoolId);
+
+  res.json({
+    success: true,
+    existing: Boolean(session),
+    session,
+    rows,
+    maxMarks: session?.maxMarks ?? (Number(maxMarks) || 100),
+    message: session
+      ? cat === 'daily'
+        ? 'Existing Daily Test Loaded'
+        : 'Existing Main Exam Loaded'
+      : null,
+  });
+});
+
+export const saveMarksEntry = asyncHandler(async (req, res) => {
+  const {
+    classId,
+    subject,
+    category,
+    testDate,
+    examType,
+    examDate,
+    maxMarks,
+    entries,
+    sessionId,
+  } = req.body;
+  const cat = category === 'main' ? 'main' : 'daily';
+
+  if (!classId || !subject) throw new ApiError(400, 'Class and subject are required.');
+  if (cat === 'daily' && !testDate) throw new ApiError(400, 'Test date is required.');
+  if (cat === 'main' && (!examType || !examDate)) {
+    throw new ApiError(400, 'Exam type and exam date are required.');
+  }
+
+  if (req.user.role === 'teacher') await checkTeacherAccess(req.user._id, classId, subject);
+
+  const classDoc = await Class.findOne(withSchool(req, { _id: classId }));
+  if (!classDoc?.isActive) throw new ApiError(404, 'Class not found.');
+
+  const schoolId = schoolIdFromReq(req);
+  const sub = normalizeSubject(subject);
+  let session = sessionId
+    ? await ResultSession.findOne(withSchool(req, { _id: sessionId }))
+    : null;
+
+  if (!session) {
+    session =
+      cat === 'daily'
+        ? await findDailySession(schoolId, classId, sub, testDate)
+        : await findMainSession(schoolId, classId, sub, examType, examDate);
+  }
+
+  if (!session) {
+    session = await ResultSession.create({
+      school: schoolId,
       class: classId,
-      subject: String(subject).toUpperCase(),
-      month,
-      year,
-      examType,
-      maxMarks,
+      subject: sub,
+      category: cat,
+      examType: cat === 'daily' ? 'Daily Test' : examType,
+      testDate: cat === 'daily' ? normalizeStoredDate(testDate) : undefined,
+      examDate: cat === 'main' ? normalizeStoredDate(examDate) : undefined,
+      maxMarks: Number(maxMarks) || 100,
       teacher: req.user._id,
-    },
-    { upsert: true, new: true, runValidators: true }
-  );
+    });
+    await Activity.create({
+      school: schoolId,
+      actor: req.user._id,
+      action: 'SESSION_CREATED',
+      meta: { sessionId: session._id, category: cat },
+    });
+  } else {
+    session.maxMarks = Number(maxMarks) || session.maxMarks;
+    await session.save();
+  }
 
-  await Activity.create({ actor: req.user._id, action: 'SESSION_UPSERTED', meta: { sessionId: session._id } });
-  res.json({ success: true, session });
+  const classStudents = await Student.find({ class: classId, school: schoolId, isActive: true });
+  const validStudentIds = new Set(classStudents.map((s) => s._id.toString()));
+
+  for (const entry of entries || []) {
+    if (!validStudentIds.has(String(entry.studentId))) continue;
+    const marks = Number(entry.marksObtained);
+    if (Number.isNaN(marks) || marks < 0 || marks > session.maxMarks) {
+      throw new ApiError(400, 'Marks cannot exceed maximum marks.');
+    }
+    const percentage = round2((marks / session.maxMarks) * 100);
+    await MarkEntry.findOneAndUpdate(
+      { session: session._id, student: entry.studentId },
+      {
+        session: session._id,
+        student: entry.studentId,
+        marksObtained: marks,
+        percentage,
+        updatedBy: req.user._id,
+      },
+      { upsert: true, new: true }
+    );
+  }
+
+  await recalcSubjectRanks(session._id);
+  await Activity.create({
+    school: schoolId,
+    actor: req.user._id,
+    action: 'MARKS_UPDATED',
+    meta: { sessionId: session._id },
+  });
+
+  const rows = await buildMarksRows(session, classId, schoolId);
+
+  res.json({
+    success: true,
+    message: 'Marks saved and ranks recalculated.',
+    session,
+    rows,
+  });
 });
 
 export const saveMarks = asyncHandler(async (req, res) => {
   const { sessionId } = req.params;
   const { entries } = req.body;
-  const session = await ResultSession.findById(sessionId);
+  const session = await ResultSession.findOne(withSchool(req, { _id: sessionId }));
   if (!session) throw new ApiError(404, 'Session not found.');
   if (req.user.role === 'teacher') await checkTeacherAccess(req.user._id, session.class, session.subject);
 
-  const classStudents = await Student.find({ class: session.class, isActive: true }).select('_id');
+  const classStudents = await Student.find({ class: session.class, school: session.school, isActive: true });
   const validStudentIds = new Set(classStudents.map((s) => s._id.toString()));
 
   for (const entry of entries || []) {
     if (!validStudentIds.has(String(entry.studentId))) continue;
     if (entry.marksObtained < 0 || entry.marksObtained > session.maxMarks) {
-      throw new ApiError(400, `Marks for student ${entry.studentId} exceed max marks.`);
+      throw new ApiError(400, 'Marks cannot exceed maximum marks.');
     }
     const percentage = round2((entry.marksObtained / session.maxMarks) * 100);
     await MarkEntry.findOneAndUpdate(
@@ -87,178 +210,318 @@ export const saveMarks = asyncHandler(async (req, res) => {
         percentage,
         updatedBy: req.user._id,
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, new: true }
     );
   }
 
   await recalcSubjectRanks(session._id);
-  await Activity.create({ actor: req.user._id, action: 'MARKS_UPDATED', meta: { sessionId: session._id } });
+  await Activity.create({ school: session.school, actor: req.user._id, action: 'MARKS_UPDATED', meta: { sessionId } });
   res.json({ success: true, message: 'Marks saved and ranks recalculated.' });
 });
 
 export const getMarksEntryData = asyncHandler(async (req, res) => {
-  const { sessionId } = req.params;
-  const session = await ResultSession.findById(sessionId);
+  const session = await ResultSession.findOne(withSchool(req, { _id: req.params.sessionId }));
   if (!session) throw new ApiError(404, 'Session not found.');
   if (req.user.role === 'teacher') await checkTeacherAccess(req.user._id, session.class, session.subject);
 
-  const students = await Student.find({ class: session.class, isActive: true }).sort('rollNo');
+  const students = await Student.find({ class: session.class, school: session.school, isActive: true }).sort('rollNo');
   const marks = await MarkEntry.find({ session: session._id });
   const map = new Map(marks.map((m) => [m.student.toString(), m]));
 
-  const rows = students.map((s) => ({
-    studentId: s._id,
-    rollNo: s.rollNo,
-    name: s.name,
-    gender: s.gender,
-    marksObtained: map.get(s._id.toString())?.marksObtained ?? '',
-    rankSubject: map.get(s._id.toString())?.rankSubject ?? null,
-    percentage: map.get(s._id.toString())?.percentage ?? null,
-  }));
-
-  res.json({ success: true, session, rows });
+  res.json({
+    success: true,
+    session,
+    rows: students.map((s) => ({
+      studentId: s._id,
+      rollNo: s.rollNo,
+      name: s.name,
+      gender: s.gender,
+      marksObtained: map.get(s._id.toString())?.marksObtained ?? '',
+      rankSubject: map.get(s._id.toString())?.rankSubject ?? null,
+      percentage: map.get(s._id.toString())?.percentage ?? null,
+    })),
+  });
 });
 
 export const getSessions = asyncHandler(async (req, res) => {
-  const { classId, month, year, examType, subject, teacher } = req.query;
-  const filter = {};
+  const { classId, category, examType, examDate, subject, teacher, testDate, dateFrom, dateTo } = req.query;
+  const filter = withSchool(req, {});
   if (classId) filter.class = classId;
-  if (month) filter.month = Number(month);
-  if (year) filter.year = Number(year);
+  if (category) filter.category = category;
   if (examType) filter.examType = examType;
-  if (subject) filter.subject = String(subject).toUpperCase();
+  if (subject) filter.subject = normalizeSubject(subject);
   if (teacher) filter.teacher = teacher;
   if (req.user.role === 'teacher') filter.teacher = req.user._id;
 
+  if (examDate) {
+    filter.examDate = { $gte: startOfDay(examDate), $lte: endOfDay(examDate) };
+  }
+  if (testDate) {
+    filter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
+  } else if (dateFrom || dateTo) {
+    filter.testDate = {};
+    if (dateFrom) filter.testDate.$gte = startOfDay(dateFrom);
+    if (dateTo) filter.testDate.$lte = endOfDay(dateTo);
+  }
+
   const sessions = await ResultSession.find(filter)
-    .populate('class', 'className section academicYear')
+    .populate('class', 'className section')
     .populate('teacher', 'name email')
-    .sort({ year: -1, month: -1, createdAt: -1 });
+    .sort({ testDate: -1, createdAt: -1 });
+
   res.json({ success: true, sessions });
 });
 
-export const getResults = asyncHandler(async (req, res) => {
-  const { classId, month, year, examType, subject, teacher, rankingType = 'overall' } = req.query;
-  const sFilter = {};
+const buildResultRows = async (req, query) => {
+  const {
+    classId,
+    category,
+    examType,
+    subject,
+    teacher,
+    testDate,
+    dateFrom,
+    dateTo,
+    rankingType = 'subject',
+    view = 'main',
+  } = query;
+
+  const sFilter = withSchool(req, {});
   if (classId) sFilter.class = classId;
-  if (month) sFilter.month = Number(month);
-  if (year) sFilter.year = Number(year);
+  if (category) sFilter.category = category;
   if (examType) sFilter.examType = examType;
-  if (subject) sFilter.subject = String(subject).toUpperCase();
+  if (subject) sFilter.subject = normalizeSubject(subject);
   if (teacher) sFilter.teacher = teacher;
   if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
 
+  if (view === 'daily' || category === 'daily') {
+    sFilter.category = 'daily';
+    if (testDate) sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
+    else if (dateFrom || dateTo) {
+      sFilter.testDate = {};
+      if (dateFrom) sFilter.testDate.$gte = startOfDay(dateFrom);
+      if (dateTo) sFilter.testDate.$lte = endOfDay(dateTo);
+    } else if (!dateFrom && !dateTo) {
+      const today = new Date();
+      sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
+    }
+  }
+
+  if (view === 'overall') {
+    sFilter.category = 'main';
+    sFilter.examType = { $in: OVERALL_EXAM_TYPES };
+  }
+
+  const { examDate } = query;
+  if (examDate && (view === 'main' || category === 'main')) {
+    sFilter.examDate = { $gte: startOfDay(examDate), $lte: endOfDay(examDate) };
+  }
+
   const sessions = await ResultSession.find(sFilter).populate('class', 'className section').lean();
-  const sessionIds = sessions.map((s) => s._id);
-  const entries = await MarkEntry.find({ session: { $in: sessionIds } })
+  const entries = await MarkEntry.find({ session: { $in: sessions.map((s) => s._id) } })
     .populate('student', 'name rollNo')
     .lean();
   const sessionMap = new Map(sessions.map((s) => [s._id.toString(), s]));
 
-  if (rankingType === 'subject') {
-    const rows = entries.map((e) => {
+  if (view === 'overall') {
+    const grouped = new Map();
+    for (const e of entries) {
       const s = sessionMap.get(e.session.toString());
-      return {
-        sessionId: s._id,
-        class: s.class,
-        subject: s.subject,
-        month: s.month,
-        year: s.year,
-        examType: s.examType,
+      const key = e.student._id.toString();
+      const prev = grouped.get(key) || {
         student: e.student,
-        marksObtained: e.marksObtained,
-        maxMarks: s.maxMarks,
-        percentage: e.percentage,
-        rank: e.rankSubject,
+        class: s.class,
+        totalObtained: 0,
+        totalMax: 0,
+        subjects: [],
       };
-    });
-    return res.json({ success: true, results: rows });
+      prev.totalObtained += e.marksObtained;
+      prev.totalMax += s.maxMarks;
+      prev.subjects.push({ subject: s.subject, examType: s.examType, marksObtained: e.marksObtained, maxMarks: s.maxMarks });
+      grouped.set(key, prev);
+    }
+    return computeCompetitionRanks(
+      [...grouped.values()].map((r) => ({
+        ...r,
+        average: round2(r.totalObtained / Math.max(r.subjects.length, 1)),
+        percentage: round2((r.totalObtained / Math.max(r.totalMax, 1)) * 100),
+      })),
+      'totalObtained'
+    );
   }
 
-  const grouped = new Map();
-  for (const e of entries) {
+  if (rankingType === 'overall' && view !== 'daily') {
+    const grouped = new Map();
+    for (const e of entries) {
+      const s = sessionMap.get(e.session.toString());
+      const key = `${e.student._id}-${s.examType}`;
+      const prev = grouped.get(key) || {
+        student: e.student,
+        class: s.class,
+        examType: s.examType,
+        totalObtained: 0,
+        totalMax: 0,
+        subjects: [],
+      };
+      prev.totalObtained += e.marksObtained;
+      prev.totalMax += s.maxMarks;
+      prev.subjects.push({ subject: s.subject, marksObtained: e.marksObtained, maxMarks: s.maxMarks });
+      grouped.set(key, prev);
+    }
+    return computeCompetitionRanks(
+      [...grouped.values()].map((r) => ({
+        ...r,
+        average: round2(r.totalObtained / Math.max(r.subjects.length, 1)),
+        percentage: round2((r.totalObtained / Math.max(r.totalMax, 1)) * 100),
+      })),
+      'totalObtained'
+    );
+  }
+
+  return entries.map((e) => {
     const s = sessionMap.get(e.session.toString());
-    const key = `${s.class._id}-${s.month}-${s.year}-${s.examType}-${e.student._id}`;
-    const prev = grouped.get(key) || {
-      student: e.student,
+    return {
+      sessionId: s._id,
       class: s.class,
-      month: s.month,
-      year: s.year,
+      subject: s.subject,
       examType: s.examType,
-      totalObtained: 0,
-      totalMax: 0,
-      subjects: [],
+      testDate: s.testDate,
+      examDate: s.examDate,
+      student: e.student,
+      marksObtained: e.marksObtained,
+      maxMarks: s.maxMarks,
+      percentage: e.percentage,
+      rank: e.rankSubject,
     };
-    prev.totalObtained += e.marksObtained;
-    prev.totalMax += s.maxMarks;
-    prev.subjects.push({ subject: s.subject, marksObtained: e.marksObtained, maxMarks: s.maxMarks });
-    grouped.set(key, prev);
-  }
+  });
+};
 
-  const rows = [...grouped.values()].map((r) => ({
-    ...r,
-    average: round2(r.totalObtained / Math.max(r.subjects.length, 1)),
-    percentage: round2((r.totalObtained / Math.max(r.totalMax, 1)) * 100),
-  }));
-  const ranked = computeCompetitionRanks(rows, 'totalObtained').map((r) => ({ ...r, rank: r.rank }));
-  res.json({ success: true, results: ranked });
+const sortResults = (rows, sortBy) => {
+  const list = [...rows];
+  switch (sortBy) {
+    case 'marks_asc':
+      return list.sort((a, b) => (a.marksObtained ?? a.totalObtained) - (b.marksObtained ?? b.totalObtained));
+    case 'rollNo':
+      return list.sort((a, b) => String(a.student?.rollNo).localeCompare(String(b.student?.rollNo), undefined, { numeric: true }));
+    case 'name':
+      return list.sort((a, b) => String(a.student?.name).localeCompare(String(b.student?.name)));
+    case 'marks_desc':
+    default:
+      return list.sort((a, b) => (b.marksObtained ?? b.totalObtained) - (a.marksObtained ?? a.totalObtained));
+  }
+};
+
+export const getResults = asyncHandler(async (req, res) => {
+  let rows = await buildResultRows(req, req.query);
+  if (Array.isArray(rows) && rows[0]?.rank !== undefined && req.query.view === 'daily') {
+    rows = sortResults(rows, req.query.sortBy);
+  } else if (Array.isArray(rows) && rows[0]?.percentage !== undefined) {
+    rows = sortResults(rows, req.query.sortBy);
+  } else {
+    rows = sortResults(rows, req.query.sortBy);
+  }
+  res.json({ success: true, results: rows });
 });
 
 export const downloadResults = asyncHandler(async (req, res) => {
-  const fakeReq = { ...req, query: { ...req.query, rankingType: req.query.rankingType || 'overall' } };
-  let payload = null;
-  await getResults(fakeReq, {
-    json: (data) => {
-      payload = data;
-    },
-  });
-  const results = payload?.results || [];
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Results');
-  sheet.addRow(['Rank', 'Student', 'Roll No', 'Class', 'Exam Type', 'Month', 'Year', 'Total', 'Max', 'Percentage']);
-  results.forEach((r) => {
-    sheet.addRow([
-      r.rank,
-      r.student?.name,
-      r.student?.rollNo,
-      `${r.class?.className}-${r.class?.section}`,
-      r.examType,
-      r.month,
-      r.year,
-      r.totalObtained ?? r.marksObtained,
-      r.totalMax ?? r.maxMarks,
-      r.percentage,
-    ]);
-  });
-  const buffer = await workbook.xlsx.writeBuffer();
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="results.xlsx"');
-  res.send(Buffer.from(buffer));
+  const format = req.query.format || 'csv';
+  const view = req.query.view || req.query.category;
+
+  if (view === 'daily') {
+    const exportData = await buildDailyTestExport(req, req.query);
+    if (format === 'pdf') return sendDailyTestPdf(res, exportData);
+    return sendDailyTestCsv(res, exportData);
+  }
+
+  let rows = await buildResultRows(req, req.query);
+  rows = sortResults(rows, req.query.sortBy);
+  const headers = ['Rank', 'Roll No', 'Student Name', 'Class', 'Subject', 'Exam Type', 'Test Date', 'Exam Date', 'Obtained', 'Max', 'Percentage'];
+  const data = rows.map((r) => [
+    r.rank ?? '-',
+    r.student?.rollNo,
+    r.student?.name,
+    r.class ? `${r.class.className}-${r.class.section}` : '-',
+    r.subject ?? '-',
+    r.examType ?? '-',
+    r.testDate ? formatExportDate(r.testDate) : '-',
+    r.examDate ? formatExportDate(r.examDate) : '-',
+    r.marksObtained ?? r.totalObtained,
+    r.maxMarks ?? r.totalMax,
+    r.percentage != null ? `${r.percentage}%` : '-',
+  ]);
+
+  const filename = `results.${format === 'pdf' ? 'pdf' : 'csv'}`;
+  if (format === 'pdf') return sendPdfTable(res, filename, 'Results Report', headers, data);
+  return sendCsv(res, filename, headers, data);
 });
 
 export const dashboardSummary = asyncHandler(async (req, res) => {
-  if (req.user.role === 'admin') {
+  const schoolFilter = withSchool(req, {});
+
+  if (req.user.role === 'school_admin' || req.user.role === 'admin') {
     const [teachers, students, classes, sessions, activities] = await Promise.all([
-      User.countDocuments({ role: 'teacher', isActive: true }),
-      Student.countDocuments({ isActive: true }),
-      Class.countDocuments({ isActive: true }),
-      ResultSession.countDocuments(),
-      Activity.find().sort('-createdAt').limit(10).populate('actor', 'name'),
+      User.countDocuments({ ...schoolFilter, role: 'teacher', isActive: true }),
+      Student.countDocuments({ ...schoolFilter, isActive: true }),
+      Class.countDocuments({ ...schoolFilter, isActive: true }),
+      ResultSession.countDocuments(schoolFilter),
+      Activity.find(schoolFilter).sort('-createdAt').limit(10).populate('actor', 'name'),
     ]);
-    const topper = await getTopper();
+    const topper = await getTopper(schoolFilter);
     return res.json({ success: true, stats: { teachers, students, classes, sessions }, topper, recentActivities: activities });
   }
-  const me = await User.findById(req.user._id).populate('assignedClasses', 'className section');
-  const sessions = await ResultSession.find({ teacher: req.user._id }).sort('-createdAt').limit(6).lean();
+
+  const me = await User.findById(req.user._id)
+    .populate('assignedClasses', 'className section')
+    .populate('assignments.class', 'className section');
+  const assignedClassIds = (me.assignedClasses || []).map((c) => c._id);
+  const assignmentDetails = (me.assignments || []).map((a) => ({
+    classId: (a.class?._id || a.class)?.toString(),
+    className: a.class?.className,
+    section: a.class?.section,
+    subject: normalizeSubject(a.subject),
+  }));
+  const subjectCount = new Set(assignmentDetails.map((a) => a.subject)).size;
+
+  const [students, sessions, pendingSessions] = await Promise.all([
+    Student.countDocuments({ class: { $in: assignedClassIds }, isActive: true }),
+    ResultSession.countDocuments({ teacher: req.user._id }),
+    ResultSession.countDocuments({ teacher: req.user._id }).then(async (count) => {
+      const withMarks = await MarkEntry.distinct('session', { updatedBy: req.user._id });
+      return Math.max(0, count - withMarks.length);
+    }),
+  ]);
+
+  const recentActivities = await Activity.find({ school: req.user.school, actor: req.user._id })
+    .sort('-createdAt')
+    .limit(8)
+    .populate('actor', 'name');
+
   const topper = await getTopper({ teacher: req.user._id });
   const weak = await getWeakStudents(req.user._id);
-  res.json({ success: true, assignedClasses: me.assignedClasses, sessions, topper, weakStudents: weak });
+
+  res.json({
+    success: true,
+    stats: {
+      assignedClasses: assignedClassIds.length,
+      assignedSubjects: subjectCount,
+      students,
+      testsConducted: sessions,
+      pendingEntries: pendingSessions,
+    },
+    assignedClasses: me.assignedClasses,
+    assignmentDetails,
+    topper,
+    weakStudents: weak,
+    recentActivities,
+  });
 });
 
 const getTopper = async (filter = {}) => {
   const sessions = await ResultSession.find(filter).lean();
   if (!sessions.length) return null;
-  const entries = await MarkEntry.find({ session: { $in: sessions.map((s) => s._id) } }).populate('student', 'name rollNo').lean();
+  const entries = await MarkEntry.find({ session: { $in: sessions.map((s) => s._id) } })
+    .populate('student', 'name rollNo')
+    .lean();
   if (!entries.length) return null;
   const best = [...entries].sort((a, b) => b.percentage - a.percentage)[0];
   return { student: best.student, percentage: best.percentage };
@@ -267,7 +530,9 @@ const getTopper = async (filter = {}) => {
 const getWeakStudents = async (teacherId) => {
   const sessions = await ResultSession.find({ teacher: teacherId }).lean();
   if (!sessions.length) return [];
-  const entries = await MarkEntry.find({ session: { $in: sessions.map((s) => s._id) } }).populate('student', 'name rollNo').lean();
+  const entries = await MarkEntry.find({ session: { $in: sessions.map((s) => s._id) } })
+    .populate('student', 'name rollNo')
+    .lean();
   return [...entries]
     .filter((e) => e.percentage < 40)
     .sort((a, b) => a.percentage - b.percentage)
