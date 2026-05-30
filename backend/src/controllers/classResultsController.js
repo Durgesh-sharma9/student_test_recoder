@@ -24,18 +24,137 @@ const computeCompetitionRanks = (items, valueKey) => {
 };
 
 export const getClassResults = asyncHandler(async (req, res) => {
-  const { classId, examType } = req.query;
+  const { classId, examType, reportType, testDate, dateFrom, dateTo } = req.query;
 
   if (!classId) throw new ApiError(400, 'Class ID is required.');
   if (!examType) throw new ApiError(400, 'Exam Type is required.');
-  if (!MAIN_EXAM_TYPES.includes(examType)) {
-    throw new ApiError(400, 'Invalid exam type.');
-  }
 
   const classDoc = await Class.findOne(withSchool(req, { _id: classId }));
   if (!classDoc) throw new ApiError(404, 'Class not found.');
 
   const school = await School.findById(req.user.school);
+
+  // Handle Daily Test reports
+  if (reportType === 'daily' || examType === 'Daily Test') {
+    // Build date filter
+    const dateFilter = { school: req.user.school, class: classId, category: 'daily' };
+    
+    if (testDate) {
+      const startDate = new Date(testDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(testDate);
+      endDate.setHours(23, 59, 59, 999);
+      dateFilter.testDate = { $gte: startDate, $lte: endDate };
+    } else if (dateFrom && dateTo) {
+      const startDate = new Date(dateFrom);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(dateTo);
+      endDate.setHours(23, 59, 59, 999);
+      dateFilter.testDate = { $gte: startDate, $lte: endDate };
+    } else {
+      throw new ApiError(400, 'Date filter is required for Daily Test reports.');
+    }
+
+    // Fetch daily test sessions
+    const sessions = await ResultSession.find(dateFilter).lean();
+
+    if (!sessions.length) {
+      return res.json({
+        success: true,
+        schoolName: school?.schoolName || 'School',
+        className: `${classDoc.className}-${classDoc.section}`,
+        examType: 'Daily Test',
+        generatedDate: new Date().toISOString(),
+        dailyTests: [],
+        results: [],
+      });
+    }
+
+    // Sort sessions by date
+    sessions.sort((a, b) => new Date(a.testDate) - new Date(b.testDate));
+
+    const sessionIds = sessions.map((s) => s._id);
+    const entries = await MarkEntry.find({ session: { $in: sessionIds } })
+      .populate('student', 'name rollNo')
+      .lean();
+
+    // Get all students in the class
+    const students = await Student.find({
+      school: req.user.school,
+      class: classId,
+      isActive: true,
+    }).sort('rollNo');
+    students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
+
+    // Build daily test info
+    const dailyTests = sessions.map((s, idx) => ({
+      _id: s._id.toString(),
+      name: `DT${idx + 1}`,
+      testDate: s.testDate,
+      subject: s.subject,
+      maxMarks: s.maxMarks,
+    }));
+
+    // Build results with dynamic daily test columns
+    const studentMap = new Map();
+    students.forEach((student) => {
+      studentMap.set(student._id.toString(), {
+        studentId: student._id,
+        rollNo: student.rollNo,
+        name: student.name,
+        dailyTests: {},
+      });
+    });
+
+    // Populate marks for each student and daily test
+    entries.forEach((entry) => {
+      const studentId = entry.student._id.toString();
+      const session = sessions.find((s) => s._id.toString() === entry.session.toString());
+      if (session && studentMap.has(studentId)) {
+        const student = studentMap.get(studentId);
+        student.dailyTests[session._id.toString()] = {
+          marksObtained: entry.marksObtained,
+          maxMarks: session.maxMarks,
+          percentage: entry.percentage,
+        };
+      }
+    });
+
+    // Calculate totals, averages, percentages
+    const results = Array.from(studentMap.values()).map((student) => {
+      const dtMarks = Object.values(student.dailyTests);
+      const totalObtained = dtMarks.reduce((sum, m) => sum + m.marksObtained, 0);
+      const totalMax = dtMarks.reduce((sum, m) => sum + m.maxMarks, 0);
+      const average = dtMarks.length > 0 ? round2(totalObtained / dtMarks.length) : 0;
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+
+      return {
+        ...student,
+        totalObtained,
+        totalMax,
+        average,
+        percentage,
+      };
+    });
+
+    // Assign ranks (equal marks get same rank)
+    const rankedResults = computeCompetitionRanks(results, 'totalObtained');
+
+    return res.json({
+      success: true,
+      schoolName: school?.schoolName || 'School',
+      className: `${classDoc.className}-${classDoc.section}`,
+      examType: 'Daily Test',
+      generatedDate: new Date().toISOString(),
+      dailyTests,
+      results: rankedResults,
+    });
+  }
+
+  // Handle Main Exam reports (existing logic)
+  if (!MAIN_EXAM_TYPES.includes(examType)) {
+    throw new ApiError(400, 'Invalid exam type.');
+  }
 
   // Fetch all sessions for this class and exam type
   const sessions = await ResultSession.find({
