@@ -182,7 +182,7 @@ export default function ClassResults() {
     let workbook, worksheet;
 
     if (isDailyTest) {
-      // Daily Test format with proper Excel formatting
+      // Daily Test format with professional Excel formatting
       const data = [];
       
       // Row 1: Test info headers
@@ -220,66 +220,152 @@ export default function ClassResults() {
       // Merge cells for Daily Test headers
       let colIndex = 6; // Start after Student Name
       results.dailyTests.forEach((dt) => {
-        // Merge Daily Test name cell (spans 2 columns)
         worksheet['!merges'] = worksheet['!merges'] || [];
         worksheet['!merges'].push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + 1 } });
         colIndex += 2;
       });
 
-      // Apply styling to headers
+      // Apply professional styling
       const range = XLSX.utils.decode_range(worksheet['!ref']);
+      
+      // Define styles
+      const blueHeaderStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '2563EB' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1E40AF' } },
+          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+          left: { style: 'thin', color: { rgb: '1E40AF' } },
+          right: { style: 'thin', color: { rgb: '1E40AF' } }
+        }
+      };
+
+      const indigoHeaderStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '4F46E5' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '3730A3' } },
+          bottom: { style: 'thin', color: { rgb: '3730A3' } },
+          left: { style: 'thin', color: { rgb: '3730A3' } },
+          right: { style: 'thin', color: { rgb: '3730A3' } }
+        }
+      };
+
+      const subHeaderStyle = {
+        font: { bold: true, color: { rgb: '312E81' } },
+        fill: { fgColor: { rgb: 'E0E7FF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          bottom: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          left: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          right: { style: 'thin', color: { rgb: 'C7D2FE' } }
+        }
+      };
+
+      const keyColumnStyle = {
+        font: { bold: true, color: { rgb: '1D4ED8' } },
+        fill: { fgColor: { rgb: 'DBEAFE' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          bottom: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          left: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          right: { style: 'thin', color: { rgb: 'BFDBFE' } }
+        }
+      };
+
+      const dataCellStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+        }
+      };
+
+      const marksObtainedStyle = {
+        font: { bold: true, color: { rgb: '4338CA' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+        }
+      };
+
+      // Apply styles to header rows
       for (let R = 0; R <= 2; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cellAddress]) continue;
-          worksheet[cellAddress].s = {
-            font: { bold: true },
-            alignment: { horizontal: 'center', vertical: 'center' },
-            border: {
-              top: { style: 'thin' },
-              bottom: { style: 'thin' },
-              left: { style: 'thin' },
-              right: { style: 'thin' }
+          
+          if (R === 0 && C < 6) {
+            worksheet[cellAddress].s = blueHeaderStyle;
+          } else if (R === 0 && C >= 6) {
+            worksheet[cellAddress].s = indigoHeaderStyle;
+          } else if (R === 1) {
+            worksheet[cellAddress].s = indigoHeaderStyle;
+          } else if (R === 2) {
+            if (C < 6) {
+              worksheet[cellAddress].s = blueHeaderStyle;
+            } else {
+              worksheet[cellAddress].s = subHeaderStyle;
             }
-          };
+          }
         }
       }
 
-      // Apply borders to data cells
+      // Apply styles to data rows
       for (let R = 3; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cellAddress]) continue;
-          worksheet[cellAddress].s = {
-            alignment: { horizontal: 'center', vertical: 'center' },
-            border: {
-              top: { style: 'thin' },
-              bottom: { style: 'thin' },
-              left: { style: 'thin' },
-              right: { style: 'thin' }
-            }
-          };
+          
+          // Key columns (Total, Average, Percentage, Rank)
+          if (C < 4) {
+            worksheet[cellAddress].s = keyColumnStyle;
+          } 
+          // Roll No and Student Name - normal data style
+          else if (C === 4 || C === 5) {
+            worksheet[cellAddress].s = dataCellStyle;
+          }
+          // Max Marks - normal data style
+          else if ((C - 6) % 2 === 0) {
+            worksheet[cellAddress].s = dataCellStyle;
+          }
+          // Marks Obtained - bold style
+          else {
+            worksheet[cellAddress].s = marksObtainedStyle;
+          }
         }
       }
 
-      // Auto-size columns
+      // Auto-size columns with minimum width
       const colWidths = [];
       for (let C = 0; C <= range.e.c; C++) {
-        let maxWidth = 10;
+        let maxWidth = 12;
         for (let R = 0; R <= range.e.r; R++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = worksheet[cellAddress];
           if (cell && cell.v) {
             const cellValue = String(cell.v);
-            maxWidth = Math.max(maxWidth, cellValue.length + 2);
+            maxWidth = Math.max(maxWidth, Math.min(cellValue.length + 4, 30));
           }
         }
         colWidths.push({ wch: maxWidth });
       }
       worksheet['!cols'] = colWidths;
 
+      // Freeze panes: freeze top 3 rows and first 6 columns
+      worksheet['!freeze'] = { xSplit: 6, ySplit: 3 };
+
     } else {
-      // Main Exam format
+      // Main Exam format with professional styling
       const headers = ['Rank', 'Roll No', 'Student Name', ...results.subjects, 'Total', 'Average', 'Percentage'];
       const data = [headers];
 
@@ -298,55 +384,65 @@ export default function ClassResults() {
 
       worksheet = XLSX.utils.aoa_to_sheet(data);
 
-      // Apply styling to headers
+      // Apply professional styling
       const range = XLSX.utils.decode_range(worksheet['!ref']);
+      
+      const headerStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '2563EB' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1E40AF' } },
+          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+          left: { style: 'thin', color: { rgb: '1E40AF' } },
+          right: { style: 'thin', color: { rgb: '1E40AF' } }
+        }
+      };
+
+      const dataStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+        }
+      };
+
+      // Apply header style
       for (let C = 0; C <= range.e.c; C++) {
         const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
         if (!worksheet[cellAddress]) continue;
-        worksheet[cellAddress].s = {
-          font: { bold: true },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          border: {
-            top: { style: 'thin' },
-            bottom: { style: 'thin' },
-            left: { style: 'thin' },
-            right: { style: 'thin' }
-          }
-        };
+        worksheet[cellAddress].s = headerStyle;
       }
 
-      // Apply borders to data cells
+      // Apply data style
       for (let R = 1; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cellAddress]) continue;
-          worksheet[cellAddress].s = {
-            alignment: { horizontal: 'center', vertical: 'center' },
-            border: {
-              top: { style: 'thin' },
-              bottom: { style: 'thin' },
-              left: { style: 'thin' },
-              right: { style: 'thin' }
-            }
-          };
+          worksheet[cellAddress].s = dataStyle;
         }
       }
 
       // Auto-size columns
       const colWidths = [];
       for (let C = 0; C <= range.e.c; C++) {
-        let maxWidth = 10;
+        let maxWidth = 12;
         for (let R = 0; R <= range.e.r; R++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = worksheet[cellAddress];
           if (cell && cell.v) {
             const cellValue = String(cell.v);
-            maxWidth = Math.max(maxWidth, cellValue.length + 2);
+            maxWidth = Math.max(maxWidth, Math.min(cellValue.length + 4, 30));
           }
         }
         colWidths.push({ wch: maxWidth });
       }
       worksheet['!cols'] = colWidths;
+
+      // Freeze top row
+      worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
     }
 
     workbook = XLSX.utils.book_new();
@@ -524,22 +620,24 @@ export default function ClassResults() {
             {filteredResults.length === 0 ? (
               <div className="py-8 text-center text-slate-500">No results found</div>
             ) : (
-              <div className="overflow-x-auto" style={{ minWidth: '100%' }}>
+              <div className="overflow-x-auto rounded-xl border border-slate-200" style={{ minWidth: '100%' }}>
                 <Table style={{ minWidth: 'max-content' }}>
                   <TableHeader>
                     {selectedExamType === 'Daily Test' && (
                       <TableRow>
-                        <TableHead className="sticky left-0 bg-slate-50 z-10" style={{ minWidth: '60px' }}>Total</TableHead>
-                        <TableHead className="sticky left-[60px] bg-slate-50 z-10" style={{ minWidth: '70px' }}>Average</TableHead>
-                        <TableHead className="sticky left-[130px] bg-slate-50 z-10" style={{ minWidth: '50px' }}>%</TableHead>
-                        <TableHead className="sticky left-[180px] bg-slate-50 z-10" style={{ minWidth: '50px' }}>Rank</TableHead>
-                        <TableHead className="sticky left-[230px] bg-slate-50 z-10" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                        <TableHead className="sticky left-[300px] bg-slate-50 z-10" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                        <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                        <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                        <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                        <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                        <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                        <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
                         {results.dailyTests?.map((dt, idx) => (
-                          <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center" style={{ minWidth: '120px' }}>
-                            <div className="text-xs font-medium">Daily Test {idx + 1}</div>
-                            <div className="text-xs text-slate-500">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                            <div className="text-xs text-slate-500">{dt.subject}</div>
+                          <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
+                            <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
+                              <div className="text-sm font-bold">Daily Test {idx + 1}</div>
+                              <div className="text-xs text-indigo-100">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                              <div className="text-xs text-indigo-200">{dt.subject}</div>
+                            </div>
                           </TableHead>
                         ))}
                       </TableRow>
@@ -547,16 +645,16 @@ export default function ClassResults() {
                     <TableRow>
                       {selectedExamType === 'Daily Test' ? (
                         <>
-                          <TableHead className="sticky left-0 bg-slate-50 z-10" style={{ minWidth: '60px' }}>Total</TableHead>
-                          <TableHead className="sticky left-[60px] bg-slate-50 z-10" style={{ minWidth: '70px' }}>Average</TableHead>
-                          <TableHead className="sticky left-[130px] bg-slate-50 z-10" style={{ minWidth: '50px' }}>%</TableHead>
-                          <TableHead className="sticky left-[180px] bg-slate-50 z-10" style={{ minWidth: '50px' }}>Rank</TableHead>
-                          <TableHead className="sticky left-[230px] bg-slate-50 z-10" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                          <TableHead className="sticky left-[300px] bg-slate-50 z-10" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                          <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                          <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                          <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                          <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                          <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
                           {results.dailyTests?.map((dt) => (
                             <>
-                              <TableHead key={`${dt._id}-max`} className="text-center" style={{ minWidth: '80px' }}>Max Marks</TableHead>
-                              <TableHead key={`${dt._id}-obt`} className="text-center" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                              <TableHead key={`${dt._id}-max`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
+                              <TableHead key={`${dt._id}-obt`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
                             </>
                           ))}
                         </>
@@ -576,22 +674,22 @@ export default function ClassResults() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredResults.map((student) => (
-                      <TableRow key={student.studentId}>
+                    {filteredResults.map((student, index) => (
+                      <TableRow key={student.studentId} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                         {selectedExamType === 'Daily Test' ? (
                           <>
-                            <TableCell className="sticky left-0 bg-white z-10 font-medium" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
-                            <TableCell className="sticky left-[60px] bg-white z-10" style={{ minWidth: '70px' }}>{student.average}</TableCell>
-                            <TableCell className="sticky left-[130px] bg-white z-10" style={{ minWidth: '50px' }}>{student.percentage}%</TableCell>
-                            <TableCell className="sticky left-[180px] bg-white z-10 font-medium" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
-                            <TableCell className="sticky left-[230px] bg-white z-10" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
-                            <TableCell className="sticky left-[300px] bg-white z-10 font-medium" style={{ minWidth: '150px' }}>{student.name}</TableCell>
+                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
+                            <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
+                            <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.percentage}%</TableCell>
+                            <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
+                            <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
+                            <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{student.name}</TableCell>
                             {results.dailyTests?.map((dt) => {
                               const mark = student.dailyTests[dt._id];
                               return (
                                 <>
-                                  <TableCell key={`${dt._id}-max`} className="text-center" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
-                                  <TableCell key={`${dt._id}-obt`} className="text-center" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                  <TableCell key={`${dt._id}-max`} className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
+                                  <TableCell key={`${dt._id}-obt`} className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
                                 </>
                               );
                             })}
