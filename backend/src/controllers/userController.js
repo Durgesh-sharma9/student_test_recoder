@@ -2,6 +2,8 @@ import User from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import sendTeacherMail from '../utils/sendTeacherMail.js';
+import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../services/emailService.js';
+import School from '../models/School.js';
 
 export const getUsers = asyncHandler(async (req, res) => {
 
@@ -92,15 +94,25 @@ export const createUser = asyncHandler(async (req, res) => {
     assignments,
   });
 
-  // Send email only to teachers
+  // Send email only to teachers using Resend
   if (userRole === 'teacher') {
+    try {
+      const school = await School.findById(schoolId);
+      const schoolName = school?.schoolName || 'Your School';
+      
+      const emailResult = await sendTeacherCreationEmail(
+        schoolName,
+        teacherName || name || 'Teacher',
+        email,
+        generatedPassword
+      );
 
-    await sendTeacherMail(
-      email,
-      generatedPassword,
-      teacherName || name || 'Teacher'
-    );
-
+      if (!emailResult.success) {
+        console.log(`[Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+      }
+    } catch (emailError) {
+      console.error('[Email Error] Failed to send teacher creation email:', emailError.message);
+    }
   }
 
   const userObj = user.toObject();
@@ -111,7 +123,7 @@ export const createUser = asyncHandler(async (req, res) => {
     success: true,
     message:
       userRole === 'teacher'
-        ? 'Teacher created and email sent.'
+        ? 'Teacher created successfully.'
         : 'User created successfully.',
     user: userObj,
   });
@@ -180,6 +192,33 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
     subject: String(a.subject).toUpperCase(),
   }));
   await teacher.save();
+
+  // Send assignment update email using Resend
+  try {
+    const school = await School.findById(teacher.school);
+    const schoolName = school?.schoolName || 'Your School';
+    
+    const updated = await User.findById(teacher._id)
+      .select('-password')
+      .populate('assignedClasses', 'className section')
+      .populate('assignments.class', 'className section');
+
+    const assignedClassNames = updated.assignedClasses.map(c => `${c.className}-${c.section}`);
+    const assignedSubjects = [...new Set(updated.assignments.map(a => a.subject))];
+
+    const emailResult = await sendTeacherAssignmentEmail(
+      teacher.teacherName || teacher.name,
+      teacher.email,
+      assignedClassNames,
+      assignedSubjects
+    );
+
+    if (!emailResult.success) {
+      console.log(`[Email Failed] Teacher assignment email for ${teacher.email}: ${emailResult.error || emailResult.message}`);
+    }
+  } catch (emailError) {
+    console.error('[Email Error] Failed to send teacher assignment email:', emailError.message);
+  }
 
   const updated = await User.findById(teacher._id)
     .select('-password')

@@ -138,6 +138,7 @@ const exportSchoolData = async (schoolId, type) => {
     const rows = await Student.find({ school: schoolId, isActive: true })
       .populate('class', 'className section')
       .sort('rollNo');
+    rows.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
     return {
       title: 'Students',
       headers: ['Roll No', 'Name', 'Gender', 'Class', 'Section'],

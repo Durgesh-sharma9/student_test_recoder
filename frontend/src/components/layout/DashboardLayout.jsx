@@ -29,8 +29,9 @@ const navByRole = {
     { to: '/admin/teachers', label: 'Teachers', icon: Users },
     { to: '/admin/classes', label: 'Classes', icon: School },
     { to: '/admin/students', label: 'Students', icon: GraduationCap },
-    { to: '/admin/assignments', label: 'Assignments', icon: ClipboardList },
+    { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList },
     { to: '/admin/results', label: 'Results', icon: BarChart3 },
+    { to: '/admin/class-results', label: 'Class Results', icon: FileText },
   ],
   teacher: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -52,7 +53,7 @@ export default function DashboardLayout() {
     <div className="flex min-h-screen bg-slate-50">
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white shadow-sm transition-transform duration-300 lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white shadow-sm transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >

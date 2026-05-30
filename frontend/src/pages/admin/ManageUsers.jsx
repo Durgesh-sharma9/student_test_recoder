@@ -137,49 +137,70 @@ export default function ManageUsers() {
       </ErpSection>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl rounded-3xl">
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={submit}>
-            <FormField label="Teacher Name">
-              <Input
-                placeholder="Teacher Name"
-                value={form.teacherName}
-                onChange={(e) => setForm({ ...form, teacherName: e.target.value })}
-                required
-              />
-            </FormField>
-            <FormField label="Email">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-              />
-            </FormField>
-            <FormField label={edit ? 'Password (optional)' : 'Password'}>
-              <Input
-                type="password"
-                placeholder={edit ? 'Password (optional)' : 'Password'}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={!edit}
-              />
-            </FormField>
-            <FormField label="Phone No">
-              <Input
-                placeholder="Phone No"
-                value={form.phoneNo}
-                onChange={(e) => setForm({ ...form, phoneNo: e.target.value })}
-                required
-              />
-            </FormField>
-            <Button className="w-full" variant={edit ? 'default' : 'success'}>
-              {edit ? 'Save' : 'Create'}
-            </Button>
-          </form>
+          <form className="space-y-6" onSubmit={submit}>
+  <div className="grid gap-4 md:grid-cols-2">
+    <FormField label="Teacher Name">
+      <Input
+        placeholder="Teacher Name"
+        value={form.teacherName}
+        onChange={(e) =>
+          setForm({ ...form, teacherName: e.target.value })
+        }
+        className="h-12 rounded-xl"
+        required
+      />
+    </FormField>
+
+    <FormField label="Email">
+      <Input
+        type="email"
+        placeholder="Email"
+        value={form.email}
+        onChange={(e) =>
+          setForm({ ...form, email: e.target.value })
+        }
+        className="h-12 rounded-xl"
+        required
+      />
+    </FormField>
+
+    <FormField label={edit ? "Password (optional)" : "Password"}>
+      <Input
+        type="password"
+        placeholder={edit ? "Password (optional)" : "Password"}
+        value={form.password}
+        onChange={(e) =>
+          setForm({ ...form, password: e.target.value })
+        }
+        className="h-12 rounded-xl"
+        required={!edit}
+      />
+    </FormField>
+
+    <FormField label="Phone No">
+      <Input
+        placeholder="Phone No"
+        value={form.phoneNo}
+        onChange={(e) =>
+          setForm({ ...form, phoneNo: e.target.value })
+        }
+        className="h-12 rounded-xl"
+        required
+      />
+    </FormField>
+  </div>
+
+  <Button
+    className="h-12 w-full rounded-xl text-base font-semibold"
+    variant={edit ? "default" : "success"}
+  >
+    {edit ? "Save Teacher" : "Create Teacher"}
+  </Button>
+</form>
         </DialogContent>
       </Dialog>
     </PageStack>

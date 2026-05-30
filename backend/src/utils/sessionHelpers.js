@@ -49,6 +49,7 @@ export const buildMarksRows = async (session, classId, schoolId) => {
     school: schoolId,
     isActive: true,
   }).sort('rollNo');
+  students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
 
   const marksMap = new Map();
   if (session) {

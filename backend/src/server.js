@@ -11,6 +11,7 @@ import resultRoutes from './routes/resultRoutes.js';
 import teacherRoutes from './routes/teacherRoutes.js';
 import subjectRoutes from './routes/subjectRoutes.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
+import classResultsRoutes from './routes/classResultsRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,6 +38,7 @@ app.use('/api/classes', classRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/class-results', classResultsRoutes);
 
 app.use(errorHandler);
 

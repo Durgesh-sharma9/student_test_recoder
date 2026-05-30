@@ -22,8 +22,22 @@ export const getClasses = asyncHandler(async (req, res) => {
     filter._id = { $in: teacher?.assignedClasses || [] };
   }
 
-  const classes = await Class.find(filter).sort('className section');
-  res.json({ success: true, count: classes.length, classes });
+  const classes = await Class.find(filter);
+
+  classes.sort((a, b) => {
+    const classDiff =
+      Number(a.className) - Number(b.className);
+
+    if (classDiff !== 0) return classDiff;
+
+    return a.section.localeCompare(b.section);
+  });
+
+  res.json({
+    success: true,
+    count: classes.length,
+    classes,
+  });
 });
 
 export const getClass = asyncHandler(async (req, res) => {
@@ -78,9 +92,28 @@ export const deleteClass = asyncHandler(async (req, res) => {
 });
 
 export const getClassStudents = asyncHandler(async (req, res) => {
-  const classDoc = await Class.findOne(withSchool(req, { _id: req.params.id }));
-  if (!classDoc) throw new ApiError(404, 'Class not found.');
+  const classDoc = await Class.findOne(
+    withSchool(req, { _id: req.params.id })
+  );
 
-  const students = await Student.find({ class: req.params.id, isActive: true, school: classDoc.school }).sort('rollNo');
-  res.json({ success: true, count: students.length, students });
+  if (!classDoc) {
+    throw new ApiError(404, 'Class not found.');
+  }
+
+  const students = await Student.find({
+    class: req.params.id,
+    isActive: true,
+    school: classDoc.school,
+  });
+
+  // Numeric sorting of roll numbers
+  students.sort(
+    (a, b) => Number(a.rollNo) - Number(b.rollNo)
+  );
+
+  res.json({
+    success: true,
+    count: students.length,
+    students,
+  });
 });

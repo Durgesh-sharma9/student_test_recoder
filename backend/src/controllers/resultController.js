@@ -225,6 +225,7 @@ export const getMarksEntryData = asyncHandler(async (req, res) => {
   if (req.user.role === 'teacher') await checkTeacherAccess(req.user._id, session.class, session.subject);
 
   const students = await Student.find({ class: session.class, school: session.school, isActive: true }).sort('rollNo');
+  students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
   const marks = await MarkEntry.find({ session: session._id });
   const map = new Map(marks.map((m) => [m.student.toString(), m]));
 
@@ -399,6 +400,14 @@ const buildResultRows = async (req, query) => {
 const sortResults = (rows, sortBy) => {
   const list = [...rows];
   switch (sortBy) {
+    case 'rollNo_asc':
+      return list.sort((a, b) => String(a.student?.rollNo).localeCompare(String(b.student?.rollNo), undefined, { numeric: true }));
+    case 'rollNo_desc':
+      return list.sort((a, b) => String(b.student?.rollNo).localeCompare(String(a.student?.rollNo), undefined, { numeric: true }));
+    case 'name_asc':
+      return list.sort((a, b) => String(a.student?.name).localeCompare(String(b.student?.name)));
+    case 'name_desc':
+      return list.sort((a, b) => String(b.student?.name).localeCompare(String(a.student?.name)));
     case 'marks_asc':
       return list.sort((a, b) => (a.marksObtained ?? a.totalObtained) - (b.marksObtained ?? b.totalObtained));
     case 'rollNo':
@@ -407,9 +416,10 @@ const sortResults = (rows, sortBy) => {
       return list.sort((a, b) => String(a.student?.name).localeCompare(String(b.student?.name)));
     case 'marks_desc':
     default:
-      return list.sort((a, b) => (b.marksObtained ?? b.totalObtained) - (a.marksObtained ?? a.totalObtained));
+      return list.sort((a, b) => (b.marksObtained ?? a.totalObtained) - (a.marksObtained ?? b.totalObtained));
   }
 };
+
 
 export const getResults = asyncHandler(async (req, res) => {
   let rows = await buildResultRows(req, req.query);
@@ -539,3 +549,4 @@ const getWeakStudents = async (teacherId) => {
     .slice(0, 10)
     .map((e) => ({ student: e.student, percentage: e.percentage }));
 };
+
