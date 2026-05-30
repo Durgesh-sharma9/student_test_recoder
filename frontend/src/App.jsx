@@ -16,6 +16,7 @@ import ManageClasses from '@/pages/admin/ManageClasses';
 import ManageStudents from '@/pages/admin/ManageStudents';
 import TeacherAssignments from '@/pages/admin/TeacherAssignments';
 import ResultManagement from '@/pages/admin/ResultManagement';
+import ClassResults from '@/pages/admin/ClassResults';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/admin/students" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageStudents /></ProtectedRoute>} />
             <Route path="/admin/assignments" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherAssignments /></ProtectedRoute>} />
             <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ResultManagement /></ProtectedRoute>} />
+            <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ClassResults /></ProtectedRoute>} />
 
             <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/teacher/classes" element={<ProtectedRoute roles={['teacher']}><TeacherClasses /></ProtectedRoute>} />

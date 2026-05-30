@@ -11,6 +11,71 @@ const DEFAULT_SUBJECTS = [
   { name: 'Social Studies', maxMarks: 25 },
 ];
 
+export const generateStudentImportTemplate = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Students');
+
+  const headers = ['Roll No', 'Student Name', 'Gender'];
+  sheet.addRow(headers);
+
+  const exampleRow = ['1', 'John Doe', 'male'];
+  sheet.addRow(exampleRow);
+
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE2E8F0' },
+  };
+
+  sheet.columns.forEach((col) => {
+    col.width = 20;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer;
+};
+
+export const parseStudentImportFile = (buffer, filename) => {
+  const isCSV = filename.toLowerCase().endsWith('.csv');
+  let rows;
+
+  if (isCSV) {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  } else {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  }
+
+  if (rows.length < 2) {
+    throw new ApiError(400, 'Invalid file format. File must have at least a header row and one data row.');
+  }
+
+  const headers = rows[0].map((h) => String(h).trim());
+  const dataRows = rows.slice(1).filter((row) => row[0] || row[1]);
+
+  const parsed = dataRows.map((row, index) => {
+    const rollNo = String(row[0] || '').trim();
+    const name = String(row[1] || '').trim();
+    const gender = String(row[2] || '').trim().toLowerCase();
+
+    return {
+      rowNumber: index + 2,
+      rollNo,
+      name,
+      gender,
+    };
+  });
+
+  return parsed;
+};
+
 export const generateTemplate = async (classId, testName, testDate, subjects = DEFAULT_SUBJECTS) => {
   const students = await Student.find({ class: classId, isActive: true }).sort('rollNumber');
 

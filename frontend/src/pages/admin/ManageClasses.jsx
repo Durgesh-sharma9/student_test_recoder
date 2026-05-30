@@ -112,69 +112,86 @@ export default function ManageClasses() {
       </ErpSection>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl rounded-3xl">
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit' : 'Add'} Class</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={submit}>
-            <FormField label="Class">
-              <Select
-                value={form.className || undefined}
-                onValueChange={(v) => {
-                  setForm({ ...form, className: v });
-                  setCustomClass('');
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suggestions.classSuggestions.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label="Or custom class name">
-              <Input
-                placeholder="Or custom class name"
-                value={customClass}
-                onChange={(e) => setCustomClass(e.target.value.toUpperCase())}
-              />
-            </FormField>
-            <FormField label="Section">
-              <Select
-                value={form.section || undefined}
-                onValueChange={(v) => {
-                  setForm({ ...form, section: v });
-                  setCustomSection('');
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suggestions.sectionSuggestions.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label="Or custom section">
-              <Input
-                placeholder="Or custom section"
-                value={customSection}
-                onChange={(e) => setCustomSection(e.target.value.toUpperCase())}
-              />
-            </FormField>
-            <Button className="w-full" variant={edit ? 'default' : 'success'}>
-              {edit ? 'Update' : 'Create'}
-            </Button>
-          </form>
+          <form className="space-y-6" onSubmit={submit}>
+  <div className="grid gap-4 md:grid-cols-2">
+    <FormField label="Class">
+      <Select
+        value={form.className || undefined}
+        onValueChange={(v) => {
+          setForm({ ...form, className: v });
+          setCustomClass('');
+        }}
+      >
+        <SelectTrigger className="h-12 rounded-xl">
+          <SelectValue placeholder="Select class" />
+        </SelectTrigger>
+
+        <SelectContent>
+          {suggestions.classSuggestions.map((c) => (
+            <SelectItem key={c} value={c}>
+              {c}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormField>
+
+    <FormField label="Section">
+      <Select
+        value={form.section || undefined}
+        onValueChange={(v) => {
+          setForm({ ...form, section: v });
+          setCustomSection('');
+        }}
+      >
+        <SelectTrigger className="h-12 rounded-xl">
+          <SelectValue placeholder="Select section" />
+        </SelectTrigger>
+
+        <SelectContent>
+          {suggestions.sectionSuggestions.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FormField>
+
+    <FormField label="Custom Class Name">
+      <Input
+        className="h-12 rounded-xl"
+        placeholder="Enter custom class"
+        value={customClass}
+        onChange={(e) =>
+          setCustomClass(e.target.value.toUpperCase())
+        }
+      />
+    </FormField>
+
+    <FormField label="Custom Section">
+      <Input
+        className="h-12 rounded-xl"
+        placeholder="Enter custom section"
+        value={customSection}
+        onChange={(e) =>
+          setCustomSection(e.target.value.toUpperCase())
+        }
+      />
+    </FormField>
+  </div>
+
+  <Button
+    className="h-12 w-full rounded-xl text-base font-semibold"
+    variant={edit ? 'default' : 'success'}
+  >
+    {edit ? 'Update Class' : 'Create Class'}
+  </Button>
+</form>
         </DialogContent>
       </Dialog>
     </PageStack>
