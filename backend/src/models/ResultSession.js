@@ -4,6 +4,7 @@ import { MAIN_EXAM_TYPES } from '../utils/constants.js';
 const resultSessionSchema = new mongoose.Schema(
   {
     school: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
+    academicSession: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicSession', required: true },
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     subject: { type: String, required: true, trim: true, uppercase: true },
     category: { type: String, enum: ['daily', 'main'], required: true },

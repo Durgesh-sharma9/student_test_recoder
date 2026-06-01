@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const studentSchema = new mongoose.Schema(
   {
     school: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
+    academicSession: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicSession', required: true },
     name: { type: String, required: true, trim: true },
     rollNo: { type: String, required: true, trim: true },
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },

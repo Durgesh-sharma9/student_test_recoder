@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const markEntrySchema = new mongoose.Schema(
   {
     session: { type: mongoose.Schema.Types.ObjectId, ref: 'ResultSession', required: true },
+    academicSession: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicSession', required: true },
     student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
     marksObtained: { type: Number, required: true, min: 0 },
     percentage: { type: Number, required: true },

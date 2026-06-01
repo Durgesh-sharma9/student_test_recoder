@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import School from '../models/School.js';
 import Plan from '../models/Plan.js';
+import AcademicSession from '../models/AcademicSession.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -21,6 +22,33 @@ const sendTokenResponse = (user, res, statusCode = 200) => {
     token,
     user: userObj,
   });
+};
+
+// Helper function to ensure active session exists for a school
+const ensureActiveSession = async (schoolId) => {
+  const existingActive = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (existingActive) return existingActive;
+  
+  // Create default session
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+  const startDate = new Date(currentYear, 5, 1); // June 1st
+  const endDate = new Date(nextYear, 2, 31); // March 31st
+  
+  const newSession = await AcademicSession.create({
+    school: schoolId,
+    sessionName,
+    startDate,
+    endDate,
+    status: 'active'
+  });
+  
+  return newSession;
 };
 
 export const registerSchool = asyncHandler(async (req, res) => {
@@ -68,6 +96,9 @@ export const registerSchool = asyncHandler(async (req, res) => {
     phoneNo: phone,
   });
 
+  // Auto-create current academic session
+  await ensureActiveSession(school._id);
+
   admin.password = undefined;
   sendTokenResponse(admin, res, 201);
 });
@@ -98,6 +129,11 @@ export const login = asyncHandler(async (req, res) => {
     if (!school?.isActive) throw new ApiError(403, 'School account is deactivated.');
     if (school.planExpiresAt && new Date() > school.planExpiresAt) {
       throw new ApiError(403, 'School plan has expired.');
+    }
+    
+    // Auto-create current academic session for school admin
+    if (user.role === 'school_admin' || user.role === 'admin') {
+      await ensureActiveSession(user.school);
     }
   }
 

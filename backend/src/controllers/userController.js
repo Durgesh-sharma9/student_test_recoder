@@ -4,6 +4,34 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import sendTeacherMail from '../utils/sendTeacherMail.js';
 import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../services/emailService.js';
 import School from '../models/School.js';
+import AcademicSession from '../models/AcademicSession.js';
+
+// Helper function to get active session
+const getActiveSession = async (schoolId) => {
+  let activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) {
+    // Auto-create if doesn't exist
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+    const startDate = new Date(currentYear, 5, 1);
+    const endDate = new Date(nextYear, 2, 31);
+    
+    activeSession = await AcademicSession.create({
+      school: schoolId,
+      sessionName,
+      startDate,
+      endDate,
+      status: 'active'
+    });
+  }
+  
+  return activeSession;
+};
 
 export const getUsers = asyncHandler(async (req, res) => {
 
@@ -186,10 +214,15 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   const teacher = await User.findById(req.params.id);
   if (!teacher || teacher.role !== 'teacher') throw new ApiError(404, 'Teacher not found.');
 
+  // Get active session
+  const schoolId = teacher.school?._id ?? teacher.school;
+  const activeSession = await getActiveSession(schoolId);
+
   teacher.assignedClasses = assignedClasses;
   teacher.assignments = assignments.map((a) => ({
     class: a.class,
     subject: String(a.subject).toUpperCase(),
+    academicSession: activeSession._id,
   }));
   await teacher.save();
 
