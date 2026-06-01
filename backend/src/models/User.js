@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     school: { type: mongoose.Schema.Types.ObjectId, ref: 'School' },
     teacherName: { type: String, trim: true },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
     role: {
       type: String,
@@ -23,11 +23,15 @@ const userSchema = new mongoose.Schema(
     },
     phoneNo: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     assignedClasses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }],
     assignments: [teacherAssignmentSchema],
   },
   { timestamps: true }
 );
+
+// Compound unique index for school + email
+userSchema.index({ school: 1, email: 1 }, { unique: true });
 
 userSchema.pre('save', async function (next) {
   if (this.role === 'admin') this.role = 'school_admin';

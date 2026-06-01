@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { FileText, Search, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -491,7 +492,7 @@ export default function ClassResults() {
               <SelectContent>
                 {classes.map((c) => (
                   <SelectItem key={c._id} value={c._id}>
-                    {c.className}-{c.section}
+                    {formatClassName(c.className)}-{c.section}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -602,7 +603,7 @@ export default function ClassResults() {
                 </div>
                 <div>
                   <span className="font-medium text-slate-700">Class:</span>{' '}
-                  <span className="text-slate-600">{results.className}</span>
+                  <span className="text-slate-600">{formatClassName(results.className)}</span>
                 </div>
                 <div>
                   <span className="font-medium text-slate-700">Exam Type:</span>{' '}

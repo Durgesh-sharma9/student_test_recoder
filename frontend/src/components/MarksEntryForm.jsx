@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Settings2, ClipboardList, Download, Save } from 'lucide-react';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import { useSubjects } from '@/hooks/useSubjects';
 import SubjectSelect from '@/components/SubjectSelect';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
@@ -171,7 +172,7 @@ export default function MarksEntryForm({ category, title }) {
               <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
+                  <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)}-{c.section}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

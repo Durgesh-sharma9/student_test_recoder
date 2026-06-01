@@ -2,32 +2,13 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { School, Plus } from 'lucide-react';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-// Helper function to format class name for display in Class Manager
-const formatClassNameForDisplay = (className) => {
-  if (!className) return '';
-  const upperName = className.toUpperCase();
-  
-  // Keep these as-is
-  const preschoolClasses = ['NURSERY', 'LKG', 'UKG', 'PREP'];
-  if (preschoolClasses.includes(upperName)) {
-    return className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
-  }
-  
-  // For numeric classes, add "Class " prefix
-  if (/^\d+$/.test(upperName)) {
-    return `Class ${className}`;
-  }
-  
-  // For other class names, capitalize first letter
-  return className.charAt(0).toUpperCase() + className.slice(1).toLowerCase();
-};
 
 export default function ManageClasses() {
   const [rows, setRows] = useState([]);
@@ -96,7 +77,7 @@ export default function ManageClasses() {
             <TableBody>
               {rows.map((c) => (
                 <TableRow key={c._id}>
-                  <TableCell className="font-medium">{c.className}</TableCell>
+                  <TableCell className="font-medium">{formatClassName(c.className)}</TableCell>
                   <TableCell>{c.section}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
@@ -153,7 +134,7 @@ export default function ManageClasses() {
         <SelectContent className="max-h-60 overflow-y-auto">
           {suggestions.classSuggestions.map((c) => (
             <SelectItem key={c} value={c}>
-              {formatClassNameForDisplay(c)}
+              {formatClassName(c)}
             </SelectItem>
           ))}
         </SelectContent>

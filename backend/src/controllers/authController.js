@@ -89,6 +89,10 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Account is deactivated.');
   }
 
+  if (user.status === 'Inactive') {
+    throw new ApiError(403, 'Teacher account is inactive. Please contact administrator.');
+  }
+
   if (user.role !== 'super_admin' && user.school) {
     const school = await School.findById(user.school);
     if (!school?.isActive) throw new ApiError(403, 'School account is deactivated.');

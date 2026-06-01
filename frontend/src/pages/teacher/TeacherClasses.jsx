@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, GraduationCap } from 'lucide-react';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 
 export default function TeacherClasses() {
@@ -22,7 +23,7 @@ export default function TeacherClasses() {
         (user?.assignments || []).map((a, idx) => (
           <ErpSection
             key={idx}
-            title={`${a.class?.className}-${a.class?.section}`}
+            title={`${formatClassName(a.class?.className)}-${a.class?.section}`}
             icon={BookOpen}
             tone="green"
           >

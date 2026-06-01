@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Filter, Trophy, FileBarChart, Download } from 'lucide-react';
 
 import api from '@/lib/api';
-// import { formatClassDisplay } from '@/lib/formatUtils';
+import { formatClassName } from '@/lib/utils';
 
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 
@@ -167,7 +167,7 @@ export default function ResultManagement() {
 
               <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
 
-              <SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>)}</SelectContent>
+              <SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)}-{c.section}</SelectItem>)}</SelectContent>
 
             </Select>
 
@@ -379,7 +379,7 @@ export default function ResultManagement() {
 
                   <TableCell className="font-medium">{r.student?.name}</TableCell>
 
-                  <TableCell>{r.class ? `${r.class.className}-${r.class.section}` : '-'}</TableCell>
+                  <TableCell>{r.class ? `${formatClassName(r.class.className)}-${r.class.section}` : '-'}</TableCell>
 
                   <TableCell>{r.examType || 'Daily Test'}</TableCell>
 
