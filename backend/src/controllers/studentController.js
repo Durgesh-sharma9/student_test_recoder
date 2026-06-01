@@ -1,10 +1,38 @@
 import Student from '../models/Student.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
+import AcademicSession from '../models/AcademicSession.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import { parseStudentImportFile } from '../services/excelService.js';
+
+// Helper function to get active session
+const getActiveSession = async (schoolId) => {
+  let activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) {
+    // Auto-create if doesn't exist
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+    const startDate = new Date(currentYear, 5, 1);
+    const endDate = new Date(nextYear, 2, 31);
+    
+    activeSession = await AcademicSession.create({
+      school: schoolId,
+      sessionName,
+      startDate,
+      endDate,
+      status: 'active'
+    });
+  }
+  
+  return activeSession;
+};
 
 export const getStudents = asyncHandler(async (req, res) => {
   const filter = withSchool(req, { isActive: true });
@@ -13,8 +41,18 @@ export const getStudents = asyncHandler(async (req, res) => {
     filter.class = req.query.class;
   }
 
+  // Filter by academic session if provided, otherwise use active session
+  if (req.query.academicSession) {
+    filter.academicSession = req.query.academicSession;
+  } else {
+    const schoolId = req.user.school?._id ?? req.user.school;
+    const activeSession = await getActiveSession(schoolId);
+    filter.academicSession = activeSession._id;
+  }
+
   const students = await Student.find(filter)
-    .populate('class', 'className section');
+    .populate('class', 'className section')
+    .populate('academicSession', 'sessionName');
 
   students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
 
@@ -40,9 +78,19 @@ export const getStudent = asyncHandler(async (req, res) => {
 });
 
 export const createStudent = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  
+  // Get active session if not provided
+  let academicSessionId = req.body.academicSession;
+  if (!academicSessionId) {
+    const activeSession = await getActiveSession(schoolId);
+    academicSessionId = activeSession._id;
+  }
+
   const payload = {
     ...req.body,
-    school: req.user.school,
+    school: schoolId,
+    academicSession: academicSessionId,
     rollNo: String(req.body.rollNo || '').trim(),
     name: String(req.body.name || '').trim(),
   };
@@ -59,7 +107,9 @@ export const createStudent = asyncHandler(async (req, res) => {
   if (existing) throw new ApiError(400, `Roll No ${payload.rollNo} already exists in this class.`);
 
   const student = await Student.create(payload);
-  const populated = await Student.findById(student._id).populate('class', 'className section');
+  const populated = await Student.findById(student._id)
+    .populate('class', 'className section')
+    .populate('academicSession', 'sessionName');
 
   res.status(201).json({ success: true, student: populated });
 });
@@ -106,6 +156,7 @@ export const deleteStudent = asyncHandler(async (req, res) => {
 
 export const bulkImportStudents = asyncHandler(async (req, res) => {
   const { classId } = req.body;
+  const schoolId = req.user.school?._id ?? req.user.school;
   
   if (!req.file) {
     throw new ApiError(400, 'No file uploaded.');
@@ -118,7 +169,10 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
   const classDoc = await Class.findOne(withSchool(req, { _id: classId }));
   if (!classDoc) throw new ApiError(404, 'Class not found.');
 
-  const parsedData = parseStudentImportFile(req.file.buffer, req.file.originalname);
+  // Get active session
+  const activeSession = await getActiveSession(schoolId);
+
+  const parsedData = parseStudentImportFile(req.file.buffer, req.file.originalName);
   
   const results = {
     totalRows: parsedData.length,
@@ -178,7 +232,7 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
 
       // Check for duplicate roll no in the same class
       const existing = await Student.findOne({
-        school: req.user.school,
+        school: schoolId,
         class: classId,
         rollNo: row.rollNo,
         isActive: true,
@@ -190,9 +244,10 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         continue;
       }
 
-      // Create student
+      // Create student with active session
       await Student.create({
-        school: req.user.school,
+        school: schoolId,
+        academicSession: activeSession._id,
         class: classId,
         rollNo: row.rollNo,
         name: row.name,

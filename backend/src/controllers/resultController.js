@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import ResultSession from '../models/ResultSession.js';
 import MarkEntry from '../models/MarkEntry.js';
 import Activity from '../models/Activity.js';
+import AcademicSession from '../models/AcademicSession.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
@@ -19,6 +20,33 @@ import {
   findMainSession,
   buildMarksRows,
 } from '../utils/sessionHelpers.js';
+
+// Helper function to get active session
+const getActiveSession = async (schoolId) => {
+  let activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) {
+    // Auto-create if doesn't exist
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+    const startDate = new Date(currentYear, 5, 1);
+    const endDate = new Date(nextYear, 2, 31);
+    
+    activeSession = await AcademicSession.create({
+      school: schoolId,
+      sessionName,
+      startDate,
+      endDate,
+      status: 'active'
+    });
+  }
+  
+  return activeSession;
+};
 
 const round2 = (v) => Math.round(v * 100) / 100;
 
@@ -122,8 +150,12 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
   }
 
   if (!session) {
+    // Get active session
+    const activeSession = await getActiveSession(schoolId);
+    
     session = await ResultSession.create({
       school: schoolId,
+      academicSession: activeSession._id,
       class: classId,
       subject: sub,
       category: cat,
@@ -158,6 +190,7 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
       { session: session._id, student: entry.studentId },
       {
         session: session._id,
+        academicSession: session.academicSession,
         student: entry.studentId,
         marksObtained: marks,
         percentage,

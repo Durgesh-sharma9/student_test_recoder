@@ -13,6 +13,7 @@ import {
   Calendar,
   FileText,
   Building2,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const navByRole = {
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList },
     { to: '/admin/results', label: 'Results', icon: BarChart3 },
     { to: '/admin/class-results', label: 'Class Results', icon: FileText },
+    { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings },
   ],
   teacher: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
