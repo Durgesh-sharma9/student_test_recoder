@@ -22,11 +22,18 @@ export const getClasses = asyncHandler(async (req, res) => {
     filter._id = { $in: teacher?.assignedClasses || [] };
   }
 
-  const classes = await Class.find(filter);
+  const classes = await Class.find(filter).lean();
+
+  for (const cls of classes) {
+    cls.studentCount = await Student.countDocuments({
+      class: cls._id,
+      school: cls.school,
+      isActive: true,
+    });
+  }
 
   classes.sort((a, b) => {
-    const classDiff =
-      Number(a.className) - Number(b.className);
+    const classDiff = Number(a.className) - Number(b.className);
 
     if (classDiff !== 0) return classDiff;
 

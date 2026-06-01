@@ -24,7 +24,7 @@ const computeCompetitionRanks = (items, valueKey) => {
 };
 
 export const getClassResults = asyncHandler(async (req, res) => {
-  const { classId, examType, reportType, testDate, dateFrom, dateTo } = req.query;
+  const { classId, examType, reportType, testDate, dateFrom, dateTo, sessionId } = req.query;
 
   if (!classId) throw new ApiError(400, 'Class ID is required.');
   if (!examType) throw new ApiError(400, 'Exam Type is required.');
@@ -34,10 +34,13 @@ export const getClassResults = asyncHandler(async (req, res) => {
 
   const school = await School.findById(req.user.school);
 
+  // Build session filter if sessionId is provided
+  const sessionFilter = sessionId ? { academicSession: sessionId } : {};
+
   // Handle Daily Test reports
   if (reportType === 'daily' || examType === 'Daily Test') {
     // Build date filter
-    const dateFilter = { school: req.user.school, class: classId, category: 'daily' };
+    const dateFilter = { school: req.user.school, class: classId, category: 'daily', ...sessionFilter };
     
     if (testDate) {
       const startDate = new Date(testDate);
@@ -162,6 +165,7 @@ export const getClassResults = asyncHandler(async (req, res) => {
     class: classId,
     category: 'main',
     examType: examType,
+    ...sessionFilter,
   }).lean();
 
   if (!sessions.length) {

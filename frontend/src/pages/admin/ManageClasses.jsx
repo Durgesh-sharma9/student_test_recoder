@@ -7,7 +7,7 @@ import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ManageClasses() {
@@ -65,60 +65,74 @@ export default function ManageClasses() {
       </PageHeader>
 
       <ErpSection title="Classes List" icon={School} tone="green">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Class</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((c) => (
-                <TableRow key={c._id}>
-                  <TableCell className="font-medium">{formatClassName(c.className)}</TableCell>
-                  <TableCell>{c.section}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEdit(c);
-                          setForm({ className: c.className, section: c.section });
-                          setOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={async () => {
-                          await api.delete(`/classes/${c._id}`);
-                          toast.success('Deleted');
-                          fetchData();
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    {rows.map((c) => (
+      <div
+        key={c._id}
+        className="group rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-slate-800">
+              {formatClassName(c.className)}
+            </h3>
+
+            <p className="text-sm text-slate-500">
+              Section {c.section}
+            </p>
+
+            <div className="mt-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+              👨‍🎓 {c.studentCount || 0} Students
+            </div>
+          </div>
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100">
+            <School className="h-6 w-6 text-blue-600" />
+          </div>
         </div>
-      </ErpSection>
+
+        <div className="border-t pt-4">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => {
+                setEdit(c);
+                setForm({
+                  className: c.className,
+                  section: c.section,
+                });
+                setOpen(true);
+              }}
+            >
+              Edit
+            </Button>
+
+            <Button
+              variant="destructive"
+              className="flex-1 rounded-xl"
+              onClick={async () => {
+                await api.delete(`/classes/${c._id}`);
+                toast.success('Deleted');
+                fetchData();
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</ErpSection>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-3xl rounded-3xl">
+        <DialogContent className="sm:max-w-4xl rounded-3xl p-8">
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit' : 'Add'} Class</DialogTitle>
           </DialogHeader>
-          <form className="space-y-6" onSubmit={submit}>
-  <div className="grid gap-4 md:grid-cols-2">
+          <form className="space-y-8" onSubmit={submit}>
+  <div className="grid gap-8 md:grid-cols-2">
     <FormField label="Class">
       <Select
         value={form.className || undefined}
@@ -127,7 +141,7 @@ export default function ManageClasses() {
           setCustomClass('');
         }}
       >
-        <SelectTrigger className="h-12 rounded-xl">
+        <SelectTrigger className="h-14 rounded-2xl">
           <SelectValue placeholder="Select class" />
         </SelectTrigger>
 
@@ -165,7 +179,7 @@ export default function ManageClasses() {
 
     <FormField label="Custom Class Name">
       <Input
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         placeholder="Enter custom class"
         value={customClass}
         onChange={(e) =>
@@ -176,7 +190,7 @@ export default function ManageClasses() {
 
     <FormField label="Custom Section">
       <Input
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         placeholder="Enter custom section"
         value={customSection}
         onChange={(e) =>
@@ -187,7 +201,7 @@ export default function ManageClasses() {
   </div>
 
   <Button
-    className="h-12 w-full rounded-xl text-base font-semibold"
+    className="h-14 w-full rounded-2xl text-lg font-semibold shadow-lg"
     variant={edit ? 'default' : 'success'}
   >
     {edit ? 'Update Class' : 'Create Class'}

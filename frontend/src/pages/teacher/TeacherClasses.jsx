@@ -6,7 +6,10 @@ import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitiv
 
 export default function TeacherClasses() {
   const [user, setUser] = useState(null);
-  useEffect(() => { api.get('/auth/me').then((r) => setUser(r.data.user)); }, []);
+
+  useEffect(() => {
+    api.get('/auth/me').then((r) => setUser(r.data.user));
+  }, []);
 
   return (
     <PageStack>
@@ -17,21 +20,60 @@ export default function TeacherClasses() {
 
       {(user?.assignments || []).length === 0 ? (
         <ErpSection title="Assignments" icon={GraduationCap} tone="green">
-          <p className="text-sm text-slate-500">No assignments yet.</p>
+          <p className="text-sm text-slate-500">
+            No assignments yet.
+          </p>
         </ErpSection>
       ) : (
-        (user?.assignments || []).map((a, idx) => (
-          <ErpSection
-            key={idx}
-            title={`${formatClassName(a.class?.className)}-${a.class?.section}`}
-            icon={BookOpen}
-            tone="green"
-          >
-            <p className="text-sm text-slate-600">
-              <span className="font-medium text-slate-800">Subject:</span> {a.subject}
-            </p>
-          </ErpSection>
-        ))
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {(user?.assignments || []).map((a, idx) => (
+            <div
+              key={idx}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+            >
+              {/* Top Accent Bar */}
+              <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+
+              <div className="p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {formatClassName(a.class?.className)}-{a.class?.section}
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Assigned Class
+                    </p>
+                  </div>
+
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
+                    <BookOpen className="h-5 w-5 text-blue-600" />
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500">
+                    Subject
+                  </p>
+
+                  <p className="mt-1 text-base font-bold text-blue-700">
+                    {a.subject}
+                  </p>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                  <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-700">
+                    Active
+                  </span>
+
+                  <span className="text-[11px] text-slate-500">
+                    Assignment
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </PageStack>
   );
