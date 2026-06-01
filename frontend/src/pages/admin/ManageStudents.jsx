@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { GraduationCap, Search, UserPlus, Download, Upload } from 'lucide-react';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -158,7 +159,7 @@ export default function ManageStudents() {
             <SelectContent>
               {classes.map((c) => (
                 <SelectItem key={c._id} value={c._id}>
-                  {c.className}-{c.section}
+                  {formatClassName(c.className)}-{c.section}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -291,7 +292,7 @@ export default function ManageStudents() {
           <SelectContent>
             {classes.map((c) => (
               <SelectItem key={c._id} value={c._id}>
-                {c.className}-{c.section}
+                {formatClassName(c.className)}-{c.section}
               </SelectItem>
             ))}
           </SelectContent>

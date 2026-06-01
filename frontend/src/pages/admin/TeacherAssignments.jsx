@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import api from "@/lib/api";
+import { formatClassName } from "@/lib/utils";
 
 import { Users, ClipboardList, Plus, Save } from "lucide-react";
 
@@ -57,12 +58,13 @@ export default function TeacherAssignments() {
   useEffect(() => {
     Promise.all([api.get("/users?role=teacher"), api.get("/classes")]).then(
       ([t, c]) => {
-        setTeachers(t.data.users || []);
+        const activeTeachers = (t.data.users || []).filter(teacher => teacher.status !== 'Inactive');
+        setTeachers(activeTeachers);
 
         setClasses(c.data.classes || []);
 
-        if (t.data.users?.length) {
-          setTeacherId(t.data.users[0]._id);
+        if (activeTeachers.length) {
+          setTeacherId(activeTeachers[0]._id);
         }
       },
     );
@@ -178,7 +180,7 @@ export default function TeacherAssignments() {
               <SelectContent>
                 {classes.map((cls) => (
                   <SelectItem key={cls._id} value={cls._id}>
-                    {cls.className}-{cls.section}
+                    {formatClassName(cls.className)}-{cls.section}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -240,7 +242,7 @@ export default function TeacherAssignments() {
                 >
                   <div>
                     <div className="font-medium text-slate-800">
-                      Class {classInfo?.className}-{classInfo?.section}
+                      {formatClassName(classInfo?.className)}-{classInfo?.section}
                     </div>
 
                     <div className="text-sm text-slate-500">

@@ -15,6 +15,7 @@ export default function ManageUsers() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ teacherName: '', email: '', password: '', phoneNo: '' });
+  const [reactivateDialog, setReactivateDialog] = useState({ open: false, teacher: null });
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
@@ -33,15 +34,45 @@ export default function ManageUsers() {
   const submit = async (e) => {
     e.preventDefault();
     try {
-      if (edit) await api.put(`/users/${edit._id}`, form);
-      else await api.post('/users', { ...form, role: 'teacher' });
-      toast.success(edit ? 'Teacher updated' : 'Teacher created');
+      if (edit) {
+        await api.put(`/users/${edit._id}`, form);
+        toast.success('Teacher updated');
+        setOpen(false);
+        setEdit(null);
+        setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
+        refresh();
+      } else {
+        // Check if teacher with same email exists and is inactive
+        const inactiveTeacher = teachers.find(t => t.email === form.email && t.status === 'Inactive');
+        if (inactiveTeacher) {
+          setReactivateDialog({ open: true, teacher: inactiveTeacher });
+        } else {
+          await api.post('/users', { ...form, role: 'teacher' });
+          toast.success('Teacher created');
+          setOpen(false);
+          setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
+          refresh();
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Operation failed');
+    }
+  };
+
+  const handleReactivate = async () => {
+    try {
+      const teacher = reactivateDialog.teacher;
+      await api.put(`/users/${teacher._id}`, {
+        ...form,
+        status: 'Active',
+      });
+      toast.success('Teacher reactivated successfully');
+      setReactivateDialog({ open: false, teacher: null });
       setOpen(false);
-      setEdit(null);
       setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
       refresh();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Operation failed');
+      toast.error(err.response?.data?.message || 'Reactivation failed');
     }
   };
 
@@ -78,6 +109,7 @@ export default function ManageUsers() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -87,6 +119,14 @@ export default function ManageUsers() {
                   <TableCell className="font-medium">{t.teacherName || t.name}</TableCell>
                   <TableCell>{t.email}</TableCell>
                   <TableCell>{t.phoneNo || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      t.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      <span className={`h-2 w-2 rounded-full ${t.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {t.status || 'Active'}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -107,14 +147,25 @@ export default function ManageUsers() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="destructive"
+                        variant={t.status === 'Inactive' ? 'default' : 'destructive'}
                         onClick={async () => {
-                          await api.delete(`/users/${t._id}`);
-                          toast.success('Teacher deleted');
+                          if (t.status === 'Inactive') {
+                            // Reactivate
+                            await api.put(`/users/${t._id}`, { status: 'Active' });
+                            toast.success('Teacher reactivated');
+                          } else {
+                            // Deactivate with confirmation
+                            if (confirm('Deactivate Teacher?\n\nThis teacher will no longer be able to log in but historical data will remain.')) {
+                              await api.put(`/users/${t._id}`, { status: 'Inactive' });
+                              toast.success('Teacher deactivated');
+                            } else {
+                              return;
+                            }
+                          }
                           refresh();
                         }}
                       >
-                        Delete
+                        {t.status === 'Inactive' ? 'Reactivate' : 'Deactivate'}
                       </Button>
                     </div>
                   </TableCell>
@@ -201,6 +252,31 @@ export default function ManageUsers() {
     {edit ? "Save Teacher" : "Create Teacher"}
   </Button>
 </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reactivateDialog.open} onOpenChange={(open) => setReactivateDialog({ open, teacher: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reactivate Teacher</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Teacher already exists and is inactive.
+            </p>
+            <div className="rounded-lg bg-slate-50 p-4">
+              <p className="font-medium text-slate-800">{reactivateDialog.teacher?.teacherName || reactivateDialog.teacher?.name}</p>
+              <p className="text-sm text-slate-600">{reactivateDialog.teacher?.email}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setReactivateDialog({ open: false, teacher: null })}>
+                Cancel
+              </Button>
+              <Button onClick={handleReactivate}>
+                Reactivate Teacher
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </PageStack>
