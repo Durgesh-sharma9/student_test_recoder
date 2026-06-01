@@ -188,12 +188,12 @@ export default function ManageUsers() {
       </ErpSection>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-3xl rounded-3xl">
+        <DialogContent className="sm:max-w-4xl rounded-3xl p-8">
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
           </DialogHeader>
-          <form className="space-y-6" onSubmit={submit}>
-  <div className="grid gap-4 md:grid-cols-2">
+          <form className="space-y-8" onSubmit={submit}>
+  <div className="grid gap-8 md:grid-cols-2">
     <FormField label="Teacher Name">
       <Input
         placeholder="Teacher Name"
@@ -201,7 +201,7 @@ export default function ManageUsers() {
         onChange={(e) =>
           setForm({ ...form, teacherName: e.target.value })
         }
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         required
       />
     </FormField>
@@ -214,7 +214,7 @@ export default function ManageUsers() {
         onChange={(e) =>
           setForm({ ...form, email: e.target.value })
         }
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         required
       />
     </FormField>
@@ -227,7 +227,7 @@ export default function ManageUsers() {
         onChange={(e) =>
           setForm({ ...form, password: e.target.value })
         }
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         required={!edit}
       />
     </FormField>
@@ -239,7 +239,7 @@ export default function ManageUsers() {
         onChange={(e) =>
           setForm({ ...form, phoneNo: e.target.value })
         }
-        className="h-12 rounded-xl"
+        className="h-14 rounded-2xl"
         required
       />
     </FormField>
