@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Users, UserPlus, Search } from 'lucide-react';
 import api from '@/lib/api';
+import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ManageUsers() {
+  const { isArchived } = useSession();
   const [teachers, setTeachers] = useState([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -132,6 +134,7 @@ export default function ManageUsers() {
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={isArchived}
                         onClick={() => {
                           setEdit(t);
                           setForm({
@@ -148,6 +151,7 @@ export default function ManageUsers() {
                       <Button
                         size="sm"
                         variant={t.status === 'Inactive' ? 'default' : 'destructive'}
+                        disabled={isArchived}
                         onClick={async () => {
                           if (t.status === 'Inactive') {
                             // Reactivate

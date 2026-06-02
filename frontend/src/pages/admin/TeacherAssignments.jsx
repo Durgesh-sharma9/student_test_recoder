@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import api from "@/lib/api";
 import { formatClassName } from "@/lib/utils";
+import { useSession } from '@/context/SessionContext';
 
 import { Users, ClipboardList, Plus, Save } from "lucide-react";
 
@@ -43,6 +44,7 @@ const COMMON_SUBJECTS = [
 ];
 
 export default function TeacherAssignments() {
+  const { isArchived } = useSession();
   const [teachers, setTeachers] = useState([]);
 
   const [classes, setClasses] = useState([]);
@@ -217,7 +219,7 @@ export default function TeacherAssignments() {
 </FormField>
 
           <div className="flex items-end">
-            <Button onClick={addItem} className="w-full" variant="success">
+            <Button onClick={addItem} className="w-full" variant="success" disabled={isArchived}>
               <Plus className="mr-2 h-4 w-4" />
               Add Assignment
             </Button>
@@ -253,6 +255,7 @@ export default function TeacherAssignments() {
                   <Button
                     variant="destructive"
                     size="sm"
+                    disabled={isArchived}
                     onClick={() =>
                       setItems((prev) => prev.filter((_, idx) => idx !== index))
                     }
@@ -267,7 +270,7 @@ export default function TeacherAssignments() {
       </ErpSection>
 
       <div className="flex justify-end">
-        <Button size="lg" onClick={save} className="px-8">
+        <Button size="lg" onClick={save} className="px-8" disabled={isArchived}>
           <Save className="mr-2 h-4 w-4" />
           Save Assignments
         </Button>

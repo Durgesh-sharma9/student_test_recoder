@@ -14,11 +14,14 @@ import {
   FileText,
   Building2,
   Settings,
+  ChevronDown,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSession } from '@/context/SessionContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import api from '@/lib/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const navByRole = {
   super_admin: [
@@ -47,24 +50,12 @@ const navByRole = {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { selectedSession, allSessions, selectSession, isArchived } = useSession();
   const [open, setOpen] = useState(false);
-  const [activeSession, setActiveSession] = useState(null);
   const navigate = useNavigate();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
-
-  useEffect(() => {
-    const fetchActiveSession = async () => {
-      try {
-        const res = await api.get('/academic-sessions/active');
-        setActiveSession(res.data.session);
-      } catch (error) {
-        console.error('Failed to fetch active session');
-        setActiveSession(null);
-      }
-    };
-    fetchActiveSession();
-  }, []);
+  const isAdmin = role === 'school_admin';
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -123,12 +114,39 @@ export default function DashboardLayout() {
             <p className="hidden text-sm text-slate-500 sm:block">Welcome back, {user?.name}</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 sm:flex">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">
-                {activeSession ? `Session: ${activeSession.sessionName}` : 'No Active Session'}
-              </span>
-            </div>
+            {isAdmin ? (
+              <div className="hidden items-center gap-2 sm:flex">
+                <Select value={selectedSession?._id} onValueChange={(value) => {
+                  const session = allSessions.find(s => s._id === value);
+                  if (session) selectSession(session);
+                }}>
+                  <SelectTrigger className="w-[200px]">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <SelectValue placeholder="Select session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allSessions.map((session) => (
+                      <SelectItem key={session._id} value={session._id}>
+                        {session.sessionName} {session.status === 'archived' && '(Archived)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isArchived && (
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 border border-amber-200">
+                    <Lock className="h-4 w-4 text-amber-600" />
+                    <span className="text-xs font-medium text-amber-700">Read Only</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="hidden items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 sm:flex">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">
+                  {selectedSession ? `Session: ${selectedSession.sessionName}` : 'No Active Session'}
+                </span>
+              </div>
+            )}
             <Button
               variant="outline"
               className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"

@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { School, Plus } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
+import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ManageClasses() {
+  const { isArchived } = useSession();
   const [rows, setRows] = useState([]);
   const [suggestions, setSuggestions] = useState({ classSuggestions: [], sectionSuggestions: [] });
   const [open, setOpen] = useState(false);
@@ -96,6 +98,7 @@ export default function ManageClasses() {
             <Button
               variant="outline"
               className="flex-1 rounded-xl"
+              disabled={isArchived}
               onClick={() => {
                 setEdit(c);
                 setForm({
@@ -111,6 +114,7 @@ export default function ManageClasses() {
             <Button
               variant="destructive"
               className="flex-1 rounded-xl"
+              disabled={isArchived}
               onClick={async () => {
                 await api.delete(`/classes/${c._id}`);
                 toast.success('Deleted');
