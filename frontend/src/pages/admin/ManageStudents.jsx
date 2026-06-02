@@ -369,6 +369,9 @@ export default function ManageStudents() {
                 <li>• Roll No (required)</li>
                 <li>• Student Name (required)</li>
                 <li>• Gender (male/female/other)</li>
+                <li>• Parent/Guardian Name</li>
+                <li>• Parent Phone</li>
+                <li>• Parent Email (Optional)</li>
               </ul>
             </div>
 
@@ -402,14 +405,22 @@ export default function ManageStudents() {
                 <h4 className="mb-3 text-sm font-semibold">
                   Import Summary
                 </h4>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   <div className="rounded-lg bg-white p-3 text-center shadow-sm border">
                     <p className="text-[11px] text-slate-500 uppercase tracking-wider">Total Rows</p>
                     <p className="text-2xl font-bold mt-0.5">{importResults.totalRows}</p>
                   </div>
                   <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
-                    <p className="text-[11px] text-green-600 uppercase tracking-wider">Imported</p>
-                    <p className="text-2xl font-bold text-green-700 mt-0.5">{importResults.imported}</p>
+                    <p className="text-[11px] text-green-600 uppercase tracking-wider">Students</p>
+                    <p className="text-2xl font-bold text-green-700 mt-0.5">{importResults.studentsCreated}</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 p-3 text-center border border-blue-100">
+                    <p className="text-[11px] text-blue-600 uppercase tracking-wider">Parents</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-0.5">{importResults.parentsCreated}</p>
+                  </div>
+                  <div className="rounded-lg bg-purple-50 p-3 text-center border border-purple-100">
+                    <p className="text-[11px] text-purple-600 uppercase tracking-wider">Linked</p>
+                    <p className="text-2xl font-bold text-purple-700 mt-0.5">{importResults.existingParentsLinked}</p>
                   </div>
                   <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
                     <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>

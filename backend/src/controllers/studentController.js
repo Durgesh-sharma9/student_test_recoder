@@ -3,11 +3,13 @@ import User from '../models/User.js';
 import Class from '../models/Class.js';
 import AcademicSession from '../models/AcademicSession.js';
 import Parent from '../models/Parent.js';
+import School from '../models/School.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import { parseStudentImportFile } from '../services/excelService.js';
 import { findOrCreateParent } from './parentController.js';
+import { sendParentCreationEmail } from '../services/emailService.js';
 
 // Helper function to get active session
 const getActiveSession = async (schoolId) => {
@@ -202,11 +204,16 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
   // Get active session
   const activeSession = await getActiveSession(schoolId);
 
+  // Get school for email sending
+  const school = await School.findById(schoolId);
+
   const parsedData = parseStudentImportFile(req.file.buffer, req.file.originalName);
   
   const results = {
     totalRows: parsedData.length,
-    imported: 0,
+    studentsCreated: 0,
+    parentsCreated: 0,
+    existingParentsLinked: 0,
     failed: 0,
     errors: [],
   };
@@ -260,6 +267,23 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         continue;
       }
 
+      // Parent validation
+      if (row.parentName && !row.parentPhone) {
+        results.failed++;
+        results.errors.push({ row: row.rowNumber, error: 'Parent Phone is required when Parent Name is provided' });
+        continue;
+      }
+
+      // Email validation if provided
+      if (row.parentEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(row.parentEmail)) {
+          results.failed++;
+          results.errors.push({ row: row.rowNumber, error: 'Invalid Parent Email format' });
+          continue;
+        }
+      }
+
       // Check for duplicate roll no in the same class
       const existing = await Student.findOne({
         school: schoolId,
@@ -274,6 +298,46 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         continue;
       }
 
+      // Handle parent creation/linking if parent data is provided
+      let parentId = null;
+      if (row.parentName && row.parentPhone) {
+        const parentResult = await findOrCreateParent(schoolId, {
+          parentName: row.parentName,
+          email: row.parentEmail,
+          phone: row.parentPhone
+        });
+        
+        parentId = parentResult.parent._id;
+        
+        if (parentResult.isNew) {
+          results.parentsCreated++;
+          
+          // Send credential email if parent email exists
+          if (row.parentEmail) {
+            try {
+              await sendParentCreationEmail(
+                school?.schoolName || 'Your School',
+                parentResult.parent.parentName,
+                parentResult.parent.email,
+                parentResult.password,
+                process.env.CLIENT_URL || 'http://localhost:5173/parent-login'
+              );
+            } catch (emailError) {
+              // Log email error but don't fail the import
+              console.error('Failed to send parent credential email:', emailError);
+            }
+          }
+        } else {
+          results.existingParentsLinked++;
+        }
+        
+        // Link student to parent
+        if (!parentResult.parent.linkedStudents.includes(parentId)) {
+          parentResult.parent.linkedStudents.push(parentId);
+          await parentResult.parent.save();
+        }
+      }
+
       // Create student with active session
       await Student.create({
         school: schoolId,
@@ -282,9 +346,10 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         rollNo: row.rollNo,
         name: row.name,
         gender: row.gender,
+        parent: parentId,
       });
 
-      results.imported++;
+      results.studentsCreated++;
     } catch (error) {
       results.failed++;
       results.errors.push({ row: row.rowNumber, error: error.message });
