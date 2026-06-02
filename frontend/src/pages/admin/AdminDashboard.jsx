@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-import { BarChart3, Trophy, Activity } from 'lucide-react';
+import { BarChart3, Activity, GraduationCap } from 'lucide-react';
 
 import api from '@/lib/api';
 
 import StatsCard from '@/components/StatsCard';
 
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
+import { formatClassName } from '@/lib/utils';
 
 
 
@@ -26,7 +27,39 @@ function ChartTooltip({ active, payload, label }) {
 
       <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-indigo-600">{label}</div>
 
-      <div className="text-sm font-bold text-slate-900">{payload[0]?.value}</div>
+      <div className="text-sm font-bold text-slate-900">{payload[0]?.value}%</div>
+
+    </div>
+
+  );
+
+}
+
+function ClassPerformanceTooltip({ active, payload }) {
+
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0].payload;
+
+  return (
+
+    <div className="rounded-lg border border-indigo-100 bg-white px-4 py-3 shadow-md">
+
+      <div className="mb-2 text-sm font-bold text-slate-900">{data.name}</div>
+
+      <div className="space-y-1 text-xs text-slate-600">
+
+        <div>👨‍🎓 Students: {data.studentCount}</div>
+
+        <div>📊 Average: {data.value}%</div>
+
+        {data.topStudent && (
+
+          <div>🏆 Top: {data.topStudent} ({data.topStudentPercentage}%)</div>
+
+        )}
+
+      </div>
 
     </div>
 
@@ -38,7 +71,7 @@ function ChartTooltip({ active, payload, label }) {
 
 export default function AdminDashboard() {
 
-  const [data, setData] = useState({ stats: {}, recentActivities: [], topper: null });
+  const [data, setData] = useState({ stats: {}, recentActivities: [], classPerformance: [] });
 
 
 
@@ -61,6 +94,22 @@ export default function AdminDashboard() {
     { name: 'Sessions', value: data.stats?.sessions || 0 },
 
   ];
+
+
+
+  const classPerformanceData = (data.classPerformance || []).map((cp) => ({
+
+    name: `${formatClassName(cp.className)}-${cp.section}`,
+
+    value: cp.averagePercentage,
+
+    studentCount: cp.studentCount,
+
+    topStudent: cp.topStudent,
+
+    topStudentPercentage: cp.topStudentPercentage,
+
+  }));
 
 
 
@@ -104,23 +153,33 @@ export default function AdminDashboard() {
 
 
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <ErpSection title="Class Performance Overview" icon={GraduationCap} tone="purple">
 
-        <ErpSection title="Performance Snapshot" icon={BarChart3} tone="purple">
+        {classPerformanceData.length === 0 ? (
+
+          <div className="flex min-h-[260px] flex-col items-center justify-center gap-2 text-center text-slate-500">
+
+            <span className="text-4xl">📊</span>
+
+            <p className="text-sm">No class performance data yet</p>
+
+          </div>
+
+        ) : (
 
           <ResponsiveContainer width="100%" height={260}>
 
-            <BarChart data={chartData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
+            <BarChart data={classPerformanceData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
 
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
 
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
 
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ClassPerformanceTooltip />} />
 
               <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56}>
 
-                {chartData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
+                {classPerformanceData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
 
               </Bar>
 
@@ -128,53 +187,9 @@ export default function AdminDashboard() {
 
           </ResponsiveContainer>
 
-        </ErpSection>
+        )}
 
-
-
-        <ErpSection title="Topper Student" icon={Trophy} tone="yellow">
-
-          {data.topper ? (
-
-            <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-center">
-
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-2xl font-bold text-white shadow-lg">
-
-                {data.topper.student?.name?.charAt(0) || 'S'}
-
-              </div>
-
-              <div>
-
-                <div className="text-lg font-bold text-slate-900">{data.topper.student?.name}</div>
-
-                <div className="text-xs text-slate-500">Roll No: {data.topper.student?.rollNo}</div>
-
-              </div>
-
-              <div className="rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-1.5 text-sm font-bold text-white shadow">
-
-                {data.topper.percentage}%
-
-              </div>
-
-            </div>
-
-          ) : (
-
-            <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center text-slate-500">
-
-              <span className="text-4xl">📊</span>
-
-              <p className="text-sm">No result data yet</p>
-
-            </div>
-
-          )}
-
-        </ErpSection>
-
-      </div>
+      </ErpSection>
 
 
 
