@@ -16,6 +16,7 @@ import {
   Settings,
   ChevronDown,
   Lock,
+  UserCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -34,6 +35,7 @@ const navByRole = {
     { to: '/admin/teachers', label: 'Teachers', icon: Users },
     { to: '/admin/classes', label: 'Classes', icon: School },
     { to: '/admin/students', label: 'Students', icon: GraduationCap },
+    { to: '/admin/parents', label: 'Parents', icon: UserCheck },
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList },
     { to: '/admin/results', label: 'Results', icon: BarChart3 },
     { to: '/admin/class-results', label: 'Class Results', icon: FileText },

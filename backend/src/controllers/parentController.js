@@ -666,3 +666,146 @@ export const getParentExamDetails = asyncHandler(async (req, res) => {
     }
   });
 });
+
+export const getAdminParents = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { search, status } = req.query;
+  
+  const filter = withSchool(req, {});
+  
+  if (search) {
+    filter.$or = [
+      { parentName: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+  
+  if (status) {
+    filter.status = status;
+  }
+  
+  const parents = await Parent.find(filter).sort({ createdAt: -1 });
+  
+  // Get linked students count for each parent
+  const parentsWithCounts = await Promise.all(parents.map(async (parent) => {
+    const linkedStudents = await Student.find({
+      _id: { $in: parent.linkedStudents },
+      school: schoolId,
+      isActive: true
+    });
+    
+    return {
+      _id: parent._id,
+      parentName: parent.parentName,
+      phone: parent.phone,
+      email: parent.email,
+      status: parent.status,
+      childrenCount: linkedStudents.length
+    };
+  }));
+  
+  res.json({
+    success: true,
+    parents: parentsWithCounts
+  });
+});
+
+export const getAdminParentDetails = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { parentId } = req.params;
+  
+  const parent = await Parent.findOne(withSchool(req, { _id: parentId }));
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Get linked students
+  const linkedStudents = await Student.find({
+    _id: { $in: parent.linkedStudents },
+    school: schoolId,
+    isActive: true
+  })
+  .populate('class', 'className section')
+  .sort({ rollNo: 1 });
+  
+  res.json({
+    success: true,
+    parent: {
+      _id: parent._id,
+      parentName: parent.parentName,
+      phone: parent.phone,
+      email: parent.email,
+      status: parent.status,
+      linkedStudents: linkedStudents.map(s => ({
+        _id: s._id,
+        name: s.name,
+        rollNo: s.rollNo,
+        className: s.class?.className || '',
+        section: s.class?.section || ''
+      }))
+    }
+  });
+});
+
+export const toggleParentStatus = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { parentId } = req.params;
+  const { status } = req.body;
+  
+  if (!['Active', 'Inactive'].includes(status)) {
+    throw new ApiError(400, 'Status must be Active or Inactive.');
+  }
+  
+  const parent = await Parent.findOne(withSchool(req, { _id: parentId }));
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  parent.status = status;
+  await parent.save();
+  
+  res.json({
+    success: true,
+    message: `Parent status updated to ${status}`,
+    parent
+  });
+});
+
+export const resetParentPassword = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { parentId } = req.params;
+  
+  const parent = await Parent.findOne(withSchool(req, { _id: parentId }));
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Generate new password
+  const newPassword = crypto.randomBytes(8).toString('hex');
+  
+  // Hash and update password
+  parent.password = newPassword;
+  await parent.save();
+  
+  // Get school for email sending
+  const school = await School.findById(schoolId);
+  
+  // Send email if parent has email
+  let emailSent = false;
+  if (parent.email) {
+    try {
+      await sendParentCreationEmail(
+        school?.schoolName || 'Your School',
+        parent.parentName,
+        parent.email,
+        newPassword,
+        process.env.CLIENT_URL || 'http://localhost:5173/parent-login'
+      );
+      emailSent = true;
+    } catch (emailError) {
+      console.error('Failed to send parent credential email:', emailError);
+    }
+  }
+  
+  res.json({
+    success: true,
+    message: emailSent ? 'Password reset and email sent' : 'Password reset successfully',
+    newPassword: parent.email ? null : newPassword, // Only show password if no email
+    emailSent
+  });
+});
