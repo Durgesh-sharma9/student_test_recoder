@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
-import { FileText, Search, Download, Check } from 'lucide-react';
+import { FileText, Search, Download, Check, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
@@ -26,16 +26,27 @@ export default function ClassResults() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  // Dropdown toggler aur reference node tracker
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   useEffect(() => {
     api.get('/classes').then((r) => {
       setClasses(r.data.classes || []);
     });
+
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchResults = async () => {
     if (!selectedClass || selectedExamTypes.length === 0) return;
 
-    // For Daily Test, require date filter
     if (selectedExamTypes.includes('Daily Test')) {
       if (dateFilterType === 'specific' && !specificDate) {
         toast.error('Please select a date for Daily Test report');
@@ -80,7 +91,6 @@ export default function ClassResults() {
         r.rollNo.toString().toLowerCase().includes(query)
     );
 
-    // Apply sorting
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'rollNo_asc':
@@ -103,7 +113,6 @@ export default function ClassResults() {
     return filtered;
   }, [results, searchQuery, sortBy]);
 
-  // Check if results are from combined exam types (new format)
   const isCombinedResults = results?.assessments && !results?.dailyTests && !results?.subjects;
 
   const exportCSV = () => {
@@ -114,7 +123,6 @@ export default function ClassResults() {
     let csvContent;
 
     if (isCombined) {
-      // Combined results format
       const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       const headerRow2 = ['', '', '', '', '', ''];
       
@@ -145,8 +153,6 @@ export default function ClassResults() {
         ...dataRows.map((row) => row.join(',')),
       ].join('\n');
     } else if (isDailyTest) {
-      // Daily Test format with multi-row headers
-      // Row 1: Test info headers
       const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       const headerRow2 = ['', '', '', '', '', ''];
       
@@ -157,13 +163,11 @@ export default function ClassResults() {
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
 
-      // Row 3: Column headers
       const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       results.dailyTests.forEach((dt) => {
         headerRow3.push('Max Marks', 'Marks Obtained');
       });
 
-      // Data rows
       const dataRows = filteredResults.map((r) => {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
@@ -180,7 +184,6 @@ export default function ClassResults() {
         ...dataRows.map((row) => row.join(',')),
       ].join('\n');
     } else {
-      // Main Exam format
       const headers = ['Rank', 'Roll No', 'Student Name', ...results.subjects, 'Total', 'Average', 'Percentage'];
       const rows = filteredResults.map((r) => {
         const subjectMarks = results.subjects.map((s) => r.subjects[s]?.marksObtained || '-');
@@ -220,10 +223,7 @@ export default function ClassResults() {
     let workbook, worksheet;
 
     if (isCombined) {
-      // Combined results format with date-wise ordering
       const data = [];
-      
-      // Row 1: Assessment info headers
       const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       const headerRow2 = ['', '', '', '', '', ''];
       
@@ -232,7 +232,6 @@ export default function ClassResults() {
         headerRow2.push(`Date: ${new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, `Subject: ${assessment.subject}`);
       });
 
-      // Row 3: Column headers
       const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       results.assessments.forEach(() => {
         headerRow3.push('Max Marks', 'Marks Obtained');
@@ -240,7 +239,6 @@ export default function ClassResults() {
 
       data.push(headerRow1, headerRow2, headerRow3);
 
-      // Data rows
       filteredResults.forEach((r) => {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.assessments.forEach((assessment) => {
@@ -251,21 +249,17 @@ export default function ClassResults() {
         data.push(row);
       });
 
-      // Create worksheet
       worksheet = XLSX.utils.aoa_to_sheet(data);
 
-      // Merge cells for assessment headers
-      let colIndex = 6; // Start after Student Name
+      let colIndex = 6;
       results.assessments.forEach((assessment) => {
         worksheet['!merges'] = worksheet['!merges'] || [];
         worksheet['!merges'].push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + 1 } });
         colIndex += 2;
       });
 
-      // Apply professional styling with color coding
       const range = XLSX.utils.decode_range(worksheet['!ref']);
       
-      // Define styles
       const blueHeaderStyle = {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '2563EB' } },
@@ -335,7 +329,6 @@ export default function ClassResults() {
         }
       };
 
-      // Apply styles to header rows
       for (let R = 0; R <= 2; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -344,14 +337,12 @@ export default function ClassResults() {
           if (R === 0 && C < 6) {
             worksheet[cellAddress].s = blueHeaderStyle;
           } else if (R === 0 && C >= 6) {
-            // Color code based on assessment category
             const assessmentIndex = Math.floor((C - 6) / 2);
             const assessment = results.assessments[assessmentIndex];
             if (assessment) {
               worksheet[cellAddress].s = assessment.category === 'daily' ? blueHeaderStyle : redHeaderStyle;
             }
           } else if (R === 1) {
-            // Sub-headers (date/subject) - use lighter color based on category
             const assessmentIndex = Math.floor((C - 6) / 2);
             const assessment = results.assessments[assessmentIndex];
             if (assessment) {
@@ -367,32 +358,23 @@ export default function ClassResults() {
         }
       }
 
-      // Apply styles to data rows
       for (let R = 3; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cellAddress]) continue;
           
-          // Key columns (Total, Average, Percentage, Rank)
           if (C < 4) {
             worksheet[cellAddress].s = keyColumnStyle;
-          } 
-          // Roll No and Student Name - normal data style
-          else if (C === 4 || C === 5) {
+          } else if (C === 4 || C === 5) {
             worksheet[cellAddress].s = dataCellStyle;
-          }
-          // Max Marks - normal data style
-          else if ((C - 6) % 2 === 0) {
+          } else if ((C - 6) % 2 === 0) {
             worksheet[cellAddress].s = dataCellStyle;
-          }
-          // Marks Obtained - bold style
-          else {
+          } else {
             worksheet[cellAddress].s = marksObtainedStyle;
           }
         }
       }
 
-      // Auto-size columns with minimum width
       const colWidths = [];
       for (let C = 0; C <= range.e.c; C++) {
         let maxWidth = 12;
@@ -407,15 +389,10 @@ export default function ClassResults() {
         colWidths.push({ wch: maxWidth });
       }
       worksheet['!cols'] = colWidths;
-
-      // Freeze panes: freeze top 3 rows and first 6 columns
       worksheet['!freeze'] = { xSplit: 6, ySplit: 3 };
 
     } else if (isDailyTest) {
-      // Daily Test format with professional Excel formatting
       const data = [];
-      
-      // Row 1: Test info headers
       const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       const headerRow2 = ['', '', '', '', '', ''];
       
@@ -426,7 +403,6 @@ export default function ClassResults() {
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
 
-      // Row 3: Column headers
       const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
       results.dailyTests.forEach((dt) => {
         headerRow3.push('Max Marks', 'Marks Obtained');
@@ -434,7 +410,6 @@ export default function ClassResults() {
 
       data.push(headerRow1, headerRow2, headerRow3);
 
-      // Data rows
       filteredResults.forEach((r) => {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
@@ -444,21 +419,17 @@ export default function ClassResults() {
         data.push(row);
       });
 
-      // Create worksheet
       worksheet = XLSX.utils.aoa_to_sheet(data);
 
-      // Merge cells for Daily Test headers
-      let colIndex = 6; // Start after Student Name
+      let colIndex = 6;
       results.dailyTests.forEach((dt) => {
         worksheet['!merges'] = worksheet['!merges'] || [];
         worksheet['!merges'].push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + 1 } });
         colIndex += 2;
       });
 
-      // Apply professional styling
       const range = XLSX.utils.decode_range(worksheet['!ref']);
       
-      // Define styles
       const blueHeaderStyle = {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '2563EB' } },
@@ -528,7 +499,6 @@ export default function ClassResults() {
         }
       };
 
-      // Apply styles to header rows
       for (let R = 0; R <= 2; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -550,32 +520,23 @@ export default function ClassResults() {
         }
       }
 
-      // Apply styles to data rows
       for (let R = 3; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           if (!worksheet[cellAddress]) continue;
           
-          // Key columns (Total, Average, Percentage, Rank)
           if (C < 4) {
             worksheet[cellAddress].s = keyColumnStyle;
-          } 
-          // Roll No and Student Name - normal data style
-          else if (C === 4 || C === 5) {
+          } else if (C === 4 || C === 5) {
             worksheet[cellAddress].s = dataCellStyle;
-          }
-          // Max Marks - normal data style
-          else if ((C - 6) % 2 === 0) {
+          } else if ((C - 6) % 2 === 0) {
             worksheet[cellAddress].s = dataCellStyle;
-          }
-          // Marks Obtained - bold style
-          else {
+          } else {
             worksheet[cellAddress].s = marksObtainedStyle;
           }
         }
       }
 
-      // Auto-size columns with minimum width
       const colWidths = [];
       for (let C = 0; C <= range.e.c; C++) {
         let maxWidth = 12;
@@ -590,12 +551,9 @@ export default function ClassResults() {
         colWidths.push({ wch: maxWidth });
       }
       worksheet['!cols'] = colWidths;
-
-      // Freeze panes: freeze top 3 rows and first 6 columns
       worksheet['!freeze'] = { xSplit: 6, ySplit: 3 };
 
     } else {
-      // Main Exam format with professional styling
       const headers = ['Rank', 'Roll No', 'Student Name', ...results.subjects, 'Total', 'Average', 'Percentage'];
       const data = [headers];
 
@@ -614,7 +572,6 @@ export default function ClassResults() {
 
       worksheet = XLSX.utils.aoa_to_sheet(data);
 
-      // Apply professional styling
       const range = XLSX.utils.decode_range(worksheet['!ref']);
       
       const headerStyle = {
@@ -639,14 +596,12 @@ export default function ClassResults() {
         }
       };
 
-      // Apply header style
       for (let C = 0; C <= range.e.c; C++) {
         const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
         if (!worksheet[cellAddress]) continue;
         worksheet[cellAddress].s = headerStyle;
       }
 
-      // Apply data style
       for (let R = 1; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
@@ -655,7 +610,6 @@ export default function ClassResults() {
         }
       }
 
-      // Auto-size columns
       const colWidths = [];
       for (let C = 0; C <= range.e.c; C++) {
         let maxWidth = 12;
@@ -670,15 +624,11 @@ export default function ClassResults() {
         colWidths.push({ wch: maxWidth });
       }
       worksheet['!cols'] = colWidths;
-
-      // Freeze top row
       worksheet['!freeze'] = { xSplit: 0, ySplit: 1 };
     }
 
     workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
-
-    // Generate and download
     XLSX.writeFile(workbook, `class-results-${selectedExamTypes.join('-')}-${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success('XLSX exported successfully');
   };
@@ -727,33 +677,43 @@ export default function ClassResults() {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField label="Show Results">
-            <div className="space-y-2">
-              {EXAM_TYPES.map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={type}
-                    checked={selectedExamTypes.includes(type)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedExamTypes([...selectedExamTypes, type]);
-                      } else {
-                        setSelectedExamTypes(selectedExamTypes.filter(t => t !== type));
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
+
+          {/* --- ULTIMATE BUG FIX: NATIVE INLINE SCROLLABLE MULTI-SELECT PANEL --- */}
+          <FormField label="Show Results (Select Multiple)">
+            {/* 
+               Humne is box ko floating se hata kar static inline scroll block bana diya hai.
+               Yeh direct box layout ke andar embed ho chuka hai aur matches standard height limits.
+               Ab yeh na toh upar se katega aur na hi neechay se overflow hide hoga!
+            */}
+            <div className="w-full rounded-md border border-slate-200 bg-white p-2 h-28 overflow-y-auto space-y-1 shadow-sm custom-scrollbar">
+              {EXAM_TYPES.map((type) => {
+                const isChecked = selectedExamTypes.includes(type);
+                return (
                   <label
-                    htmlFor={type}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    key={type}
+                    className="flex items-center space-x-3 rounded px-2 py-1 hover:bg-slate-50 cursor-pointer select-none text-sm font-normal text-slate-700 transition-colors"
                   >
-                    {type}
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedExamTypes([...selectedExamTypes, type]);
+                        } else {
+                          setSelectedExamTypes(selectedExamTypes.filter((t) => t !== type));
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <span className={isChecked ? 'font-semibold text-blue-600' : ''}>
+                      {type}
+                    </span>
                   </label>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </FormField>
+
           {selectedExamTypes.includes('Daily Test') && (
             <>
               <FormField label="Date Filter">
@@ -783,6 +743,7 @@ export default function ClassResults() {
               )}
             </>
           )}
+
           <FormField label="Sort By">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger>
@@ -799,6 +760,7 @@ export default function ClassResults() {
             </Select>
           </FormField>
         </div>
+
         <div className="mt-4 flex gap-2">
           <Button onClick={fetchResults} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
             {loading ? 'Loading...' : 'View Results'}
@@ -867,7 +829,6 @@ export default function ClassResults() {
                 <Table style={{ minWidth: 'max-content' }}>
                   <TableHeader>
                     {isCombinedResults ? (
-                      // Combined results with date-wise ordering
                       <>
                         <TableRow>
                           <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
@@ -904,12 +865,11 @@ export default function ClassResults() {
                           <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
                           <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
                           <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
-                          <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                          <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          <TableHead className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                          <TableHead className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>Student Name</TableHead>
                           {results.assessments?.map((assessment) => (
-                            <>
+                            <React.Fragment key={`${assessment._id}-headers`}>
                               <TableHead 
-                                key={`${assessment._id}-max`} 
                                 className={`text-center border-r font-semibold ${
                                   assessment.category === 'daily' 
                                     ? 'bg-blue-50 text-blue-700 border-blue-200' 
@@ -920,7 +880,6 @@ export default function ClassResults() {
                                 Max Marks
                               </TableHead>
                               <TableHead 
-                                key={`${assessment._id}-obt`} 
                                 className={`text-center border-r font-semibold ${
                                   assessment.category === 'daily' 
                                     ? 'bg-blue-50 text-blue-700 border-blue-200' 
@@ -930,12 +889,11 @@ export default function ClassResults() {
                               >
                                 Marks Obtained
                               </TableHead>
-                            </>
+                            </React.Fragment>
                           ))}
                         </TableRow>
                       </>
                     ) : (
-                      // Original separate results
                       <>
                         {selectedExamTypes.includes('Daily Test') && (
                           <TableRow>
@@ -966,10 +924,10 @@ export default function ClassResults() {
                               <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
                               <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
                               {results.dailyTests?.map((dt) => (
-                                <>
-                                  <TableHead key={`${dt._id}-max`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
-                                  <TableHead key={`${dt._id}-obt`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
-                                </>
+                                <React.Fragment key={`${dt._id}-subheaders`}>
+                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
+                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                                </React.Fragment>
                               ))}
                             </>
                           ) : (
@@ -993,7 +951,6 @@ export default function ClassResults() {
                     {filteredResults.map((student, index) => (
                       <TableRow key={student.studentId} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                         {isCombinedResults ? (
-                          // Combined results row
                           <>
                             <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
                             <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
@@ -1005,9 +962,8 @@ export default function ClassResults() {
                               const key = `${assessment.examType}_${assessment._id}`;
                               const mark = student.assessments?.[key];
                               return (
-                                <>
+                                <React.Fragment key={`${assessment._id}-student-marks`}>
                                   <TableCell 
-                                    key={`${assessment._id}-max`} 
                                     className={`text-center border-r ${
                                       assessment.category === 'daily' 
                                         ? 'bg-blue-50 text-blue-700 border-blue-200' 
@@ -1018,7 +974,6 @@ export default function ClassResults() {
                                     {assessment.maxMarks}
                                   </TableCell>
                                   <TableCell 
-                                    key={`${assessment._id}-obt`} 
                                     className={`text-center border-r font-semibold ${
                                       assessment.category === 'daily' 
                                         ? 'bg-blue-50 text-blue-700 border-blue-200' 
@@ -1028,12 +983,11 @@ export default function ClassResults() {
                                   >
                                     {mark?.marksObtained || '-'}
                                   </TableCell>
-                                </>
+                                </React.Fragment>
                               );
                             })}
                           </>
                         ) : (
-                          // Original separate results row
                           <>
                             {selectedExamTypes.includes('Daily Test') ? (
                               <>
@@ -1046,30 +1000,30 @@ export default function ClassResults() {
                                 {results.dailyTests?.map((dt) => {
                                   const mark = student.dailyTests[dt._id];
                                   return (
-                                    <>
-                                      <TableCell key={`${dt._id}-max`} className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
-                                      <TableCell key={`${dt._id}-obt`} className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
-                                    </>
+                                    <React.Fragment key={`${dt._id}-student-dt`}>
+                                      <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
+                                      <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                    </React.Fragment>
                                   );
                                 })}
-                            </>
-                          ) : (
-                            <>
-                              <TableCell className="font-medium">{student.rank}</TableCell>
-                              <TableCell>{student.rollNo}</TableCell>
-                              <TableCell className="font-medium">{student.name}</TableCell>
-                              {results.subjects.map((subject) => (
-                                <TableCell key={subject}>
-                                  {student.subjects[subject]?.marksObtained || '-'}
-                                </TableCell>
-                              ))}
-                              <TableCell className="font-medium">{student.totalObtained}</TableCell>
-                              <TableCell>{student.average}</TableCell>
-                              <TableCell>{student.percentage}%</TableCell>
-                            </>
-                          )}
-                        </>
-                      )}
+                              </>
+                            ) : (
+                              <>
+                                <TableCell className="font-medium">{student.rank}</TableCell>
+                                <TableCell>{student.rollNo}</TableCell>
+                                <TableCell className="font-medium">{student.name}</TableCell>
+                                {results.subjects.map((subject) => (
+                                  <TableCell key={subject}>
+                                    {student.subjects[subject]?.marksObtained || '-'}
+                                  </TableCell>
+                                ))}
+                                <TableCell className="font-medium">{student.totalObtained}</TableCell>
+                                <TableCell>{student.average}</TableCell>
+                                <TableCell>{student.percentage}%</TableCell>
+                              </>
+                            )}
+                          </>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
