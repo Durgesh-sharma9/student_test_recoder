@@ -15,10 +15,10 @@ export const generateStudentImportTemplate = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Students');
 
-  const headers = ['Roll No', 'Student Name', 'Gender'];
+  const headers = ['Roll No', 'Student Name', 'Gender', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
   sheet.addRow(headers);
 
-  const exampleRow = ['1', 'John Doe', 'male'];
+  const exampleRow = ['1', 'John Doe', 'male', 'Rajesh Doe', '+919876543210', 'rajesh.doe@example.com'];
   sheet.addRow(exampleRow);
 
   const headerRow = sheet.getRow(1);
@@ -30,7 +30,7 @@ export const generateStudentImportTemplate = async () => {
   };
 
   sheet.columns.forEach((col) => {
-    col.width = 20;
+    col.width = 25;
   });
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -122,12 +122,18 @@ export const parseStudentImportFile = (buffer, filename) => {
     const rollNo = String(row[0] || '').trim();
     const name = String(row[1] || '').trim();
     const gender = String(row[2] || '').trim().toLowerCase();
+    const parentName = String(row[3] || '').trim();
+    const parentPhone = String(row[4] || '').trim();
+    const parentEmail = String(row[5] || '').trim();
 
     return {
       rowNumber: index + 2,
       rollNo,
       name,
       gender,
+      parentName,
+      parentPhone,
+      parentEmail,
     };
   });
 
