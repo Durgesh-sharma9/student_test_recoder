@@ -1,8 +1,8 @@
 import User from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import sendTeacherMail from '../utils/sendTeacherMail.js';
 import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../services/emailService.js';
+import { parseTeacherImportFile } from '../services/excelService.js';
 import School from '../models/School.js';
 import AcademicSession from '../models/AcademicSession.js';
 
@@ -95,9 +95,10 @@ export const createUser = asyncHandler(async (req, res) => {
 
   const userRole = role || 'teacher';
 
-  // Check only active users
+  // Check only active users in the same school
   const existing = await User.findOne({
     email,
+    school: schoolId,
     isActive: true,
   });
 
@@ -128,11 +129,13 @@ export const createUser = asyncHandler(async (req, res) => {
       const school = await School.findById(schoolId);
       const schoolName = school?.schoolName || 'Your School';
       
+      const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
       const emailResult = await sendTeacherCreationEmail(
         schoolName,
         teacherName || name || 'Teacher',
         email,
-        generatedPassword
+        generatedPassword,
+        loginUrl
       );
 
       if (!emailResult.success) {
@@ -156,6 +159,124 @@ export const createUser = asyncHandler(async (req, res) => {
     user: userObj,
   });
 
+});
+
+export const bulkImportTeachers = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw new ApiError(400, 'No file uploaded.');
+  }
+
+  const schoolId = schoolIdFromUser(req.user);
+  if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
+
+  const records = parseTeacherImportFile(req.file.buffer, req.file.originalname);
+  const emailsSeen = new Set();
+  const errors = [];
+  let imported = 0;
+
+  const existingUsers = await User.find({
+    school: schoolId,
+    email: { $in: records.map((r) => r.email) },
+    isActive: true,
+  }).select('email status');
+
+  const existingByEmail = new Map();
+  existingUsers.forEach((user) => {
+    existingByEmail.set(user.email, user);
+  });
+
+  for (const row of records) {
+    const { rowNumber, teacherName, email, password, phoneNo } = row;
+
+    if (!teacherName) {
+      errors.push({ row: rowNumber, error: 'Missing Name' });
+      continue;
+    }
+    if (!email) {
+      errors.push({ row: rowNumber, error: 'Missing Email' });
+      continue;
+    }
+    if (!password) {
+      errors.push({ row: rowNumber, error: 'Missing Password' });
+      continue;
+    }
+    if (!phoneNo) {
+      errors.push({ row: rowNumber, error: 'Missing Phone No' });
+      continue;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+      errors.push({ row: rowNumber, error: 'Invalid Email' });
+      continue;
+    }
+
+    const normalizedPhone = String(phoneNo).replace(/[^0-9+]/g, '');
+    if (!/^[+]?\d{7,15}$/.test(normalizedPhone)) {
+      errors.push({ row: rowNumber, error: 'Invalid Phone Number' });
+      continue;
+    }
+
+    if (emailsSeen.has(email)) {
+      errors.push({ row: rowNumber, error: 'Duplicate Email' });
+      continue;
+    }
+    emailsSeen.add(email);
+
+    const existing = existingByEmail.get(email);
+    if (existing) {
+      if (existing.status === 'Inactive') {
+        errors.push({ row: rowNumber, error: 'Teacher already exists and is inactive.' });
+      } else {
+        errors.push({ row: rowNumber, error: 'Duplicate Email' });
+      }
+      continue;
+    }
+
+    try {
+      const teacher = await User.create({
+        school: schoolId,
+        teacherName,
+        name: teacherName,
+        email,
+        password,
+        role: 'teacher',
+        phoneNo,
+      });
+
+      try {
+        const school = await School.findById(schoolId);
+        const schoolName = school?.schoolName || 'Your School';
+        const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+
+        const emailResult = await sendTeacherCreationEmail(
+          schoolName,
+          teacherName,
+          email,
+          password,
+          loginUrl
+        );
+
+        if (!emailResult.success) {
+          console.log(`[Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+        }
+      } catch (emailError) {
+        console.error('[Email Error] Failed to send teacher creation email:', emailError.message);
+      }
+
+      imported += 1;
+    } catch (error) {
+      errors.push({ row: rowNumber, error: 'Failed to create teacher' });
+    }
+  }
+
+  res.json({
+    success: true,
+    totalRows: records.length,
+    imported,
+    failed: errors.length,
+    errors,
+  });
 });
 
 export const updateUser = asyncHandler(async (req, res) => {

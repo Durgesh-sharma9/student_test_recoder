@@ -22,7 +22,8 @@ export const sendTeacherCreationEmail = async (
   schoolName,
   teacherName,
   teacherEmail,
-  password
+  password,
+  loginUrl
 ) => {
   try {
     const result = await transporter.sendMail({
@@ -35,12 +36,13 @@ export const sendTeacherCreationEmail = async (
 
           <p>Hello ${teacherName},</p>
 
-          <p>Your account has been created successfully.</p>
+          <p>Your account has been created successfully for ${schoolName}.</p>
 
           <div style="background:#f5f5f5;padding:15px;border-radius:8px;">
             <p><strong>Name:</strong> ${teacherName}</p>
             <p><strong>Email:</strong> ${teacherEmail}</p>
             <p><strong>Password:</strong> ${password}</p>
+            <p><strong>Login URL:</strong> <a href="${loginUrl}" target="_blank" rel="noreferrer">${loginUrl}</a></p>
           </div>
 
           <p>Please keep these credentials safe.</p>
