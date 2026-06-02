@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { useAuth } from './AuthContext';
 
 const SessionContext = createContext(null);
 
@@ -7,6 +8,8 @@ export function SessionProvider({ children }) {
   const [selectedSession, setSelectedSession] = useState(null);
   const [allSessions, setAllSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -14,20 +17,28 @@ export function SessionProvider({ children }) {
         const res = await api.get('/academic-sessions');
         setAllSessions(res.data.sessions || []);
         
-        // Load saved session from localStorage or default to active
-        const savedSessionId = localStorage.getItem('selectedSessionId');
         const activeSession = res.data.sessions?.find(s => s.status === 'active');
         
-        if (savedSessionId) {
-          const savedSession = res.data.sessions?.find(s => s._id === savedSessionId);
-          if (savedSession) {
-            setSelectedSession(savedSession);
-            return;
+        if (isAdmin) {
+          // Admin: Load saved session from localStorage or default to active
+          const savedSessionId = localStorage.getItem('selectedSessionId');
+          
+          if (savedSessionId) {
+            const savedSession = res.data.sessions?.find(s => s._id === savedSessionId);
+            if (savedSession) {
+              setSelectedSession(savedSession);
+              return;
+            }
           }
-        }
-        
-        if (activeSession) {
-          setSelectedSession(activeSession);
+          
+          if (activeSession) {
+            setSelectedSession(activeSession);
+          }
+        } else {
+          // Teacher: Always use active session, ignore localStorage
+          if (activeSession) {
+            setSelectedSession(activeSession);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch sessions');
@@ -36,9 +47,11 @@ export function SessionProvider({ children }) {
       }
     };
     fetchSessions();
-  }, []);
+  }, [isAdmin]);
 
   const selectSession = (session) => {
+    if (!isAdmin) return; // Teachers cannot switch sessions
+    
     setSelectedSession(session);
     if (session) {
       localStorage.setItem('selectedSessionId', session._id);
@@ -55,7 +68,8 @@ export function SessionProvider({ children }) {
       allSessions, 
       selectSession, 
       isArchived,
-      loading 
+      loading,
+      isAdmin
     }}>
       {children}
     </SessionContext.Provider>
