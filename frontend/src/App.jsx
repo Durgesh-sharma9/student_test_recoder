@@ -27,6 +27,9 @@ import TeacherResults from '@/pages/teacher/TeacherResults';
 import ParentDashboard from '@/pages/parent/Dashboard';
 import ParentLogin from '@/pages/ParentLogin';
 import StudentDetails from '@/pages/parent/StudentDetails';
+import ParentDailyTests from '@/pages/parent/DailyTests';
+import ParentMainExams from '@/pages/parent/MainExams';
+import ParentExamDetails from '@/pages/parent/ExamDetails';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -75,6 +78,9 @@ export default function App() {
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><ParentDashboard /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId" element={<ProtectedRoute roles={['parent']}><StudentDetails /></ProtectedRoute>} />
+              <Route path="/parent/student/:studentId/daily-tests" element={<ProtectedRoute roles={['parent']}><ParentDailyTests /></ProtectedRoute>} />
+              <Route path="/parent/student/:studentId/main-exams" element={<ProtectedRoute roles={['parent']}><ParentMainExams /></ProtectedRoute>} />
+              <Route path="/parent/student/:studentId/main-exams/:examType" element={<ProtectedRoute roles={['parent']}><ParentExamDetails /></ProtectedRoute>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

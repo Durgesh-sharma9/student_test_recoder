@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Trophy, Calendar, BookOpen } from 'lucide-react';
+import { ArrowLeft, Trophy, Calendar, FileText } from 'lucide-react';
 import api from '@/lib/api';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function StudentDetails() {
         />
       </div>
 
-      <ErpSection title="Student Overview" icon={BookOpen} tone="blue">
+      <ErpSection title="Student Overview" icon={FileText} tone="blue">
         <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm text-slate-500">Roll No</div>
@@ -74,6 +74,27 @@ export default function StudentDetails() {
             <div className="text-sm text-slate-500">Average</div>
             <div className="text-2xl font-bold text-slate-900">{student.average}</div>
           </div>
+        </div>
+      </ErpSection>
+
+      <ErpSection title="Results" icon={Trophy} tone="yellow">
+        <div className="grid gap-4 p-4 sm:grid-cols-2">
+          <Button
+            onClick={() => navigate(`/parent/student/${studentId}/daily-tests`)}
+            className="h-24 flex flex-col items-center justify-center gap-2"
+            variant="outline"
+          >
+            <Calendar className="h-8 w-8" />
+            <span className="font-semibold">Daily Tests</span>
+          </Button>
+          <Button
+            onClick={() => navigate(`/parent/student/${studentId}/main-exams`)}
+            className="h-24 flex flex-col items-center justify-center gap-2"
+            variant="outline"
+          >
+            <FileText className="h-8 w-8" />
+            <span className="font-semibold">Main Exams</span>
+          </Button>
         </div>
       </ErpSection>
 
