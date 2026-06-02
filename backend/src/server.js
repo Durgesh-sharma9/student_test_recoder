@@ -13,6 +13,7 @@ import subjectRoutes from './routes/subjectRoutes.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import classResultsRoutes from './routes/classResultsRoutes.js';
 import academicSessionRoutes from './routes/academicSessionRoutes.js';
+import parentRoutes from './routes/parentRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +42,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/class-results', classResultsRoutes);
 app.use('/api/academic-sessions', academicSessionRoutes);
+app.use('/api/parents', parentRoutes);
 
 app.use(errorHandler);
 

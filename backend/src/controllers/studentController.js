@@ -2,10 +2,12 @@ import Student from '../models/Student.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
 import AcademicSession from '../models/AcademicSession.js';
+import Parent from '../models/Parent.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import { parseStudentImportFile } from '../services/excelService.js';
+import { findOrCreateParent } from './parentController.js';
 
 // Helper function to get active session
 const getActiveSession = async (schoolId) => {
@@ -106,12 +108,40 @@ export const createStudent = asyncHandler(async (req, res) => {
   });
   if (existing) throw new ApiError(400, `Roll No ${payload.rollNo} already exists in this class.`);
 
+  // Handle parent linking if parent data is provided
+  let parentData = null;
+  if (req.body.parentName && req.body.parentPhone) {
+    const parentResult = await findOrCreateParent(schoolId, {
+      parentName: req.body.parentName,
+      email: req.body.parentEmail,
+      phone: req.body.parentPhone
+    });
+    
+    payload.parent = parentResult.parent._id;
+    parentData = {
+      parent: parentResult.parent,
+      isNew: parentResult.isNew,
+      password: parentResult.password
+    };
+    
+    // Link student to parent
+    if (!parentResult.parent.linkedStudents.includes(payload.parent)) {
+      parentResult.parent.linkedStudents.push(payload.parent);
+      await parentResult.parent.save();
+    }
+  }
+
   const student = await Student.create(payload);
   const populated = await Student.findById(student._id)
     .populate('class', 'className section')
-    .populate('academicSession', 'sessionName');
+    .populate('academicSession', 'sessionName')
+    .populate('parent', 'parentName email phone');
 
-  res.status(201).json({ success: true, student: populated });
+  res.status(201).json({ 
+    success: true, 
+    student: populated,
+    parentData // Return parent data for email sending
+  });
 });
 
 export const updateStudent = asyncHandler(async (req, res) => {

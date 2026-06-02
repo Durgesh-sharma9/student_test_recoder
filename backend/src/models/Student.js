@@ -8,6 +8,7 @@ const studentSchema = new mongoose.Schema(
     rollNo: { type: String, required: true, trim: true },
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
+    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent' },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
