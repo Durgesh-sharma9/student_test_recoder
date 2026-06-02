@@ -10,6 +10,7 @@ const schoolSchema = new mongoose.Schema(
     planExpiresAt: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
     subjects: [{ type: String, trim: true, uppercase: true }],
+    showParentLeaderboard: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
