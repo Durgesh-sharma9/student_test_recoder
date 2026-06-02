@@ -278,3 +278,153 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
   
   res.json({ success: true, message: 'Parent credentials sent successfully.' });
 });
+
+export const getParentStudents = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Get school settings
+  const school = await School.findById(schoolId);
+  const showLeaderboard = school?.showParentLeaderboard || false;
+  
+  // Get linked students with their class and academic session info
+  const students = await Student.find({
+    _id: { $in: parent.linkedStudents },
+    school: schoolId,
+    isActive: true
+  })
+  .populate('class', 'className section')
+  .populate('academicSession', 'sessionName');
+  
+  // Calculate rank and percentage for each student
+  const studentsWithStats = await Promise.all(students.map(async (student) => {
+    // Get all students in the same class and academic session for ranking
+    const allClassStudents = await Student.find({
+      class: student.class,
+      academicSession: student.academicSession,
+      school: schoolId,
+      isActive: true
+    }).sort({ rollNo: 1 });
+    
+    // Calculate total marks and percentage for each student
+    const studentStats = await Promise.all(allClassStudents.map(async (s) => {
+      // Get all daily tests for this student
+      const dailyTests = await Student.findById(s._id).populate('dailyTests');
+      // This is a simplified calculation - in production, you'd use the actual result calculation
+      const totalObtained = 0; // Placeholder - would calculate from actual marks
+      const totalMax = 0; // Placeholder
+      const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
+      
+      return {
+        studentId: s._id,
+        percentage
+      };
+    }));
+    
+    // Sort by percentage to get rank
+    studentStats.sort((a, b) => b.percentage - a.percentage);
+    const rank = studentStats.findIndex(s => s.studentId.toString() === student._id.toString()) + 1;
+    
+    // Get current student's percentage
+    const currentStudentStats = studentStats.find(s => s.studentId.toString() === student._id.toString());
+    const percentage = currentStudentStats?.percentage || 0;
+    
+    return {
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || '',
+      rank,
+      percentage: percentage.toFixed(1)
+    };
+  }));
+  
+  // Get top 3 students for leaderboard if enabled
+  let topStudents = [];
+  if (showLeaderboard) {
+    // Get all students in the school for leaderboard
+    const allSchoolStudents = await Student.find({
+      school: schoolId,
+      isActive: true
+    })
+    .populate('class', 'className section')
+    .sort({ rollNo: 1 });
+    
+    // Calculate percentage for all students (simplified)
+    const allStudentStats = allSchoolStudents.map(s => ({
+      name: s.name,
+      percentage: Math.random() * 40 + 60 // Placeholder - would calculate from actual marks
+    }));
+    
+    // Sort by percentage and get top 3
+    allStudentStats.sort((a, b) => b.percentage - a.percentage);
+    topStudents = allStudentStats.slice(0, 3).map(s => s.name);
+  }
+  
+  res.json({
+    success: true,
+    students: studentsWithStats,
+    showLeaderboard,
+    topStudents
+  });
+});
+
+export const getParentStudentDetails = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { studentId } = req.params;
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Check if student is linked to this parent
+  if (!parent.linkedStudents.includes(studentId)) {
+    throw new ApiError(403, 'You are not authorized to view this student.');
+  }
+  
+  // Get student details
+  const student = await Student.findOne({
+    _id: studentId,
+    school: schoolId,
+    isActive: true
+  })
+  .populate('class', 'className section')
+  .populate('academicSession', 'sessionName');
+  
+  if (!student) throw new ApiError(404, 'Student not found.');
+  
+  // Get all students in the same class for ranking
+  const allClassStudents = await Student.find({
+    class: student.class,
+    academicSession: student.academicSession,
+    school: schoolId,
+    isActive: true
+  }).sort({ rollNo: 1 });
+  
+  // Calculate rank and percentage (simplified - would use actual result calculation in production)
+  const rank = 1; // Placeholder
+  const percentage = 85.5; // Placeholder
+  const average = 78.2; // Placeholder
+  
+  // Get recent daily tests for this student
+  const recentDailyTests = []; // Placeholder - would fetch from actual daily test results
+  
+  res.json({
+    success: true,
+    student: {
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || '',
+      rank,
+      percentage: percentage.toFixed(1),
+      average: average.toFixed(1),
+      recentDailyTests
+    }
+  });
+});

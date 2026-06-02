@@ -8,6 +8,8 @@ import {
   linkStudentToParent,
   unlinkStudentFromParent,
   sendParentCredentials,
+  getParentStudents,
+  getParentStudentDetails,
 } from '../controllers/parentController.js';
 import { protect } from '../middleware/auth.js';
 
@@ -27,5 +29,7 @@ router.route('/:id')
 router.post('/link-student', linkStudentToParent);
 router.post('/unlink-student', unlinkStudentFromParent);
 router.post('/send-credentials', sendParentCredentials);
+router.get('/students', getParentStudents);
+router.get('/students/:studentId', getParentStudentDetails);
 
 export default router;
