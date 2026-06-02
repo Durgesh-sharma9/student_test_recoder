@@ -216,9 +216,202 @@ export default function ClassResults() {
     if (!results) return;
 
     const isDailyTest = selectedExamTypes.includes('Daily Test');
+    const isCombined = isCombinedResults;
     let workbook, worksheet;
 
-    if (isDailyTest) {
+    if (isCombined) {
+      // Combined results format with date-wise ordering
+      const data = [];
+      
+      // Row 1: Assessment info headers
+      const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
+      const headerRow2 = ['', '', '', '', '', ''];
+      
+      results.assessments.forEach((assessment) => {
+        headerRow1.push(assessment.examType, '');
+        headerRow2.push(`Date: ${new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, `Subject: ${assessment.subject}`);
+      });
+
+      // Row 3: Column headers
+      const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
+      results.assessments.forEach(() => {
+        headerRow3.push('Max Marks', 'Marks Obtained');
+      });
+
+      data.push(headerRow1, headerRow2, headerRow3);
+
+      // Data rows
+      filteredResults.forEach((r) => {
+        const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
+        results.assessments.forEach((assessment) => {
+          const key = `${assessment.examType}_${assessment._id}`;
+          const mark = r.assessments?.[key];
+          row.push(assessment.maxMarks, mark?.marksObtained || '');
+        });
+        data.push(row);
+      });
+
+      // Create worksheet
+      worksheet = XLSX.utils.aoa_to_sheet(data);
+
+      // Merge cells for assessment headers
+      let colIndex = 6; // Start after Student Name
+      results.assessments.forEach((assessment) => {
+        worksheet['!merges'] = worksheet['!merges'] || [];
+        worksheet['!merges'].push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + 1 } });
+        colIndex += 2;
+      });
+
+      // Apply professional styling with color coding
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      
+      // Define styles
+      const blueHeaderStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '2563EB' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '1E40AF' } },
+          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
+          left: { style: 'thin', color: { rgb: '1E40AF' } },
+          right: { style: 'thin', color: { rgb: '1E40AF' } }
+        }
+      };
+
+      const redHeaderStyle = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: 'DC2626' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '991B1B' } },
+          bottom: { style: 'thin', color: { rgb: '991B1B' } },
+          left: { style: 'thin', color: { rgb: '991B1B' } },
+          right: { style: 'thin', color: { rgb: '991B1B' } }
+        }
+      };
+
+      const subHeaderStyle = {
+        font: { bold: true, color: { rgb: '312E81' } },
+        fill: { fgColor: { rgb: 'E0E7FF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          bottom: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          left: { style: 'thin', color: { rgb: 'C7D2FE' } },
+          right: { style: 'thin', color: { rgb: 'C7D2FE' } }
+        }
+      };
+
+      const keyColumnStyle = {
+        font: { bold: true, color: { rgb: '1D4ED8' } },
+        fill: { fgColor: { rgb: 'DBEAFE' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          bottom: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          left: { style: 'thin', color: { rgb: 'BFDBFE' } },
+          right: { style: 'thin', color: { rgb: 'BFDBFE' } }
+        }
+      };
+
+      const dataCellStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+        }
+      };
+
+      const marksObtainedStyle = {
+        font: { bold: true, color: { rgb: '4338CA' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
+        }
+      };
+
+      // Apply styles to header rows
+      for (let R = 0; R <= 2; R++) {
+        for (let C = 0; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!worksheet[cellAddress]) continue;
+          
+          if (R === 0 && C < 6) {
+            worksheet[cellAddress].s = blueHeaderStyle;
+          } else if (R === 0 && C >= 6) {
+            // Color code based on assessment category
+            const assessmentIndex = Math.floor((C - 6) / 2);
+            const assessment = results.assessments[assessmentIndex];
+            if (assessment) {
+              worksheet[cellAddress].s = assessment.category === 'daily' ? blueHeaderStyle : redHeaderStyle;
+            }
+          } else if (R === 1) {
+            // Sub-headers (date/subject) - use lighter color based on category
+            const assessmentIndex = Math.floor((C - 6) / 2);
+            const assessment = results.assessments[assessmentIndex];
+            if (assessment) {
+              worksheet[cellAddress].s = assessment.category === 'daily' ? subHeaderStyle : { ...subHeaderStyle, fill: { fgColor: { rgb: 'FEE2E2' } }, font: { color: { rgb: '991B1B' } } };
+            }
+          } else if (R === 2) {
+            if (C < 6) {
+              worksheet[cellAddress].s = blueHeaderStyle;
+            } else {
+              worksheet[cellAddress].s = subHeaderStyle;
+            }
+          }
+        }
+      }
+
+      // Apply styles to data rows
+      for (let R = 3; R <= range.e.r; R++) {
+        for (let C = 0; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!worksheet[cellAddress]) continue;
+          
+          // Key columns (Total, Average, Percentage, Rank)
+          if (C < 4) {
+            worksheet[cellAddress].s = keyColumnStyle;
+          } 
+          // Roll No and Student Name - normal data style
+          else if (C === 4 || C === 5) {
+            worksheet[cellAddress].s = dataCellStyle;
+          }
+          // Max Marks - normal data style
+          else if ((C - 6) % 2 === 0) {
+            worksheet[cellAddress].s = dataCellStyle;
+          }
+          // Marks Obtained - bold style
+          else {
+            worksheet[cellAddress].s = marksObtainedStyle;
+          }
+        }
+      }
+
+      // Auto-size columns with minimum width
+      const colWidths = [];
+      for (let C = 0; C <= range.e.c; C++) {
+        let maxWidth = 12;
+        for (let R = 0; R <= range.e.r; R++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+          if (cell && cell.v) {
+            const cellValue = String(cell.v);
+            maxWidth = Math.max(maxWidth, Math.min(cellValue.length + 4, 30));
+          }
+        }
+        colWidths.push({ wch: maxWidth });
+      }
+      worksheet['!cols'] = colWidths;
+
+      // Freeze panes: freeze top 3 rows and first 6 columns
+      worksheet['!freeze'] = { xSplit: 6, ySplit: 3 };
+
+    } else if (isDailyTest) {
       // Daily Test format with professional Excel formatting
       const data = [];
       
