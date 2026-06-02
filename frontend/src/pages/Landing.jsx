@@ -1,598 +1,703 @@
-import { Link } from 'react-router-dom';
-import {
-  GraduationCap,
-  BarChart3,
-  Shield,
-  Users,
-  ClipboardCheck,
-  BookOpen,
-  Trophy,
-  CreditCard,
-  Bus,
-  Calendar,
-  Bell,
-  ArrowRight,
-  CheckCircle2,
-} from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-
-export default function Landing() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/80 to-indigo-100">
-
-      {/* ==========================================
-          HEADER
-      ========================================== */}
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 text-xl font-bold">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-sm">
-              <GraduationCap className="h-6 w-6 text-white" />
-            </div>
-
-            <span className="text-slate-800">
-              SchoolResult SaaS
-            </span>
-          </div>
-
-          {/* Navigation */}
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <a href="#features" className="transition-colors hover:text-blue-600">
-              Features
-            </a>
-
-            <a href="#modules" className="transition-colors hover:text-blue-600">
-              Modules
-            </a>
-
-            <a href="#about" className="transition-colors hover:text-blue-600">
-              About
-            </a>
-
-            <a href="#contact" className="transition-colors hover:text-blue-600">
-              Contact
-            </a>
-          </nav>
-
-          {/* Buttons */}
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link to="/login">
-                Login
-              </Link>
-            </Button>
-
-            <Button asChild>
-              <Link to="/signup">
-                Sign Up
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* ==========================================
-          HERO SECTION
-      ========================================== */}
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:py-24">
-
-        <div className="grid items-center gap-12 lg:grid-cols-2">
-
-          {/* Left Content */}
-          <div>
-
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
-              <CheckCircle2 className="h-4 w-4" />
-              Trusted School ERP Platform
-            </div>
-
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
-              Modern School
-              <span className="mt-1 block text-blue-600">
-                Management System
-              </span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
-              Manage students, teachers, attendance,
-              daily tests, results, rankings, reports,
-              notifications and analytics from one
-              powerful dashboard.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Button
-                size="lg"
-                asChild
-              >
-                <Link to="/signup">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-              >
-                <Link to="/login">
-                  Login
-                </Link>
-              </Button>
-            </div>
-
-            {/* Small Features */}
-            <div className="mt-10 grid grid-cols-2 gap-4">
-
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2.5">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  Multi School Support
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2.5">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  Daily Test System
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2.5">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  Teacher Portal
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2.5">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  Result Analytics
-                </span>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Right Dashboard Preview */}
-          <div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl shadow-indigo-100/50">
-
-              <div className="grid grid-cols-2 gap-4">
-
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
-                  <Users className="mb-3 h-8 w-8 text-blue-600" />
-                  <h3 className="text-2xl font-bold text-slate-900">
-                    12,540
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Students
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-                  <BookOpen className="mb-3 h-8 w-8 text-emerald-600" />
-                  <h3 className="text-2xl font-bold text-slate-900">
-                    98%
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Attendance
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-orange-100 bg-orange-50 p-5">
-                  <Trophy className="mb-3 h-8 w-8 text-orange-600" />
-                  <h3 className="text-2xl font-bold text-slate-900">
-                    1,250
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Tests Conducted
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-violet-100 bg-violet-50 p-5">
-                  <BarChart3 className="mb-3 h-8 w-8 text-violet-600" />
-                  <h3 className="text-2xl font-bold text-slate-900">
-                    99.9%
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    Uptime
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* ==========================================
-          PLATFORM STATS
-      ========================================== */}
-      <section className="pb-20">
-        <div className="mx-auto max-w-7xl px-4">
-
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-blue-600">
-                10K+
-              </h3>
-              <p className="mt-2 text-slate-500">
-                Students
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-emerald-600">
-                500+
-              </h3>
-              <p className="mt-2 text-slate-500">
-                Teachers
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-orange-600">
-                100+
-              </h3>
-              <p className="mt-2 text-slate-500">
-                Schools
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-violet-600">
-                99.9%
-              </h3>
-              <p className="mt-2 text-slate-500">
-                Uptime
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* ==========================================
-          FEATURES SECTION
-      ========================================== */}
-      <section
-        id="features"
-        className="bg-white py-20"
-      >
-        <div className="mx-auto max-w-7xl px-4">
-
-          <div className="mb-14 text-center">
-            <h2 className="text-4xl font-bold text-slate-900">
-              Powerful Features
-            </h2>
-
-            <p className="mt-4 text-slate-500">
-              Everything schools need in one platform.
-            </p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-
-            {[
-              {
-                icon: Users,
-                title: 'Multi-School SaaS',
-                desc: 'Separate and secure data for every school.',
-                tone: 'border-blue-100 bg-blue-50/50',
-                iconColor: 'text-blue-600',
-              },
-              {
-                icon: BarChart3,
-                title: 'Smart Analytics',
-                desc: 'Performance reports and rankings instantly.',
-                tone: 'border-violet-100 bg-violet-50/50',
-                iconColor: 'text-violet-600',
-              },
-              {
-                icon: Shield,
-                title: 'Role Permissions',
-                desc: 'Admin, teacher and student access control.',
-                tone: 'border-emerald-100 bg-emerald-50/50',
-                iconColor: 'text-emerald-600',
-              },
-              {
-                icon: ClipboardCheck,
-                title: 'Attendance',
-                desc: 'Track student attendance digitally.',
-                tone: 'border-orange-100 bg-orange-50/50',
-                iconColor: 'text-orange-600',
-              },
-              {
-                icon: BookOpen,
-                title: 'Daily Tests',
-                desc: 'Create and manage daily assessments.',
-                tone: 'border-blue-100 bg-blue-50/50',
-                iconColor: 'text-blue-600',
-              },
-              {
-                icon: Trophy,
-                title: 'Exam Results',
-                desc: 'Generate rankings and report cards.',
-                tone: 'border-amber-100 bg-amber-50/50',
-                iconColor: 'text-amber-600',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className={`rounded-2xl border p-6 transition-shadow hover:shadow-lg ${item.tone}`}
-              >
-                <item.icon className={`mb-4 h-10 w-10 ${item.iconColor}`} />
-
-                <h3 className="text-lg font-semibold text-slate-900">
-                  {item.title}
-                </h3>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  {item.desc}
-                </p>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      </section>
-
-      {/* ==========================================
-          ERP MODULES
-      ========================================== */}
-      <section
-        id="modules"
-        className="py-20"
-      >
-        <div className="mx-auto max-w-7xl px-4">
-
-          <div className="mb-14 text-center">
-            <h2 className="text-4xl font-bold text-slate-900">
-              Complete School ERP
-            </h2>
-
-            <p className="mt-4 text-slate-500">
-              Manage every aspect of your institution.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-
-            {[
-              { icon: Users, title: 'Students' },
-              { icon: ClipboardCheck, title: 'Attendance' },
-              { icon: BookOpen, title: 'Tests' },
-              { icon: Trophy, title: 'Results' },
-              { icon: CreditCard, title: 'Fees' },
-              { icon: Bus, title: 'Transport' },
-              { icon: Calendar, title: 'Calendar' },
-              { icon: Bell, title: 'Notifications' },
-            ].map((module) => (
-              <div
-                key={module.title}
-                className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm transition-shadow hover:shadow-xl"
-              >
-                <module.icon className="mx-auto mb-4 h-10 w-10 text-blue-600" />
-
-                <h3 className="font-semibold text-slate-800">
-                  {module.title}
-                </h3>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      </section>
-
-      {/* ==========================================
-          WHY CHOOSE US
-      ========================================== */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4">
-
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-
-            <div>
-              <h2 className="mb-8 text-4xl font-bold text-slate-900">
-                Why Schools Choose Us
-              </h2>
-
-              <div className="space-y-6">
-
-                <div className="flex gap-4 rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
-                  <Shield className="h-8 w-8 shrink-0 text-emerald-600" />
-
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Secure Platform
-                    </h3>
-
-                    <p className="mt-1 text-slate-500">
-                      School data remains isolated and protected.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-                  <BarChart3 className="h-8 w-8 shrink-0 text-blue-600" />
-
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Real Time Reports
-                    </h3>
-
-                    <p className="mt-1 text-slate-500">
-                      Instant analytics and performance tracking.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 rounded-xl border border-violet-100 bg-violet-50/40 p-4">
-                  <Users className="h-8 w-8 shrink-0 text-violet-600" />
-
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      Multi User Access
-                    </h3>
-
-                    <p className="mt-1 text-slate-500">
-                      Dedicated portals for admins and teachers.
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-gradient-to-br from-blue-600 to-violet-600 p-10 text-white shadow-xl">
-              <h3 className="mb-4 text-3xl font-bold">
-                One Dashboard.
-              </h3>
-
-              <h3 className="mb-6 text-3xl font-bold">
-                Complete Control.
-              </h3>
-
-              <p className="leading-relaxed text-blue-100">
-                Manage students, attendance,
-                tests, rankings, teachers,
-                reports and notifications
-                from a single dashboard.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ==========================================
-          ABOUT
-      ========================================== */}
-      <section
-        id="about"
-        className="py-20"
-      >
-        <div className="mx-auto max-w-4xl px-4 text-center">
-
-          <h2 className="text-4xl font-bold text-slate-900">
-            About SchoolResult SaaS
-          </h2>
-
-          <p className="mt-6 leading-8 text-slate-600">
-            SchoolResult SaaS helps schools digitize
-            result processing, daily tests,
-            attendance management and academic
-            analytics with a modern cloud platform.
-          </p>
-
-        </div>
-      </section>
-
-      {/* ==========================================
-          TESTIMONIALS
-      ========================================== */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4">
-
-          <h2 className="mb-12 text-center text-4xl font-bold text-slate-900">
-            What Schools Say
-          </h2>
-
-          <div className="grid gap-6 md:grid-cols-3">
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-slate-700">
-                &quot;Result generation became
-                90% faster.&quot;
-              </p>
-
-              <h4 className="mt-4 font-semibold text-slate-900">
-                School Principal
-              </h4>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-slate-700">
-                &quot;Teachers save hours every week.&quot;
-              </p>
-
-              <h4 className="mt-4 font-semibold text-slate-900">
-                Academic Coordinator
-              </h4>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-slate-700">
-                &quot;Simple and easy for our staff.&quot;
-              </p>
-
-              <h4 className="mt-4 font-semibold text-slate-900">
-                School Administrator
-              </h4>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ==========================================
-          CONTACT
-      ========================================== */}
-      <section
-        id="contact"
-        className="py-20"
-      >
-        <div className="mx-auto max-w-4xl px-4 text-center">
-
-          <h2 className="text-4xl font-bold text-slate-900">
-            Contact Us
-          </h2>
-
-          <p className="mt-4 text-slate-500">
-            support@schoolresult.app
-          </p>
-
-          <p className="mt-2 text-slate-500">
-            +91 98765 43210
-          </p>
-
-        </div>
-      </section>
-
-      {/* ==========================================
-          FOOTER
-      ========================================== */}
-      <footer className="bg-slate-900 py-10 text-white">
-        <div className="mx-auto max-w-7xl px-4 text-center">
-
-          <GraduationCap className="mx-auto mb-4 h-10 w-10 text-blue-400" />
-
-          <h3 className="text-xl font-semibold">
-            SchoolResult SaaS
-          </h3>
-
-          <p className="mt-3 text-slate-400">
-            Modern School ERP & Result Management Platform
-          </p>
-
-          <p className="mt-6 text-sm text-slate-500">
-            © 2026 SchoolResult SaaS. All Rights Reserved.
-          </p>
-
-        </div>
-      </footer>
-
-    </div>
-  );
-}
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import {
+  GraduationCap, BarChart3, Users, BookOpen, Trophy,
+  CreditCard, Bus, Calendar, Bell, ArrowRight,
+  ClipboardList, FileSpreadsheet, Smartphone, Building2,
+  ChevronRight, Star, Zap, Cloud, Lock, TrendingUp,
+  FileText, Play, Check, X, Twitter, Linkedin,
+  Facebook, Instagram, Mail, Phone, MapPin,
+} from "lucide-react";
+
+/* ─── animated counter ─── */
+function useCounter(target, duration = 1400, start = false) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    let t0 = null;
+    const tick = (ts) => {
+      if (!t0) t0 = ts;
+      const p = Math.min((ts - t0) / duration, 1);
+      setV(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [start, target, duration]);
+  return v;
+}
+
+function StatCard({ value, suffix, label, icon: Icon, gradient, textColor, delay, inView }) {
+  const count = useCounter(value, 1400, inView);
+  const display = value >= 1000
+    ? (count / 1000).toFixed(count >= value ? (value >= 10000 ? 0 : 1) : 1) + "K"
+    : count;
+  return (
+    <div className="stat-card" style={{ background: gradient, animationDelay: `${delay}ms` }}>
+      <div className="stat-icon-bg"><Icon size={22} color="#fff" /></div>
+      <div className="stat-num" style={{ color: "#fff" }}>{display}{suffix}</div>
+      <div className="stat-lbl">{label}</div>
+    </div>
+  );
+}
+
+export default function Landing() {
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
+  const statsRef = useRef(null);
+
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", h);
+    return () => window.removeEventListener("scroll", h);
+  }, []);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true); }, { threshold: 0.3 });
+    if (statsRef.current) obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  const features = [
+    { icon: Users,          title: "Student Management",   desc: "Enroll, track and manage student profiles, classes, and full academic history.",      grad: "linear-gradient(135deg,#6366f1,#3b82f6)", shadow: "rgba(99,102,241,.35)" },
+    { icon: Users,          title: "Teacher Management",   desc: "Assign subjects, manage teacher profiles and track their performance easily.",         grad: "linear-gradient(135deg,#10b981,#06b6d4)", shadow: "rgba(16,185,129,.35)" },
+    { icon: BookOpen,       title: "Daily Test System",    desc: "Create, schedule and auto-grade daily assessments with instant results.",               grad: "linear-gradient(135deg,#f59e0b,#f97316)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Trophy,         title: "Main Exam Management", desc: "Full-cycle exam creation, mark entry, ranking and report generation.",                  grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", shadow: "rgba(236,72,153,.35)" },
+    { icon: BarChart3,      title: "Result Analytics",     desc: "Visual performance charts, subject-wise comparisons and trend tracking.",               grad: "linear-gradient(135deg,#f97316,#ef4444)", shadow: "rgba(249,115,22,.35)" },
+    { icon: ClipboardList,  title: "Class-wise Reports",   desc: "Auto-generate class toppers, pass/fail summaries and performance sheets.",              grad: "linear-gradient(135deg,#14b8a6,#10b981)", shadow: "rgba(20,184,166,.35)" },
+    { icon: FileSpreadsheet,title: "CSV / XLSX Export",    desc: "Export any report to spreadsheet in one click for offline analysis.",                   grad: "linear-gradient(135deg,#3b82f6,#06b6d4)", shadow: "rgba(59,130,246,.35)" },
+    { icon: Smartphone,     title: "Parent Portal",        desc: "Parents view results, ranks and progress from a dedicated mobile-ready portal.",        grad: "linear-gradient(135deg,#a855f7,#ec4899)", shadow: "rgba(168,85,247,.35)" },
+    { icon: Building2,      title: "Multi-school Support", desc: "Manage multiple campuses from one admin account with completely isolated data.",         grad: "linear-gradient(135deg,#f59e0b,#84cc16)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Calendar,       title: "Academic Sessions",    desc: "Manage multiple academic years and session archives with ease.",                         grad: "linear-gradient(135deg,#06b6d4,#6366f1)", shadow: "rgba(6,182,212,.35)" },
+  ];
+
+  const steps = [
+    { num: "01", icon: Building2, title: "Create your school",        desc: "Register and set up your institution with classes, subjects and academic sessions.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.4)"  },
+    { num: "02", icon: Users,      title: "Add teachers & students",   desc: "Import in bulk via CSV or add individually. Roles are auto-assigned.",              grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.4)" },
+    { num: "03", icon: BookOpen,   title: "Conduct tests & exams",     desc: "Schedule assessments, enter marks and manage the full exam lifecycle.",              grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.4)" },
+    { num: "04", icon: Trophy,     title: "Generate results instantly", desc: "Auto-calculate ranks, generate report cards and notify parents in seconds.",        grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.4)" },
+  ];
+
+  const testimonials = [
+    { quote: "Result generation that used to take two full days now finishes in under twenty minutes. The export feature alone was worth switching.", name: "Arvind Kumar", role: "Principal, Delhi Public School",          initials: "AK", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
+    { quote: "Our teachers save hours every week. The daily test module is incredibly easy and parents love the portal for tracking their children.", name: "Priya Sharma", role: "Academic Coordinator, Ryan International", initials: "PS", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
+    { quote: "Managing three school branches from a single dashboard is a game changer. Data is always accurate and support responds within hours.",  name: "Rahul Verma",  role: "Director, Vidya Group of Schools",         initials: "RV", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
+  ];
+
+  const plans = [
+    {
+      name: "Starter", price: "₹999", cta: "Sign Up Free", popular: false,
+      desc: "For small schools getting started with digital result management.",
+      grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.15)",
+      features: [
+        { text: "Up to 500 students", ok: true },
+        { text: "5 teacher accounts", ok: true },
+        { text: "Daily test module",  ok: true },
+        { text: "Result generation",  ok: true },
+        { text: "Parent portal",      ok: false },
+        { text: "Multi-school",       ok: false },
+      ],
+    },
+    {
+      name: "School", price: "₹2,499", cta: "Start Free Trial", popular: true,
+      desc: "Full ERP features and parent access for growing institutions.",
+      grad: "linear-gradient(135deg,#2563eb,#7c3aed)", glow: "rgba(37,99,235,.2)",
+      features: [
+        { text: "Up to 2,000 students", ok: true },
+        { text: "Unlimited teachers",   ok: true },
+        { text: "Full ERP modules",     ok: true },
+        { text: "Parent portal",        ok: true },
+        { text: "CSV / XLSX export",    ok: true },
+        { text: "Multi-school",         ok: false },
+      ],
+    },
+    {
+      name: "Enterprise", price: "Custom", cta: "Contact Sales", popular: false,
+      desc: "For school chains needing multi-campus management at scale.",
+      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.15)",
+      features: [
+        { text: "Unlimited students",     ok: true },
+        { text: "Unlimited teachers",     ok: true },
+        { text: "All School features",    ok: true },
+        { text: "Multi-school dashboard", ok: true },
+        { text: "Dedicated support",      ok: true },
+        { text: "Custom integrations",    ok: true },
+      ],
+    },
+  ];
+
+  const whyCards = [
+    { icon: Zap,        title: "Easy to use",           desc: "Clean interface that non-technical staff can use without any training.",   grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
+    { icon: TrendingUp, title: "Fast result generation", desc: "Generate full result sheets and rank lists in under a minute.",            grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.12)" },
+    { icon: Cloud,      title: "Cloud based",            desc: "Access from anywhere, any device. No installation required.",              grad: "linear-gradient(135deg,#3b82f6,#6366f1)", glow: "rgba(59,130,246,.12)" },
+    { icon: Lock,       title: "Secure data",            desc: "School data completely isolated with HTTPS encryption end-to-end.",        grad: "linear-gradient(135deg,#ec4899,#ef4444)", glow: "rgba(236,72,153,.12)" },
+    { icon: Building2,  title: "Multi-school ready",     desc: "Run a chain of schools from one account with separate dashboards.",        grad: "linear-gradient(135deg,#8b5cf6,#a855f7)", glow: "rgba(139,92,246,.12)" },
+    { icon: FileText,   title: "Professional reports",   desc: "Print-ready report cards and performance sheets in one click.",            grad: "linear-gradient(135deg,#14b8a6,#84cc16)", glow: "rgba(20,184,166,.12)" },
+  ];
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+          --text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+          --bg:#fff;--bg-2:#f8fafc;
+          --border:#e2e8f0;--border-2:#cbd5e1;
+          --r:14px;--r-lg:20px;--r-xl:28px;
+          --font:'Plus Jakarta Sans',sans-serif;
+          --mono:'DM Mono',monospace;
+          --sh:0 4px 24px rgba(0,0,0,.07);
+          --sh-lg:0 20px 60px rgba(0,0,0,.1);
+        }
+        body{font-family:var(--font);color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        button{font-family:var(--font);cursor:pointer;border:none}
+
+        /* ── BUTTONS ── */
+        .btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font);font-size:14px;font-weight:700;padding:11px 24px;border-radius:12px;cursor:pointer;transition:all .22s;border:none;text-decoration:none;letter-spacing:-.01em}
+        .btn-primary{background:linear-gradient(135deg,#6366f1,#2563eb);color:#fff;box-shadow:0 6px 24px rgba(99,102,241,.4)}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(99,102,241,.5)}
+        .btn-ghost{background:transparent;color:var(--text-2)}
+        .btn-ghost:hover{background:var(--bg-2);color:var(--text)}
+        .btn-outline{background:#fff;color:var(--text);border:2px solid var(--border-2)}
+        .btn-outline:hover{border-color:#6366f1;color:#6366f1;transform:translateY(-1px)}
+        .btn-lg{font-size:15px;padding:14px 30px;border-radius:14px}
+        .btn-white{background:#fff;color:#4f46e5;font-weight:800;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+        .btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.18)}
+        .btn-ghost-white{background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.4)}
+        .btn-ghost-white:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
+
+        /* ── NAV ── */
+        .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);transition:box-shadow .3s}
+        .nav.scrolled{box-shadow:0 4px 24px rgba(0,0,0,.07)}
+        .nav-inner{max-width:1160px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:32px}
+        .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;color:var(--text)}
+        .logo-mark{width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#2563eb);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.4)}
+        .nav-links{display:flex;align-items:center;gap:28px;font-size:14px;font-weight:600;color:var(--text-2)}
+        .nav-links a:hover{color:var(--text)}
+        .nav-actions{display:flex;gap:10px;align-items:center}
+
+        /* ── HERO ── */
+        .hero-wrap{max-width:1160px;margin:0 auto;padding:88px 32px 72px}
+        .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+        .hero-pill{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#eef2ff,#fdf4ff);color:#4f46e5;font-size:12px;font-weight:700;padding:7px 18px;border-radius:40px;border:1.5px solid #c7d2fe;margin-bottom:24px;letter-spacing:.02em}
+        .pill-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);flex-shrink:0;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
+        h1.hero-h1{font-size:52px;font-weight:800;line-height:1.08;letter-spacing:-.035em;color:var(--text)}
+        .hero-accent{background:linear-gradient(135deg,#6366f1,#ec4899,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .hero-sub{font-size:16px;color:var(--text-2);line-height:1.8;margin:20px 0 34px;max-width:490px}
+        .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:38px}
+        .hero-checks{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+        .hc{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--text-2)}
+        .hc-dot{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(16,185,129,.3)}
+
+        /* ── DASHBOARD ── */
+        .dash{background:linear-gradient(160deg,#fafbff,#f3f4ff);border:1.5px solid #e0e7ff;border-radius:var(--r-xl);padding:24px;box-shadow:0 24px 80px rgba(99,102,241,.15)}
+        .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+        .dash-title-text{font-size:13px;font-weight:700}
+        .live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:#059669;font-weight:700;font-family:var(--mono);background:linear-gradient(135deg,#ecfdf5,#d1fae5);padding:5px 12px;border-radius:20px;border:1px solid #6ee7b7}
+        .live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#10b981;display:block;animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .dash-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+        .kpi{background:#fff;border:1px solid #e0e7ff;border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+        .kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
+        .kpi-lbl{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;text-transform:uppercase}
+        .kpi-val{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.03em}
+        .kpi-delta{font-size:11px;font-weight:700;color:#059669;margin-top:3px}
+        .dash-chart{background:#fff;border:1px solid #e0e7ff;border-radius:var(--r);padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+        .chart-ttl{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
+        .bars{display:flex;align-items:flex-end;gap:6px;height:76px}
+        .b{flex:1;border-radius:5px 5px 0 0;transition:opacity .2s}
+        .b:hover{opacity:.8}
+        .blabels{display:flex;gap:6px;margin-top:6px}
+        .blabels span{flex:1;text-align:center;font-size:10px;color:var(--text-3);font-family:var(--mono)}
+
+        /* ── STATS ── */
+        .stats-section{padding:56px 0;background:linear-gradient(135deg,#f8faff 0%,#fdf4ff 50%,#fff7ed 100%)}
+        .stats-inner{max-width:1160px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+        .stat-card{border-radius:var(--r-lg);padding:28px 20px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.1);transition:transform .22s,box-shadow .22s;position:relative;overflow:hidden}
+        .stat-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12)}
+        .stat-card:hover{transform:translateY(-5px);box-shadow:0 16px 48px rgba(0,0,0,.14)}
+        .stat-icon-bg{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;backdrop-filter:blur(4px)}
+        .stat-num{font-size:38px;font-weight:800;letter-spacing:-.04em}
+        .stat-lbl{font-size:13px;color:rgba(255,255,255,.85);margin-top:5px;font-weight:600}
+
+        /* ── SECTION SHARED ── */
+        .section{max-width:1160px;margin:0 auto;padding:96px 32px}
+        .section-head{text-align:center;margin-bottom:60px}
+        .s-tag{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#eef2ff,#fdf4ff);color:#4f46e5;font-size:11px;font-weight:800;padding:6px 16px;border-radius:40px;border:1.5px solid #c7d2fe;margin-bottom:16px;letter-spacing:.07em;text-transform:uppercase}
+        .section-head h2{font-size:38px;font-weight:800;letter-spacing:-.03em;color:var(--text)}
+        .section-head p{font-size:15px;color:var(--text-2);margin-top:12px;max-width:520px;margin-left:auto;margin-right:auto;line-height:1.8}
+
+        /* ── FEATURES ── */
+        .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+        .feat-card{border-radius:var(--r-lg);padding:28px;color:#fff;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s}
+        .feat-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.1)}
+        .feat-card::after{content:'';position:absolute;bottom:-50px;left:-20px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.07)}
+        .feat-card:hover{transform:translateY(-6px)}
+        .feat-icon-bg{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin-bottom:16px;backdrop-filter:blur(4px)}
+        .feat-card h3{font-size:15px;font-weight:700;margin-bottom:8px;position:relative}
+        .feat-card p{font-size:13px;line-height:1.65;opacity:.88;position:relative}
+
+        /* ── HOW IT WORKS ── */
+        .how-bg{background:linear-gradient(160deg,#fafbff 0%,#f0f9ff 50%,#fdf4ff 100%);padding:96px 0;border-top:1px solid #e0e7ff;border-bottom:1px solid #e0e7ff}
+        .how-inner{max-width:1160px;margin:0 auto;padding:0 32px}
+        .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+        .step{background:#fff;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:30px 22px;text-align:center;transition:all .22s;position:relative;overflow:hidden}
+        .step-top{position:absolute;top:0;left:0;right:0;height:5px;border-radius:5px 5px 0 0}
+        .step:hover{transform:translateY(-5px);box-shadow:var(--sh-lg)}
+        .step-num{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text-3);margin-bottom:18px;letter-spacing:.12em}
+        .step-circle{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+        .step h3{font-size:15px;font-weight:700;margin-bottom:8px}
+        .step p{font-size:13px;color:var(--text-2);line-height:1.65}
+
+        /* ── PARENT PORTAL ── */
+        .portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+        .portal-text h2{font-size:34px;font-weight:800;letter-spacing:-.03em;margin-bottom:12px;line-height:1.15}
+        .portal-text p{font-size:14px;color:var(--text-2);line-height:1.8;margin-bottom:32px}
+        .portal-feats{display:flex;flex-direction:column;gap:20px}
+        .pf{display:flex;align-items:flex-start;gap:16px}
+        .pf-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .pf h4{font-size:15px;font-weight:700;margin-bottom:4px}
+        .pf p{font-size:13px;color:var(--text-2);line-height:1.6}
+        .phone-frame{background:linear-gradient(160deg,#f8faff,#fdf4ff);border:1.5px solid #e0e7ff;border-radius:32px;padding:24px;max-width:280px;margin:0 auto;box-shadow:0 24px 80px rgba(99,102,241,.15)}
+        .phone-hdr{border-radius:18px;padding:18px 20px;margin-bottom:16px}
+        .phone-hdr p{font-size:11px;opacity:.8;margin-top:4px}
+        .phone-hdr strong{font-size:15px}
+        .p-card{background:#fff;border:1px solid #e0e7ff;border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:13px;transition:box-shadow .2s}
+        .p-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+        .p-card-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .p-card h5{font-size:12px;font-weight:700;margin-bottom:3px}
+        .p-card span{font-size:11px;color:var(--text-3)}
+
+        /* ── WHY US ── */
+        .why-bg{background:linear-gradient(160deg,#fffbeb 0%,#ecfdf5 40%,#eff6ff 80%,#fdf4ff 100%);padding:96px 0}
+        .why-inner{max-width:1160px;margin:0 auto;padding:0 32px}
+        .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+        .why-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:28px;transition:all .22s;position:relative;overflow:hidden}
+        .why-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s}
+        .why-card:hover{transform:translateY(-5px);box-shadow:var(--sh-lg)}
+        .why-icon{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+        .why-card h3{font-size:15px;font-weight:700;margin-bottom:8px}
+        .why-card p{font-size:13px;color:var(--text-2);line-height:1.65}
+
+        /* ── TESTIMONIALS ── */
+        .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+        .tc{border-radius:var(--r-lg);padding:28px;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s}
+        .tc:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
+        .tc-bar{position:absolute;top:0;left:0;right:0;height:5px;border-radius:5px 5px 0 0}
+        .tc-stars{display:flex;gap:3px;margin-bottom:16px}
+        .tc-stars svg{color:#f59e0b;fill:#f59e0b}
+        .tc-quote{font-size:14px;line-height:1.75;margin-bottom:20px;opacity:.85}
+        .tc-author{display:flex;align-items:center;gap:13px;border-top:1px solid rgba(0,0,0,.07);padding-top:18px}
+        .tc-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+        .tc-name{font-size:13px;font-weight:700}
+        .tc-role{font-size:11px;opacity:.65;margin-top:2px}
+
+        /* ── PRICING ── */
+        .pricing-bg{background:linear-gradient(160deg,#faf5ff 0%,#eff6ff 50%,#ecfdf5 100%);padding:96px 0}
+        .pricing-inner{max-width:1160px;margin:0 auto;padding:0 32px}
+        .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+        .pc{background:#fff;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:32px;position:relative;transition:all .22s}
+        .pc:hover{box-shadow:var(--sh-lg);transform:translateY(-3px)}
+        .pc.popular{border:none;color:#fff}
+        .pc.popular .pc-name{color:rgba(255,255,255,.8)}
+        .pc.popular .pc-desc{color:rgba(255,255,255,.75)}
+        .pc.popular .pc-price{-webkit-text-fill-color:#fff;background:none;color:#fff}
+        .pc.popular .pc-price sub{-webkit-text-fill-color:rgba(255,255,255,.7)}
+        .pc.popular .pc-feat{color:rgba(255,255,255,.9)}
+        .pc.popular .pc-feat.off{color:rgba(255,255,255,.4)}
+        .pc.popular .pc-divider{border-color:rgba(255,255,255,.2)}
+        .pop-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#fbbf24,#f97316);color:#fff;font-size:11px;font-weight:800;padding:5px 18px;border-radius:20px;white-space:nowrap;letter-spacing:.04em;box-shadow:0 4px 16px rgba(251,191,36,.5)}
+        .pc-name{font-size:11px;font-weight:800;color:var(--text-3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+        .pc-price{font-size:40px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,#1e293b,#475569);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .pc-price sub{font-size:14px;font-weight:500}
+        .pc-desc{font-size:13px;color:var(--text-2);margin:10px 0 24px;line-height:1.65}
+        .pc-divider{border:none;border-top:1px solid var(--border);margin:22px 0}
+        .pc-feat{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:11px;font-weight:500}
+        .pc-feat.off{color:var(--text-3);font-weight:400}
+
+        /* ── CTA ── */
+        .cta-box{border-radius:var(--r-xl);padding:80px 48px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 35%,#ec4899 70%,#f97316 100%)}
+        .cta-orb-1{position:absolute;top:-80px;left:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.07);pointer-events:none}
+        .cta-orb-2{position:absolute;bottom:-100px;right:-60px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none}
+        .cta-box h2{font-size:38px;font-weight:800;color:#fff;letter-spacing:-.03em;margin-bottom:16px;position:relative}
+        .cta-box p{font-size:16px;color:rgba(255,255,255,.8);max-width:500px;margin:0 auto 40px;line-height:1.8;position:relative}
+        .cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative}
+        .cta-note{font-size:13px;color:rgba(255,255,255,.6);margin-top:20px;position:relative}
+
+        /* ── FOOTER ── */
+        .footer{background:#0f172a;padding:64px 32px 28px;color:#fff}
+        .footer-inner{max-width:1160px;margin:0 auto}
+        .footer-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:44px;margin-bottom:56px}
+        .footer-logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;margin-bottom:14px;color:#fff}
+        .footer-logo-mark{width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#2563eb);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff}
+        .footer-desc{font-size:13px;color:#64748b;line-height:1.8;max-width:280px}
+        .footer-socials{display:flex;gap:10px;margin-top:20px}
+        .fs-btn{width:36px;height:36px;border:1px solid #1e293b;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#64748b;transition:all .2s;cursor:pointer;background:none}
+        .fs-btn:hover{border-color:#6366f1;color:#a5b4fc;background:#1e293b}
+        .footer-col h4{font-size:13px;font-weight:700;margin-bottom:18px;color:#e2e8f0}
+        .footer-col a{display:block;font-size:13px;color:#64748b;margin-bottom:11px;transition:color .15s}
+        .footer-col a:hover{color:#e2e8f0}
+        .footer-bottom{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1e293b;padding-top:24px}
+        .footer-copy{font-size:12px;color:#475569}
+        .footer-legal{display:flex;gap:20px}
+        .footer-legal a{font-size:12px;color:#475569;transition:color .15s}
+        .footer-legal a:hover{color:#94a3b8}
+        .contact-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin-bottom:10px}
+
+        @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+        .fade-up{animation:fadeUp .65s ease forwards}
+      `}</style>
+
+      {/* ── NAV ── */}
+      <nav className={`nav${scrolled ? " scrolled" : ""}`}>
+        <div className="nav-inner">
+          <div className="logo">
+            <div className="logo-mark"><GraduationCap size={18} /></div>
+            SchoolResult
+          </div>
+          <div className="nav-links">
+            <a href="#features">Features</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#about">About</a>
+            <a href="#contact">Contact</a>
+          </div>
+          <div className="nav-actions">
+            <Link to="/login" className="btn btn-ghost">Login</Link>
+            <Link to="/signup" className="btn btn-primary">Sign Up <ArrowRight size={15} /></Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
+      <div className="hero-wrap fade-up">
+        <div className="hero-grid">
+          <div>
+            <div className="hero-pill">
+              <span className="pill-dot" />
+              Live on 100+ schools across India
+            </div>
+            <h1 className="hero-h1">
+              School Result<br />Management<br />
+              <span className="hero-accent">Made Simple</span>
+            </h1>
+            <p className="hero-sub">Manage Students, Teachers, Daily Tests, Exams, Results, Reports and Parent Access from one powerful platform.</p>
+            <div className="hero-actions">
+              <Link to="/signup" className="btn btn-primary btn-lg">Sign Up Free <ArrowRight size={16} /></Link>
+              <button className="btn btn-outline btn-lg"><Play size={15} /> Watch Demo</button>
+            </div>
+            <div className="hero-checks">
+              {["Multi-school support","Daily test system","Parent portal","Result analytics","CSV / XLSX export","Cloud based"].map(t => (
+                <div className="hc" key={t}>
+                  <div className="hc-dot"><Check size={11} color="#fff" strokeWidth={3} /></div>
+                  {t}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* dashboard mockup */}
+          <div className="dash">
+            <div className="dash-topbar">
+              <span className="dash-title-text">Dashboard Overview</span>
+              <span className="live-badge">LIVE</span>
+            </div>
+            <div className="dash-kpis">
+              {[
+                { lbl:"STUDENTS",  val:"12,540", delta:"↑ 4.2%", bar:"linear-gradient(90deg,#6366f1,#3b82f6)" },
+                { lbl:"TESTS DONE",val:"1,250",  delta:"↑ 12%",  bar:"linear-gradient(90deg,#10b981,#06b6d4)" },
+                { lbl:"TOP RANK",  val:"#1",     delta:"Class A", bar:"linear-gradient(90deg,#f59e0b,#f97316)" },
+                { lbl:"UPTIME",    val:"99.9%",  delta:"30 days", bar:"linear-gradient(90deg,#ec4899,#8b5cf6)" },
+              ].map(k => (
+                <div className="kpi" key={k.lbl}>
+                  <div className="kpi-bar" style={{ background: k.bar }} />
+                  <div className="kpi-lbl">{k.lbl}</div>
+                  <div className="kpi-val">{k.val}</div>
+                  <div className="kpi-delta">{k.delta}</div>
+                </div>
+              ))}
+            </div>
+            <div className="dash-chart">
+              <div className="chart-ttl">Results Generated</div>
+              <div className="bars">
+                {[
+                  {h:42,c:"#c7d2fe"},{h:58,c:"#c7d2fe"},{h:51,c:"#a5b4fc"},
+                  {h:72,c:"#818cf8"},{h:65,c:"#a5b4fc"},
+                  {h:92,c:"linear-gradient(0deg,#4f46e5,#6366f1)"},
+                  {h:78,c:"#c7d2fe"},
+                ].map((bar,i)=>(
+                  <div key={i} className="b" style={{height:`${bar.h}%`,background:bar.c}} />
+                ))}
+              </div>
+              <div className="blabels">
+                {["Oct","Nov","Dec","Jan","Feb","Mar","Apr"].map(m=><span key={m}>{m}</span>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── STATS ── */}
+      <div className="stats-section" ref={statsRef}>
+        <div className="stats-inner">
+          <StatCard value={100}   suffix="+" label="Schools"           icon={Building2}     gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0}   inView={statsVisible} />
+          <StatCard value={15000} suffix="" label="Students"           icon={Users}         gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80}  inView={statsVisible} />
+          <StatCard value={800}   suffix="+" label="Teachers"          icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
+          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText}      gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
+        </div>
+      </div>
+
+      {/* ── FEATURES ── */}
+      <div id="features">
+        <div className="section">
+          <div className="section-head">
+            <div className="s-tag">✦ Everything you need</div>
+            <h2>Powerful features for modern schools</h2>
+            <p>From student enrollment to result publication — all managed from one place.</p>
+          </div>
+          <div className="feat-grid">
+            {features.map(f => (
+              <div className="feat-card" key={f.title} style={{ background: f.grad, boxShadow: `0 12px 40px ${f.shadow}` }}>
+                <div className="feat-icon-bg"><f.icon size={22} color="#fff" /></div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── HOW IT WORKS ── */}
+      <div className="how-bg">
+        <div className="how-inner">
+          <div className="section-head">
+            <div className="s-tag">✦ Get started fast</div>
+            <h2>How it works</h2>
+            <p>Set up your school and go live in four simple steps.</p>
+          </div>
+          <div className="steps-grid">
+            {steps.map(s => (
+              <div className="step" key={s.num} style={{ boxShadow: `0 8px 32px ${s.glow}` }}>
+                <div className="step-top" style={{ background: s.grad }} />
+                <div className="step-num">STEP {s.num}</div>
+                <div className="step-circle" style={{ background: s.grad, boxShadow: `0 8px 24px ${s.glow}` }}>
+                  <s.icon size={26} color="#fff" />
+                </div>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── PARENT PORTAL ── */}
+      <div className="section">
+        <div className="portal-grid">
+          <div className="portal-text">
+            <div className="s-tag" style={{ marginBottom: 18 }}>✦ Parent portal</div>
+            <h2>Keep parents informed<br />in real time</h2>
+            <p>Give every parent a secure login to track their child's academic progress, results and ranks — anytime, anywhere.</p>
+            <div className="portal-feats">
+              {[
+                { icon: FileText,   title: "View results",      desc: "Instant access to subject-wise marks and total scores for every exam.",     grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+                { icon: Trophy,     title: "View class rank",   desc: "See where their child stands in class with a clear rank display.",           grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+                { icon: TrendingUp, title: "Track performance", desc: "Visual trend charts show progress across academic sessions over time.",       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+              ].map(pf => (
+                <div className="pf" key={pf.title}>
+                  <div className="pf-icon" style={{ background: pf.grad, boxShadow: `0 6px 18px rgba(0,0,0,.15)` }}>
+                    <pf.icon size={20} color="#fff" />
+                  </div>
+                  <div><h4>{pf.title}</h4><p>{pf.desc}</p></div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="phone-frame">
+            <div className="phone-hdr" style={{ background: "linear-gradient(135deg,#4f46e5,#ec4899)", color: "#fff" }}>
+              <strong>My Child's Performance</strong>
+              <p>Academic year 2025–26</p>
+            </div>
+            {[
+              { icon: FileText,   title: "Math — Unit Test 3", sub: "92/100 · Rank 3rd in class",  grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+              { icon: BarChart3,  title: "Overall percentage", sub: "88.4% · Grade A",             grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
+              { icon: Trophy,     title: "Semester rank",      sub: "5th out of 42 students",       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+              { icon: TrendingUp, title: "Progress trend",     sub: "+6.2% vs last term",           grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+            ].map(pc => (
+              <div className="p-card" key={pc.title}>
+                <div className="p-card-icon" style={{ background: pc.grad }}><pc.icon size={16} color="#fff" /></div>
+                <div><h5>{pc.title}</h5><span>{pc.sub}</span></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── WHY US ── */}
+      <div className="why-bg">
+        <div className="why-inner">
+          <div className="section-head">
+            <div className="s-tag">✦ Why schools choose us</div>
+            <h2>Built for school administrators</h2>
+            <p>Designed with real school needs in mind — simple, fast and powerful.</p>
+          </div>
+          <div className="why-grid">
+            {whyCards.map(w => (
+              <div className="why-card" key={w.title} style={{ '--glow': w.glow }}>
+                <div className="why-icon" style={{ background: w.grad }}>
+                  <w.icon size={24} color="#fff" />
+                </div>
+                <h3>{w.title}</h3>
+                <p>{w.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── TESTIMONIALS ── */}
+      <div id="about" className="section">
+        <div className="section-head">
+          <div className="s-tag">✦ What schools say</div>
+          <h2>Trusted by educators across India</h2>
+          <p>Real feedback from principals, coordinators and administrators.</p>
+        </div>
+        <div className="testi-grid">
+          {testimonials.map(t => (
+            <div className="tc" key={t.name} style={{ background: t.bg, border: "1.5px solid rgba(0,0,0,.06)" }}>
+              <div className="tc-bar" style={{ background: t.grad }} />
+              <div className="tc-stars">{[...Array(5)].map((_,i) => <Star key={i} size={14} />)}</div>
+              <p className="tc-quote">"{t.quote}"</p>
+              <div className="tc-author">
+                <div className="tc-avatar" style={{ background: t.grad }}>{t.initials}</div>
+                <div>
+                  <div className="tc-name">{t.name}</div>
+                  <div className="tc-role">{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── PRICING ── */}
+      <div id="pricing" className="pricing-bg">
+        <div className="pricing-inner">
+          <div className="section-head">
+            <div className="s-tag">✦ Transparent pricing</div>
+            <h2>Simple plans for every school</h2>
+            <p>Start free. Scale as you grow. No hidden charges.</p>
+          </div>
+          <div className="pricing-grid">
+            {plans.map(plan => (
+              <div
+                className={`pc${plan.popular ? " popular" : ""}`}
+                key={plan.name}
+                style={plan.popular
+                  ? { background: plan.grad, boxShadow: `0 20px 60px ${plan.glow}` }
+                  : { boxShadow: `0 8px 32px ${plan.glow}` }}
+              >
+                {plan.popular && <div className="pop-badge">🔥 Most popular</div>}
+                <div className="pc-name">{plan.name}</div>
+                <div className="pc-price">{plan.price}{plan.price !== "Custom" && <sub> / month</sub>}</div>
+                <p className="pc-desc">{plan.desc}</p>
+                {plan.name === "Enterprise" ? (
+                  <a href="mailto:support@schoolresult.app"
+                     className="btn btn-outline"
+                     style={{ width: "100%", justifyContent: "center", display: "inline-flex" }}>
+                    {plan.cta}
+                  </a>
+                ) : plan.popular ? (
+                  <Link to="/signup" className="btn btn-white"
+                        style={{ width: "100%", justifyContent: "center" }}>
+                    {plan.cta} <ChevronRight size={15} />
+                  </Link>
+                ) : (
+                  <Link to="/signup" className="btn btn-outline"
+                        style={{ width: "100%", justifyContent: "center" }}>
+                    {plan.cta}
+                  </Link>
+                )}
+                <hr className="pc-divider" />
+                {plan.features.map(f => (
+                  <div className={`pc-feat${f.ok ? "" : " off"}`} key={f.text}>
+                    {f.ok
+                      ? <Check size={15} color={plan.popular ? "#86efac" : "#10b981"} strokeWidth={2.5} />
+                      : <X size={15} color={plan.popular ? "rgba(255,255,255,.3)" : "#cbd5e1"} />}
+                    {f.text}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── CTA ── */}
+      <div className="section">
+        <div className="cta-box">
+          <div className="cta-orb-1" /><div className="cta-orb-2" />
+          <h2>Ready to transform your school?</h2>
+          <p>Join 100+ schools already saving time with SchoolResult SaaS.<br />14-day free trial. No credit card required.</p>
+          <div className="cta-actions">
+            <Link to="/signup" className="btn btn-white btn-lg">Sign Up Free <ArrowRight size={16} /></Link>
+            <a href="mailto:support@schoolresult.app" className="btn btn-ghost-white btn-lg">
+              <Phone size={15} /> Contact Sales
+            </a>
+          </div>
+          <p className="cta-note">✓ Free 14-day trial &nbsp;·&nbsp; ✓ No credit card &nbsp;·&nbsp; ✓ Cancel anytime</p>
+        </div>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div id="contact">
+        <footer className="footer">
+          <div className="footer-inner">
+            <div className="footer-top">
+              <div>
+                <div className="footer-logo">
+                  <div className="footer-logo-mark"><GraduationCap size={16} /></div>
+                  SchoolResult SaaS
+                </div>
+                <p className="footer-desc">Modern cloud-based school ERP and result management trusted by schools across India.</p>
+                <div className="footer-socials">
+                  {[Twitter, Linkedin, Facebook, Instagram].map((Icon, i) => (
+                    <button className="fs-btn" key={i}><Icon size={15} /></button>
+                  ))}
+                </div>
+              </div>
+              <div className="footer-col">
+                <h4>Features</h4>
+                <a href="#">Student management</a>
+                <a href="#">Exam &amp; tests</a>
+                <a href="#">Result analytics</a>
+                <a href="#">Parent portal</a>
+                <a href="#">Reports &amp; export</a>
+              </div>
+              <div className="footer-col">
+                <h4>Support</h4>
+                <a href="#">Documentation</a>
+                <a href="#">Help center</a>
+                <a href="#">Status page</a>
+                <a href="#">Changelog</a>
+              </div>
+              <div className="footer-col">
+                <h4>Contact</h4>
+                <div className="contact-item"><Mail size={13} color="#6366f1" /> support@schoolresult.app</div>
+                <div className="contact-item"><Phone size={13} color="#10b981" /> +91 98765 43210</div>
+                <div className="contact-item"><MapPin size={13} color="#ec4899" /> Jaipur, Rajasthan</div>
+              </div>
+            </div>
+            <div className="footer-bottom">
+              <div className="footer-copy">© 2026 SchoolResult SaaS. All rights reserved.</div>
+              <div className="footer-legal">
+                <a href="#">Privacy policy</a>
+                <a href="#">Terms of service</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+}

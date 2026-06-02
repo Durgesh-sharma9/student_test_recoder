@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 
 const navByRole = {
   super_admin: [
@@ -47,9 +48,23 @@ const navByRole = {
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
   const navigate = useNavigate();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
+
+  useEffect(() => {
+    const fetchActiveSession = async () => {
+      try {
+        const res = await api.get('/academic-sessions/active');
+        setActiveSession(res.data.session);
+      } catch (error) {
+        console.error('Failed to fetch active session');
+        setActiveSession(null);
+      }
+    };
+    fetchActiveSession();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -107,17 +122,25 @@ export default function DashboardLayout() {
             </Button>
             <p className="hidden text-sm text-slate-500 sm:block">Welcome back, {user?.name}</p>
           </div>
-          <Button
-            variant="outline"
-            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-            onClick={() => {
-              logout();
-              navigate('/login');
-            }}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 sm:flex">
+              <Calendar className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700">
+                {activeSession ? `Session: ${activeSession.sessionName}` : 'No Active Session'}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />

@@ -41,7 +41,7 @@ export const getClassResults = asyncHandler(async (req, res) => {
   if (reportType === 'daily' || examType === 'Daily Test') {
     // Build date filter
     const dateFilter = { school: req.user.school, class: classId, category: 'daily', ...sessionFilter };
-    
+
     if (testDate) {
       const startDate = new Date(testDate);
       startDate.setHours(0, 0, 0, 0);
@@ -59,7 +59,26 @@ export const getClassResults = asyncHandler(async (req, res) => {
     }
 
     // Fetch daily test sessions
-    const sessions = await ResultSession.find(dateFilter).lean();
+    let sessions = await ResultSession.find(dateFilter).lean();
+
+    // Fallback: if no results with session filter and sessionId was provided, try without session filter for backward compatibility
+    if (!sessions.length && sessionId) {
+      const dateFilterWithoutSession = { school: req.user.school, class: classId, category: 'daily' };
+      if (testDate) {
+        const startDate = new Date(testDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(testDate);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilterWithoutSession.testDate = { $gte: startDate, $lte: endDate };
+      } else if (dateFrom && dateTo) {
+        const startDate = new Date(dateFrom);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilterWithoutSession.testDate = { $gte: startDate, $lte: endDate };
+      }
+      sessions = await ResultSession.find(dateFilterWithoutSession).lean();
+    }
 
     if (!sessions.length) {
       return res.json({
@@ -160,13 +179,23 @@ export const getClassResults = asyncHandler(async (req, res) => {
   }
 
   // Fetch all sessions for this class and exam type
-  const sessions = await ResultSession.find({
+  let sessions = await ResultSession.find({
     school: req.user.school,
     class: classId,
     category: 'main',
     examType: examType,
     ...sessionFilter,
   }).lean();
+
+  // Fallback: if no results with session filter and sessionId was provided, try without session filter for backward compatibility
+  if (!sessions.length && sessionId) {
+    sessions = await ResultSession.find({
+      school: req.user.school,
+      class: classId,
+      category: 'main',
+      examType: examType,
+    }).lean();
+  }
 
   if (!sessions.length) {
     return res.json({

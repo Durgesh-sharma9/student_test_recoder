@@ -502,15 +502,15 @@ export const dashboardSummary = asyncHandler(async (req, res) => {
   const schoolFilter = withSchool(req, {});
 
   if (req.user.role === 'school_admin' || req.user.role === 'admin') {
-    const [teachers, students, classes, sessions, activities] = await Promise.all([
+    const [teachers, students, classes, sessions, activities, classPerformance] = await Promise.all([
       User.countDocuments({ ...schoolFilter, role: 'teacher', isActive: true }),
       Student.countDocuments({ ...schoolFilter, isActive: true }),
       Class.countDocuments({ ...schoolFilter, isActive: true }),
       ResultSession.countDocuments(schoolFilter),
       Activity.find(schoolFilter).sort('-createdAt').limit(10).populate('actor', 'name'),
+      getClassPerformance(schoolFilter),
     ]);
-    const topper = await getTopper(schoolFilter);
-    return res.json({ success: true, stats: { teachers, students, classes, sessions }, topper, recentActivities: activities });
+    return res.json({ success: true, stats: { teachers, students, classes, sessions }, classPerformance, recentActivities: activities });
   }
 
   const me = await User.findById(req.user._id)
@@ -583,3 +583,101 @@ const getWeakStudents = async (teacherId) => {
     .map((e) => ({ student: e.student, percentage: e.percentage }));
 };
 
+const getClassPerformance = async (schoolFilter) => {
+  const classes = await Class.find(schoolFilter).lean();
+  if (!classes.length) return [];
+
+  const performance = await Promise.all(
+    classes.map(async (cls) => {
+      const students = await Student.find({
+        school: cls.school,
+        class: cls._id,
+        isActive: true,
+      }).lean();
+
+      if (!students.length) {
+        return {
+          classId: cls._id,
+          className: cls.className,
+          section: cls.section,
+          studentCount: 0,
+          averagePercentage: 0,
+          topStudent: null,
+          topStudentPercentage: 0,
+        };
+      }
+
+      const sessions = await ResultSession.find({
+        school: cls.school,
+        class: cls._id,
+      }).lean();
+
+      if (!sessions.length) {
+        return {
+          classId: cls._id,
+          className: cls.className,
+          section: cls.section,
+          studentCount: students.length,
+          averagePercentage: 0,
+          topStudent: null,
+          topStudentPercentage: 0,
+        };
+      }
+
+      const sessionIds = sessions.map((s) => s._id);
+      const entries = await MarkEntry.find({
+        session: { $in: sessionIds },
+      })
+        .populate('student', 'name rollNo')
+        .lean();
+
+      if (!entries.length) {
+        return {
+          classId: cls._id,
+          className: cls.className,
+          section: cls.section,
+          studentCount: students.length,
+          averagePercentage: 0,
+          topStudent: null,
+          topStudentPercentage: 0,
+        };
+      }
+
+      const studentPercentages = new Map();
+      entries.forEach((entry) => {
+        const studentId = entry.student._id.toString();
+        if (!studentPercentages.has(studentId)) {
+          studentPercentages.set(studentId, { total: 0, count: 0, student: entry.student });
+        }
+        const data = studentPercentages.get(studentId);
+        data.total += entry.percentage;
+        data.count += 1;
+      });
+
+      const studentAverages = Array.from(studentPercentages.values()).map((data) => ({
+        ...data.student,
+        averagePercentage: data.count > 0 ? round2(data.total / data.count) : 0,
+      }));
+
+      const classAverage = studentAverages.length > 0
+        ? round2(studentAverages.reduce((sum, s) => sum + s.averagePercentage, 0) / studentAverages.length)
+        : 0;
+
+      const topStudent = studentAverages.length > 0
+        ? [...studentAverages].sort((a, b) => b.averagePercentage - a.averagePercentage)[0]
+        : null;
+
+      return {
+        classId: cls._id,
+        className: cls.className,
+        section: cls.section,
+        studentCount: students.length,
+        averagePercentage: classAverage,
+        topStudent: topStudent?.name || null,
+        topStudentPercentage: topStudent?.averagePercentage || 0,
+      };
+    })
+  );
+
+  return performance.sort((a, b) => b.averagePercentage - a.averagePercentage);
+};
