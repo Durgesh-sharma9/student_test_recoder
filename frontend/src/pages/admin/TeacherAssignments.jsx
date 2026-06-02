@@ -1,24 +1,17 @@
-import { useEffect, useState } from "react";
-
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-
 import api from "@/lib/api";
 import { formatClassName } from "@/lib/utils";
 import { useSession } from '@/context/SessionContext';
-
-import { Users, ClipboardList, Plus, Save } from "lucide-react";
-
+import { Users, ClipboardList, Plus, Save, BookOpen, Trash2 } from "lucide-react";
 import {
   PageHeader,
   ErpSection,
   FormField,
   PageStack,
 } from "@/components/erp/PagePrimitives";
-
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
-
 import {
   Select,
   SelectContent,
@@ -26,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 const COMMON_SUBJECTS = [
   "Maths",
   "Science",
@@ -46,23 +40,23 @@ const COMMON_SUBJECTS = [
 export default function TeacherAssignments() {
   const { isArchived } = useSession();
   const [teachers, setTeachers] = useState([]);
-
   const [classes, setClasses] = useState([]);
-
   const [teacherId, setTeacherId] = useState("");
-
   const [selectedClass, setSelectedClass] = useState("");
-
   const [subject, setSubject] = useState("");
-
   const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    api.get('/classes').then((r) => {
+      setClasses(r.data.classes || []);
+    });
+  }, []);
 
   useEffect(() => {
     Promise.all([api.get("/users?role=teacher"), api.get("/classes")]).then(
       ([t, c]) => {
         const activeTeachers = (t.data.users || []).filter(teacher => teacher.status !== 'Inactive');
         setTeachers(activeTeachers);
-
         setClasses(c.data.classes || []);
 
         if (activeTeachers.length) {
@@ -78,7 +72,6 @@ export default function TeacherAssignments() {
     setItems(
       (teacher?.assignments || []).map((a) => ({
         class: a.class?._id || a.class,
-
         subject: a.subject,
       })),
     );
@@ -87,16 +80,13 @@ export default function TeacherAssignments() {
   const addItem = () => {
     if (!selectedClass || !subject.trim()) {
       toast.error("Please select class and enter subject");
-
       return;
     }
 
     setItems((prev) => [
       ...prev,
-
       {
         class: selectedClass,
-
         subject: subject.toUpperCase(),
       },
     ]);
@@ -104,16 +94,24 @@ export default function TeacherAssignments() {
     setSubject("");
   };
 
+  // Confirmation ke sath handle karne ka custom trigger handler
+  const handleRemoveItem = (indexToRemove, className, subjectName) => {
+    const classDisplay = className ? formatClassName(className) : "this class";
+    const confirmMessage = `Are you sure you want to remove ${subjectName} from ${classDisplay}?`;
+    
+    if (window.confirm(confirmMessage)) {
+      setItems((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+      toast.success("Assignment removed from list (Click Save to apply changes)");
+    }
+  };
+
   const save = async () => {
     try {
       const uniqueClassIds = [...new Set(items.map((i) => i.class))];
-
       const uniqueSubjects = [
         ...new Set(
           items
-
             .map((i) => i.subject)
-
             .filter(Boolean),
         ),
       ];
@@ -130,10 +128,8 @@ export default function TeacherAssignments() {
 
       await api.put(
         `/users/${teacherId}/assignments`,
-
         {
           assignedClasses: uniqueClassIds,
-
           assignments: items,
         },
       );
@@ -159,7 +155,6 @@ export default function TeacherAssignments() {
             <SelectTrigger>
               <SelectValue placeholder="Select Teacher" />
             </SelectTrigger>
-
             <SelectContent>
               {teachers.map((teacher) => (
                 <SelectItem key={teacher._id} value={teacher._id}>
@@ -178,7 +173,6 @@ export default function TeacherAssignments() {
               <SelectTrigger>
                 <SelectValue placeholder="Select Class" />
               </SelectTrigger>
-
               <SelectContent>
                 {classes.map((cls) => (
                   <SelectItem key={cls._id} value={cls._id}>
@@ -189,37 +183,25 @@ export default function TeacherAssignments() {
             </Select>
           </FormField>
 
-         <FormField label="Subject">
-  <>
-    <Input
-      list="subjects"
-      placeholder="Enter Subject"
-      value={subject}
-      onChange={(e) => setSubject(e.target.value)}
-      className="h-12 rounded-xl border-slate-200 bg-white shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-    />
-
-    <datalist id="subjects">
-      <option value="Maths" />
-      <option value="Science" />
-      <option value="English" />
-      <option value="Hindi" />
-      <option value="Social Science" />
-      <option value="Physics" />
-      <option value="Chemistry" />
-      <option value="Biology" />
-      <option value="Computer" />
-      <option value="GK" />
-      <option value="Sanskrit" />
-      <option value="EVS" />
-      <option value="Drawing" />
-      <option value="PT" />
-    </datalist>
-  </>
-</FormField>
+          <FormField label="Subject">
+            <>
+              <Input
+                list="subjects"
+                placeholder="Enter Subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="h-10 rounded-md border-slate-200 bg-white shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <datalist id="subjects">
+                {COMMON_SUBJECTS.map((sub) => (
+                  <option key={sub} value={sub} />
+                ))}
+              </datalist>
+            </>
+          </FormField>
 
           <div className="flex items-end">
-            <Button onClick={addItem} className="w-full" variant="success" disabled={isArchived}>
+            <Button onClick={addItem} className="w-full h-10" variant="success" disabled={isArchived}>
               <Plus className="mr-2 h-4 w-4" />
               Add Assignment
             </Button>
@@ -233,35 +215,56 @@ export default function TeacherAssignments() {
             No assignments added yet
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full">
             {items.map((item, index) => {
               const classInfo = classes.find((c) => c._id === item.class);
 
               return (
                 <div
                   key={`${item.class}-${item.subject}-${index}`}
-                  className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+                  className="relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm overflow-hidden min-h-[200px]"
                 >
-                  <div>
-                    <div className="font-medium text-slate-800">
-                      {formatClassName(classInfo?.className)}-{classInfo?.section}
-                    </div>
+                  {/* Top Color Accent Bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
-                    <div className="text-sm text-slate-500">
-                      Subject: {item.subject}
+                  {/* Top Layer: Class Info and Icon */}
+                  <div className="flex items-start justify-between mt-1">
+                    <div className="space-y-0.5">
+                      <h4 className="text-lg font-bold text-slate-900 tracking-tight">
+                        {classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : "Class N/A"}
+                      </h4>
+                      <p className="text-xs font-medium text-slate-400">Assigned Class</p>
+                    </div>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-500 border border-blue-100/60">
+                      <BookOpen className="h-4 w-4" />
                     </div>
                   </div>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={isArchived}
-                    onClick={() =>
-                      setItems((prev) => prev.filter((_, idx) => idx !== index))
-                    }
-                  >
-                    Remove
-                  </Button>
+                  {/* Middle Block: Subject with Color/Gradient Fill */}
+                  <div className="my-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-100/70 p-3.5 shadow-inner">
+                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
+                      Subject
+                    </div>
+                    <div className="text-base font-extrabold text-blue-700 tracking-wide uppercase truncate mt-0.5">
+                      {item.subject}
+                    </div>
+                  </div>
+
+                  {/* Bottom Footer: Active Tag & Colorful Remove Trigger */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                      Active
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isArchived}
+                      onClick={() => handleRemoveItem(index, classInfo?.className, item.subject)}
+                      className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100/80 active:bg-red-100 border border-red-100/70 rounded-lg px-3 py-1.5 transition-all flex items-center gap-1 shadow-sm"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -270,7 +273,7 @@ export default function TeacherAssignments() {
       </ErpSection>
 
       <div className="flex justify-end">
-        <Button size="lg" onClick={save} className="px-8" disabled={isArchived}>
+        <Button size="lg" onClick={save} className="px-8 shadow-md" disabled={isArchived}>
           <Save className="mr-2 h-4 w-4" />
           Save Assignments
         </Button>
