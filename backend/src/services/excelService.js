@@ -37,6 +37,64 @@ export const generateStudentImportTemplate = async () => {
   return buffer;
 };
 
+export const generateTeacherImportTemplate = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Teachers');
+
+  const headers = ['Teacher Name', 'Email', 'Password', 'Phone No'];
+  sheet.addRow(headers);
+
+  const exampleRow = ['Priya Sharma', 'priya.sharma@example.com', 'welcome123', '+919999999999'];
+  sheet.addRow(exampleRow);
+
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE2E8F0' },
+  };
+
+  sheet.columns.forEach((col) => {
+    col.width = 25;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer;
+};
+
+export const parseTeacherImportFile = (buffer, filename) => {
+  const rows = (() => {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  })();
+
+  if (rows.length < 2) {
+    throw new ApiError(400, 'Invalid file format. File must have at least a header row and one data row.');
+  }
+
+  const dataRows = rows.slice(1).filter((row) => row.some((cell) => String(cell).trim()));
+
+  const parsed = dataRows.map((row, index) => {
+    const teacherName = String(row[0] || '').trim();
+    const email = String(row[1] || '').trim().toLowerCase();
+    const password = String(row[2] || '').trim();
+    const phoneNo = String(row[3] || '').trim();
+
+    return {
+      rowNumber: index + 2,
+      teacherName,
+      email,
+      password,
+      phoneNo,
+    };
+  });
+
+  return parsed;
+};
+
 export const parseStudentImportFile = (buffer, filename) => {
   const isCSV = filename.toLowerCase().endsWith('.csv');
   let rows;
