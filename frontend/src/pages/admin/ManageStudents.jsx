@@ -19,7 +19,7 @@ export default function ManageStudents() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male' });
+  const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [importResults, setImportResults] = useState(null);
@@ -52,9 +52,27 @@ export default function ManageStudents() {
     try {
       const payload = { ...form, class: selectedClass };
       if (edit) await api.put(`/students/${edit._id}`, payload);
-      else await api.post('/students', payload);
-      toast.success(edit ? 'Student updated' : 'Student added');
-      setOpen(false); setEdit(null); setForm({ rollNo: '', name: '', gender: 'male' });
+      else {
+        const response = await api.post('/students', payload);
+        
+        // Send parent credential email if parent was created and has email
+        if (response.data.parentData && response.data.parentData.isNew && response.data.parentData.parent.email) {
+          try {
+            await api.post('/parents/send-credentials', {
+              parentId: response.data.parentData.parent._id,
+              schoolName: 'Your School', // This should come from school data
+              loginUrl: window.location.origin
+            });
+            toast.success('Student added and parent credentials sent');
+          } catch (emailErr) {
+            console.error('Failed to send parent email:', emailErr);
+            toast.success('Student added (parent email failed)');
+          }
+        } else {
+          toast.success('Student added');
+        }
+      }
+      setOpen(false); setEdit(null); setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
       loadStudents(selectedClass);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -276,6 +294,34 @@ export default function ManageStudents() {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </FormField>
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium text-slate-700 mb-3">Parent/Guardian Information</p>
+            </div>
+            <FormField label="Parent/Guardian Name">
+              <Input
+                placeholder="Enter Parent Name"
+                value={form.parentName}
+                onChange={(e) => setForm({ ...form, parentName: e.target.value })}
+                className="h-10 rounded-lg"
+              />
+            </FormField>
+            <FormField label="Parent Phone (Required)">
+              <Input
+                placeholder="Enter Parent Phone"
+                value={form.parentPhone}
+                onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
+                className="h-10 rounded-lg"
+              />
+            </FormField>
+            <FormField label="Parent Email (Optional)">
+              <Input
+                type="email"
+                placeholder="Enter Parent Email"
+                value={form.parentEmail}
+                onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
+                className="h-10 rounded-lg"
+              />
             </FormField>
             <div className="pt-2">
               <Button className="w-full h-11 rounded-xl text-base font-medium" variant={edit ? 'default' : 'success'}>

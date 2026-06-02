@@ -115,3 +115,49 @@ export const sendTeacherAssignmentEmail = async (
     };
   }
 };
+
+export const sendParentCreationEmail = async (
+  schoolName,
+  parentName,
+  parentEmail,
+  password,
+  loginUrl
+) => {
+  try {
+    const result = await transporter.sendMail({
+      from: process.env.MAIL_FROM,
+      to: parentEmail,
+      subject: "Parent Account Created",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Parent Account Created</h2>
+
+          <p>Hello ${parentName},</p>
+
+          <p>Your parent account has been created successfully for ${schoolName}.</p>
+
+          <div style="background:#f5f5f5;padding:15px;border-radius:8px;">
+            <p><strong>Name:</strong> ${parentName}</p>
+            <p><strong>Email:</strong> ${parentEmail}</p>
+            <p><strong>Password:</strong> ${password}</p>
+            <p><strong>Login URL:</strong> <a href="${loginUrl}" target="_blank" rel="noreferrer">${loginUrl}</a></p>
+          </div>
+
+          <p>Please keep these credentials safe.</p>
+        </div>
+      `,
+    });
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    logEmailError(error, "Parent Creation Email");
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
