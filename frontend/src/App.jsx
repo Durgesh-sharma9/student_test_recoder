@@ -24,6 +24,8 @@ import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
 import MainExamEntry from '@/pages/teacher/MainExamEntry';
 import TeacherResults from '@/pages/teacher/TeacherResults';
+import ParentDashboard from '@/pages/parent/Dashboard';
+import ParentLogin from '@/pages/ParentLogin';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -32,6 +34,7 @@ function HomeRoute() {
   const role = user.role === 'admin' ? 'school_admin' : user.role;
   if (role === 'super_admin') return <Navigate to="/super-admin" replace />;
   if (role === 'school_admin') return <Navigate to="/admin" replace />;
+  if (role === 'parent') return <Navigate to="/parent/dashboard" replace />;
   return <Navigate to="/teacher" replace />;
 }
 
@@ -44,9 +47,10 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/parent-login" element={<ParentLogin />} />
             <Route path="/signup" element={<Signup />} />
 
-            <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher']}><DashboardLayout /></ProtectedRoute>}>
+            <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent']}><DashboardLayout /></ProtectedRoute>}>
               <Route path="/super-admin" element={<ProtectedRoute roles={['super_admin']}><SuperDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/schools" element={<ProtectedRoute roles={['super_admin']}><SuperSchools /></ProtectedRoute>} />
               <Route path="/super-admin/schools/:id" element={<ProtectedRoute roles={['super_admin']}><SuperSchoolDetails /></ProtectedRoute>} />
@@ -67,6 +71,8 @@ export default function App() {
               <Route path="/teacher/main-exam" element={<ProtectedRoute roles={['teacher']}><MainExamEntry /></ProtectedRoute>} />
               <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><TeacherResults /></ProtectedRoute>} />
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
+
+              <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><ParentDashboard /></ProtectedRoute>} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
