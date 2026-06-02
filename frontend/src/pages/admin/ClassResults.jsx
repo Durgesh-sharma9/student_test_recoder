@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { FileText, Search, Download } from 'lucide-react';
+import { FileText, Search, Download, Check } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const EXAM_TYPES = ['Daily Test', 'PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
+const MAIN_EXAM_TYPES = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
 export default function ClassResults() {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedExamType, setSelectedExamType] = useState('');
+  const [selectedExamTypes, setSelectedExamTypes] = useState(['Daily Test']);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,10 +33,10 @@ export default function ClassResults() {
   }, []);
 
   const fetchResults = async () => {
-    if (!selectedClass || !selectedExamType) return;
+    if (!selectedClass || selectedExamTypes.length === 0) return;
 
     // For Daily Test, require date filter
-    if (selectedExamType === 'Daily Test') {
+    if (selectedExamTypes.includes('Daily Test')) {
       if (dateFilterType === 'specific' && !specificDate) {
         toast.error('Please select a date for Daily Test report');
         return;
@@ -48,9 +49,9 @@ export default function ClassResults() {
 
     setLoading(true);
     try {
-      let params = { classId: selectedClass, examType: selectedExamType };
+      let params = { classId: selectedClass, examTypes: selectedExamTypes.join(',') };
       
-      if (selectedExamType === 'Daily Test') {
+      if (selectedExamTypes.includes('Daily Test')) {
         params.reportType = 'daily';
         if (dateFilterType === 'specific') {
           params.testDate = specificDate;
@@ -102,13 +103,48 @@ export default function ClassResults() {
     return filtered;
   }, [results, searchQuery, sortBy]);
 
+  // Check if results are from combined exam types (new format)
+  const isCombinedResults = results?.assessments && !results?.dailyTests && !results?.subjects;
+
   const exportCSV = () => {
     if (!results) return;
 
-    const isDailyTest = selectedExamType === 'Daily Test';
+    const isDailyTest = selectedExamTypes.includes('Daily Test');
+    const isCombined = isCombinedResults;
     let csvContent;
 
-    if (isDailyTest) {
+    if (isCombined) {
+      // Combined results format
+      const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
+      const headerRow2 = ['', '', '', '', '', ''];
+      
+      results.assessments.forEach((assessment) => {
+        headerRow1.push(assessment.examType, '');
+        headerRow2.push(`Date: ${new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, `Subject: ${assessment.subject}`);
+      });
+
+      const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
+      results.assessments.forEach(() => {
+        headerRow3.push('Max Marks', 'Marks Obtained');
+      });
+
+      const dataRows = filteredResults.map((r) => {
+        const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
+        results.assessments.forEach((assessment) => {
+          const key = `${assessment.examType}_${assessment._id}`;
+          const mark = r.assessments?.[key];
+          row.push(assessment.maxMarks, mark?.marksObtained || '');
+        });
+        return row;
+      });
+
+      csvContent = [
+        headerRow1.join(','),
+        headerRow2.join(','),
+        headerRow3.join(','),
+        ...dataRows.map((row) => row.join(',')),
+      ].join('\n');
+    } else if (isDailyTest) {
       // Daily Test format with multi-row headers
       // Row 1: Test info headers
       const headerRow1 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
@@ -169,7 +205,7 @@ export default function ClassResults() {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `class-results-${selectedExamType}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `class-results-${selectedExamTypes.join('-')}-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -179,7 +215,7 @@ export default function ClassResults() {
   const exportXLSX = () => {
     if (!results) return;
 
-    const isDailyTest = selectedExamType === 'Daily Test';
+    const isDailyTest = selectedExamTypes.includes('Daily Test');
     let workbook, worksheet;
 
     if (isDailyTest) {
@@ -450,7 +486,7 @@ export default function ClassResults() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
 
     // Generate and download
-    XLSX.writeFile(workbook, `class-results-${selectedExamType}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `class-results-${selectedExamTypes.join('-')}-${new Date().toISOString().split('T')[0]}.xlsx`);
     toast.success('XLSX exported successfully');
   };
 
@@ -459,13 +495,13 @@ export default function ClassResults() {
 
     try {
       const response = await api.get('/class-results/export-pdf', {
-        params: { classId: selectedClass, examType: selectedExamType },
+        params: { classId: selectedClass, examTypes: selectedExamTypes.join(',') },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `class-results-${results.examType}-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `class-results-${selectedExamTypes.join('-')}-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -498,21 +534,34 @@ export default function ClassResults() {
               </SelectContent>
             </Select>
           </FormField>
-          <FormField label="Exam Type">
-            <Select value={selectedExamType} onValueChange={setSelectedExamType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select exam type" />
-              </SelectTrigger>
-              <SelectContent>
-                {EXAM_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
+          <FormField label="Show Results">
+            <div className="space-y-2">
+              {EXAM_TYPES.map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={type}
+                    checked={selectedExamTypes.includes(type)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedExamTypes([...selectedExamTypes, type]);
+                      } else {
+                        setSelectedExamTypes(selectedExamTypes.filter(t => t !== type));
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <label
+                    htmlFor={type}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
                     {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </label>
+                </div>
+              ))}
+            </div>
           </FormField>
-          {selectedExamType === 'Daily Test' && (
+          {selectedExamTypes.includes('Daily Test') && (
             <>
               <FormField label="Date Filter">
                 <Select value={dateFilterType} onValueChange={setDateFilterType}>
@@ -558,7 +607,7 @@ export default function ClassResults() {
           </FormField>
         </div>
         <div className="mt-4 flex gap-2">
-          <Button onClick={fetchResults} disabled={!selectedClass || !selectedExamType || loading}>
+          <Button onClick={fetchResults} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
             {loading ? 'Loading...' : 'View Results'}
           </Button>
           {results && (
@@ -571,7 +620,7 @@ export default function ClassResults() {
                 <Download className="mr-2 h-4 w-4" />
                 Export XLSX
               </Button>
-              {selectedExamType !== 'Daily Test' && (
+              {!selectedExamTypes.includes('Daily Test') && (
                 <Button variant="outline" onClick={exportPDF}>
                   <Download className="mr-2 h-4 w-4" />
                   Export PDF
@@ -624,60 +673,134 @@ export default function ClassResults() {
               <div className="overflow-x-auto rounded-xl border border-slate-200" style={{ minWidth: '100%' }}>
                 <Table style={{ minWidth: 'max-content' }}>
                   <TableHeader>
-                    {selectedExamType === 'Daily Test' && (
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
-                        <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
-                        <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
-                        <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
-                        <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                        <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
-                        {results.dailyTests?.map((dt, idx) => (
-                          <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
-                            <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
-                              <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                              <div className="text-xs text-indigo-100">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                              <div className="text-xs text-indigo-200">{dt.subject}</div>
-                            </div>
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    )}
-                    <TableRow>
-                      {selectedExamType === 'Daily Test' ? (
-                        <>
+                    {isCombinedResults ? (
+                      // Combined results with date-wise ordering
+                      <>
+                        <TableRow>
                           <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
                           <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
                           <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
                           <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
                           <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
                           <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
-                          {results.dailyTests?.map((dt) => (
+                          {results.assessments?.map((assessment) => (
+                            <TableHead 
+                              key={assessment._id} 
+                              colSpan={2} 
+                              className={`text-center border-r ${
+                                assessment.category === 'daily' 
+                                  ? 'bg-blue-100 border-blue-200' 
+                                  : 'bg-red-100 border-red-200'
+                              }`} 
+                              style={{ minWidth: '120px' }}
+                            >
+                              <div className={`rounded-lg px-3 py-2 text-white shadow-sm ${
+                                assessment.category === 'daily' 
+                                  ? 'bg-blue-600' 
+                                  : 'bg-red-600'
+                              }`}>
+                                <div className="text-sm font-bold">{assessment.examType}</div>
+                                <div className="text-xs opacity-90">{new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <div className="text-xs opacity-80">{assessment.subject}</div>
+                              </div>
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                          <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                          <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                          <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                          <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                          <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          {results.assessments?.map((assessment) => (
                             <>
-                              <TableHead key={`${dt._id}-max`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
-                              <TableHead key={`${dt._id}-obt`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                              <TableHead 
+                                key={`${assessment._id}-max`} 
+                                className={`text-center border-r font-semibold ${
+                                  assessment.category === 'daily' 
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                    : 'bg-red-50 text-red-700 border-red-200'
+                                }`} 
+                                style={{ minWidth: '80px' }}
+                              >
+                                Max Marks
+                              </TableHead>
+                              <TableHead 
+                                key={`${assessment._id}-obt`} 
+                                className={`text-center border-r font-semibold ${
+                                  assessment.category === 'daily' 
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                    : 'bg-red-50 text-red-700 border-red-200'
+                                }`} 
+                                style={{ minWidth: '80px' }}
+                              >
+                                Marks Obtained
+                              </TableHead>
                             </>
                           ))}
-                        </>
-                      ) : (
-                        <>
-                          <TableHead>Rank</TableHead>
-                          <TableHead>Roll No</TableHead>
-                          <TableHead>Student Name</TableHead>
-                          {results.subjects.map((subject) => (
-                            <TableHead key={subject}>{subject}</TableHead>
-                          ))}
-                          <TableHead>Total</TableHead>
-                          <TableHead>Average</TableHead>
-                          <TableHead>Percentage</TableHead>
-                        </>
-                      )}
-                    </TableRow>
+                        </TableRow>
+                      </>
+                    ) : (
+                      // Original separate results
+                      <>
+                        {selectedExamTypes.includes('Daily Test') && (
+                          <TableRow>
+                            <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                            <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                            <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                            <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                            <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                            <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                            {results.dailyTests?.map((dt, idx) => (
+                              <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
+                                <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
+                                  <div className="text-sm font-bold">Daily Test {idx + 1}</div>
+                                  <div className="text-xs text-indigo-100">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                  <div className="text-xs text-indigo-200">{dt.subject}</div>
+                                </div>
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        )}
+                        <TableRow>
+                          {selectedExamTypes.includes('Daily Test') ? (
+                            <>
+                              <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                              <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                              <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                              <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                              <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                              <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                              {results.dailyTests?.map((dt) => (
+                                <>
+                                  <TableHead key={`${dt._id}-max`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
+                                  <TableHead key={`${dt._id}-obt`} className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                                </>
+                              ))}
+                            </>
+                          ) : (
+                            <>
+                              <TableHead>Rank</TableHead>
+                              <TableHead>Roll No</TableHead>
+                              <TableHead>Student Name</TableHead>
+                              {results.subjects.map((subject) => (
+                                <TableHead key={subject}>{subject}</TableHead>
+                              ))}
+                              <TableHead>Total</TableHead>
+                              <TableHead>Average</TableHead>
+                              <TableHead>Percentage</TableHead>
+                            </>
+                          )}
+                        </TableRow>
+                      </>
+                    )}
                   </TableHeader>
                   <TableBody>
                     {filteredResults.map((student, index) => (
                       <TableRow key={student.studentId} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                        {selectedExamType === 'Daily Test' ? (
+                        {isCombinedResults ? (
+                          // Combined results row
                           <>
                             <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
                             <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
@@ -685,31 +808,75 @@ export default function ClassResults() {
                             <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
                             <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
                             <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{student.name}</TableCell>
-                            {results.dailyTests?.map((dt) => {
-                              const mark = student.dailyTests[dt._id];
+                            {results.assessments?.map((assessment) => {
+                              const key = `${assessment.examType}_${assessment._id}`;
+                              const mark = student.assessments?.[key];
                               return (
                                 <>
-                                  <TableCell key={`${dt._id}-max`} className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
-                                  <TableCell key={`${dt._id}-obt`} className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                  <TableCell 
+                                    key={`${assessment._id}-max`} 
+                                    className={`text-center border-r ${
+                                      assessment.category === 'daily' 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                        : 'bg-red-50 text-red-700 border-red-200'
+                                    }`} 
+                                    style={{ minWidth: '80px' }}
+                                  >
+                                    {assessment.maxMarks}
+                                  </TableCell>
+                                  <TableCell 
+                                    key={`${assessment._id}-obt`} 
+                                    className={`text-center border-r font-semibold ${
+                                      assessment.category === 'daily' 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                        : 'bg-red-50 text-red-700 border-red-200'
+                                    }`} 
+                                    style={{ minWidth: '80px' }}
+                                  >
+                                    {mark?.marksObtained || '-'}
+                                  </TableCell>
                                 </>
                               );
                             })}
                           </>
                         ) : (
+                          // Original separate results row
                           <>
-                            <TableCell className="font-medium">{student.rank}</TableCell>
-                            <TableCell>{student.rollNo}</TableCell>
-                            <TableCell className="font-medium">{student.name}</TableCell>
-                            {results.subjects.map((subject) => (
-                              <TableCell key={subject}>
-                                {student.subjects[subject]?.marksObtained || '-'}
-                              </TableCell>
-                            ))}
-                            <TableCell className="font-medium">{student.totalObtained}</TableCell>
-                            <TableCell>{student.average}</TableCell>
-                            <TableCell>{student.percentage}%</TableCell>
-                          </>
-                        )}
+                            {selectedExamTypes.includes('Daily Test') ? (
+                              <>
+                                <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
+                                <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
+                                <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.percentage}%</TableCell>
+                                <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
+                                <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
+                                <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{student.name}</TableCell>
+                                {results.dailyTests?.map((dt) => {
+                                  const mark = student.dailyTests[dt._id];
+                                  return (
+                                    <>
+                                      <TableCell key={`${dt._id}-max`} className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
+                                      <TableCell key={`${dt._id}-obt`} className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                    </>
+                                  );
+                                })}
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="font-medium">{student.rank}</TableCell>
+                              <TableCell>{student.rollNo}</TableCell>
+                              <TableCell className="font-medium">{student.name}</TableCell>
+                              {results.subjects.map((subject) => (
+                                <TableCell key={subject}>
+                                  {student.subjects[subject]?.marksObtained || '-'}
+                                </TableCell>
+                              ))}
+                              <TableCell className="font-medium">{student.totalObtained}</TableCell>
+                              <TableCell>{student.average}</TableCell>
+                              <TableCell>{student.percentage}%</TableCell>
+                            </>
+                          )}
+                        </>
+                      )}
                       </TableRow>
                     ))}
                   </TableBody>

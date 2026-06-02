@@ -9,6 +9,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Add selected session ID to params if available
+  const selectedSessionId = localStorage.getItem('selectedSessionId');
+  if (selectedSessionId) {
+    config.params = config.params || {};
+    config.params.academicSession = selectedSessionId;
+  }
+
   return config;
 });
 
@@ -18,6 +26,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('selectedSessionId');
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }

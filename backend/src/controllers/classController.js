@@ -107,11 +107,18 @@ export const getClassStudents = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Class not found.');
   }
 
-  const students = await Student.find({
+  const filter = {
     class: req.params.id,
     isActive: true,
     school: classDoc.school,
-  });
+  };
+
+  // Filter by academic session if provided
+  if (req.query.academicSession) {
+    filter.academicSession = req.query.academicSession;
+  }
+
+  const students = await Student.find(filter);
 
   // Numeric sorting of roll numbers
   students.sort(

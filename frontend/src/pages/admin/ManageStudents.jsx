@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { GraduationCap, Search, UserPlus, Download, Upload } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
+import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ManageStudents() {
+  const { isArchived } = useSession();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [students, setStudents] = useState([]);
@@ -200,6 +202,7 @@ export default function ManageStudents() {
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={isArchived}
                         onClick={() => {
                           setEdit(s);
                           setForm({ rollNo: s.rollNo, name: s.name, gender: s.gender });
@@ -211,6 +214,7 @@ export default function ManageStudents() {
                       <Button
                         size="sm"
                         variant="destructive"
+                        disabled={isArchived}
                         onClick={async () => {
                           await api.delete(`/students/${s._id}`);
                           toast.success('Deleted');
