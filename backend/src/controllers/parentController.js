@@ -1,11 +1,15 @@
 import Parent from '../models/Parent.js';
 import Student from '../models/Student.js';
 import School from '../models/School.js';
+import ResultSession from '../models/ResultSession.js';
+import MarkEntry from '../models/MarkEntry.js';
+import AcademicSession from '../models/AcademicSession.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import crypto from 'crypto';
 import { sendParentCreationEmail } from '../services/emailService.js';
+import { startOfDay, endOfDay } from 'date-fns';
 
 // Helper function to generate random password
 const generatePassword = () => {
@@ -425,6 +429,240 @@ export const getParentStudentDetails = asyncHandler(async (req, res) => {
       percentage: percentage.toFixed(1),
       average: average.toFixed(1),
       recentDailyTests
+    }
+  });
+});
+
+export const getParentDailyTests = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { studentId } = req.params;
+  const { dateFrom, dateTo, subject } = req.query;
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Check if student is linked to this parent
+  if (!parent.linkedStudents.includes(studentId)) {
+    throw new ApiError(403, 'You are not authorized to view this student.');
+  }
+  
+  // Get student details
+  const student = await Student.findOne({
+    _id: studentId,
+    school: schoolId,
+    isActive: true
+  });
+  
+  if (!student) throw new ApiError(404, 'Student not found.');
+  
+  // Get active academic session
+  const activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) throw new ApiError(404, 'No active academic session found.');
+  
+  // Build filter for daily test sessions
+  const filter = {
+    school: schoolId,
+    class: student.class,
+    category: 'daily',
+    academicSession: activeSession._id
+  };
+  
+  if (subject) filter.subject = subject.toUpperCase();
+  
+  if (dateFrom && dateTo) {
+    filter.testDate = {
+      $gte: startOfDay(new Date(dateFrom)),
+      $lte: endOfDay(new Date(dateTo))
+    };
+  } else if (dateFrom) {
+    filter.testDate = {
+      $gte: startOfDay(new Date(dateFrom))
+    };
+  } else if (dateTo) {
+    filter.testDate = {
+      $lte: endOfDay(new Date(dateTo))
+    };
+  }
+  
+  // Get daily test sessions
+  const sessions = await ResultSession.find(filter)
+    .populate('teacher', 'name')
+    .sort({ testDate: -1 });
+  
+  // Get marks for this student from these sessions
+  const sessionIds = sessions.map(s => s._id);
+  const marks = await MarkEntry.find({
+    session: { $in: sessionIds },
+    student: studentId
+  });
+  
+  const marksMap = new Map(marks.map(m => [m.session.toString(), m]));
+  
+  // Combine session data with marks
+  const dailyTests = sessions.map(session => {
+    const mark = marksMap.get(session._id.toString());
+    return {
+      _id: session._id,
+      date: session.testDate,
+      subject: session.subject,
+      marksObtained: mark?.marksObtained || 0,
+      maxMarks: session.maxMarks,
+      percentage: mark?.percentage || 0,
+      rankSubject: mark?.rankSubject || 0
+    };
+  });
+  
+  res.json({
+    success: true,
+    dailyTests
+  });
+});
+
+export const getParentMainExams = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { studentId } = req.params;
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Check if student is linked to this parent
+  if (!parent.linkedStudents.includes(studentId)) {
+    throw new ApiError(403, 'You are not authorized to view this student.');
+  }
+  
+  // Get student details
+  const student = await Student.findOne({
+    _id: studentId,
+    school: schoolId,
+    isActive: true
+  });
+  
+  if (!student) throw new ApiError(404, 'Student not found.');
+  
+  // Get active academic session
+  const activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) throw new ApiError(404, 'No active academic session found.');
+  
+  // Get main exam sessions for the student's class
+  const sessions = await ResultSession.find({
+    school: schoolId,
+    class: student.class,
+    category: 'main',
+    academicSession: activeSession._id
+  })
+  .sort({ examDate: -1 });
+  
+  // Group by exam type
+  const examTypes = {};
+  sessions.forEach(session => {
+    if (!examTypes[session.examType]) {
+      examTypes[session.examType] = {
+        examType: session.examType,
+        examDate: session.examDate,
+        subjects: []
+      };
+    }
+    examTypes[session.examType].subjects.push({
+      subject: session.subject,
+      sessionId: session._id
+    });
+  });
+  
+  res.json({
+    success: true,
+    exams: Object.values(examTypes)
+  });
+});
+
+export const getParentExamDetails = asyncHandler(async (req, res) => {
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { studentId, examType } = req.params;
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Check if student is linked to this parent
+  if (!parent.linkedStudents.includes(studentId)) {
+    throw new ApiError(403, 'You are not authorized to view this student.');
+  }
+  
+  // Get student details
+  const student = await Student.findOne({
+    _id: studentId,
+    school: schoolId,
+    isActive: true
+  });
+  
+  if (!student) throw new ApiError(404, 'Student not found.');
+  
+  // Get active academic session
+  const activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) throw new ApiError(404, 'No active academic session found.');
+  
+  // Get main exam sessions for this exam type
+  const sessions = await ResultSession.find({
+    school: schoolId,
+    class: student.class,
+    category: 'main',
+    examType: examType,
+    academicSession: activeSession._id
+  });
+  
+  // Get marks for this student
+  const sessionIds = sessions.map(s => s._id);
+  const marks = await MarkEntry.find({
+    session: { $in: sessionIds },
+    student: studentId
+  });
+  
+  const marksMap = new Map(marks.map(m => [m.session.toString(), m]));
+  
+  // Calculate total and percentage
+  let totalObtained = 0;
+  let totalMax = 0;
+  const subjectMarks = sessions.map(session => {
+    const mark = marksMap.get(session._id.toString());
+    const marksObtained = mark?.marksObtained || 0;
+    totalObtained += marksObtained;
+    totalMax += session.maxMarks;
+    return {
+      subject: session.subject,
+      marksObtained,
+      maxMarks: session.maxMarks,
+      percentage: mark?.percentage || 0,
+      rankSubject: mark?.rankSubject || 0
+    };
+  });
+  
+  const percentage = totalMax > 0 ? ((totalObtained / totalMax) * 100).toFixed(1) : 0;
+  
+  // Get rank (simplified - would need actual calculation)
+  const rank = 1;
+  
+  res.json({
+    success: true,
+    examDetails: {
+      examType,
+      subjectMarks,
+      totalObtained,
+      totalMax,
+      percentage,
+      rank
     }
   });
 });
