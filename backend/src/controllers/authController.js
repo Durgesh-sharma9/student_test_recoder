@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import School from '../models/School.js';
 import Plan from '../models/Plan.js';
 import AcademicSession from '../models/AcademicSession.js';
+import Parent from '../models/Parent.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -165,4 +166,61 @@ export const changePassword = asyncHandler(async (req, res) => {
   await user.save();
 
   res.json({ success: true, message: 'Password updated successfully.' });
+});
+
+export const parentLogin = asyncHandler(async (req, res) => {
+  const { email, phone, password } = req.body;
+
+  if (!password) {
+    throw new ApiError(400, 'Password is required.');
+  }
+
+  if (!email && !phone) {
+    throw new ApiError(400, 'Email or phone is required.');
+  }
+
+  let parent;
+  
+  // Try to find parent by email first
+  if (email) {
+    parent = await Parent.findOne({ email: email.toLowerCase(), status: 'Active' }).select('+password');
+  }
+  
+  // If not found by email, try by phone
+  if (!parent && phone) {
+    parent = await Parent.findOne({ phone: phone.trim(), status: 'Active' }).select('+password');
+  }
+
+  if (!parent || !(await parent.comparePassword(password))) {
+    throw new ApiError(401, 'Invalid credentials.');
+  }
+
+  // Check if parent's school is active
+  if (parent.school) {
+    const school = await School.findById(parent.school);
+    if (!school?.isActive) throw new ApiError(403, 'School account is deactivated.');
+    if (school.planExpiresAt && new Date() > school.planExpiresAt) {
+      throw new ApiError(403, 'School plan has expired.');
+    }
+  }
+
+  // Create a user-like object for token generation
+  const userObj = {
+    _id: parent._id,
+    name: parent.parentName,
+    email: parent.email,
+    phone: parent.phone,
+    role: 'parent',
+    school: parent.school,
+    isActive: true,
+    status: 'Active'
+  };
+
+  const token = signToken(parent._id);
+
+  res.status(200).json({
+    success: true,
+    token,
+    user: userObj,
+  });
 });

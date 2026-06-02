@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Parent from '../models/Parent.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -21,7 +22,27 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const user = await User.findById(decoded.id).select('-password');
+  
+  // Try to find user first (for admin/teacher)
+  let user = await User.findById(decoded.id).select('-password');
+  
+  // If not found in User, try Parent (for parents)
+  if (!user) {
+    user = await Parent.findById(decoded.id).select('-password');
+    if (user) {
+      // Convert Parent to user-like object
+      user = {
+        _id: user._id,
+        name: user.parentName,
+        email: user.email,
+        phone: user.phone,
+        role: 'parent',
+        school: user.school,
+        isActive: true,
+        status: user.status
+      };
+    }
+  }
 
   if (!user || !user.isActive) {
     throw new ApiError(401, 'User not found or deactivated.');
