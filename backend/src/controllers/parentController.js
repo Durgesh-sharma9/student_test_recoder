@@ -290,17 +290,37 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
 });
 
 export const getParentStudents = asyncHandler(async (req, res) => {
+  console.log('========== getParentStudents START ==========');
+  console.log('[getParentStudents] req.user:', JSON.stringify(req.user, null, 2));
+  console.log('[getParentStudents] req.user._id:', req.user._id);
+  console.log('[getParentStudents] req.user._id type:', typeof req.user._id);
+  
   const schoolId = req.user.school?._id ?? req.user.school;
+  console.log('[getParentStudents] schoolId:', schoolId);
   
   // Get parent from user (for logged-in parent)
+  console.log('[getParentStudents] Querying parent...');
   const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
-  if (!parent) throw new ApiError(404, 'Parent not found.');
+  console.log('[getParentStudents] Parent query result:', parent);
   
-  // Get school settings
-  const school = await School.findById(schoolId);
-  const showLeaderboard = school?.showParentLeaderboard || false;
+  if (!parent) {
+    console.log('[getParentStudents] Parent not found');
+    throw new ApiError(404, 'Parent not found.');
+  }
+  
+  console.log('[getParentStudents] Parent found:', parent._id);
+  console.log('[getParentStudents] Parent linkedStudents:', parent.linkedStudents);
+  console.log('[getParentStudents] Parent linkedStudents type:', typeof parent.linkedStudents);
+  console.log('[getParentStudents] Parent linkedStudents length:', parent.linkedStudents?.length);
   
   // Get linked students with their class and academic session info
+  console.log('[getParentStudents] Querying students...');
+  console.log('[getParentStudents] Student query filter:', {
+    _id: { $in: parent.linkedStudents },
+    school: schoolId,
+    isActive: true
+  });
+  
   const students = await Student.find({
     _id: { $in: parent.linkedStudents },
     school: schoolId,
@@ -309,77 +329,26 @@ export const getParentStudents = asyncHandler(async (req, res) => {
   .populate('class', 'className section')
   .populate('academicSession', 'sessionName');
   
-  // Calculate rank and percentage for each student
-  const studentsWithStats = await Promise.all(students.map(async (student) => {
-    // Get all students in the same class and academic session for ranking
-    const allClassStudents = await Student.find({
-      class: student.class,
-      academicSession: student.academicSession,
-      school: schoolId,
-      isActive: true
-    }).sort({ rollNo: 1 });
-    
-    // Calculate total marks and percentage for each student
-    const studentStats = await Promise.all(allClassStudents.map(async (s) => {
-      // Get all daily tests for this student
-      const dailyTests = await Student.findById(s._id).populate('dailyTests');
-      // This is a simplified calculation - in production, you'd use the actual result calculation
-      const totalObtained = 0; // Placeholder - would calculate from actual marks
-      const totalMax = 0; // Placeholder
-      const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
-      
-      return {
-        studentId: s._id,
-        percentage
-      };
-    }));
-    
-    // Sort by percentage to get rank
-    studentStats.sort((a, b) => b.percentage - a.percentage);
-    const rank = studentStats.findIndex(s => s.studentId.toString() === student._id.toString()) + 1;
-    
-    // Get current student's percentage
-    const currentStudentStats = studentStats.find(s => s.studentId.toString() === student._id.toString());
-    const percentage = currentStudentStats?.percentage || 0;
-    
-    return {
-      _id: student._id,
-      name: student.name,
-      rollNo: student.rollNo,
-      className: student.class?.className || '',
-      section: student.class?.section || '',
-      rank,
-      percentage: percentage.toFixed(1)
-    };
+  console.log('[getParentStudents] Students found:', students.length);
+  console.log('[getParentStudents] Students:', JSON.stringify(students, null, 2));
+  
+  // Return basic student data without rank/percentage calculation
+  // Rank and percentage calculation requires MarkEntry/ResultSession architecture
+  const studentsWithBasicInfo = students.map(student => ({
+    _id: student._id,
+    name: student.name,
+    rollNo: student.rollNo,
+    className: student.class?.className || '',
+    section: student.class?.section || '',
+    sessionName: student.academicSession?.sessionName || ''
   }));
   
-  // Get top 3 students for leaderboard if enabled
-  let topStudents = [];
-  if (showLeaderboard) {
-    // Get all students in the school for leaderboard
-    const allSchoolStudents = await Student.find({
-      school: schoolId,
-      isActive: true
-    })
-    .populate('class', 'className section')
-    .sort({ rollNo: 1 });
-    
-    // Calculate percentage for all students (simplified)
-    const allStudentStats = allSchoolStudents.map(s => ({
-      name: s.name,
-      percentage: Math.random() * 40 + 60 // Placeholder - would calculate from actual marks
-    }));
-    
-    // Sort by percentage and get top 3
-    allStudentStats.sort((a, b) => b.percentage - a.percentage);
-    topStudents = allStudentStats.slice(0, 3).map(s => s.name);
-  }
+  console.log('[getParentStudents] Sending response');
+  console.log('========== getParentStudents END ==========');
   
   res.json({
     success: true,
-    students: studentsWithStats,
-    showLeaderboard,
-    topStudents
+    students: studentsWithBasicInfo
   });
 });
 

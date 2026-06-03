@@ -220,6 +220,8 @@ export const parentLogin = asyncHandler(async (req, res) => {
   }
 
   console.log('Parent found:', parent._id, 'email:', parent.email, 'phone:', parent.phone);
+  console.log('Parent _id type:', typeof parent._id);
+  console.log('Parent _id value:', parent._id.toString());
   console.log('Password comparison...');
   const isPasswordValid = await parent.comparePassword(password);
   console.log('Password valid:', isPasswordValid);
@@ -239,7 +241,7 @@ export const parentLogin = asyncHandler(async (req, res) => {
 
   // Create a user-like object for token generation
   const userObj = {
-    _id: parent._id,
+    _id: parent._id.toString(),
     name: parent.parentName,
     email: parent.email,
     phone: parent.phone,
@@ -249,8 +251,9 @@ export const parentLogin = asyncHandler(async (req, res) => {
     status: 'Active'
   };
 
-  const token = signToken(parent._id);
-  console.log('Token generated successfully for parent:', parent._id);
+  console.log('userObj._id:', userObj._id, 'type:', typeof userObj._id);
+  const token = signToken(parent._id.toString());
+  console.log('Token generated successfully for parent:', parent._id.toString());
 
   res.status(200).json({
     success: true,

@@ -13,6 +13,13 @@ export function SessionProvider({ children }) {
 
   useEffect(() => {
     const fetchSessions = async () => {
+      // Parents don't need academic sessions - skip fetching
+      if (user?.role === 'parent') {
+        console.log('[SessionContext] Parent user, skipping session fetch');
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await api.get('/academic-sessions');
         setAllSessions(res.data.sessions || []);
@@ -41,13 +48,14 @@ export function SessionProvider({ children }) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch sessions');
+        console.error('[SessionContext] Failed to fetch sessions:', error);
+        // Don't crash the app if sessions fail to load
       } finally {
         setLoading(false);
       }
     };
     fetchSessions();
-  }, [isAdmin]);
+  }, [isAdmin, user?.role]);
 
   const selectSession = (session) => {
     if (!isAdmin) return; // Teachers cannot switch sessions
