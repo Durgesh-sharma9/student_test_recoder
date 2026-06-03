@@ -1,6 +1,7 @@
 import Parent from '../models/Parent.js';
 import Student from '../models/Student.js';
 import School from '../models/School.js';
+import Class from '../models/Class.js';
 import ResultSession from '../models/ResultSession.js';
 import MarkEntry from '../models/MarkEntry.js';
 import AcademicSession from '../models/AcademicSession.js';
@@ -305,12 +306,15 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
 export const getParentStudents = asyncHandler(async (req, res) => {
   console.log('========== getParentStudents START ==========');
   console.log('[getParentStudents] req.user._id:', req.user._id);
+  console.log('[getParentStudents] req.user:', JSON.stringify(req.user, null, 2));
   
   const schoolId = req.user.school?._id ?? req.user.school;
   console.log('[getParentStudents] schoolId:', schoolId);
   
   // Get parent from user (for logged-in parent)
   const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  console.log('[getParentStudents] Parent query result:', parent);
+  
   if (!parent) {
     console.log('[getParentStudents] Parent not found');
     throw new ApiError(404, 'Parent not found.');
@@ -318,6 +322,7 @@ export const getParentStudents = asyncHandler(async (req, res) => {
   
   console.log('[getParentStudents] Parent found:', parent._id);
   console.log('[getParentStudents] Parent linkedStudents:', parent.linkedStudents);
+  console.log('[getParentStudents] Parent linkedStudents length:', parent.linkedStudents?.length);
   
   // Get linked students with their class and academic session info
   const students = await Student.find({
@@ -329,12 +334,20 @@ export const getParentStudents = asyncHandler(async (req, res) => {
   .populate('academicSession', 'sessionName');
   
   console.log('[getParentStudents] Students found:', students.length);
+  console.log('[getParentStudents] Students:', JSON.stringify(students.map(s => ({
+    _id: s._id,
+    name: s.name,
+    className: s.class?.className,
+    section: s.class?.section,
+    classId: s.class?._id
+  })), null, 2));
   
   if (students.length === 0) {
     console.log('[getParentStudents] No linked students found');
     return res.json({
       success: true,
-      students: []
+      students: [],
+      sessionName: null
     });
   }
   
@@ -344,52 +357,129 @@ export const getParentStudents = asyncHandler(async (req, res) => {
     status: 'active'
   });
   
-  if (!activeSession) {
-    console.log('[getParentStudents] No active session found');
-    // Return basic student data without rank/percentage if no active session
-    const studentsWithBasicInfo = students.map(student => ({
-      _id: student._id,
-      name: student.name,
-      rollNo: student.rollNo,
-      className: student.class?.className || '',
-      section: student.class?.section || '',
-      sessionName: student.academicSession?.sessionName || '',
-      rank: null,
-      percentage: null
-    }));
-    
-    return res.json({
-      success: true,
-      students: studentsWithBasicInfo
-    });
-  }
+  const sessionName = activeSession ? activeSession.sessionName : '2026-27';
+  console.log('[getParentStudents] Active session:', activeSession?._id, 'sessionName:', sessionName);
   
-  console.log('[getParentStudents] Active session:', activeSession._id);
-  
-  // Calculate rank and percentage for each student using Class Results logic
+  // Reuse Class Results calculation logic - DO NOT create new calculations
   const studentsWithStats = await Promise.all(students.map(async (student) => {
+    console.log('[getParentStudents] Processing student:', student._id, student.name);
+    console.log('[getParentStudents] Student class:', student.class?._id, student.class?.className);
+    console.log('[getParentStudents] Student class type:', typeof student.class, student.class);
+    
     // Get all ResultSessions for this student's class in the active session
+    // This is the SAME logic used in Admin Class Results
+    // Use the same query pattern as Admin Class Results
+    const classId = student.class?._id || student.class;
+    console.log('[getParentStudents] Using classId:', classId, 'type:', typeof classId);
+    
+    // Admin Class Results uses: school: req.user.school, class: classId
+    // And has fallback for records without academicSession
     const sessions = await ResultSession.find({
       school: schoolId,
-      class: student.class,
-      academicSession: activeSession._id,
+      class: classId,
       isActive: true
-    });
+    }).lean();
+    
+    console.log('[getParentStudents] ResultSessions found (without academicSession filter):', sessions.length);
+    
+    // If no sessions found with academicSession filter, try without it (fallback like Admin)
+    if (sessions.length === 0) {
+      console.log('[getParentStudents] No sessions found, trying without academicSession filter...');
+      const sessionsWithoutSession = await ResultSession.find({
+        school: schoolId,
+        class: classId
+      }).lean();
+      console.log('[getParentStudents] ResultSessions found (without any session filter):', sessionsWithoutSession.length);
+      sessions.push(...sessionsWithoutSession);
+    }
+    
+    console.log('[getParentStudents] Total ResultSessions found:', sessions.length);
+    console.log('[getParentStudents] Session IDs:', sessions.map(s => s._id));
     
     const sessionIds = sessions.map(s => s._id);
     
-    // Get all MarkEntry records for this student in these sessions
+    // Get ALL students in this class (same as Admin Class Results)
+    // Admin Class Results doesn't filter by academicSession or isActive for Student query
+    const allClassStudents = await Student.find({
+      school: schoolId,
+      class: classId
+    });
+    
+    console.log('[getParentStudents] All class students found:', allClassStudents.length);
+    console.log('[getParentStudents] All class student IDs:', allClassStudents.map(s => s._id));
+    
+    // Get ALL MarkEntry records for ALL students in these sessions (same as Admin Class Results)
+    const allEntries = await MarkEntry.find({
+      student: { $in: allClassStudents.map(s => s._id) },
+      session: { $in: sessionIds }
+    });
+    
+    console.log('[getParentStudents] All MarkEntry records found:', allEntries.length);
+    console.log('[getParentStudents] MarkEntry sample:', allEntries.slice(0, 3).map(e => ({
+      student: e.student,
+      session: e.session,
+      marksObtained: e.marksObtained
+    })));
+    
+    // Calculate stats for ALL students (same as Admin Class Results)
+    const studentStats = allClassStudents.map(s => {
+      const studentEntries = allEntries.filter(e => e.student.toString() === s._id.toString());
+      const totalObtained = studentEntries.reduce((sum, e) => sum + (e.marksObtained || 0), 0);
+      const totalMax = sessions.reduce((sum, sess) => sum + (sess.maxMarks || 0), 0);
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+      
+      return {
+        _id: s._id,
+        name: s.name,
+        totalObtained,
+        totalMax,
+        percentage
+      };
+    });
+    
+    console.log('[getParentStudents] Student stats calculated:', JSON.stringify(studentStats, null, 2));
+    
+    // Compute ranks using the SAME function as Admin Class Results
+    const rankedStudents = computeCompetitionRanks(studentStats, 'totalObtained');
+    
+    console.log('[getParentStudents] Ranked students:', JSON.stringify(rankedStudents, null, 2));
+    
+    // Filter to get ONLY this student's row from the results (same as filtering Admin Class Results)
+    const currentStudentRank = rankedStudents.find(s => s._id.toString() === student._id.toString());
+    
+    console.log('[getParentStudents] Current student rank:', JSON.stringify(currentStudentRank, null, 2));
+    
+    // Get latest 5 results (mix of Daily Tests and Main Exams)
     const entries = await MarkEntry.find({
       student: student._id,
       session: { $in: sessionIds }
     });
     
-    // Calculate total obtained and total max marks
-    const totalObtained = entries.reduce((sum, e) => sum + (e.marksObtained || 0), 0);
-    const totalMax = sessions.reduce((sum, s) => sum + (s.maxMarks || 0), 0);
+    console.log('[getParentStudents] Student MarkEntry records:', entries.length);
     
-    // Calculate percentage
-    const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+    const allResults = [];
+    
+    for (const session of sessions) {
+      const entry = entries.find(e => e.session.toString() === session._id.toString());
+      if (entry) {
+        const resultDate = session.category === 'daily' ? session.testDate : session.examDate;
+        allResults.push({
+          date: resultDate,
+          examType: session.category === 'daily' ? 'Daily Test' : session.examType,
+          subject: session.subject,
+          marksObtained: entry.marksObtained,
+          maxMarks: session.maxMarks,
+          percentage: entry.percentage,
+          rank: entry.rankSubject,
+          category: session.category
+        });
+      }
+    }
+    
+    allResults.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recentResults = allResults.slice(0, 5);
+    
+    console.log('[getParentStudents] Recent results:', JSON.stringify(recentResults, null, 2));
     
     return {
       _id: student._id,
@@ -397,52 +487,241 @@ export const getParentStudents = asyncHandler(async (req, res) => {
       rollNo: student.rollNo,
       className: student.class?.className || '',
       section: student.class?.section || '',
-      sessionName: activeSession.sessionName,
-      totalObtained,
-      totalMax,
-      percentage
+      rank: currentStudentRank?.rank || null,
+      percentage: currentStudentRank?.percentage || 0,
+      recentResults
     };
   }));
   
-  // Calculate rank for each class separately (same as Class Results logic)
-  const studentsByClass = {};
-  studentsWithStats.forEach(student => {
-    const classKey = student.className + '-' + student.section;
-    if (!studentsByClass[classKey]) {
-      studentsByClass[classKey] = [];
-    }
-    studentsByClass[classKey].push(student);
-  });
-  
-  // Assign ranks within each class
-  Object.keys(studentsByClass).forEach(classKey => {
-    const classStudents = studentsByClass[classKey];
-    const rankedStudents = computeCompetitionRanks(classStudents, 'totalObtained');
-    studentsByClass[classKey] = rankedStudents;
-  });
-  
-  // Flatten back to array
-  const rankedStudents = Object.values(studentsByClass).flat();
-  
-  console.log('[getParentStudents] Sending response with rank and percentage');
+  console.log('[getParentStudents] Sending response with rank, percentage, and recent results');
+  console.log('[getParentStudents] Final students data:', JSON.stringify(studentsWithStats, null, 2));
   console.log('========== getParentStudents END ==========');
   
   res.json({
     success: true,
-    students: rankedStudents.map(s => ({
-      _id: s._id,
-      name: s.name,
-      rollNo: s.rollNo,
-      className: s.className,
-      section: s.section,
-      sessionName: s.sessionName,
-      rank: s.rank,
-      percentage: s.percentage
-    }))
+    sessionName,
+    students: studentsWithStats
   });
 });
 
+export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
+  console.log('========== getParentStudentResultsHistory START ==========');
+  console.log('[getParentStudentResultsHistory] req.params:', req.params);
+  console.log('[getParentStudentResultsHistory] req.query:', req.query);
+  console.log('[getParentStudentResultsHistory] studentId:', req.params.studentId);
+  console.log('[getParentStudentResultsHistory] dateFrom:', req.query.dateFrom);
+  console.log('[getParentStudentResultsHistory] dateTo:', req.query.dateTo);
+  
+  const schoolId = req.user.school?._id ?? req.user.school;
+  const { studentId } = req.params;
+  const { dateFrom, dateTo } = req.query;
+  
+  console.log('[getParentStudentResultsHistory] schoolId:', schoolId);
+  
+  // Get parent from user (for logged-in parent)
+  const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
+  console.log('[getParentStudentResultsHistory] Parent found:', parent);
+  
+  if (!parent) throw new ApiError(404, 'Parent not found.');
+  
+  // Verify student is linked to this parent
+  console.log('[getParentStudentResultsHistory] Parent linkedStudents:', parent.linkedStudents);
+  console.log('[getParentStudentResultsHistory] Checking if studentId is linked:', parent.linkedStudents.includes(studentId));
+  
+  if (!parent.linkedStudents.includes(studentId)) {
+    throw new ApiError(403, 'You do not have permission to view this student\'s results.');
+  }
+  
+  // Get student
+  const student = await Student.findOne({ _id: studentId, school: schoolId, isActive: true })
+    .populate('class', 'className section');
+  
+  console.log('[getParentStudentResultsHistory] Student found:', student);
+  
+  if (!student) throw new ApiError(404, 'Student not found.');
+  
+  // Get current active academic session
+  const activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  console.log('[getParentStudentResultsHistory] Active session:', activeSession);
+  
+  // Build date filter
+  const dateFilter = {};
+  if (dateFrom) {
+    dateFilter.$gte = new Date(dateFrom);
+    console.log('[getParentStudentResultsHistory] Date from filter:', dateFrom, '->', dateFilter.$gte);
+  }
+  if (dateTo) {
+    dateFilter.$lte = new Date(dateTo);
+    console.log('[getParentStudentResultsHistory] Date to filter:', dateTo, '->', dateFilter.$lte);
+  }
+  
+  // Get all ResultSessions for this student's class in the active session
+  // Use the same query pattern as Admin Class Results
+  const classId = student.class?._id || student.class;
+  console.log('[getParentStudentResultsHistory] Using classId:', classId, 'type:', typeof classId);
+  
+  const sessionFilter = {
+    school: schoolId,
+    class: classId,
+    isActive: true
+  };
+  
+  console.log('[getParentStudentResultsHistory] Session filter:', JSON.stringify(sessionFilter, null, 2));
+  
+  const sessions = await ResultSession.find(sessionFilter).lean();
+  
+  console.log('[getParentStudentResultsHistory] Total ResultSessions found (without academicSession filter):', sessions.length);
+  
+  // If no sessions found with academicSession filter, try without it (fallback like Admin)
+  if (sessions.length === 0) {
+    console.log('[getParentStudentResultsHistory] No sessions found, trying without academicSession filter...');
+    const sessionsWithoutSession = await ResultSession.find({
+      school: schoolId,
+      class: classId
+    }).lean();
+    console.log('[getParentStudentResultsHistory] ResultSessions found (without any session filter):', sessionsWithoutSession.length);
+    sessions.push(...sessionsWithoutSession);
+  }
+  
+  console.log('[getParentStudentResultsHistory] Total ResultSessions found:', sessions.length);
+  console.log('[getParentStudentResultsHistory] Sessions sample:', sessions.slice(0, 3).map(s => ({
+    _id: s._id,
+    category: s.category,
+    testDate: s.testDate,
+    examDate: s.examDate,
+    subject: s.subject
+  })));
+  
+  // Filter by date if provided
+  let filteredSessions = sessions;
+  if (Object.keys(dateFilter).length > 0) {
+    console.log('[getParentStudentResultsHistory] Applying date filter...');
+    filteredSessions = sessions.filter(session => {
+      const sessionDate = session.category === 'daily' ? session.testDate : session.examDate;
+      console.log('[getParentStudentResultsHistory] Session date:', sessionDate, 'category:', session.category);
+      if (!sessionDate) return false;
+      const date = new Date(sessionDate);
+      if (dateFilter.$gte && date < dateFilter.$gte) {
+        console.log('[getParentStudentResultsHistory] Filtered out (before dateFrom):', sessionDate);
+        return false;
+      }
+      if (dateFilter.$lte && date > dateFilter.$lte) {
+        console.log('[getParentStudentResultsHistory] Filtered out (after dateTo):', sessionDate);
+        return false;
+      }
+      console.log('[getParentStudentResultsHistory] Session passed filter:', sessionDate);
+      return true;
+    });
+  }
+  
+  console.log('[getParentStudentResultsHistory] Filtered sessions count:', filteredSessions.length);
+  
+  const sessionIds = filteredSessions.map(s => s._id);
+  
+  // Get all students in the class for ranking calculation
+  // Admin Class Results doesn't filter by academicSession or isActive for Student query
+  const allClassStudents = await Student.find({
+    school: schoolId,
+    class: classId
+  });
+  
+  console.log('[getParentStudentResultsHistory] All class students count:', allClassStudents.length);
+  
+  // Get all MarkEntry records for all students in the filtered sessions
+  const allEntries = await MarkEntry.find({
+    student: { $in: allClassStudents.map(s => s._id) },
+    session: { $in: sessionIds }
+  }).lean();
+  
+  console.log('[getParentStudentResultsHistory] All MarkEntry records count:', allEntries.length);
+  
+  // Calculate stats for all students in the class for ranking
+  const studentStats = allClassStudents.map(s => {
+    const studentEntries = allEntries.filter(e => e.student.toString() === s._id.toString());
+    const totalObtained = studentEntries.reduce((sum, e) => sum + (e.marksObtained || 0), 0);
+    const totalMax = filteredSessions.reduce((sum, sess) => sum + (sess.maxMarks || 0), 0);
+    const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+    
+    return {
+      _id: s._id,
+      totalObtained,
+      totalMax,
+      percentage
+    };
+  });
+  
+  console.log('[getParentStudentResultsHistory] Student stats calculated:', JSON.stringify(studentStats, null, 2));
+  
+  // Compute ranks across all students
+  const rankedStudents = computeCompetitionRanks(studentStats, 'totalObtained');
+  
+  console.log('[getParentStudentResultsHistory] Ranked students:', JSON.stringify(rankedStudents, null, 2));
+  
+  // Get the current student's rank and percentage
+  const currentStudentRank = rankedStudents.find(s => s._id.toString() === studentId.toString());
+  
+  console.log('[getParentStudentResultsHistory] Current student rank:', JSON.stringify(currentStudentRank, null, 2));
+  
+  // Get MarkEntry records for the current student
+  const entries = await MarkEntry.find({
+    student: studentId,
+    session: { $in: sessionIds }
+  }).lean();
+  
+  console.log('[getParentStudentResultsHistory] Current student MarkEntry records count:', entries.length);
+  
+  // Build results array
+  const results = [];
+  
+  for (const session of filteredSessions) {
+    const entry = entries.find(e => e.session.toString() === session._id.toString());
+    if (entry) {
+      const resultDate = session.category === 'daily' ? session.testDate : session.examDate;
+      results.push({
+        date: resultDate,
+        examType: session.category === 'daily' ? 'Daily Test' : session.examType,
+        subject: session.subject,
+        marksObtained: entry.marksObtained,
+        maxMarks: session.maxMarks,
+        percentage: entry.percentage,
+        rank: entry.rankSubject,
+        category: session.category
+      });
+    }
+  }
+  
+  // Sort by date ascending (chronological order)
+  results.sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  console.log('[getParentStudentResultsHistory] Final results count:', results.length);
+  console.log('[getParentStudentResultsHistory] Final results:', JSON.stringify(results, null, 2));
+  
+  res.json({
+    success: true,
+    student: {
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || ''
+    },
+    results,
+    classRank: currentStudentRank?.rank || null,
+    classPercentage: currentStudentRank?.percentage || 0,
+    totalStudents: rankedStudents.length
+  });
+  
+  console.log('========== getParentStudentResultsHistory END ==========');
+});
+
 export const getParentStudentDetails = asyncHandler(async (req, res) => {
+  console.log('========== getParentStudentDetails START ==========');
+  console.log('[getParentStudentDetails] studentId:', req.params.studentId);
+  
   const schoolId = req.user.school?._id ?? req.user.school;
   const { studentId } = req.params;
   
@@ -466,21 +745,107 @@ export const getParentStudentDetails = asyncHandler(async (req, res) => {
   
   if (!student) throw new ApiError(404, 'Student not found.');
   
-  // Get all students in the same class for ranking
-  const allClassStudents = await Student.find({
-    class: student.class,
-    academicSession: student.academicSession,
+  console.log('[getParentStudentDetails] Student found:', student._id, student.name);
+  
+  // Reuse the SAME calculation logic as getParentStudents
+  // Get current active academic session
+  const activeSession = await AcademicSession.findOne({
     school: schoolId,
+    status: 'active'
+  });
+  
+  const classId = student.class?._id || student.class;
+  console.log('[getParentStudentDetails] Using classId:', classId);
+  
+  // Get all ResultSessions for this student's class
+  const sessions = await ResultSession.find({
+    school: schoolId,
+    class: classId,
     isActive: true
-  }).sort({ rollNo: 1 });
+  }).lean();
   
-  // Calculate rank and percentage (simplified - would use actual result calculation in production)
-  const rank = 1; // Placeholder
-  const percentage = 85.5; // Placeholder
-  const average = 78.2; // Placeholder
+  console.log('[getParentStudentDetails] ResultSessions found:', sessions.length);
   
-  // Get recent daily tests for this student
-  const recentDailyTests = []; // Placeholder - would fetch from actual daily test results
+  // Fallback for records without academicSession
+  if (sessions.length === 0) {
+    const sessionsWithoutSession = await ResultSession.find({
+      school: schoolId,
+      class: classId
+    }).lean();
+    sessions.push(...sessionsWithoutSession);
+  }
+  
+  const sessionIds = sessions.map(s => s._id);
+  
+  // Get ALL students in this class (same as Admin Class Results)
+  const allClassStudents = await Student.find({
+    school: schoolId,
+    class: classId
+  });
+  
+  console.log('[getParentStudentDetails] All class students found:', allClassStudents.length);
+  
+  // Get ALL MarkEntry records for ALL students in these sessions
+  const allEntries = await MarkEntry.find({
+    student: { $in: allClassStudents.map(s => s._id) },
+    session: { $in: sessionIds }
+  });
+  
+  console.log('[getParentStudentDetails] All MarkEntry records found:', allEntries.length);
+  
+  // Calculate stats for ALL students (same as Admin Class Results)
+  const studentStats = allClassStudents.map(s => {
+    const studentEntries = allEntries.filter(e => e.student.toString() === s._id.toString());
+    const totalObtained = studentEntries.reduce((sum, e) => sum + (e.marksObtained || 0), 0);
+    const totalMax = sessions.reduce((sum, sess) => sum + (sess.maxMarks || 0), 0);
+    const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+    
+    return {
+      _id: s._id,
+      totalObtained,
+      totalMax,
+      percentage
+    };
+  });
+  
+  // Compute ranks using the SAME function as Admin Class Results
+  const rankedStudents = computeCompetitionRanks(studentStats, 'totalObtained');
+  
+  // Filter to get ONLY this student's row from the results
+  const currentStudentRank = rankedStudents.find(s => s._id.toString() === studentId.toString());
+  
+  console.log('[getParentStudentDetails] Current student rank:', currentStudentRank?.rank);
+  console.log('[getParentStudentDetails] Current student percentage:', currentStudentRank?.percentage);
+  
+  // Get latest 5 results (mix of Daily Tests and Main Exams)
+  const entries = await MarkEntry.find({
+    student: studentId,
+    session: { $in: sessionIds }
+  });
+  
+  const allResults = [];
+  
+  for (const session of sessions) {
+    const entry = entries.find(e => e.session.toString() === session._id.toString());
+    if (entry) {
+      const resultDate = session.category === 'daily' ? session.testDate : session.examDate;
+      allResults.push({
+        date: resultDate,
+        examType: session.category === 'daily' ? 'Daily Test' : session.examType,
+        subject: session.subject,
+        marksObtained: entry.marksObtained,
+        maxMarks: session.maxMarks,
+        percentage: entry.percentage,
+        rank: entry.rankSubject,
+        category: session.category
+      });
+    }
+  }
+  
+  allResults.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const recentResults = allResults.slice(0, 5);
+  
+  console.log('[getParentStudentDetails] Recent results:', JSON.stringify(recentResults, null, 2));
   
   res.json({
     success: true,
@@ -490,12 +855,13 @@ export const getParentStudentDetails = asyncHandler(async (req, res) => {
       rollNo: student.rollNo,
       className: student.class?.className || '',
       section: student.class?.section || '',
-      rank,
-      percentage: percentage.toFixed(1),
-      average: average.toFixed(1),
-      recentDailyTests
+      rank: currentStudentRank?.rank || null,
+      percentage: currentStudentRank?.percentage || 0,
+      recentResults
     }
   });
+  
+  console.log('========== getParentStudentDetails END ==========');
 });
 
 export const getParentDailyTests = asyncHandler(async (req, res) => {

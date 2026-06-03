@@ -57,7 +57,7 @@ export default function StudentDetails() {
       </div>
 
       <ErpSection title="Student Overview" icon={FileText} tone="blue">
-        <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 p-4 sm:grid-cols-3">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm text-slate-500">Roll No</div>
             <div className="text-2xl font-bold text-slate-900">{student.rollNo}</div>
@@ -70,52 +70,39 @@ export default function StudentDetails() {
             <div className="text-sm text-slate-500">Percentage</div>
             <div className="text-2xl font-bold text-slate-900">{student.percentage}%</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm text-slate-500">Average</div>
-            <div className="text-2xl font-bold text-slate-900">{student.average}</div>
-          </div>
         </div>
       </ErpSection>
 
       <ErpSection title="Results" icon={Trophy} tone="yellow">
-        <div className="grid gap-4 p-4 sm:grid-cols-2">
-          <Button
-            onClick={() => navigate(`/parent/student/${studentId}/daily-tests`)}
-            className="h-24 flex flex-col items-center justify-center gap-2"
-            variant="outline"
-          >
-            <Calendar className="h-8 w-8" />
-            <span className="font-semibold">Daily Tests</span>
-          </Button>
-          <Button
-            onClick={() => navigate(`/parent/student/${studentId}/main-exams`)}
-            className="h-24 flex flex-col items-center justify-center gap-2"
-            variant="outline"
-          >
-            <FileText className="h-8 w-8" />
-            <span className="font-semibold">Main Exams</span>
-          </Button>
-        </div>
+        <Button
+          onClick={() => navigate(`/parent/student/${studentId}/results-history`)}
+          className="w-full h-24 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Calendar className="h-8 w-8" />
+          <span className="font-semibold">View Results History</span>
+        </Button>
       </ErpSection>
 
-      <ErpSection title="Recent Daily Tests" icon={Calendar} tone="green">
-        {student.recentDailyTests && student.recentDailyTests.length > 0 ? (
+      <ErpSection title="Recent Results" icon={Calendar} tone="green">
+        {student.recentResults && student.recentResults.length > 0 ? (
           <div className="divide-y">
-            {student.recentDailyTests.map((test, index) => (
+            {student.recentResults.map((result, index) => (
               <div key={index} className="flex items-center justify-between p-4">
                 <div>
-                  <div className="font-medium text-slate-900">{test.subject}</div>
-                  <div className="text-sm text-slate-500">{test.date}</div>
+                  <div className="font-medium text-slate-900">{result.examType} - {result.subject}</div>
+                  <div className="text-sm text-slate-500">{new Date(result.date).toLocaleDateString()}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-slate-900">{test.marksObtained} / {test.maxMarks}</div>
+                  <div className="font-medium text-slate-900">{result.marksObtained} / {result.maxMarks}</div>
+                  <div className="text-sm text-slate-500">{result.percentage.toFixed(1)}%</div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
           <div className="p-8 text-center text-slate-500">
-            No recent daily tests available
+            No recent results available
           </div>
         )}
       </ErpSection>

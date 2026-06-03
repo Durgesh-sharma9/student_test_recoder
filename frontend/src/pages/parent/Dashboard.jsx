@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 
 export default function ParentDashboard() {
   const [students, setStudents] = useState([]);
+  const [sessionName, setSessionName] = useState('');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [topStudents, setTopStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,7 @@ export default function ParentDashboard() {
       const res = await api.get('/parents/students');
       console.log('Parent students response:', res.data);
       setStudents(res.data.students || []);
+      setSessionName(res.data.sessionName || '2026-27');
       setShowLeaderboard(res.data.showLeaderboard || false);
       setTopStudents(res.data.topStudents || []);
     } catch (err) {
@@ -44,23 +46,8 @@ export default function ParentDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Parent Dashboard"
-        description="View your children's academic progress"
+        description={`Session: ${sessionName}`}
       />
-
-      {showLeaderboard && topStudents.length > 0 && (
-        <ErpSection title="🏆 Top 3 Students" icon={Trophy} tone="yellow">
-          <div className="grid gap-3 p-4 sm:grid-cols-3">
-            {topStudents.map((name, index) => (
-              <div key={index} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-bold">
-                  {index + 1}
-                </div>
-                <span className="font-medium text-slate-900">{name}</span>
-              </div>
-            ))}
-          </div>
-        </ErpSection>
-      )}
 
       <ErpSection title="My Children" icon={Users} tone="blue">
         {students.length === 0 ? (
@@ -69,24 +56,29 @@ export default function ParentDashboard() {
             <p>No children linked to your account yet.</p>
           </div>
         ) : (
-          <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-6 p-4">
             {students.map((student) => (
               <div
                 key={student._id}
-                onClick={() => navigate(`/parent/student/${student._id}`)}
-                className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
               >
-                <div className="mb-3 flex items-start justify-between">
+                <div className="mb-4 flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-slate-900">{student.name}</h3>
                     <p className="text-sm text-slate-500">
                       {student.className} {student.section && `(${student.section})`}
                     </p>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-slate-300 transition-colors group-hover:text-indigo-600" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/parent/student/${student._id}`)}
+                  >
+                    View Details
+                  </Button>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Roll No:</span>
                     <span className="font-medium text-slate-900">{student.rollNo}</span>
@@ -100,6 +92,30 @@ export default function ParentDashboard() {
                     <span className="font-medium text-slate-900">{student.percentage}%</span>
                   </div>
                 </div>
+
+                {student.recentResults && student.recentResults.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Recent Results</h4>
+                    <div className="space-y-2">
+                      {student.recentResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between text-sm p-2 rounded bg-slate-50"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500">{new Date(result.date).toLocaleDateString()}</span>
+                            <span className="font-medium text-slate-900">{result.examType}</span>
+                            <span className="text-slate-600">{result.subject}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-900">{result.marksObtained}/{result.maxMarks}</span>
+                            <span className="font-medium text-slate-900">{result.percentage.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
