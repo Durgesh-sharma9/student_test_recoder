@@ -11,19 +11,33 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AuthContext] useEffect triggered');
     const token = localStorage.getItem('token');
-    if (!token) { setLoading(false); return; }
+    console.log('[AuthContext] Token from localStorage:', token ? 'exists' : 'none');
+    
+    if (!token) { 
+      console.log('[AuthContext] No token, setting loading to false');
+      setLoading(false); 
+      return; 
+    }
+    
+    console.log('[AuthContext] Calling /auth/me');
     api.get('/auth/me')
       .then((res) => {
+        console.log('[AuthContext] /auth/me success:', res.data.user);
         setUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('[AuthContext] /auth/me error:', err);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        console.log('[AuthContext] Setting loading to false');
+        setLoading(false);
+      });
   }, []);
 
   const login = async (email, password) => {

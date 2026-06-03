@@ -363,7 +363,8 @@ export default function Landing() {
             <a href="#contact">Contact</a>
           </div>
           <div className="nav-actions">
-            <Link to="/login" className="btn btn-ghost">Login</Link>
+            <Link to="/login" className="btn btn-ghost">Staff Login</Link>
+            <Link to="/parent-login" className="btn btn-ghost">Parent Login</Link>
             <Link to="/signup" className="btn btn-primary">Sign Up <ArrowRight size={15} /></Link>
           </div>
         </div>
