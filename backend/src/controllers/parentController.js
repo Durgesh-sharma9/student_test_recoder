@@ -11,9 +11,15 @@ import crypto from 'crypto';
 import { sendParentCreationEmail } from '../services/emailService.js';
 import { startOfDay, endOfDay } from 'date-fns';
 
-// Helper function to generate random password
+// Helper function to generate random password (8-10 characters)
 const generatePassword = () => {
-  return crypto.randomBytes(8).toString('hex');
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 };
 
 // Helper function to find or create parent
@@ -687,10 +693,10 @@ export const getAdminParents = asyncHandler(async (req, res) => {
   
   const parents = await Parent.find(filter).sort({ createdAt: -1 });
   
-  // Get linked students count for each parent
+  // Get linked students count for each parent by checking students where parent field matches
   const parentsWithCounts = await Promise.all(parents.map(async (parent) => {
     const linkedStudents = await Student.find({
-      _id: { $in: parent.linkedStudents },
+      parent: parent._id,
       school: schoolId,
       isActive: true
     });

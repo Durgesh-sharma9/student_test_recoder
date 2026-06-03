@@ -144,14 +144,37 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id)
+  // Try to find user first (for admin/teacher)
+  let user = await User.findById(req.user._id)
     .select('-password')
     .populate('school', 'schoolName planExpiresAt isActive')
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section');
 
+  // If not found in User, try Parent (for parents)
+  if (!user) {
+    user = await Parent.findById(req.user._id).select('-password').populate('school', 'schoolName planExpiresAt isActive');
+    if (user) {
+      // Convert Parent to user-like object
+      user = {
+        _id: user._id,
+        name: user.parentName,
+        email: user.email,
+        phone: user.phone,
+        role: 'parent',
+        school: user.school,
+        isActive: true,
+        status: user.status
+      };
+    }
+  }
+
+  if (!user) {
+    throw new ApiError(404, 'User not found.');
+  }
+
   const role = user.role === 'admin' ? 'school_admin' : user.role;
-  res.json({ success: true, user: { ...user.toObject(), role } });
+  res.json({ success: true, user: { ...user, role } });
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
