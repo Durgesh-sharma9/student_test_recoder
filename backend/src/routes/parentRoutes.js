@@ -28,11 +28,7 @@ router.route('/')
   .get(getParents)
   .post(createParent);
 
-router.route('/:id')
-  .get(getParent)
-  .put(updateParent)
-  .delete(deleteParent);
-
+// Static routes must be defined before dynamic routes
 router.post('/link-student', linkStudentToParent);
 router.post('/unlink-student', unlinkStudentFromParent);
 router.post('/send-credentials', sendParentCredentials);
@@ -47,5 +43,11 @@ router.get('/admin/list', getAdminParents);
 router.get('/admin/:parentId', getAdminParentDetails);
 router.put('/admin/:parentId/status', toggleParentStatus);
 router.post('/admin/:parentId/reset-password', resetParentPassword);
+
+// Dynamic routes must be last
+router.route('/:id')
+  .get(getParent)
+  .put(updateParent)
+  .delete(deleteParent);
 
 export default router;

@@ -22,14 +22,17 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  console.log('[Auth Middleware] Decoded token id:', decoded.id);
   
   // Try to find user first (for admin/teacher)
   let user = await User.findById(decoded.id).select('-password');
   
   // If not found in User, try Parent (for parents)
   if (!user) {
+    console.log('[Auth Middleware] User not found, trying Parent model');
     const parent = await Parent.findById(decoded.id).select('-password');
     if (parent) {
+      console.log('[Auth Middleware] Parent found:', parent._id);
       // Check if parent is active
       if (parent.status !== 'Active') {
         throw new ApiError(401, 'Parent account is inactive.');
@@ -45,6 +48,7 @@ export const protect = asyncHandler(async (req, res, next) => {
         isActive: true,
         status: parent.status
       };
+      console.log('[Auth Middleware] Converted parent to user object, _id:', user._id);
     }
   }
 
@@ -53,6 +57,7 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   req.user = normalizeRole(user);
+  console.log('[Auth Middleware] req.user._id:', req.user._id);
   next();
 });
 
