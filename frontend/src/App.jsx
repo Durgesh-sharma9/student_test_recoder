@@ -34,12 +34,33 @@ import ParentExamDetails from '@/pages/parent/ExamDetails';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
+  console.log('[HomeRoute] Component mounted');
+  console.log('[HomeRoute] loading:', loading);
+  console.log('[HomeRoute] user:', user);
+  
   if (loading) return null;
-  if (!user) return <Landing />;
+  
+  if (!user) {
+    console.log('[HomeRoute] No user, returning Landing');
+    return <Landing />;
+  }
+  
   const role = user.role === 'admin' ? 'school_admin' : user.role;
-  if (role === 'super_admin') return <Navigate to="/super-admin" replace />;
-  if (role === 'school_admin') return <Navigate to="/admin" replace />;
-  if (role === 'parent') return <Navigate to="/parent/dashboard" replace />;
+  console.log('[HomeRoute] User role:', role);
+  
+  if (role === 'super_admin') {
+    console.log('[HomeRoute] Redirecting to /super-admin');
+    return <Navigate to="/super-admin" replace />;
+  }
+  if (role === 'school_admin') {
+    console.log('[HomeRoute] Redirecting to /admin');
+    return <Navigate to="/admin" replace />;
+  }
+  if (role === 'parent') {
+    console.log('[HomeRoute] Redirecting to /parent/dashboard');
+    return <Navigate to="/parent/dashboard" replace />;
+  }
+  console.log('[HomeRoute] Redirecting to /teacher');
   return <Navigate to="/teacher" replace />;
 }
 

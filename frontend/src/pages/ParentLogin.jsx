@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -19,8 +19,41 @@ export default function ParentLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { parentLogin } = useAuth();
+  const { parentLogin, user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  console.log('[ParentLogin] Component mounted');
+  console.log('[ParentLogin] isAuthenticated:', isAuthenticated);
+  console.log('[ParentLogin] user:', user);
+  console.log('[ParentLogin] authLoading:', authLoading);
+
+  useEffect(() => {
+    console.log('[ParentLogin] useEffect triggered');
+    console.log('[ParentLogin] isAuthenticated:', isAuthenticated);
+    console.log('[ParentLogin] user:', user);
+    
+    if (isAuthenticated && user) {
+      const role = user.role === 'admin' ? 'school_admin' : user.role;
+      console.log('[ParentLogin] User role:', role);
+      
+      if (role === 'parent') {
+        console.log('[ParentLogin] Redirecting to /parent/dashboard');
+        navigate('/parent/dashboard', { replace: true });
+      } else {
+        // If logged in as staff, redirect to their dashboard
+        console.log('[ParentLogin] Redirecting staff to their dashboard');
+        if (role === 'school_admin' || role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (role === 'teacher') {
+          navigate('/teacher', { replace: true });
+        } else if (role === 'super_admin') {
+          navigate('/super-admin', { replace: true });
+        }
+      }
+    } else {
+      console.log('[ParentLogin] Not authenticated, staying on login page');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

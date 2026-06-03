@@ -214,7 +214,17 @@ export const parentLogin = asyncHandler(async (req, res) => {
     parent = await Parent.findOne({ phone: phone.trim(), status: 'Active' }).select('+password');
   }
 
-  if (!parent || !(await parent.comparePassword(password))) {
+  if (!parent) {
+    console.log('Parent not found for email:', email, 'phone:', phone);
+    throw new ApiError(401, 'Invalid credentials.');
+  }
+
+  console.log('Parent found:', parent._id, 'email:', parent.email, 'phone:', parent.phone);
+  console.log('Password comparison...');
+  const isPasswordValid = await parent.comparePassword(password);
+  console.log('Password valid:', isPasswordValid);
+
+  if (!isPasswordValid) {
     throw new ApiError(401, 'Invalid credentials.');
   }
 
@@ -240,6 +250,7 @@ export const parentLogin = asyncHandler(async (req, res) => {
   };
 
   const token = signToken(parent._id);
+  console.log('Token generated successfully for parent:', parent._id);
 
   res.status(200).json({
     success: true,
