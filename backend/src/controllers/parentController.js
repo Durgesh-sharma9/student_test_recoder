@@ -11,6 +11,19 @@ import crypto from 'crypto';
 import { sendParentCreationEmail } from '../services/emailService.js';
 import { startOfDay, endOfDay } from 'date-fns';
 
+const round2 = (v) => Math.round(v * 100) / 100;
+
+const computeCompetitionRanks = (items, valueKey) => {
+  const sorted = [...items].sort((a, b) => b[valueKey] - a[valueKey]);
+  let prev = null;
+  let rank = 0;
+  return sorted.map((item, idx) => {
+    if (prev !== item[valueKey]) rank = idx + 1;
+    prev = item[valueKey];
+    return { ...item, rank };
+  });
+};
+
 // Helper function to generate random password (8-10 characters)
 const generatePassword = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -291,18 +304,13 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
 
 export const getParentStudents = asyncHandler(async (req, res) => {
   console.log('========== getParentStudents START ==========');
-  console.log('[getParentStudents] req.user:', JSON.stringify(req.user, null, 2));
   console.log('[getParentStudents] req.user._id:', req.user._id);
-  console.log('[getParentStudents] req.user._id type:', typeof req.user._id);
   
   const schoolId = req.user.school?._id ?? req.user.school;
   console.log('[getParentStudents] schoolId:', schoolId);
   
   // Get parent from user (for logged-in parent)
-  console.log('[getParentStudents] Querying parent...');
   const parent = await Parent.findOne({ _id: req.user._id, school: schoolId, status: 'Active' });
-  console.log('[getParentStudents] Parent query result:', parent);
-  
   if (!parent) {
     console.log('[getParentStudents] Parent not found');
     throw new ApiError(404, 'Parent not found.');
@@ -310,17 +318,8 @@ export const getParentStudents = asyncHandler(async (req, res) => {
   
   console.log('[getParentStudents] Parent found:', parent._id);
   console.log('[getParentStudents] Parent linkedStudents:', parent.linkedStudents);
-  console.log('[getParentStudents] Parent linkedStudents type:', typeof parent.linkedStudents);
-  console.log('[getParentStudents] Parent linkedStudents length:', parent.linkedStudents?.length);
   
   // Get linked students with their class and academic session info
-  console.log('[getParentStudents] Querying students...');
-  console.log('[getParentStudents] Student query filter:', {
-    _id: { $in: parent.linkedStudents },
-    school: schoolId,
-    isActive: true
-  });
-  
   const students = await Student.find({
     _id: { $in: parent.linkedStudents },
     school: schoolId,
@@ -330,25 +329,116 @@ export const getParentStudents = asyncHandler(async (req, res) => {
   .populate('academicSession', 'sessionName');
   
   console.log('[getParentStudents] Students found:', students.length);
-  console.log('[getParentStudents] Students:', JSON.stringify(students, null, 2));
   
-  // Return basic student data without rank/percentage calculation
-  // Rank and percentage calculation requires MarkEntry/ResultSession architecture
-  const studentsWithBasicInfo = students.map(student => ({
-    _id: student._id,
-    name: student.name,
-    rollNo: student.rollNo,
-    className: student.class?.className || '',
-    section: student.class?.section || '',
-    sessionName: student.academicSession?.sessionName || ''
+  if (students.length === 0) {
+    console.log('[getParentStudents] No linked students found');
+    return res.json({
+      success: true,
+      students: []
+    });
+  }
+  
+  // Get current active academic session
+  const activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) {
+    console.log('[getParentStudents] No active session found');
+    // Return basic student data without rank/percentage if no active session
+    const studentsWithBasicInfo = students.map(student => ({
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || '',
+      sessionName: student.academicSession?.sessionName || '',
+      rank: null,
+      percentage: null
+    }));
+    
+    return res.json({
+      success: true,
+      students: studentsWithBasicInfo
+    });
+  }
+  
+  console.log('[getParentStudents] Active session:', activeSession._id);
+  
+  // Calculate rank and percentage for each student using Class Results logic
+  const studentsWithStats = await Promise.all(students.map(async (student) => {
+    // Get all ResultSessions for this student's class in the active session
+    const sessions = await ResultSession.find({
+      school: schoolId,
+      class: student.class,
+      academicSession: activeSession._id,
+      isActive: true
+    });
+    
+    const sessionIds = sessions.map(s => s._id);
+    
+    // Get all MarkEntry records for this student in these sessions
+    const entries = await MarkEntry.find({
+      student: student._id,
+      session: { $in: sessionIds }
+    });
+    
+    // Calculate total obtained and total max marks
+    const totalObtained = entries.reduce((sum, e) => sum + (e.marksObtained || 0), 0);
+    const totalMax = sessions.reduce((sum, s) => sum + (s.maxMarks || 0), 0);
+    
+    // Calculate percentage
+    const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+    
+    return {
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || '',
+      sessionName: activeSession.sessionName,
+      totalObtained,
+      totalMax,
+      percentage
+    };
   }));
   
-  console.log('[getParentStudents] Sending response');
+  // Calculate rank for each class separately (same as Class Results logic)
+  const studentsByClass = {};
+  studentsWithStats.forEach(student => {
+    const classKey = student.className + '-' + student.section;
+    if (!studentsByClass[classKey]) {
+      studentsByClass[classKey] = [];
+    }
+    studentsByClass[classKey].push(student);
+  });
+  
+  // Assign ranks within each class
+  Object.keys(studentsByClass).forEach(classKey => {
+    const classStudents = studentsByClass[classKey];
+    const rankedStudents = computeCompetitionRanks(classStudents, 'totalObtained');
+    studentsByClass[classKey] = rankedStudents;
+  });
+  
+  // Flatten back to array
+  const rankedStudents = Object.values(studentsByClass).flat();
+  
+  console.log('[getParentStudents] Sending response with rank and percentage');
   console.log('========== getParentStudents END ==========');
   
   res.json({
     success: true,
-    students: studentsWithBasicInfo
+    students: rankedStudents.map(s => ({
+      _id: s._id,
+      name: s.name,
+      rollNo: s.rollNo,
+      className: s.className,
+      section: s.section,
+      sessionName: s.sessionName,
+      rank: s.rank,
+      percentage: s.percentage
+    }))
   });
 });
 
