@@ -28,18 +28,22 @@ export const protect = asyncHandler(async (req, res, next) => {
   
   // If not found in User, try Parent (for parents)
   if (!user) {
-    user = await Parent.findById(decoded.id).select('-password');
-    if (user) {
+    const parent = await Parent.findById(decoded.id).select('-password');
+    if (parent) {
+      // Check if parent is active
+      if (parent.status !== 'Active') {
+        throw new ApiError(401, 'Parent account is inactive.');
+      }
       // Convert Parent to user-like object
       user = {
-        _id: user._id,
-        name: user.parentName,
-        email: user.email,
-        phone: user.phone,
+        _id: parent._id,
+        name: parent.parentName,
+        email: parent.email,
+        phone: parent.phone,
         role: 'parent',
-        school: user.school,
+        school: parent.school,
         isActive: true,
-        status: user.status
+        status: parent.status
       };
     }
   }

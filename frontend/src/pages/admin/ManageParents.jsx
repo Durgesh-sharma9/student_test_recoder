@@ -15,7 +15,7 @@ export default function ManageParents() {
   const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedParent, setSelectedParent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
@@ -28,8 +28,12 @@ export default function ManageParents() {
   const loadParents = async () => {
     try {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
+
+if (search) params.append('search', search);
+
+if (statusFilter && statusFilter !== 'all') {
+  params.append('status', statusFilter);
+}
       
       const res = await api.get(`/parents/admin/list?${params}`);
       setParents(res.data.parents || []);
@@ -109,15 +113,15 @@ export default function ManageParents() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+  <SelectTrigger className="h-10">
+    <SelectValue placeholder="All Status" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Status</SelectItem>
+    <SelectItem value="Active">Active</SelectItem>
+    <SelectItem value="Inactive">Inactive</SelectItem>
+  </SelectContent>
+</Select>
           </div>
         </div>
       </ErpSection>

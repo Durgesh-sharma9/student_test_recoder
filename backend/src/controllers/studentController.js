@@ -125,15 +125,19 @@ export const createStudent = asyncHandler(async (req, res) => {
       isNew: parentResult.isNew,
       password: parentResult.password
     };
-    
-    // Link student to parent
-    if (!parentResult.parent.linkedStudents.includes(payload.parent)) {
-      parentResult.parent.linkedStudents.push(payload.parent);
-      await parentResult.parent.save();
-    }
   }
 
   const student = await Student.create(payload);
+  
+  // Link student to parent after student is created
+  if (payload.parent) {
+    const parent = await Parent.findById(payload.parent);
+    if (parent && !parent.linkedStudents.includes(student._id)) {
+      parent.linkedStudents.push(student._id);
+      await parent.save();
+    }
+  }
+  
   const populated = await Student.findById(student._id)
     .populate('class', 'className section')
     .populate('academicSession', 'sessionName')
@@ -330,16 +334,10 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         } else {
           results.existingParentsLinked++;
         }
-        
-        // Link student to parent
-        if (!parentResult.parent.linkedStudents.includes(parentId)) {
-          parentResult.parent.linkedStudents.push(parentId);
-          await parentResult.parent.save();
-        }
       }
 
       // Create student with active session
-      await Student.create({
+      const student = await Student.create({
         school: schoolId,
         academicSession: activeSession._id,
         class: classId,
@@ -348,6 +346,15 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         gender: row.gender,
         parent: parentId,
       });
+
+      // Link student to parent after student is created
+      if (parentId) {
+        const parent = await Parent.findById(parentId);
+        if (parent && !parent.linkedStudents.includes(student._id)) {
+          parent.linkedStudents.push(student._id);
+          await parent.save();
+        }
+      }
 
       results.studentsCreated++;
     } catch (error) {

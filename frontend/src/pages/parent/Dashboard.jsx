@@ -20,10 +20,12 @@ export default function ParentDashboard() {
   const loadStudents = async () => {
     try {
       const res = await api.get('/parents/students');
+      console.log('Parent students response:', res.data);
       setStudents(res.data.students || []);
       setShowLeaderboard(res.data.showLeaderboard || false);
       setTopStudents(res.data.topStudents || []);
     } catch (err) {
+      console.error('Failed to load students:', err);
       toast.error(err.response?.data?.message || 'Failed to load students');
     } finally {
       setLoading(false);
