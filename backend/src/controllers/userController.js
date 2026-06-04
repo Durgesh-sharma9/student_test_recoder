@@ -33,6 +33,17 @@ const getActiveSession = async (schoolId) => {
   return activeSession;
 };
 
+// Helper function to generate secure password (8-10 chars, avoid O,0,I,l)
+const generateSecurePassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
 export const getUsers = asyncHandler(async (req, res) => {
 
   const { role } = req.query;
@@ -106,9 +117,16 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Email already in use.');
   }
 
-  // Generate random password if not provided
-  const generatedPassword =
-    password || Math.random().toString(36).slice(-8);
+  // Auto-generate password for teachers, use provided password for other roles
+  let generatedPassword;
+  let mustChangePassword = false;
+  
+  if (userRole === 'teacher' && !password) {
+    generatedPassword = generateSecurePassword();
+    mustChangePassword = true;
+  } else {
+    generatedPassword = password || generateSecurePassword();
+  }
 
   // Create user
   const user = await User.create({
@@ -121,6 +139,7 @@ export const createUser = asyncHandler(async (req, res) => {
     phoneNo,
     assignedClasses,
     assignments,
+    mustChangePassword,
   });
 
   // Send email only to teachers using Resend
@@ -196,14 +215,6 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
       errors.push({ row: rowNumber, error: 'Missing Email' });
       continue;
     }
-    if (!password) {
-      errors.push({ row: rowNumber, error: 'Missing Password' });
-      continue;
-    }
-    if (!phoneNo) {
-      errors.push({ row: rowNumber, error: 'Missing Phone No' });
-      continue;
-    }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
@@ -211,10 +222,12 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
       continue;
     }
 
-    const normalizedPhone = String(phoneNo).replace(/[^0-9+]/g, '');
-    if (!/^[+]?\d{7,15}$/.test(normalizedPhone)) {
-      errors.push({ row: rowNumber, error: 'Invalid Phone Number' });
-      continue;
+    if (phoneNo) {
+      const normalizedPhone = String(phoneNo).replace(/[^0-9+]/g, '');
+      if (!/^[+]?\d{7,15}$/.test(normalizedPhone)) {
+        errors.push({ row: rowNumber, error: 'Invalid Phone Number' });
+        continue;
+      }
     }
 
     if (emailsSeen.has(email)) {
@@ -233,15 +246,20 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
       continue;
     }
 
+    // Auto-generate password if not provided
+    const generatedPassword = password || generateSecurePassword();
+    const mustChangePassword = !password; // Force password change if password was auto-generated
+
     try {
       const teacher = await User.create({
         school: schoolId,
         teacherName,
         name: teacherName,
         email,
-        password,
+        password: generatedPassword,
         role: 'teacher',
         phoneNo,
+        mustChangePassword,
       });
 
       try {
@@ -253,7 +271,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           schoolName,
           teacherName,
           email,
-          password,
+          generatedPassword,
           loginUrl
         );
 

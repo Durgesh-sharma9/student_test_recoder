@@ -32,6 +32,7 @@ import ResultsHistory from '@/pages/parent/ResultsHistory';
 import ParentDailyTests from '@/pages/parent/DailyTests';
 import ParentMainExams from '@/pages/parent/MainExams';
 import ParentExamDetails from '@/pages/parent/ExamDetails';
+import ChangePassword from '@/pages/ChangePassword';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/parent-login" element={<ParentLogin />} />
             <Route path="/signup" element={<Signup />} />
 

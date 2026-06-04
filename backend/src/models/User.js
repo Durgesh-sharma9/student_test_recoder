@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema(
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     assignedClasses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }],
     assignments: [teacherAssignmentSchema],
+    mustChangePassword: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

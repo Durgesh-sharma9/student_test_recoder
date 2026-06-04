@@ -16,7 +16,7 @@ export default function ManageUsers() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ teacherName: '', email: '', password: '', phoneNo: '' });
+  const [form, setForm] = useState({ teacherName: '', email: '', phoneNo: '' });
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [importResults, setImportResults] = useState(null);
@@ -105,7 +105,7 @@ export default function ManageUsers() {
         toast.success('Teacher updated');
         setOpen(false);
         setEdit(null);
-        setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
+        setForm({ teacherName: '', email: '', phoneNo: '' });
         refresh();
       } else {
         // Check if teacher with same email exists and is inactive
@@ -114,9 +114,9 @@ export default function ManageUsers() {
           setReactivateDialog({ open: true, teacher: inactiveTeacher });
         } else {
           await api.post('/users', { ...form, role: 'teacher' });
-          toast.success('Teacher created');
+          toast.success('Teacher created. Password will be auto-generated and sent via email.');
           setOpen(false);
-          setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
+          setForm({ teacherName: '', email: '', phoneNo: '' });
           refresh();
         }
       }
@@ -135,7 +135,7 @@ export default function ManageUsers() {
       toast.success('Teacher reactivated successfully');
       setReactivateDialog({ open: false, teacher: null });
       setOpen(false);
-      setForm({ teacherName: '', email: '', password: '', phoneNo: '' });
+      setForm({ teacherName: '', email: '', phoneNo: '' });
       refresh();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Reactivation failed');
@@ -185,6 +185,7 @@ export default function ManageUsers() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Password Status</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -195,6 +196,13 @@ export default function ManageUsers() {
                   <TableCell className="font-medium">{t.teacherName || t.name}</TableCell>
                   <TableCell>{t.email}</TableCell>
                   <TableCell>{t.phoneNo || '-'}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      t.mustChangePassword ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {t.mustChangePassword ? 'Temporary Password' : 'Password Changed'}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                       t.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -214,13 +222,29 @@ export default function ManageUsers() {
                           setForm({
                             teacherName: t.teacherName || t.name,
                             email: t.email,
-                            password: '',
                             phoneNo: t.phoneNo || '',
                           });
                           setOpen(true);
                         }}
                       >
                         Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isArchived}
+                        onClick={async () => {
+                          if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
+                            try {
+                              await api.post(`/auth/reset-teacher-password/${t._id}`);
+                              toast.success('Password reset successfully. New password sent to teacher.');
+                            } catch (err) {
+                              toast.error(err.response?.data?.message || 'Failed to reset password');
+                            }
+                          }
+                        }}
+                      >
+                        Reset Password
                       </Button>
                       <Button
                         size="sm"
@@ -297,19 +321,6 @@ export default function ManageUsers() {
       />
     </FormField>
 
-    <FormField label={edit ? "Password (optional)" : "Password"}>
-      <Input
-        type="password"
-        placeholder={edit ? "Password (optional)" : "Password"}
-        value={form.password}
-        onChange={(e) =>
-          setForm({ ...form, password: e.target.value })
-        }
-        className="h-14 rounded-2xl"
-        required={!edit}
-      />
-    </FormField>
-
     <FormField label="Phone No">
       <Input
         placeholder="Phone No"
@@ -353,8 +364,8 @@ export default function ManageUsers() {
               <ul className="space-y-1 text-xs text-slate-600 grid grid-cols-2 gap-2">
                 <li>• Teacher Name (required)</li>
                 <li>• Email (required)</li>
-                <li>• Password (required)</li>
-                <li>• Phone No (required)</li>
+                <li>• Phone No (optional)</li>
+                <li>• Password will be auto-generated</li>
               </ul>
             </div>
 

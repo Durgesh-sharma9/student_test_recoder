@@ -45,16 +45,16 @@ export const findOrCreateParent = async (schoolId, parentData) => {
   if (email && email.trim()) {
     parent = await Parent.findOne({
       school: schoolId,
-      email: email.trim().toLowerCase(),
+      email: (email || '').trim().toLowerCase(),
       status: 'Active'
     });
   }
   
   // If not found by email, try by phone
-  if (!parent) {
+  if (!parent && phone && phone.trim()) {
     parent = await Parent.findOne({
       school: schoolId,
-      phone: phone.trim(),
+      phone: (phone || '').trim(),
       status: 'Active'
     });
   }
@@ -68,9 +68,9 @@ export const findOrCreateParent = async (schoolId, parentData) => {
   const password = generatePassword();
   parent = await Parent.create({
     school: schoolId,
-    parentName: parentName.trim(),
-    email: email ? email.trim().toLowerCase() : undefined,
-    phone: phone.trim(),
+    parentName: (parentName || '').trim(),
+    email: email ? (email || '').trim().toLowerCase() : undefined,
+    phone: (phone || '').trim(),
     password,
     status: 'Active',
     linkedStudents: []
