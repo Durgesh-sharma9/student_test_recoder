@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -14,9 +14,11 @@ import {
   FileText,
   Building2,
   Settings,
-  ChevronDown,
   Lock,
   UserCheck,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -24,29 +26,30 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+// Added customized background and icon configurations for each structural module container box
 const navByRole = {
   super_admin: [
-    { to: '/super-admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/super-admin/schools', label: 'Schools', icon: Building2 },
-    { to: '/super-admin/plans', label: 'Plans', icon: ClipboardList },
+    { to: '/super-admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-blue-600', boxBg: 'bg-blue-50 group-hover:bg-blue-100', end: true },
+    { to: '/super-admin/schools', label: 'Schools', icon: Building2, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/super-admin/plans', label: 'Plans', icon: ClipboardList, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
   ],
   school_admin: [
-    { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/admin/teachers', label: 'Teachers', icon: Users },
-    { to: '/admin/classes', label: 'Classes', icon: School },
-    { to: '/admin/students', label: 'Students', icon: GraduationCap },
-    { to: '/admin/parents', label: 'Parents', icon: UserCheck },
-    { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList },
-    { to: '/admin/results', label: 'Results', icon: BarChart3 },
-    { to: '/admin/class-results', label: 'Class Results', icon: FileText },
-    { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings },
+    { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
+    { to: '/admin/teachers', label: 'Teachers', icon: Users, iconColor: 'text-teal-600', boxBg: 'bg-teal-50 group-hover:bg-teal-100' },
+    { to: '/admin/classes', label: 'Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
+    { to: '/admin/students', label: 'Students', icon: GraduationCap, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100' },
+    { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100' },
+    { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100' },
+    { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
+    { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100' },
   ],
   teacher: [
-    { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/teacher/classes', label: 'My Classes', icon: School },
-    { to: '/teacher/daily-test', label: 'Daily Test', icon: Calendar },
-    { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText },
-    { to: '/teacher/results', label: 'Results', icon: BarChart3 },
+    { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
+    { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
+    { to: '/teacher/daily-test', label: 'Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
+    { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
+    { to: '/teacher/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
   ],
 };
 
@@ -54,29 +57,41 @@ export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { selectedSession, allSessions, selectSession, isArchived } = useSession();
   const [open, setOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
   const isAdmin = role === 'school_admin';
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-white shadow-sm transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen',
+          isCollapsed ? 'lg:w-20' : 'lg:w-72 w-72',
+          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <School className="h-5 w-5" />
+        {/* Colorful Branded Header */}
+        <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-4 transition-all overflow-hidden whitespace-nowrap">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
+            <GraduationCap className="h-5 w-5" />
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-900">School ERP</p>
-            <p className="text-xs text-slate-500">Result Management</p>
+          <div className={cn("transition-opacity duration-200", isCollapsed ? "lg:opacity-0" : "opacity-100")}>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">
+                Test Master
+              </p>
+              <Sparkles className="h-3 w-3 text-cyan-500 fill-cyan-500" />
+            </div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              Pro Management
+            </p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+
+        {/* Navigation Items with Box Wrappers */}
+        <nav className="flex-1 space-y-1.5 p-3 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -85,36 +100,79 @@ export default function DashboardLayout() {
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap',
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                    : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
+                  isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto'
                 )
               }
+              title={isCollapsed ? item.label : undefined}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  {/* Icon Container Box */}
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+                    isActive 
+                      ? "bg-white/20 text-white shadow-inner" 
+                      : item.boxBg
+                  )}>
+                    <item.icon className={cn(
+                      "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
+                      isActive ? "text-white" : item.iconColor
+                    )} />
+                  </div>
+                  
+                  <span className={cn("transition-opacity duration-200 font-medium tracking-wide", isCollapsed ? "lg:hidden" : "block")}>
+                    {item.label}
+                  </span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-slate-200 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Signed in</p>
-          <p className="mt-1 truncate text-sm font-semibold text-slate-800">{user?.name}</p>
+
+        {/* User Workspace Profile Block */}
+        <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
+          <p className={cn("text-[10px] font-bold uppercase tracking-wider text-slate-400", isCollapsed && "lg:hidden")}>
+            Signed in
+          </p>
+          <p className={cn("mt-0.5 truncate text-sm font-semibold text-slate-800", isCollapsed ? "lg:text-center lg:text-xs" : "")}>
+            {isCollapsed ? user?.name?.charAt(0).toUpperCase() : user?.name}
+          </p>
         </div>
       </aside>
 
+      {/* Mobile Drawer Overlay */}
       {open ? (
-        <div className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
+        <div className="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6">
-          <div className="flex items-center gap-3">
+        {/* Header Dashboard Control */}
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
+          <div className="flex items-center gap-2">
+            {/* Mobile Hamburger Trigger */}
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((v) => !v)}>
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <p className="hidden text-sm text-slate-500 sm:block">Welcome back, {user?.name}</p>
+
+            {/* Desktop Collapse/Expand Toggle Action Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="hidden lg:flex rounded-xl hover:bg-slate-100 text-slate-500"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+            </Button>
+
+            <p className="hidden text-sm font-medium sm:block text-slate-500">
+              Welcome back, <span className="font-semibold text-slate-800">{user?.name}</span>
+            </p>
           </div>
+          
           <div className="flex items-center gap-3">
             {isAdmin ? (
               <div className="hidden items-center gap-2 sm:flex">
@@ -122,8 +180,8 @@ export default function DashboardLayout() {
                   const session = allSessions.find(s => s._id === value);
                   if (session) selectSession(session);
                 }}>
-                  <SelectTrigger className="w-[200px]">
-                    <Calendar className="h-4 w-4 text-blue-600" />
+                  <SelectTrigger className="w-[200px] rounded-xl font-medium bg-white border-slate-200 shadow-sm">
+                    <Calendar className="h-4 w-4 text-indigo-500" />
                     <SelectValue placeholder="Select session" />
                   </SelectTrigger>
                   <SelectContent>
@@ -135,23 +193,25 @@ export default function DashboardLayout() {
                   </SelectContent>
                 </Select>
                 {isArchived && (
-                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1.5 border border-amber-200">
-                    <Lock className="h-4 w-4 text-amber-600" />
-                    <span className="text-xs font-medium text-amber-700">Read Only</span>
+                  <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">
+                    <Lock className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-amber-500">Read Only</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="hidden items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 sm:flex">
-                <Calendar className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">
+              <div className="hidden items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-1.5 font-medium text-sm text-indigo-700 sm:flex shadow-sm">
+                <Calendar className="h-4 w-4" />
+                <span>
                   {selectedSession ? `Session: ${selectedSession.sessionName}` : 'No Active Session'}
                 </span>
               </div>
             )}
+
+            {/* Logout Action */}
             <Button
               variant="outline"
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="rounded-xl font-medium border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-sm"
               onClick={() => {
                 logout();
                 navigate('/login');
@@ -162,6 +222,8 @@ export default function DashboardLayout() {
             </Button>
           </div>
         </header>
+
+        {/* Main Content Render View */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
