@@ -223,7 +223,7 @@ export default function ManageParents() {
               </TableHeader>
               <TableBody>
                 {students.map((student) => (
-                  <TableRow key={student._id}>
+                  <TableRow key={student._id} className="hover:bg-slate-50 transition-colors">
                     <TableCell className="font-medium">{student.studentName}</TableCell>
                     <TableCell>{student.rollNo}</TableCell>
                     <TableCell>{student.class} {student.section ? `(${student.section})` : ''}</TableCell>

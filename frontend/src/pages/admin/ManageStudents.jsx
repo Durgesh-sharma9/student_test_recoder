@@ -216,7 +216,7 @@ export default function ManageStudents() {
             </TableHeader>
             <TableBody>
               {filtered.map((s) => (
-                <TableRow key={s._id}>
+                <TableRow key={s._id} className="hover:bg-slate-50 transition-colors">
                   <TableCell>{s.rollNo}</TableCell>
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell className="capitalize">{s.gender}</TableCell>
