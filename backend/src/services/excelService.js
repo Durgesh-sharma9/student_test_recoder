@@ -41,10 +41,10 @@ export const generateTeacherImportTemplate = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Teachers');
 
-  const headers = ['Teacher Name', 'Email', 'Password', 'Phone No'];
+  const headers = ['Teacher Name', 'Email', 'Phone No (Optional)'];
   sheet.addRow(headers);
 
-  const exampleRow = ['Priya Sharma', 'priya.sharma@example.com', 'welcome123', '+919999999999'];
+  const exampleRow = ['Priya Sharma', 'priya.sharma@example.com', '+919999999999'];
   sheet.addRow(exampleRow);
 
   const headerRow = sheet.getRow(1);
@@ -80,14 +80,12 @@ export const parseTeacherImportFile = (buffer, filename) => {
   const parsed = dataRows.map((row, index) => {
     const teacherName = String(row[0] || '').trim();
     const email = String(row[1] || '').trim().toLowerCase();
-    const password = String(row[2] || '').trim();
-    const phoneNo = String(row[3] || '').trim();
+    const phoneNo = String(row[2] || '').trim();
 
     return {
       rowNumber: index + 2,
       teacherName,
       email,
-      password,
       phoneNo,
     };
   });
@@ -96,7 +94,7 @@ export const parseTeacherImportFile = (buffer, filename) => {
 };
 
 export const parseStudentImportFile = (buffer, filename) => {
-  const isCSV = filename.toLowerCase().endsWith('.csv');
+  const isCSV = (filename || '').toLowerCase().endsWith('.csv');
   let rows;
 
   if (isCSV) {

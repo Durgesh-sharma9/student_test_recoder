@@ -140,6 +140,10 @@ export const login = asyncHandler(async (req, res) => {
 
   user.password = undefined;
   if (user.role === 'admin') user.role = 'school_admin';
+  
+  const userObj = user.toObject();
+  userObj.mustChangePassword = user.mustChangePassword || false;
+  
   sendTokenResponse(user, res);
 });
 
@@ -164,7 +168,8 @@ export const getMe = asyncHandler(async (req, res) => {
         role: 'parent',
         school: user.school,
         isActive: true,
-        status: user.status
+        status: user.status,
+        mustChangePassword: false
       };
     }
   }
@@ -174,7 +179,7 @@ export const getMe = asyncHandler(async (req, res) => {
   }
 
   const role = user.role === 'admin' ? 'school_admin' : user.role;
-  res.json({ success: true, user: { ...user, role } });
+  res.json({ success: true, user: { ...user, role, mustChangePassword: user.mustChangePassword || false } });
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
@@ -186,9 +191,59 @@ export const changePassword = asyncHandler(async (req, res) => {
   }
 
   user.password = newPassword;
+  user.mustChangePassword = false; // Reset the flag after successful password change
   await user.save();
 
   res.json({ success: true, message: 'Password updated successfully.' });
+});
+
+export const resetTeacherPassword = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const schoolId = req.user.school?._id ?? req.user.school;
+
+  // Verify the user is a teacher in the same school
+  const teacher = await User.findOne({ _id: userId, school: schoolId, role: 'teacher' });
+  if (!teacher) {
+    throw new ApiError(404, 'Teacher not found.');
+  }
+
+  // Generate new temporary password
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
+  let newPassword = '';
+  for (let i = 0; i < length; i++) {
+    newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  // Update teacher password and set mustChangePassword flag
+  teacher.password = newPassword;
+  teacher.mustChangePassword = true;
+  await teacher.save();
+
+  // Send email with new password
+  try {
+    const School = await import('../models/School.js').then(m => m.default);
+    const { sendTeacherCreationEmail } = await import('../services/emailService.js');
+    
+    const school = await School.findById(schoolId);
+    const schoolName = school?.schoolName || 'Your School';
+    const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+
+    await sendTeacherCreationEmail(
+      schoolName,
+      teacher.teacherName || teacher.name,
+      teacher.email,
+      newPassword,
+      loginUrl
+    );
+  } catch (emailError) {
+    console.error('[Email Error] Failed to send password reset email:', emailError.message);
+  }
+
+  res.json({ 
+    success: true, 
+    message: 'Password reset successfully. New temporary password has been sent to the teacher.' 
+  });
 });
 
 export const parentLogin = asyncHandler(async (req, res) => {
