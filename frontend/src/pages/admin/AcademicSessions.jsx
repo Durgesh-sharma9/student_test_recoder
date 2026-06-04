@@ -857,7 +857,7 @@ export default function AcademicSessions() {
                   </TableHeader>
                   <TableBody>
                     {filteredResults.map((student, index) => (
-                      <TableRow key={student.studentId} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <TableRow key={student.studentId} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
                         {reportFilters.examType === 'Daily Test' ? (
                           <>
                             <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>

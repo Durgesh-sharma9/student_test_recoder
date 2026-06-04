@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -35,7 +36,7 @@ function ChartTooltip({ active, payload, label }) {
 
 }
 
-function ClassPerformanceTooltip({ active, payload }) {
+function ClassStrengthTooltip({ active, payload }) {
 
   if (!active || !payload?.length) return null;
 
@@ -47,17 +48,9 @@ function ClassPerformanceTooltip({ active, payload }) {
 
       <div className="mb-2 text-sm font-bold text-slate-900">{data.name}</div>
 
-      <div className="space-y-1 text-xs text-slate-600">
+      <div className="text-xs text-slate-600">
 
-        <div>👨‍🎓 Students: {data.studentCount}</div>
-
-        <div>📊 Average: {data.value}%</div>
-
-        {data.topStudent && (
-
-          <div>🏆 Top: {data.topStudent} ({data.topStudentPercentage}%)</div>
-
-        )}
+        👨‍🎓 Students: {data.studentCount}
 
       </div>
 
@@ -70,6 +63,8 @@ function ClassPerformanceTooltip({ active, payload }) {
 
 
 export default function AdminDashboard() {
+
+  const navigate = useNavigate();
 
   const [data, setData] = useState({ stats: {}, recentActivities: [], classPerformance: [] });
 
@@ -97,19 +92,23 @@ export default function AdminDashboard() {
 
 
 
-  const classPerformanceData = (data.classPerformance || []).map((cp) => ({
+  const classStrengthData = (data.classPerformance || []).map((cp) => ({
 
     name: `${formatClassName(cp.className)}-${cp.section}`,
 
-    value: cp.averagePercentage,
+    value: cp.studentCount,
 
-    studentCount: cp.studentCount,
-
-    topStudent: cp.topStudent,
-
-    topStudentPercentage: cp.topStudentPercentage,
+    classId: cp.classId,
 
   }));
+
+
+
+  const handleClassClick = (data) => {
+    if (data && data.classId) {
+      navigate(`/students?class=${data.classId}`);
+    }
+  };
 
 
 
@@ -153,15 +152,15 @@ export default function AdminDashboard() {
 
 
 
-      <ErpSection title="Class Performance Overview" icon={GraduationCap} tone="purple">
+      <ErpSection title="Class Strength Overview" icon={GraduationCap} tone="purple">
 
-        {classPerformanceData.length === 0 ? (
+        {classStrengthData.length === 0 ? (
 
           <div className="flex min-h-[260px] flex-col items-center justify-center gap-2 text-center text-slate-500">
 
             <span className="text-4xl">📊</span>
 
-            <p className="text-sm">No class performance data yet</p>
+            <p className="text-sm">No class data yet</p>
 
           </div>
 
@@ -169,17 +168,17 @@ export default function AdminDashboard() {
 
           <ResponsiveContainer width="100%" height={260}>
 
-            <BarChart data={classPerformanceData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
+            <BarChart data={classStrengthData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
 
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
 
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
 
-              <Tooltip content={<ClassPerformanceTooltip />} />
+              <Tooltip content={<ClassStrengthTooltip />} />
 
-              <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56}>
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56} onClick={(data) => handleClassClick(data)}>
 
-                {classPerformanceData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
+                {classStrengthData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
 
               </Bar>
 

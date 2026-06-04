@@ -192,7 +192,7 @@ export default function ManageUsers() {
             </TableHeader>
             <TableBody>
               {paged.map((t) => (
-                <TableRow key={t._id}>
+                <TableRow key={t._id} className="hover:bg-slate-50 transition-colors">
                   <TableCell className="font-medium">{t.teacherName || t.name}</TableCell>
                   <TableCell>{t.email}</TableCell>
                   <TableCell>{t.phoneNo || '-'}</TableCell>

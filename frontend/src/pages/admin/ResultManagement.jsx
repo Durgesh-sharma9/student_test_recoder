@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Filter, Trophy, FileBarChart, Download } from 'lucide-react';
+import { Filter, Trophy, FileBarChart, Download, ChevronDown, ChevronUp } from 'lucide-react';
 
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
@@ -58,6 +58,10 @@ export default function ResultManagement() {
   });
 
   const [rows, setRows] = useState([]);
+
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+
+  const [dateFilterType, setDateFilterType] = useState('specific');
 
 
 
@@ -173,121 +177,17 @@ export default function ResultManagement() {
 
           </FormField>
 
-          <FormField label="Subject">
-
-            <SubjectSelect
-
-              value={filters.subject}
-
-              onChange={(subject) => setFilters({ ...filters, subject })}
-
-              subjects={subjects}
-
-              loading={subjectsLoading}
-
-              allowCustom={allowCustom}
-
-              canAddSubjects={canAddSubjects}
-
-              onRegisterSubject={registerSubject}
-
-              emptyMessage={emptyMessage}
-
-              placeholder="All school subjects"
-
-            />
-
-          </FormField>
-
-          {view === 'daily' && (
-
-            <>
-
-              <FormField label="Test Date">
-
-                <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
-
-              </FormField>
-
-              <FormField label="From">
-
-                <Input type="date" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
-
-              </FormField>
-
-              <FormField label="To">
-
-                <Input type="date" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
-
-              </FormField>
-
-            </>
-
-          )}
-
-          {view === 'main' && (
-
-            <>
-
-              <FormField label="Exam Type">
-
-                <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
-
-                  <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
-
-                  <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
-
-                </Select>
-
-              </FormField>
-
-              <FormField label="Exam Date">
-
-                <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
-
-              </FormField>
-
-            </>
-
-          )}
-
-          <FormField label="Teacher">
-
-            <Select value={filters.teacher} onValueChange={(v) => setFilters({ ...filters, teacher: v })}>
-
-              <SelectTrigger><SelectValue placeholder="Teacher" /></SelectTrigger>
-
-              <SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.teacherName || t.name}</SelectItem>)}</SelectContent>
-
-            </Select>
-
-          </FormField>
-
-          <FormField label="Sort By">
-
-            <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
-
-              <SelectTrigger><SelectValue /></SelectTrigger>
-
-              <SelectContent>
-
-                <SelectItem value="marks_desc">High → Low</SelectItem>
-
-                <SelectItem value="marks_asc">Low → High</SelectItem>
-
-                <SelectItem value="rollNo">Roll No</SelectItem>
-
-                <SelectItem value="name">Student Name</SelectItem>
-
-              </SelectContent>
-
-            </Select>
-
-          </FormField>
-
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3">
 
             <Button onClick={load}>Apply</Button>
+
+            <Button variant="outline" onClick={() => setShowMoreFilters(!showMoreFilters)}>
+
+              {showMoreFilters ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+
+              {showMoreFilters ? 'Less Filters' : 'More Filters'}
+
+            </Button>
 
             <Button variant="purple" onClick={() => download('csv')}>
 
@@ -308,6 +208,154 @@ export default function ResultManagement() {
           </div>
 
         </div>
+
+        {showMoreFilters && (
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3 border-t pt-4">
+
+            <FormField label="Subject">
+
+              <SubjectSelect
+
+                value={filters.subject}
+
+                onChange={(subject) => setFilters({ ...filters, subject })}
+
+                subjects={subjects}
+
+                loading={subjectsLoading}
+
+                allowCustom={allowCustom}
+
+                canAddSubjects={canAddSubjects}
+
+                onRegisterSubject={registerSubject}
+
+                emptyMessage={emptyMessage}
+
+                placeholder="All school subjects"
+
+              />
+
+            </FormField>
+
+            <FormField label="Teacher">
+
+              <Select value={filters.teacher} onValueChange={(v) => setFilters({ ...filters, teacher: v })}>
+
+                <SelectTrigger><SelectValue placeholder="Teacher" /></SelectTrigger>
+
+                <SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.teacherName || t.name}</SelectItem>)}</SelectContent>
+
+              </Select>
+
+            </FormField>
+
+            <FormField label="Sort By">
+
+              <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
+
+                <SelectTrigger><SelectValue /></SelectTrigger>
+
+                <SelectContent>
+
+                  <SelectItem value="marks_desc">High → Low</SelectItem>
+
+                  <SelectItem value="marks_asc">Low → High</SelectItem>
+
+                  <SelectItem value="rollNo">Roll No</SelectItem>
+
+                  <SelectItem value="name">Student Name</SelectItem>
+
+                </SelectContent>
+
+              </Select>
+
+            </FormField>
+
+            {view === 'daily' && (
+
+              <>
+
+                <FormField label="Date Filter Type">
+
+                  <Select value={dateFilterType} onValueChange={setDateFilterType}>
+
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+
+                    <SelectContent>
+
+                      <SelectItem value="specific">Specific Date</SelectItem>
+
+                      <SelectItem value="range">Date Range</SelectItem>
+
+                    </SelectContent>
+
+                  </Select>
+
+                </FormField>
+
+                {dateFilterType === 'specific' ? (
+
+                  <FormField label="Test Date">
+
+                    <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+
+                  </FormField>
+
+                ) : (
+
+                  <>
+
+                    <FormField label="From Date">
+
+                      <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+
+                    </FormField>
+
+                    <FormField label="To Date">
+
+                      <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+
+                    </FormField>
+
+                  </>
+
+                )}
+
+              </>
+
+            )}
+
+            {view === 'main' && (
+
+              <>
+
+                <FormField label="Exam Type">
+
+                  <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
+
+                    <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
+
+                    <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+
+                  </Select>
+
+                </FormField>
+
+                <FormField label="Exam Date">
+
+                  <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
+
+                </FormField>
+
+              </>
+
+            )}
+
+          </div>
+
+        )}
 
       </ErpSection>
 
@@ -373,7 +421,7 @@ export default function ResultManagement() {
 
               {rows.map((r, idx) => (
 
-                <TableRow key={idx}>
+                <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
 
                   <TableCell>{r.rank ?? '-'}</TableCell>
 
