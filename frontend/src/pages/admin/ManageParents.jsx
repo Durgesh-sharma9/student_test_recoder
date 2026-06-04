@@ -12,57 +12,97 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 export default function ManageParents() {
   const navigate = useNavigate();
-  const [parents, setParents] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [searchStudent, setSearchStudent] = useState('');
+  const [searchParent, setSearchParent] = useState('');
+  const [classFilter, setClassFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [classes, setClasses] = useState([]);
   const [selectedParent, setSelectedParent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    loadParents();
-  }, [search, statusFilter]);
+    loadClasses();
+  }, []);
 
-  const loadParents = async () => {
+  useEffect(() => {
+    loadStudents();
+  }, [searchStudent, searchParent, classFilter, statusFilter]);
+
+  const loadClasses = async () => {
+    try {
+      const res = await api.get('/classes');
+      setClasses(res.data.classes || []);
+    } catch (err) {
+      console.error('Failed to load classes:', err);
+    }
+  };
+
+  const loadStudents = async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams();
-
-if (search) params.append('search', search);
-
-if (statusFilter && statusFilter !== 'all') {
-  params.append('status', statusFilter);
-}
       
+      if (searchStudent) params.append('search', searchStudent);
+      if (searchParent) params.append('searchParent', searchParent);
+      if (classFilter && classFilter !== 'all') params.append('classId', classFilter);
+      if (statusFilter && statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      
+      console.log('Loading students with params:', params.toString());
       const res = await api.get(`/parents/admin/list?${params}`);
-      setParents(res.data.parents || []);
+      console.log('Students response:', res.data);
+      
+      if (res.data && Array.isArray(res.data.students)) {
+        setStudents(res.data.students);
+      } else {
+        console.error('Invalid response format:', res.data);
+        setStudents([]);
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to load parents');
+      console.error('Failed to load students:', err);
+      toast.error(err.response?.data?.message || 'Failed to load students');
+      setStudents([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewDetails = (parent) => {
-    setSelectedParent(parent);
-    setDetailsOpen(true);
+  const handleViewDetails = (student) => {
+    if (!student.parentId) {
+      toast.error('No parent linked to this student');
+      return;
+    }
+    setSelectedParent({ _id: student.parentId, parentName: student.parentName });
+    loadParentDetails(student.parentId);
   };
 
-  const handleToggleStatus = async (parent) => {
+  const handleToggleStatus = async (student) => {
+    if (!student.parentId) {
+      toast.error('No parent linked to this student');
+      return;
+    }
     try {
-      const newStatus = parent.status === 'Active' ? 'Inactive' : 'Active';
-      await api.put(`/parents/admin/${parent._id}/status`, { status: newStatus });
+      const newStatus = student.parentStatus === 'Active' ? 'Inactive' : 'Active';
+      await api.put(`/parents/admin/${student.parentId}/status`, { status: newStatus });
       toast.success(`Parent status updated to ${newStatus}`);
-      loadParents();
+      loadStudents();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
     }
   };
 
-  const handleResetPassword = async (parent) => {
+  const handleResetPassword = async (student) => {
+    if (!student.parentId) {
+      toast.error('No parent linked to this student');
+      return;
+    }
     try {
-      const res = await api.post(`/parents/admin/${parent._id}/reset-password`);
+      const res = await api.post(`/parents/admin/${student.parentId}/reset-password`);
       if (res.data.newPassword) {
         setNewPassword(res.data.newPassword);
         toast.success('Password reset. New password generated.');
@@ -92,6 +132,15 @@ if (statusFilter && statusFilter !== 'all') {
     );
   }
 
+  // Add error boundary check
+  if (!students) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-slate-500">Error loading data</div>
+      </div>
+    );
+  }
+
   return (
     <PageStack>
       <PageHeader
@@ -100,66 +149,99 @@ if (statusFilter && statusFilter !== 'all') {
       />
 
       <ErpSection title="Search & Filter" icon={Search} tone="blue">
-        <div className="grid gap-4 p-4 sm:grid-cols-2">
+        <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Search</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Search Student</label>
             <Input
-              placeholder="Search by name, phone, or email"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or roll no"
+              value={searchStudent}
+              onChange={(e) => setSearchStudent(e.target.value)}
               className="h-10"
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Status</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Search Parent</label>
+            <Input
+              placeholder="Search by parent name"
+              value={searchParent}
+              onChange={(e) => setSearchParent(e.target.value)}
+              className="h-10"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Class</label>
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls._id} value={cls._id}>
+                    {cls.className} {cls.section ? `(${cls.section})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Parent Status</label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-  <SelectTrigger className="h-10">
-    <SelectValue placeholder="All Status" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Status</SelectItem>
-    <SelectItem value="Active">Active</SelectItem>
-    <SelectItem value="Inactive">Inactive</SelectItem>
-  </SelectContent>
-</Select>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </ErpSection>
 
-      <ErpSection title="Parents" icon={Users} tone="green">
-        {parents.length === 0 ? (
+      <ErpSection title="Students with Parents" icon={Users} tone="green">
+        {!students || students.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
-            No parents found.
+            No students found.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Student Name</TableHead>
+                  <TableHead>Roll No</TableHead>
+                  <TableHead>Class</TableHead>
                   <TableHead>Parent Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Children</TableHead>
+                  <TableHead>Last Login</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {parents.map((parent) => (
-                  <TableRow key={parent._id}>
-                    <TableCell className="font-medium">{parent.parentName}</TableCell>
-                    <TableCell>{parent.phone}</TableCell>
-                    <TableCell>{parent.email || '-'}</TableCell>
+                {students.map((student) => (
+                  <TableRow key={student._id}>
+                    <TableCell className="font-medium">{student.studentName}</TableCell>
+                    <TableCell>{student.rollNo}</TableCell>
+                    <TableCell>{student.class} {student.section ? `(${student.section})` : ''}</TableCell>
+                    <TableCell>{student.parentName}</TableCell>
+                    <TableCell>{student.parentPhone}</TableCell>
+                    <TableCell>{student.parentEmail}</TableCell>
                     <TableCell>
-                      {parent.childrenCount} {parent.childrenCount === 1 ? 'Child' : 'Children'}
+                      {student.parentLastLogin 
+                        ? new Date(student.parentLastLogin).toLocaleDateString() 
+                        : 'Never'}
                     </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        parent.status === 'Active' 
+                        student.parentStatus === 'Active' 
                           ? 'bg-green-100 text-green-700' 
                           : 'bg-red-100 text-red-700'
                       }`}>
-                        {parent.status === 'Active' ? '🟢 Active' : '🔴 Inactive'}
+                        {student.parentStatus === 'Active' ? '🟢 Active' : '🔴 Inactive'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -168,18 +250,21 @@ if (statusFilter && statusFilter !== 'all') {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setSelectedParent(parent);
-                            loadParentDetails(parent._id);
+                            setSelectedParent({ _id: student.parentId, parentName: student.parentName });
+                            loadParentDetails(student.parentId);
+                            setDetailsOpen(true);
                           }}
+                          disabled={!student.parentId}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleToggleStatus(parent)}
+                          onClick={() => handleToggleStatus(student)}
+                          disabled={!student.parentId}
                         >
-                          {parent.status === 'Active' ? (
+                          {student.parentStatus === 'Active' ? (
                             <Lock className="h-4 w-4" />
                           ) : (
                             <Unlock className="h-4 w-4" />
@@ -188,7 +273,8 @@ if (statusFilter && statusFilter !== 'all') {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleResetPassword(parent)}
+                          onClick={() => handleResetPassword(student)}
+                          disabled={!student.parentId}
                         >
                           <Key className="h-4 w-4" />
                         </Button>
@@ -231,6 +317,22 @@ if (statusFilter && statusFilter !== 'all') {
                       selectedParent.status === 'Active' ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {selectedParent.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Last Login:</span>
+                    <span className="font-medium">
+                      {selectedParent.lastLogin 
+                        ? new Date(selectedParent.lastLogin).toLocaleDateString() 
+                        : 'Never'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Created Date:</span>
+                    <span className="font-medium">
+                      {selectedParent.createdAt 
+                        ? new Date(selectedParent.createdAt).toLocaleDateString() 
+                        : 'N/A'}
                     </span>
                   </div>
                 </div>
