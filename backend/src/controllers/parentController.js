@@ -1100,45 +1100,60 @@ export const getParentExamDetails = asyncHandler(async (req, res) => {
 
 export const getAdminParents = asyncHandler(async (req, res) => {
   const schoolId = req.user.school?._id ?? req.user.school;
-  const { search, status } = req.query;
+  const { search, searchParent, status, classId } = req.query;
   
-  const filter = withSchool(req, {});
+  const filter = { school: schoolId, isActive: true };
+  
+  if (classId) {
+    filter.class = classId;
+  }
   
   if (search) {
     filter.$or = [
-      { parentName: { $regex: search, $options: 'i' } },
-      { phone: { $regex: search, $options: 'i' } },
-      { email: { $regex: search, $options: 'i' } }
+      { name: { $regex: search, $options: 'i' } },
+      { rollNo: { $regex: search, $options: 'i' } }
     ];
   }
   
-  if (status) {
-    filter.status = status;
+  const students = await Student.find(filter)
+    .populate('class', 'className section')
+    .populate('parent', 'parentName phone email status lastLogin createdAt')
+    .sort({ rollNo: 1 });
+  
+  // Filter by parent name if searchParent is provided
+  let filteredStudents = students;
+  if (searchParent) {
+    filteredStudents = students.filter(s => 
+      s.parent && s.parent.parentName && 
+      s.parent.parentName.toLowerCase().includes(searchParent.toLowerCase())
+    );
   }
   
-  const parents = await Parent.find(filter).sort({ createdAt: -1 });
+  // Filter by parent status if provided
+  if (status) {
+    filteredStudents = filteredStudents.filter(s => s.parent && s.parent.status === status);
+  }
   
-  // Get linked students count for each parent by checking students where parent field matches
-  const parentsWithCounts = await Promise.all(parents.map(async (parent) => {
-    const linkedStudents = await Student.find({
-      parent: parent._id,
-      school: schoolId,
-      isActive: true
-    });
-    
-    return {
-      _id: parent._id,
-      parentName: parent.parentName,
-      phone: parent.phone,
-      email: parent.email,
-      status: parent.status,
-      childrenCount: linkedStudents.length
-    };
+  // Transform to student-centric format
+  const studentParentData = filteredStudents.map(student => ({
+    _id: student._id,
+    studentName: student.name,
+    rollNo: student.rollNo,
+    class: student.class?.className || '',
+    section: student.class?.section || '',
+    classId: student.class?._id || null,
+    parentName: student.parent?.parentName || 'Not Linked',
+    parentPhone: student.parent?.phone || '-',
+    parentEmail: student.parent?.email || '-',
+    parentStatus: student.parent?.status || 'Inactive',
+    parentLastLogin: student.parent?.lastLogin || null,
+    parentCreatedAt: student.parent?.createdAt || null,
+    parentId: student.parent?._id || null
   }));
   
   res.json({
     success: true,
-    parents: parentsWithCounts
+    students: studentParentData
   });
 });
 
@@ -1166,6 +1181,8 @@ export const getAdminParentDetails = asyncHandler(async (req, res) => {
       phone: parent.phone,
       email: parent.email,
       status: parent.status,
+      lastLogin: parent.lastLogin,
+      createdAt: parent.createdAt,
       linkedStudents: linkedStudents.map(s => ({
         _id: s._id,
         name: s.name,
