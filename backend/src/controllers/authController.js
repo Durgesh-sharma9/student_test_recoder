@@ -174,6 +174,14 @@ export const getMe = asyncHandler(async (req, res) => {
     }
   }
 
+  // Fallback: if assignments array is empty but assignedClasses exists, create assignment objects
+  if (user && user.role === 'teacher' && (!user.assignments || user.assignments.length === 0) && user.assignedClasses && user.assignedClasses.length > 0) {
+    user.assignments = user.assignedClasses.map((c) => ({
+      class: c,
+      subject: 'Assigned'
+    }));
+  }
+
   if (!user) {
     throw new ApiError(404, 'User not found.');
   }

@@ -136,11 +136,16 @@ export default function DashboardLayout() {
         {/* User Workspace Profile Block */}
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
           <p className={cn("text-[10px] font-bold uppercase tracking-wider text-slate-400", isCollapsed && "lg:hidden")}>
-            Signed in
+            Signed in as
           </p>
           <p className={cn("mt-0.5 truncate text-sm font-semibold text-slate-800", isCollapsed ? "lg:text-center lg:text-xs" : "")}>
             {isCollapsed ? user?.name?.charAt(0).toUpperCase() : user?.name}
           </p>
+          {!isCollapsed && (
+            <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+              ({role === 'school_admin' ? 'School Admin' : role === 'super_admin' ? 'Super Admin' : role === 'parent' ? 'Guardian' : role?.charAt(0).toUpperCase() + role?.slice(1)})
+            </p>
+          )}
         </div>
       </aside>
 

@@ -11,6 +11,22 @@ export default function TeacherClasses() {
     api.get('/auth/me').then((r) => setUser(r.data.user));
   }, []);
 
+  // Group assignments by class
+  const assignmentsByClass = {};
+  (user?.assignments || []).forEach((a) => {
+    const key = `${a.class?.className}-${a.class?.section}`;
+    if (!assignmentsByClass[key]) {
+      assignmentsByClass[key] = {
+        className: a.class?.className,
+        section: a.class?.section,
+        subjects: []
+      };
+    }
+    assignmentsByClass[key].subjects.push(a.subject);
+  });
+
+  const groupedAssignments = Object.values(assignmentsByClass);
+
   return (
     <PageStack>
       <PageHeader
@@ -18,7 +34,7 @@ export default function TeacherClasses() {
         description="View your assigned classes and subjects."
       />
 
-      {(user?.assignments || []).length === 0 ? (
+      {groupedAssignments.length === 0 ? (
         <ErpSection title="Assignments" icon={GraduationCap} tone="green">
           <p className="text-sm text-slate-500">
             No assignments yet.
@@ -26,7 +42,7 @@ export default function TeacherClasses() {
         </ErpSection>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {(user?.assignments || []).map((a, idx) => (
+          {groupedAssignments.map((assignment, idx) => (
             <div
               key={idx}
               className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -38,7 +54,7 @@ export default function TeacherClasses() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">
-                      {formatClassName(a.class?.className)}-{a.class?.section}
+                      {formatClassName(assignment.className)}-{assignment.section}
                     </h3>
 
                     <p className="mt-1 text-xs text-slate-500">
@@ -53,11 +69,11 @@ export default function TeacherClasses() {
 
                 <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
                   <p className="text-[11px] uppercase tracking-wider text-slate-500">
-                    Subject
+                    Subjects
                   </p>
 
                   <p className="mt-1 text-base font-bold text-blue-700">
-                    {a.subject}
+                    {assignment.subjects.join(', ')}
                   </p>
                 </div>
 
@@ -67,7 +83,7 @@ export default function TeacherClasses() {
                   </span>
 
                   <span className="text-[11px] text-slate-500">
-                    Assignment
+                    {assignment.subjects.length} Subject{assignment.subjects.length > 1 ? 's' : ''}
                   </span>
                 </div>
               </div>

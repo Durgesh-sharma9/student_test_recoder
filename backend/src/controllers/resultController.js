@@ -515,14 +515,31 @@ export const dashboardSummary = asyncHandler(async (req, res) => {
 
   const me = await User.findById(req.user._id)
     .populate('assignedClasses', 'className section')
-    .populate('assignments.class', 'className section');
+    .populate('assignments.class', 'className section')
+    .populate('assignments.academicSession', 'name');
   const assignedClassIds = (me.assignedClasses || []).map((c) => c._id);
-  const assignmentDetails = (me.assignments || []).map((a) => ({
-    classId: (a.class?._id || a.class)?.toString(),
-    className: a.class?.className,
-    section: a.class?.section,
-    subject: normalizeSubject(a.subject),
-  }));
+  
+  // Build assignment details from assignments array if available, otherwise from assignedClasses
+  let assignmentDetails = [];
+  if (me.assignments && me.assignments.length > 0) {
+    assignmentDetails = me.assignments.map((a) => ({
+      classId: (a.class?._id || a.class)?.toString(),
+      className: a.class?.className,
+      section: a.class?.section,
+      subject: normalizeSubject(a.subject),
+      academicSession: a.academicSession?.name || 'N/A',
+    }));
+  } else if (me.assignedClasses && me.assignedClasses.length > 0) {
+    // Fallback: if assignments array is empty, use assignedClasses
+    assignmentDetails = me.assignedClasses.map((c) => ({
+      classId: c._id?.toString(),
+      className: c.className,
+      section: c.section,
+      subject: 'Assigned',
+      academicSession: 'N/A',
+    }));
+  }
+  
   const subjectCount = new Set(assignmentDetails.map((a) => a.subject)).size;
 
   const [students, sessions, pendingSessions] = await Promise.all([
