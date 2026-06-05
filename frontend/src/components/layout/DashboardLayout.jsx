@@ -49,7 +49,7 @@ const navByRole = {
     { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
-    { to: '/teacher/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
   ],
 };
 
@@ -179,7 +179,7 @@ export default function DashboardLayout() {
           </div>
           
           <div className="flex items-center gap-3">
-            {isAdmin ? (
+            {role === 'school_admin' ? (
               <div className="hidden items-center gap-2 sm:flex">
                 <Select value={selectedSession?._id} onValueChange={(value) => {
                   const session = allSessions.find(s => s._id === value);
@@ -204,14 +204,7 @@ export default function DashboardLayout() {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="hidden items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-1.5 font-medium text-sm text-indigo-700 sm:flex shadow-sm">
-                <Calendar className="h-4 w-4" />
-                <span>
-                  {selectedSession ? `Session: ${selectedSession.sessionName}` : 'No Active Session'}
-                </span>
-              </div>
-            )}
+            ) : null}
 
             {/* Logout Action */}
             <Button

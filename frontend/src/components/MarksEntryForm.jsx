@@ -125,6 +125,9 @@ export default function MarksEntryForm({ category, title }) {
       return toast.error('Select class and subject');
     }
 
+    // Clear any existing errors before validation
+    setErrorFields([]);
+
     // Check for empty marks
     const emptyFields = [];
     rows.forEach((r, idx) => {
@@ -171,8 +174,6 @@ export default function MarksEntryForm({ category, title }) {
       }, 100);
       return;
     }
-
-    setErrorFields([]);
 
     const entries = rows.map((r) => ({
       studentId: r.studentId,
@@ -235,7 +236,7 @@ export default function MarksEntryForm({ category, title }) {
               <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)}-{c.section}</SelectItem>
+                  <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)} {c.section}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

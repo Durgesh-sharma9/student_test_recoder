@@ -23,6 +23,7 @@ export default function TeacherResults() {
     testDate: new Date().toISOString().split('T')[0],
     dateFrom: '',
     dateTo: '',
+    sortBy: 'rollNo',
   });
   const [dateFilterType, setDateFilterType] = useState('specific');
   const [rows, setRows] = useState([]);
@@ -83,7 +84,7 @@ export default function TeacherResults() {
               <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>{c.className}-{c.section}</SelectItem>
+                  <SelectItem key={c._id} value={c._id}>{c.className} {c.section}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -141,6 +142,16 @@ export default function TeacherResults() {
               </FormField>
             </>
           )}
+          <FormField label="Sort By">
+            <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rollNo">Roll Number</SelectItem>
+                <SelectItem value="rank">Rank</SelectItem>
+                <SelectItem value="name">Student Name</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormField>
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3">
             <Button onClick={load}>Apply</Button>
             <Button variant="purple" onClick={() => download('csv')}>
@@ -159,19 +170,19 @@ export default function TeacherResults() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Rank</TableHead>
-                <TableHead>Roll</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Marks</TableHead>
-                <TableHead>%</TableHead>
+              <TableRow className="bg-slate-50">
+                <TableHead className="font-semibold text-slate-700">Rank</TableHead>
+                <TableHead className="font-semibold text-slate-700">Roll</TableHead>
+                <TableHead className="font-semibold text-slate-700">Name</TableHead>
+                <TableHead className="font-semibold text-slate-700">Date</TableHead>
+                <TableHead className="font-semibold text-slate-700">Marks</TableHead>
+                <TableHead className="font-semibold text-slate-700">%</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r, i) => (
-                <TableRow key={i}>
-                  <TableCell>{r.rank ?? '-'}</TableCell>
+                <TableRow key={i} className="hover:bg-slate-50 transition-colors">
+                  <TableCell className="font-medium">{r.rank ?? '-'}</TableCell>
                   <TableCell>{r.student?.rollNo}</TableCell>
                   <TableCell className="font-medium">{r.student?.name}</TableCell>
                   <TableCell>
@@ -182,7 +193,16 @@ export default function TeacherResults() {
                         : '-'}
                   </TableCell>
                   <TableCell>{(r.marksObtained ?? r.totalObtained)}/{(r.maxMarks ?? r.totalMax)}</TableCell>
-                  <TableCell>{r.percentage}%</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      r.percentage >= 80 ? 'bg-green-100 text-green-700' :
+                      r.percentage >= 60 ? 'bg-blue-100 text-blue-700' :
+                      r.percentage >= 40 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {r.percentage}%
+                    </span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
