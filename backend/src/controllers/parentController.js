@@ -744,7 +744,7 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
       totalTests,
       averagePercentage,
       bestScore,
-      currentRank: latestResultRank // Latest result rank for Current Rank card
+      currentRank: currentStudentRank?.rank || null // Use calculated rank from filtered dataset
     }
   });
   
