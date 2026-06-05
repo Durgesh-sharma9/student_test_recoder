@@ -14,7 +14,7 @@ const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Fi
 
 export default function TeacherResults() {
   const [classes, setClasses] = useState([]);
-  const [view, setView] = useState('daily');
+  const [examType, setExamType] = useState('daily');
   const [filters, setFilters] = useState({
     classId: '',
     subject: '',
@@ -23,8 +23,8 @@ export default function TeacherResults() {
     testDate: new Date().toISOString().split('T')[0],
     dateFrom: '',
     dateTo: '',
-    sortBy: 'marks_desc',
   });
+  const [dateFilterType, setDateFilterType] = useState('specific');
   const [rows, setRows] = useState([]);
 
   const { subjects, loading: subjectsLoading, allowCustom, canAddSubjects, registerSubject, emptyMessage } =
@@ -34,7 +34,6 @@ export default function TeacherResults() {
     api.get('/classes').then((res) => {
       const cls = res.data.classes || [];
       setClasses(cls);
-      if (cls.length) setFilters((f) => ({ ...f, classId: cls[0]._id }));
     });
   }, []);
 
@@ -43,14 +42,18 @@ export default function TeacherResults() {
   }, [filters.classId]);
 
   const load = async () => {
-    const params = { ...filters, view, category: view === 'daily' ? 'daily' : view === 'overall' ? undefined : 'main' };
-    if (view === 'overall') delete params.category;
+    const params = { 
+      ...filters, 
+      view: examType, 
+      category: examType === 'daily' ? 'daily' : examType === 'overall' ? undefined : 'main' 
+    };
+    if (examType === 'overall') delete params.category;
     const res = await api.get('/results', { params });
     setRows(res.data.results || []);
   };
 
   const download = (format) => {
-    const q = buildDownloadQuery(filters, view, format);
+    const q = buildDownloadQuery(filters, examType, format);
     downloadFile(`/results/download?${q}`, `results.${format}`);
   };
 
@@ -63,13 +66,12 @@ export default function TeacherResults() {
 
       <ErpSection title="Filters" icon={Filter} tone="blue">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <FormField label="View">
-            <Select value={view} onValueChange={setView}>
+          <FormField label="Exam Type">
+            <Select value={examType} onValueChange={setExamType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">Daily Test</SelectItem>
                 <SelectItem value="main">Main Exam</SelectItem>
-                <SelectItem value="overall">Overall</SelectItem>
               </SelectContent>
             </Select>
           </FormField>
@@ -99,20 +101,34 @@ export default function TeacherResults() {
               placeholder="Filter by subject"
             />
           </FormField>
-          {view === 'daily' && (
+          {examType === 'daily' && (
             <>
-              <FormField label="Test Date">
-                <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+              <FormField label="Date Filter Type">
+                <Select value={dateFilterType} onValueChange={setDateFilterType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="specific">Specific Date</SelectItem>
+                    <SelectItem value="range">Date Range</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormField>
-              <FormField label="From">
-                <Input type="date" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
-              </FormField>
-              <FormField label="To">
-                <Input type="date" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
-              </FormField>
+              {dateFilterType === 'specific' ? (
+                <FormField label="Test Date">
+                  <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+                </FormField>
+              ) : (
+                <>
+                  <FormField label="From">
+                    <Input type="date" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+                  </FormField>
+                  <FormField label="To">
+                    <Input type="date" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+                  </FormField>
+                </>
+              )}
             </>
           )}
-          {view === 'main' && (
+          {examType === 'main' && (
             <>
               <FormField label="Exam Type">
                 <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
@@ -125,19 +141,8 @@ export default function TeacherResults() {
               </FormField>
             </>
           )}
-          <FormField label="Sort By">
-            <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="marks_desc">High → Low</SelectItem>
-                <SelectItem value="marks_asc">Low → High</SelectItem>
-                <SelectItem value="rollNo">Roll No</SelectItem>
-                <SelectItem value="name">Student Name</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3">
-            <Button onClick={load}>Load</Button>
+            <Button onClick={load}>Apply</Button>
             <Button variant="purple" onClick={() => download('csv')}>
               <Download className="mr-2 h-4 w-4" />
               CSV
@@ -170,9 +175,9 @@ export default function TeacherResults() {
                   <TableCell>{r.student?.rollNo}</TableCell>
                   <TableCell className="font-medium">{r.student?.name}</TableCell>
                   <TableCell>
-                    {view === 'main' && r.examDate
+                    {examType === 'main' && r.examDate
                       ? new Date(r.examDate).toLocaleDateString('en-GB')
-                      : view === 'daily' && r.testDate
+                      : examType === 'daily' && r.testDate
                         ? new Date(r.testDate).toLocaleDateString('en-GB')
                         : '-'}
                   </TableCell>
