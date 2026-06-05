@@ -32,11 +32,19 @@ export default function TeacherDashboard() {
             No subjects assigned yet. Ask your School Admin to assign classes and subjects.
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {assignments.map((a, i) => (
-              <Badge key={`${a.classId}-${a.subject}-${i}`} variant="secondary" className="py-1 text-sm">
-                {a.className}-{a.section} · {a.subject}
-              </Badge>
+              <div
+                key={`${a.classId}-${a.subject}-${i}`}
+                className="rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="mb-2">
+                  <div className="text-lg font-bold text-slate-900">
+                    {a.className}-{a.section}
+                  </div>
+                  <div className="text-sm font-semibold text-indigo-600">{a.subject}</div>
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -49,9 +57,16 @@ export default function TeacherDashboard() {
           ) : (
             <div className="divide-y divide-slate-100">
               {data.recentActivities.map((a) => (
-                <p key={a._id} className="py-2 text-sm text-slate-600 first:pt-0 last:pb-0">
-                  {a.action}
-                </p>
+                <div className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0" key={a._id}>
+                  <p className="text-sm font-semibold text-slate-900">{a.action}</p>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span>by {a.actor?.name || 'Unknown'}</span>
+                    <span>•</span>
+                    <span>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span>•</span>
+                    <span>{new Date(a.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                  </div>
+                </div>
               ))}
             </div>
           )}

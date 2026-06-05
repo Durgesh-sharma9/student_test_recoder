@@ -92,15 +92,33 @@ export default function AdminDashboard() {
 
 
 
-  const classStrengthData = (data.classPerformance || []).map((cp) => ({
-
-    name: `${formatClassName(cp.className)}-${cp.section}`,
-
-    value: cp.studentCount,
-
-    classId: cp.classId,
-
-  }));
+  // Sort classes naturally by class number (1, 2, 3, ..., 10, 11, 12)
+  const classStrengthData = (data.classPerformance || [])
+    .map((cp) => ({
+      name: `${cp.className}-${cp.section}`,
+      value: cp.studentCount,
+      classId: cp.classId,
+      className: cp.className,
+      section: cp.section,
+    }))
+    .sort((a, b) => {
+      // Extract class number from className (e.g., "10" from "Class 10")
+      const extractClassNumber = (name) => {
+        const match = name.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+      };
+      
+      const classNumA = extractClassNumber(a.className);
+      const classNumB = extractClassNumber(b.className);
+      
+      // Sort by class number first
+      if (classNumA !== classNumB) {
+        return classNumA - classNumB;
+      }
+      
+      // For same class number, sort alphabetically by section
+      return a.section.localeCompare(b.section);
+    });
 
 
 
@@ -153,75 +171,51 @@ export default function AdminDashboard() {
 
 
       <ErpSection title="Class Strength Overview" icon={GraduationCap} tone="purple">
-
         {classStrengthData.length === 0 ? (
-
           <div className="flex min-h-[260px] flex-col items-center justify-center gap-2 text-center text-slate-500">
-
             <span className="text-4xl">📊</span>
-
             <p className="text-sm">No class data yet</p>
-
           </div>
-
         ) : (
-
           <ResponsiveContainer width="100%" height={260}>
-
             <BarChart data={classStrengthData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
-
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-
               <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-
               <Tooltip content={<ClassStrengthTooltip />} />
-
               <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={56} onClick={(data) => handleClassClick(data)}>
-
                 {classStrengthData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
-
               </Bar>
-
             </BarChart>
-
           </ResponsiveContainer>
-
         )}
-
       </ErpSection>
 
 
 
       <ErpSection title="Recent Activities" icon={Activity} tone="green">
-
         {(data.recentActivities || []).length === 0 ? (
-
           <p className="text-sm text-slate-500">No recent activities.</p>
-
         ) : (
-
           <div className="divide-y divide-slate-100">
-
             {data.recentActivities.map((a) => (
-
-              <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0" key={a._id}>
-
-                <div className="h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
-
-                <p className="text-sm text-slate-600">
-
-                  {a.action} by <span className="font-semibold text-slate-900">{a.actor?.name}</span>
-
-                </p>
-
+              <div className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0" key={a._id}>
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+                  <p className="text-sm font-semibold text-slate-900">
+                    {a.action}
+                  </p>
+                </div>
+                <div className="ml-5 flex items-center gap-2 text-xs text-slate-500">
+                  <span>by {a.actor?.name || 'Unknown'}</span>
+                  <span>•</span>
+                  <span>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <span>•</span>
+                  <span>{new Date(a.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                </div>
               </div>
-
             ))}
-
           </div>
-
         )}
-
       </ErpSection>
 
     </PageStack>
