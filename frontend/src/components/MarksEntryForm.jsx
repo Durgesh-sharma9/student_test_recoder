@@ -22,13 +22,15 @@ export default function MarksEntryForm({ category, title }) {
     testDate: new Date().toISOString().split('T')[0],
     examType: 'PA1',
     examDate: new Date().toISOString().split('T')[0],
-    maxMarks: 100,
+    maxMarks: isDaily ? 20 : 80,
   });
   const [session, setSession] = useState(null);
   const [rows, setRows] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errorFields, setErrorFields] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const loadRef = useRef(0);
 
   const { subjects, assignments, loading: subjectsLoading, allowCustom, canAddSubjects, registerSubject, emptyMessage } =
@@ -41,6 +43,15 @@ export default function MarksEntryForm({ category, title }) {
       .map((a) => a.subject);
     return [...new Set(forClass)].filter(Boolean).sort();
   }, [isDaily, form.classId, subjects, assignments]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return rows;
+    const query = searchQuery.toLowerCase();
+    return rows.filter((r) => 
+      r.name.toLowerCase().includes(query) || 
+      r.rollNo.toLowerCase().includes(query)
+    );
+  }, [rows, searchQuery]);
 
   useEffect(() => {
     api.get('/classes').then((c) => {
@@ -60,6 +71,13 @@ export default function MarksEntryForm({ category, title }) {
     if (isDaily && !form.testDate) return toast.error('Select a test date');
     if (!isDaily && (!form.examType || !form.examDate)) {
       return toast.error('Select exam type and exam date');
+    }
+
+    // Prevent future test dates
+    const today = new Date().toISOString().split('T')[0];
+    const selectedDate = isDaily ? form.testDate : form.examDate;
+    if (selectedDate > today) {
+      return toast.error('Future test dates are not allowed.');
     }
 
     const id = ++loadRef.current;
@@ -107,14 +125,59 @@ export default function MarksEntryForm({ category, title }) {
       return toast.error('Select class and subject');
     }
 
+    // Check for empty marks
+    const emptyFields = [];
+    rows.forEach((r, idx) => {
+      if (r.marksObtained === '' || r.marksObtained == null) {
+        emptyFields.push(idx);
+      }
+    });
+
+    if (emptyFields.length > 0) {
+      setErrorFields(emptyFields);
+      toast.error('Marks are required for all students.');
+      // Scroll to first empty field
+      setTimeout(() => {
+        const firstErrorInput = document.querySelector(`input[data-index="${emptyFields[0]}"]`);
+        if (firstErrorInput) {
+          firstErrorInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstErrorInput.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    // Check for excess marks
+    const excessFields = [];
+    const maxMarks = Number(form.maxMarks);
+    rows.forEach((r, idx) => {
+      const marks = Number(r.marksObtained);
+      if (marks > maxMarks) {
+        excessFields.push({ idx, name: r.name, marks, maxMarks });
+      }
+    });
+
+    if (excessFields.length > 0) {
+      const firstError = excessFields[0];
+      setErrorFields(excessFields.map(e => e.idx));
+      toast.error(`${firstError.name} marks exceed maximum marks (${maxMarks}).`);
+      // Scroll to first invalid field
+      setTimeout(() => {
+        const firstErrorInput = document.querySelector(`input[data-index="${firstError.idx}"]`);
+        if (firstErrorInput) {
+          firstErrorInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstErrorInput.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    setErrorFields([]);
+
     const entries = rows.map((r) => ({
       studentId: r.studentId,
       marksObtained: r.marksObtained === '' || r.marksObtained == null ? 0 : Number(r.marksObtained),
     }));
-
-    if (entries.some((e) => e.marksObtained > Number(form.maxMarks))) {
-      return toast.error('Marks cannot exceed maximum marks');
-    }
 
     setSaving(true);
     try {
@@ -270,6 +333,14 @@ export default function MarksEntryForm({ category, title }) {
           }
         >
           <div className="space-y-4 overflow-x-auto">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search by name or roll number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -280,26 +351,44 @@ export default function MarksEntryForm({ category, title }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r, idx) => (
-                  <TableRow key={r.studentId}>
-                    <TableCell>{r.rollNo}</TableCell>
-                    <TableCell className="font-medium">{r.name}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min="0"
-                        max={form.maxMarks}
-                        value={r.marksObtained}
-                        onChange={(e) =>
-                          setRows((prev) =>
-                            prev.map((x, i) => (i === idx ? { ...x, marksObtained: e.target.value } : x))
-                          )
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>{r.rankSubject || '-'}</TableCell>
-                  </TableRow>
-                ))}
+                {filteredRows.map((r, idx) => {
+                  const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
+                  return (
+                    <TableRow key={r.studentId}>
+                      <TableCell>{r.rollNo}</TableCell>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell>
+                        <Input
+                          data-index={originalIdx}
+                          type="number"
+                          min="0"
+                          max={form.maxMarks}
+                          value={r.marksObtained}
+                          onChange={(e) => {
+                            setRows((prev) =>
+                              prev.map((x, i) => (i === originalIdx ? { ...x, marksObtained: e.target.value } : x))
+                            );
+                            // Clear error for this field when user starts typing
+                            if (errorFields.includes(originalIdx)) {
+                              setErrorFields((prev) => prev.filter((i) => i !== originalIdx));
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const nextInput = document.querySelector(`input[data-index="${originalIdx + 1}"]`);
+                              if (nextInput) {
+                                nextInput.focus();
+                              }
+                            }
+                          }}
+                          className={errorFields.includes(originalIdx) ? 'border-red-500 ring-1 ring-red-500' : ''}
+                        />
+                      </TableCell>
+                      <TableCell>{r.rankSubject || '-'}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
             <div className="flex flex-wrap gap-2">
