@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GraduationCap, Users, Trophy, ArrowRight } from 'lucide-react';
+import { GraduationCap, Users, Trophy, ArrowRight, User } from 'lucide-react';
 import api from '@/lib/api';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,6 @@ import { Button } from '@/components/ui/button';
 export default function ParentDashboard() {
   const [students, setStudents] = useState([]);
   const [sessionName, setSessionName] = useState('');
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [topStudents, setTopStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -24,8 +22,6 @@ export default function ParentDashboard() {
       console.log('Parent students response:', res.data);
       setStudents(res.data.students || []);
       setSessionName(res.data.sessionName || '2026-27');
-      setShowLeaderboard(res.data.showLeaderboard || false);
-      setTopStudents(res.data.topStudents || []);
     } catch (err) {
       console.error('Failed to load students:', err);
       toast.error(err.response?.data?.message || 'Failed to load students');
@@ -56,66 +52,57 @@ export default function ParentDashboard() {
             <p>No children linked to your account yet.</p>
           </div>
         ) : (
-          <div className="space-y-6 p-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {students.map((student) => (
               <div
                 key={student._id}
-                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <div className="mb-4 flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">{student.name}</h3>
+                <div className="mb-4 flex items-start gap-4">
+                  <div className="h-16 w-16 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                    {student.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-bold text-slate-900 truncate">{student.name}</h3>
                     <p className="text-sm text-slate-500">
                       {student.className} {student.section && `(${student.section})`}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/parent/student/${student._id}`)}
-                  >
-                    View Details
-                  </Button>
                 </div>
-                
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Roll No:</span>
-                    <span className="font-medium text-slate-900">{student.rollNo}</span>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs font-medium text-slate-500 mb-1">Roll No</div>
+                    <div className="text-lg font-bold text-slate-900">{student.rollNo}</div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Rank:</span>
-                    <span className="font-medium text-slate-900">#{student.rank}</span>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs font-medium text-slate-500 mb-1">Rank</div>
+                    <div className="text-lg font-bold text-slate-900">#{student.rank || '-'}</div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Percentage:</span>
-                    <span className="font-medium text-slate-900">{student.percentage}%</span>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs font-medium text-slate-500 mb-1">Total Students</div>
+                    <div className="text-lg font-bold text-slate-900">{student.totalStudents || '-'}</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="text-xs font-medium text-slate-500 mb-1">Overall %</div>
+                    <div className="text-lg font-bold text-slate-900">{student.percentage}%</div>
                   </div>
                 </div>
 
-                {student.recentResults && student.recentResults.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <h4 className="text-sm font-semibold text-slate-700 mb-3">Recent Results</h4>
-                    <div className="space-y-2">
-                      {student.recentResults.map((result, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between text-sm p-2 rounded bg-slate-50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-slate-500">{new Date(result.date).toLocaleDateString()}</span>
-                            <span className="font-medium text-slate-900">{result.examType}</span>
-                            <span className="text-slate-600">{result.subject}</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-900">{result.marksObtained}/{result.maxMarks}</span>
-                            <span className="font-medium text-slate-900">{result.percentage.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-3 mb-4">
+                  <div className="text-xs font-medium text-indigo-600 mb-1">Last Test Score</div>
+                  <div className="text-lg font-bold text-indigo-700">
+                    {student.lastTestScore !== null ? `${student.lastTestScore.toFixed(1)}%` : 'N/A'}
                   </div>
-                )}
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={() => navigate(`/parent/student/${student._id}/results-history`)}
+                >
+                  View Results
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>

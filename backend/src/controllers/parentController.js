@@ -408,6 +408,8 @@ export const getParentStudents = asyncHandler(async (req, res) => {
     console.log('[getParentStudents] All class students found:', allClassStudents.length);
     console.log('[getParentStudents] All class student IDs:', allClassStudents.map(s => s._id));
     
+    const totalStudents = allClassStudents.length;
+    
     // Get ALL MarkEntry records for ALL students in these sessions (same as Admin Class Results)
     const allEntries = await MarkEntry.find({
       student: { $in: allClassStudents.map(s => s._id) },
@@ -479,6 +481,8 @@ export const getParentStudents = asyncHandler(async (req, res) => {
     allResults.sort((a, b) => new Date(b.date) - new Date(a.date));
     const recentResults = allResults.slice(0, 5);
     
+    const lastTestScore = recentResults.length > 0 ? recentResults[0].percentage : null;
+    
     console.log('[getParentStudents] Recent results:', JSON.stringify(recentResults, null, 2));
     
     return {
@@ -489,6 +493,8 @@ export const getParentStudents = asyncHandler(async (req, res) => {
       section: student.class?.section || '',
       rank: currentStudentRank?.rank || null,
       percentage: currentStudentRank?.percentage || 0,
+      totalStudents,
+      lastTestScore,
       recentResults
     };
   }));
@@ -548,7 +554,7 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
   
   console.log('[getParentStudentResultsHistory] Active session:', activeSession);
   
-  // Build date filter
+  // Build date filter - use calendar date comparison only (ignore time/timezone)
   const dateFilter = {};
   if (dateFrom) {
     dateFilter.$gte = new Date(dateFrom);
@@ -596,7 +602,7 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
     subject: s.subject
   })));
   
-  // Filter by date if provided
+  // Filter by date if provided - use calendar date comparison (ignore time/timezone)
   let filteredSessions = sessions;
   if (Object.keys(dateFilter).length > 0) {
     console.log('[getParentStudentResultsHistory] Applying date filter...');
@@ -605,15 +611,21 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
       console.log('[getParentStudentResultsHistory] Session date:', sessionDate, 'category:', session.category);
       if (!sessionDate) return false;
       const date = new Date(sessionDate);
-      if (dateFilter.$gte && date < dateFilter.$gte) {
-        console.log('[getParentStudentResultsHistory] Filtered out (before dateFrom):', sessionDate);
+      
+      // Convert to calendar date strings using local date parts (avoids timezone shift)
+      const sessionDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const dateFromStr = dateFilter.$gte ? `${dateFilter.$gte.getFullYear()}-${String(dateFilter.$gte.getMonth() + 1).padStart(2, '0')}-${String(dateFilter.$gte.getDate()).padStart(2, '0')}` : null;
+      const dateToStr = dateFilter.$lte ? `${dateFilter.$lte.getFullYear()}-${String(dateFilter.$lte.getMonth() + 1).padStart(2, '0')}-${String(dateFilter.$lte.getDate()).padStart(2, '0')}` : null;
+      
+      if (dateFromStr && sessionDateStr < dateFromStr) {
+        console.log('[getParentStudentResultsHistory] Filtered out (before dateFrom):', sessionDateStr, '<', dateFromStr);
         return false;
       }
-      if (dateFilter.$lte && date > dateFilter.$lte) {
-        console.log('[getParentStudentResultsHistory] Filtered out (after dateTo):', sessionDate);
+      if (dateToStr && sessionDateStr > dateToStr) {
+        console.log('[getParentStudentResultsHistory] Filtered out (after dateTo):', sessionDateStr, '>', dateToStr);
         return false;
       }
-      console.log('[getParentStudentResultsHistory] Session passed filter:', sessionDate);
+      console.log('[getParentStudentResultsHistory] Session passed filter:', sessionDateStr);
       return true;
     });
   }
@@ -674,7 +686,7 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
   
   console.log('[getParentStudentResultsHistory] Current student MarkEntry records count:', entries.length);
   
-  // Build results array
+  // Build results array - keep original per-result ranks
   const results = [];
   
   for (const session of filteredSessions) {
@@ -688,7 +700,7 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
         marksObtained: entry.marksObtained,
         maxMarks: session.maxMarks,
         percentage: entry.percentage,
-        rank: entry.rankSubject,
+        rank: entry.rankSubject, // Keep original per-result rank
         category: session.category
       });
     }
@@ -697,8 +709,23 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
   // Sort by date ascending (chronological order)
   results.sort((a, b) => new Date(a.date) - new Date(b.date));
   
+  // Calculate summary stats
+  const totalTests = results.length;
+  const averagePercentage = totalTests > 0 
+    ? round2(results.reduce((sum, r) => sum + (r.percentage || 0), 0) / totalTests) 
+    : 0;
+  const bestScore = totalTests > 0 
+    ? Math.max(...results.map(r => r.percentage || 0)) 
+    : 0;
+  
+  // Get latest result rank (most recent result by date)
+  const latestResultRank = results.length > 0 
+    ? results[results.length - 1].rank 
+    : null;
+  
   console.log('[getParentStudentResultsHistory] Final results count:', results.length);
   console.log('[getParentStudentResultsHistory] Final results:', JSON.stringify(results, null, 2));
+  console.log('[getParentStudentResultsHistory] Summary stats:', { totalTests, averagePercentage, bestScore, latestResultRank });
   
   res.json({
     success: true,
@@ -712,7 +739,13 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
     results,
     classRank: currentStudentRank?.rank || null,
     classPercentage: currentStudentRank?.percentage || 0,
-    totalStudents: rankedStudents.length
+    totalStudents: rankedStudents.length,
+    summary: {
+      totalTests,
+      averagePercentage,
+      bestScore,
+      currentRank: latestResultRank // Latest result rank for Current Rank card
+    }
   });
   
   console.log('========== getParentStudentResultsHistory END ==========');
