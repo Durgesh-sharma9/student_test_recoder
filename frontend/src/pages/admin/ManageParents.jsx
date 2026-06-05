@@ -213,7 +213,7 @@ export default function ManageParents() {
                   <TableHead>Student Name</TableHead>
                   <TableHead>Roll No</TableHead>
                   <TableHead>Class</TableHead>
-                  <TableHead>Parent Name</TableHead>
+                  <TableHead>Father Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Last Login</TableHead>

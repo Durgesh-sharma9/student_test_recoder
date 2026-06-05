@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, Activity, AlertTriangle } from 'lucide-react';
 import api from '@/lib/api';
+import { formatClassName } from '@/lib/utils';
 import StatsCard from '@/components/StatsCard';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +41,7 @@ export default function TeacherDashboard() {
               >
                 <div className="mb-2">
                   <div className="text-lg font-bold text-slate-900">
-                    {a.className}-{a.section}
+                    {formatClassName(a.className)} {a.section}
                   </div>
                   <div className="text-sm font-semibold text-indigo-600">{a.subject}</div>
                 </div>

@@ -5,20 +5,22 @@ import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 
 export default function TeacherClasses() {
-  const [user, setUser] = useState(null);
+  const [assignments, setAssignments] = useState([]);
 
   useEffect(() => {
-    api.get('/auth/me').then((r) => setUser(r.data.user));
+    api.get('/results/dashboard').then((r) => {
+      setAssignments(r.data.assignmentDetails || []);
+    });
   }, []);
 
   // Group assignments by class
   const assignmentsByClass = {};
-  (user?.assignments || []).forEach((a) => {
-    const key = `${a.class?.className}-${a.class?.section}`;
+  assignments.forEach((a) => {
+    const key = `${a.className}-${a.section}`;
     if (!assignmentsByClass[key]) {
       assignmentsByClass[key] = {
-        className: a.class?.className,
-        section: a.class?.section,
+        className: a.className,
+        section: a.section,
         subjects: []
       };
     }
@@ -54,7 +56,7 @@ export default function TeacherClasses() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">
-                      {formatClassName(assignment.className)}-{assignment.section}
+                      {formatClassName(assignment.className)} {assignment.section}
                     </h3>
 
                     <p className="mt-1 text-xs text-slate-500">
