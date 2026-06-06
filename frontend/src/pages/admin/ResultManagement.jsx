@@ -1,15 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { Filter, Trophy, FileBarChart, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, Trophy, FileBarChart, Download, RotateCcw, Users, TrendingUp } from 'lucide-react';
 
 import api from '@/lib/api';
-import { formatClassName } from '@/lib/utils';
 
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
-
-import { useSubjects } from '@/hooks/useSubjects';
-
-import SubjectSelect from '@/components/SubjectSelect';
 
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 
@@ -32,6 +27,8 @@ export default function ResultManagement() {
   const [classes, setClasses] = useState([]);
 
   const [teachers, setTeachers] = useState([]);
+
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
 
   const [view, setView] = useState('daily');
 
@@ -59,15 +56,11 @@ export default function ResultManagement() {
 
   const [rows, setRows] = useState([]);
 
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
-
   const [dateFilterType, setDateFilterType] = useState('specific');
 
+  const [loading, setLoading] = useState(false);
 
-
-  const { subjects, loading: subjectsLoading, allowCustom, canAddSubjects, registerSubject, emptyMessage } =
-
-    useSubjects(filters.classId);
+  const [error, setError] = useState(null);
 
 
 
@@ -81,39 +74,81 @@ export default function ResultManagement() {
 
       setTeachers(t.data.users || []);
 
-      if (cls.length) setFilters((f) => ({ ...f, classId: cls[0]._id }));
-
+    }).catch(err => {
+      console.error('Failed to load initial data:', err);
+      setError('Unable to load data');
     });
 
   }, []);
 
 
+  useEffect(() => {
+    // Load subjects assigned to selected teacher
+    if (filters.teacher) {
+      api.get(`/users/${filters.teacher}`).then(res => {
+        const assignments = res.data.user?.assignments || [];
+        const subjects = assignments.map(a => a.subject).filter(Boolean);
+        setTeacherSubjects(subjects);
+      }).catch(err => {
+        console.error('Failed to load teacher subjects:', err);
+        setTeacherSubjects([]);
+      });
+    } else {
+      setTeacherSubjects([]);
+    }
+  }, [filters.teacher]);
+
 
   useEffect(() => {
-
+    // Clear subject when teacher changes
     setFilters((f) => ({ ...f, subject: '' }));
+  }, [filters.teacher]);
 
-  }, [filters.classId]);
+
+  useEffect(() => {
+    // Clear class when subject changes
+    setFilters((f) => ({ ...f, classId: '' }));
+  }, [filters.subject]);
 
 
 
   const load = async () => {
 
-    const params = { ...filters, view };
+    try {
+      setLoading(true);
+      setError(null);
+      const params = { ...filters, view };
 
-    if (view === 'daily') params.category = 'daily';
+      if (view === 'daily') params.category = 'daily';
 
-    else if (view === 'main') params.category = 'main';
+      else if (view === 'main') params.category = 'main';
 
-    const res = await api.get('/results', { params });
+      const res = await api.get('/results', { params });
 
-    setRows(res.data.results || []);
+      setRows(res.data.results || []);
+    } catch (err) {
+      console.error('Failed to load results:', err);
+      setError('Unable to load results');
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
 
   };
 
 
 
-  const toppers = useMemo(() => rows.filter((r) => r.rank === 1), [rows]);
+  const toppers = useMemo(() => {
+    // Check if any filters are applied
+    const hasFilters = filters.teacher || filters.subject || filters.classId || 
+                      (view === 'daily' && (filters.testDate || filters.dateFrom || filters.dateTo)) ||
+                      (view === 'main' && (filters.examType || filters.examDate));
+    
+    if (!hasFilters) return []; // Return empty if no filters applied
+    
+    // Return top 3 students by rank
+    return rows.filter((r) => r.rank === 1).slice(0, 3);
+  }, [rows, filters, view]);
 
 
 
@@ -123,6 +158,22 @@ export default function ResultManagement() {
 
     downloadFile(`/results/download?${q}`, `results.${format}`);
 
+  };
+
+
+  const resetFilters = () => {
+    setFilters({
+      classId: '',
+      subject: '',
+      examType: '',
+      examDate: '',
+      teacher: '',
+      testDate: '',
+      dateFrom: '',
+      dateTo: '',
+      sortBy: 'marks_desc',
+    });
+    setRows([]);
   };
 
 
@@ -139,103 +190,38 @@ export default function ResultManagement() {
 
       />
 
-
-
-      <ErpSection title="Filters" icon={Filter} tone="blue">
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-
-          <FormField label="View">
-
-            <Select value={view} onValueChange={setView}>
-
-              <SelectTrigger><SelectValue /></SelectTrigger>
-
-              <SelectContent>
-
-                <SelectItem value="daily">Daily Test</SelectItem>
-
-                <SelectItem value="main">Main Exam</SelectItem>
-
-                <SelectItem value="overall">Overall</SelectItem>
-
-              </SelectContent>
-
-            </Select>
-
-          </FormField>
-
-          <FormField label="Class">
-
-            <Select value={filters.classId} onValueChange={(v) => setFilters({ ...filters, classId: v })}>
-
-              <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
-
-              <SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)}-{c.section}</SelectItem>)}</SelectContent>
-
-            </Select>
-
-          </FormField>
-
-          <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3">
-
-            <Button onClick={load}>Apply</Button>
-
-            <Button variant="outline" onClick={() => setShowMoreFilters(!showMoreFilters)}>
-
-              {showMoreFilters ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
-
-              {showMoreFilters ? 'Less Filters' : 'More Filters'}
-
-            </Button>
-
-            <Button variant="purple" onClick={() => download('csv')}>
-
-              <Download className="mr-2 h-4 w-4" />
-
-              CSV
-
-            </Button>
-
-            <Button variant="purple" onClick={() => download('pdf')}>
-
-              <Download className="mr-2 h-4 w-4" />
-
-              PDF
-
-            </Button>
-
-          </div>
-
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          {error}
         </div>
+      )}
 
-        {showMoreFilters && (
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3 border-t pt-4">
 
-            <FormField label="Subject">
+      <ErpSection title="Filters" icon={Filter} tone="blue" className="!p-4">
 
-              <SubjectSelect
+        <div className="space-y-3">
 
-                value={filters.subject}
+          {/* First Row: View, Teacher, Subject, Class */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
-                onChange={(subject) => setFilters({ ...filters, subject })}
+            <FormField label="View">
 
-                subjects={subjects}
+              <Select value={view} onValueChange={setView}>
 
-                loading={subjectsLoading}
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
 
-                allowCustom={allowCustom}
+                <SelectContent>
 
-                canAddSubjects={canAddSubjects}
+                  <SelectItem value="daily">Daily Test</SelectItem>
 
-                onRegisterSubject={registerSubject}
+                  <SelectItem value="main">Main Exam</SelectItem>
 
-                emptyMessage={emptyMessage}
+                  <SelectItem value="overall">Overall</SelectItem>
 
-                placeholder="All school subjects"
+                </SelectContent>
 
-              />
+              </Select>
 
             </FormField>
 
@@ -243,19 +229,132 @@ export default function ResultManagement() {
 
               <Select value={filters.teacher} onValueChange={(v) => setFilters({ ...filters, teacher: v })}>
 
-                <SelectTrigger><SelectValue placeholder="Teacher" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Select Teacher" /></SelectTrigger>
 
-                <SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.teacherName || t.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{teachers?.map((t) => <SelectItem key={t._id} value={t._id}>{t.teacherName || t.name}</SelectItem>)}</SelectContent>
 
               </Select>
 
             </FormField>
 
+            <FormField label="Subject">
+
+              <Select value={filters.subject} onValueChange={(v) => setFilters({ ...filters, subject: v })}>
+
+                <SelectTrigger className="h-9"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+
+                <SelectContent>
+                  {filters.teacher && teacherSubjects && teacherSubjects.length > 0 ? (
+                    teacherSubjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)
+                  ) : (
+                    <SelectItem value="none" disabled>{filters.teacher ? 'No subjects assigned' : 'Select teacher first'}</SelectItem>
+                  )}
+                </SelectContent>
+
+              </Select>
+
+            </FormField>
+
+            <FormField label="Class">
+
+              <Select value={filters.classId} onValueChange={(v) => setFilters({ ...filters, classId: v })}>
+
+                <SelectTrigger className="h-9"><SelectValue placeholder="Select Class" /></SelectTrigger>
+
+                <SelectContent>{classes?.map((c) => <SelectItem key={c._id} value={c._id}>Class {c.className} {c.section}</SelectItem>)}</SelectContent>
+
+              </Select>
+
+            </FormField>
+
+          </div>
+
+          {/* Second Row: Date Filter Type, Date/Date Range, Sort By */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+            {view === 'daily' && (
+
+              <FormField label="Date Filter Type">
+
+                <Select value={dateFilterType} onValueChange={setDateFilterType}>
+
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+
+                  <SelectContent>
+
+                    <SelectItem value="specific">Specific Date</SelectItem>
+
+                    <SelectItem value="range">Date Range</SelectItem>
+
+                  </SelectContent>
+
+                </Select>
+
+              </FormField>
+
+            )}
+
+            {view === 'daily' && dateFilterType === 'specific' && (
+
+              <FormField label="Test Date">
+
+                <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} className="h-9" />
+
+              </FormField>
+
+            )}
+
+            {view === 'daily' && dateFilterType === 'range' && (
+
+              <>
+
+                <FormField label="From">
+
+                  <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="h-9" />
+
+                </FormField>
+
+                <FormField label="To">
+
+                  <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="h-9" />
+
+                </FormField>
+
+              </>
+
+            )}
+
+            {view === 'main' && (
+
+              <FormField label="Exam Type">
+
+                <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
+
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Exam Type" /></SelectTrigger>
+
+                  <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+
+                </Select>
+
+              </FormField>
+
+            )}
+
+            {view === 'main' && (
+
+              <FormField label="Exam Date">
+
+                <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} className="h-9" />
+
+              </FormField>
+
+            )}
+
             <FormField label="Sort By">
 
               <Select value={filters.sortBy} onValueChange={(v) => setFilters({ ...filters, sortBy: v })}>
 
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
 
                 <SelectContent>
 
@@ -273,107 +372,72 @@ export default function ResultManagement() {
 
             </FormField>
 
-            {view === 'daily' && (
+          </div>
 
-              <>
+          {/* Third Row: Apply, Reset, Export CSV, Export PDF */}
+          <div className="flex items-center justify-end gap-2 pt-2">
 
-                <FormField label="Date Filter Type">
+            <Button onClick={load} className="h-9 px-4" disabled={loading}>
+              {loading ? 'Loading...' : 'Apply'}
+            </Button>
 
-                  <Select value={dateFilterType} onValueChange={setDateFilterType}>
+            <Button onClick={resetFilters} variant="outline" className="h-9 px-4" disabled={loading}>
 
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+              <RotateCcw className="mr-2 h-4 w-4" />
 
-                    <SelectContent>
+              Reset
 
-                      <SelectItem value="specific">Specific Date</SelectItem>
+            </Button>
 
-                      <SelectItem value="range">Date Range</SelectItem>
+            <Button onClick={() => download('csv')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
 
-                    </SelectContent>
+              <Download className="mr-2 h-4 w-4" />
 
-                  </Select>
+              CSV
 
-                </FormField>
+            </Button>
 
-                {dateFilterType === 'specific' ? (
+            <Button onClick={() => download('pdf')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
 
-                  <FormField label="Test Date">
+              <Download className="mr-2 h-4 w-4" />
 
-                    <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+              PDF
 
-                  </FormField>
-
-                ) : (
-
-                  <>
-
-                    <FormField label="From Date">
-
-                      <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
-
-                    </FormField>
-
-                    <FormField label="To Date">
-
-                      <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
-
-                    </FormField>
-
-                  </>
-
-                )}
-
-              </>
-
-            )}
-
-            {view === 'main' && (
-
-              <>
-
-                <FormField label="Exam Type">
-
-                  <Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}>
-
-                    <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
-
-                    <SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
-
-                  </Select>
-
-                </FormField>
-
-                <FormField label="Exam Date">
-
-                  <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
-
-                </FormField>
-
-              </>
-
-            )}
+            </Button>
 
           </div>
 
-        )}
+        </div>
 
       </ErpSection>
 
 
 
-      <ErpSection title="Topper Students" icon={Trophy} tone="yellow">
+      <ErpSection title="Topper Students" icon={Trophy} tone="yellow" className="!p-4">
 
         {toppers.length ? (
 
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-3">
 
             {toppers.map((t, i) => (
 
-              <p key={i} className="text-sm font-medium text-slate-700">
+              <div key={i} className="flex items-center gap-3 rounded-lg border bg-gradient-to-br from-amber-50 to-yellow-50 p-3 shadow-sm">
 
-                {t.student?.name} — {t.percentage}%
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-400 text-white font-bold text-lg shadow-md">
 
-              </p>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+
+                </div>
+
+                <div className="flex-1 min-w-0">
+
+                  <p className="truncate font-semibold text-slate-900">{t.student?.name}</p>
+
+                  <p className="text-sm font-bold text-amber-600">{t.percentage}%</p>
+
+                </div>
+
+              </div>
 
             ))}
 
@@ -381,7 +445,13 @@ export default function ResultManagement() {
 
         ) : (
 
-          <p className="text-sm text-slate-500">No data</p>
+          <div className="flex items-center gap-3 text-slate-500">
+
+            <Trophy className="h-5 w-5" />
+
+            <p className="text-sm">Apply filters to view topper students</p>
+
+          </div>
 
         )}
 
@@ -389,29 +459,46 @@ export default function ResultManagement() {
 
 
 
-      <ErpSection title="Results" icon={FileBarChart} tone="green">
+      <ErpSection title="Results" icon={FileBarChart} tone="green" className="!p-4">
 
-        <div className="overflow-x-auto">
+        {/* Summary Chips */}
+        {rows.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-3">
+            <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-sm">
+              <Users className="h-4 w-4 text-blue-600" />
+              <span className="font-medium text-blue-900">Total Students: {rows.length}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-sm">
+              <FileBarChart className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-900">Total Results: {rows.length}</span>
+            </div>
+            <div className="flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1.5 text-sm">
+              <TrendingUp className="h-4 w-4 text-purple-600" />
+              <span className="font-medium text-purple-900">Average: {rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + (r.percentage || 0), 0) / rows.length) : 0}%</span>
+            </div>
+          </div>
+        )}
 
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
           <Table>
 
             <TableHeader>
 
-              <TableRow>
+              <TableRow className="bg-slate-50 border-b border-slate-200">
 
-                <TableHead>Rank</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Rank</TableHead>
 
-                <TableHead>Student</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Student</TableHead>
 
-                <TableHead>Class</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Class</TableHead>
 
-                <TableHead>Exam</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Exam</TableHead>
 
-                <TableHead>Date</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Date</TableHead>
 
-                <TableHead>Marks</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">Marks</TableHead>
 
-                <TableHead>%</TableHead>
+                <TableHead className="font-semibold text-slate-700 px-4 py-3">%</TableHead>
 
               </TableRow>
 
@@ -419,39 +506,57 @@ export default function ResultManagement() {
 
             <TableBody>
 
-              {rows.map((r, idx) => (
+              {rows.length === 0 ? (
 
-                <TableRow key={idx} className="hover:bg-slate-50 transition-colors">
+                <TableRow>
 
-                  <TableCell>{r.rank ?? '-'}</TableCell>
-
-                  <TableCell className="font-medium">{r.student?.name}</TableCell>
-
-                  <TableCell>{r.class ? `${formatClassName(r.class.className)}-${r.class.section}` : '-'}</TableCell>
-
-                  <TableCell>{r.examType || 'Daily Test'}</TableCell>
-
-                  <TableCell>
-
-                    {r.examDate
-
-                      ? new Date(r.examDate).toLocaleDateString('en-GB')
-
-                      : r.testDate
-
-                        ? new Date(r.testDate).toLocaleDateString('en-GB')
-
-                        : '-'}
-
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3 text-slate-400">
+                      <FileBarChart className="h-12 w-12" />
+                      <p className="font-medium">No results found</p>
+                      <p className="text-sm">Apply filters to view results</p>
+                    </div>
                   </TableCell>
-
-                  <TableCell>{(r.totalObtained ?? r.marksObtained)}/{(r.totalMax ?? r.maxMarks)}</TableCell>
-
-                  <TableCell>{r.percentage}%</TableCell>
 
                 </TableRow>
 
-              ))}
+              ) : (
+
+                rows?.map((r, idx) => (
+
+                  <TableRow key={idx} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
+
+                    <TableCell className="px-4 py-3 font-medium">{r.rank ?? '-'}</TableCell>
+
+                    <TableCell className="px-4 py-3 font-medium">{r.student?.name || '-'}</TableCell>
+
+                    <TableCell className="px-4 py-3">Class {r.class?.className} {r.class?.section}</TableCell>
+
+                    <TableCell className="px-4 py-3">{r.examType || 'Daily Test'}</TableCell>
+
+                    <TableCell className="px-4 py-3">
+
+                      {r.examDate
+
+                        ? new Date(r.examDate).toLocaleDateString('en-GB')
+
+                        : r.testDate
+
+                          ? new Date(r.testDate).toLocaleDateString('en-GB')
+
+                          : '-'}
+
+                    </TableCell>
+
+                    <TableCell className="px-4 py-3">{(r.totalObtained ?? r.marksObtained)}/{(r.totalMax ?? r.maxMarks)}</TableCell>
+
+                    <TableCell className="px-4 py-3">{r.percentage}%</TableCell>
+
+                  </TableRow>
+
+                ))
+
+              )}
 
             </TableBody>
 
