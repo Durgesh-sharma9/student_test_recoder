@@ -19,12 +19,12 @@ export default function TeacherDashboard() {
         description="Your assignments, students, and recent activity at a glance."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* Changed to lg:grid-cols-4 since there are 4 cards remaining */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard title="Assigned Classes" value={s.assignedClasses || 0} />
         <StatsCard title="Assigned Subjects" value={s.assignedSubjects || 0} />
         <StatsCard title="Total Students" value={s.students || 0} />
         <StatsCard title="Tests Conducted" value={s.testsConducted || 0} />
-        <StatsCard title="Pending Entries" value={s.pendingEntries || 0} />
       </div>
 
       <ErpSection title="Assigned Subjects" icon={BookOpen} tone="blue">
