@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ManageParents() {
   const navigate = useNavigate();
@@ -56,7 +55,12 @@ export default function ManageParents() {
       
       const res = await api.get(`/parents/admin/list?${params}`);
       if (res.data && Array.isArray(res.data.students)) {
-        setStudents(res.data.students);
+        // --- ULTIMATE ALPHANUMERIC SORT FIX ---
+        // Yahan hum string numbers ko proper mathematical integers me evaluate karke sort kar rahe hain
+        const sortedStudents = [...res.data.students].sort((a, b) => {
+          return Number(a.rollNo) - Number(b.rollNo);
+        });
+        setStudents(sortedStudents);
       } else {
         setStudents([]);
       }
@@ -114,7 +118,7 @@ export default function ManageParents() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
       </div>
     );
@@ -122,295 +126,279 @@ export default function ManageParents() {
 
   if (!students) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-slate-500">Error loading data</div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="text-slate-500 dark:text-slate-400">Error loading data</div>
       </div>
     );
   }
 
   return (
-    <TooltipProvider>
-      <PageStack>
-        <PageHeader
-          title="Parent Management"
-          description="Manage parent accounts and view linked students"
-        />
+    <PageStack className="bg-slate-50 dark:bg-slate-950">
+      <PageHeader
+        title="Parent Management"
+        description="Manage parent accounts and view linked students"
+      />
 
-        <ErpSection title="Search & Filter" icon={Search} tone="blue">
-          <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4 bg-white rounded-xl shadow-sm border border-slate-100">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600 uppercase tracking-wider">Search Student</label>
-              <Input
-                placeholder="Search by name or roll no"
-                value={searchStudent}
-                onChange={(e) => setSearchStudent(e.target.value)}
-                className="h-10 focus-visible:ring-indigo-500 border-slate-200"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600 uppercase tracking-wider">Search Parent</label>
-              <Input
-                placeholder="Search by parent name"
-                value={searchParent}
-                onChange={(e) => setSearchParent(e.target.value)}
-                className="h-10 focus-visible:ring-indigo-500 border-slate-200"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600 uppercase tracking-wider">Class</label>
-              <Select value={classFilter} onValueChange={setClassFilter}>
-                <SelectTrigger className="h-10 focus:ring-indigo-500 border-slate-200">
-                  <SelectValue placeholder="All Classes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls._id} value={cls._id}>
-                      Class {cls.className} {cls.section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600 uppercase tracking-wider">Parent Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-10 focus:ring-indigo-500 border-slate-200">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <ErpSection title="Search & Filter" icon={Search} tone="blue">
+        <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Search Student</label>
+            <Input
+              placeholder="Search by name or roll no"
+              value={searchStudent}
+              onChange={(e) => setSearchStudent(e.target.value)}
+              className="h-10 focus-visible:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50"
+            />
           </div>
-        </ErpSection>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Search Parent</label>
+            <Input
+              placeholder="Search by parent name"
+              value={searchParent}
+              onChange={(e) => setSearchParent(e.target.value)}
+              className="h-10 focus-visible:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Class</label>
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="h-10 focus:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+              <SelectContent className="dark:bg-slate-900 dark:border-slate-800">
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls._id} value={cls._id}>
+                    Class {cls.className} {cls.section}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Parent Status</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-10 focus:ring-indigo-500 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent className="dark:bg-slate-900 dark:border-slate-800">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </ErpSection>
 
-        <ErpSection title="Students with Parents" icon={Users} tone="green">
-          {!students || students.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-xl border border-dashed border-slate-200">
-              <Users className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-              <p className="text-slate-500 font-medium">No records found matched your filters.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto bg-white rounded-xl border border-slate-100 shadow-sm">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50/70 hover:bg-slate-50/70">
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Student Name</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Roll No</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Class</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Father Name</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Phone</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Email</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5">Last Login</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5 text-center">Status</TableHead>
-                    <TableHead className="font-bold text-slate-700 px-5 py-3.5 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {students.map((student) => {
-                    const isActive = student.parentStatus === 'Active';
-                    return (
-                      <TableRow key={student._id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100">
-                        <TableCell className="font-semibold text-slate-900 px-5 py-4">{student.studentName}</TableCell>
-                        <TableCell className="px-5 py-4 font-mono text-xs text-slate-600">{student.rollNo}</TableCell>
-                        <TableCell className="px-5 py-4">
-                          <span className="inline-flex items-center rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                            Class {student.class} {student.section}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-slate-700">{student.parentName}</TableCell>
-                        <TableCell className="px-5 py-4 text-slate-600">{student.parentPhone}</TableCell>
-                        <TableCell className="px-5 py-4 text-slate-500 max-w-[180px] truncate">{student.parentEmail || '-'}</TableCell>
-                        <TableCell className="px-5 py-4 text-xs text-slate-500">
-                          {student.parentLastLogin 
-                            ? new Date(student.parentLastLogin).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) 
-                            : 'Never'}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-center">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
-                            isActive
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}>
-                            {isActive ? (
-                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                            ) : (
-                              <ShieldAlert className="h-3.5 w-3.5 text-rose-600" />
-                            )}
-                            {student.parentStatus}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 text-right">
-                          <div className="flex justify-end gap-1.5">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedParent({ _id: student.parentId, parentName: student.parentName });
-                                    loadParentDetails(student.parentId);
-                                    setDetailsOpen(true);
-                                  }}
-                                  disabled={!student.parentId}
-                                  className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>View Parent Info</TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleToggleStatus(student)}
-                                  disabled={!student.parentId}
-                                  className={`h-8 w-8 rounded-lg transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40 ${
-                                    isActive 
-                                      ? 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white' 
-                                      : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-                                  }`}
-                                >
-                                  {isActive ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {isActive ? "Lock Parent Account" : "Unlock Parent Account"}
-                              </TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleResetPassword(student)}
-                                  disabled={!student.parentId}
-                                  className="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40"
-                                >
-                                  <Key className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Reset Parent Password</TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </ErpSection>
-
-        {/* Parent Details Dialog */}
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-slate-900">Parent Profile Overview</DialogTitle>
-            </DialogHeader>
-            {selectedParent && (
-              <div className="space-y-6 mt-2">
-                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5 shadow-inner">
-                  <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Parent Details</h3>
-                  <div className="grid gap-3 text-sm">
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-slate-500">Full Name</span>
-                      <span className="font-semibold text-slate-800">{selectedParent.parentName}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-slate-500">Contact Number</span>
-                      <span className="font-semibold text-slate-800">{selectedParent.phone}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-slate-500">Email Address</span>
-                      <span className="font-semibold text-slate-800">{selectedParent.email || '-'}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-slate-500">Account Status</span>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        selectedParent.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {selectedParent.status}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-1 border-b border-slate-100">
-                      <span className="text-slate-500">Last Session</span>
-                      <span className="font-medium text-slate-700">
-                        {selectedParent.lastLogin 
-                          ? new Date(selectedParent.lastLogin).toLocaleDateString() 
+      <ErpSection title="Students with Parents" icon={Users} tone="green">
+        {!students || students.length === 0 ? (
+          <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+            <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
+            <p className="text-slate-500 dark:text-slate-400 font-medium">No records found matched your filters.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-50/70 dark:hover:bg-slate-800/50">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Student Name</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Roll No</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Class</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Father Name</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Phone</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Email</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5">Last Login</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5 text-center">Status</TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-200 px-5 py-3.5 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((student) => {
+                  const isActive = student.parentStatus === 'Active';
+                  return (
+                    <TableRow key={student._id} className="hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors border-b border-slate-100 dark:border-slate-800">
+                      <TableCell className="font-semibold text-slate-900 dark:text-slate-50 px-5 py-4 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{student.studentName}</TableCell>
+                      <TableCell className="px-5 py-4 font-mono text-xs text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.rollNo}</TableCell>
+                      <TableCell className="px-5 py-4">
+                        <span className="inline-flex items-center rounded-md bg-indigo-50 dark:bg-indigo-950 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-700/10 dark:ring-indigo-300/10">
+                          Class {student.class} {student.section}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentName}</TableCell>
+                      <TableCell className="px-5 py-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentPhone}</TableCell>
+                      <TableCell className="px-5 py-4 text-slate-500 dark:text-slate-400 max-w-[180px] truncate group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentEmail || '-'}</TableCell>
+                      <TableCell className="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">
+                        {student.parentLastLogin 
+                          ? new Date(student.parentLastLogin).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) 
                           : 'Never'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-1">
-                      <span className="text-slate-500">Onboarding Date</span>
-                      <span className="font-medium text-slate-700">
-                        {selectedParent.createdAt 
-                          ? new Date(selectedParent.createdAt).toLocaleDateString() 
-                          : 'N/A'}
-                      </span>
-                    </div>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
+                          isActive
+                            ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                        }`}>
+                          {isActive ? (
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <ShieldAlert className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                          )}
+                          {student.parentStatus}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="View Parent Info"
+                            onClick={() => {
+                              setSelectedParent({ _id: student.parentId, parentName: student.parentName });
+                              loadParentDetails(student.parentId);
+                              setDetailsOpen(true);
+                            }}
+                            disabled={!student.parentId}
+                            className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-600 dark:hover:bg-blue-600 hover:text-white transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={isActive ? "Lock Parent Account" : "Unlock Parent Account"}
+                            onClick={() => handleToggleStatus(student)}
+                            disabled={!student.parentId}
+                            className={`h-8 w-8 rounded-lg transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40 ${
+                              isActive 
+                                ? 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 hover:bg-amber-600 dark:hover:bg-amber-600 hover:text-white' 
+                                : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 dark:hover:bg-emerald-600 hover:text-white'
+                            }`}
+                          >
+                            {isActive ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Reset Parent Password"
+                            onClick={() => handleResetPassword(student)}
+                            disabled={!student.parentId}
+                            className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 hover:bg-purple-600 dark:hover:bg-purple-600 hover:text-white transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-40"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </ErpSection>
+
+      {/* Parent Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-slate-950 dark:border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">Parent Profile Overview</DialogTitle>
+          </DialogHeader>
+          {selectedParent && (
+            <div className="space-y-6 mt-2">
+              <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-5 shadow-inner">
+                <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Parent Details</h3>
+                <div className="grid gap-3 text-sm">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Full Name</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{selectedParent.parentName}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Contact Number</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{selectedParent.phone}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Email Address</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{selectedParent.email || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Account Status</span>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      selectedParent.status === 'Active' ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200' : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200'
+                    }`}>
+                      {selectedParent.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-500 dark:text-slate-400">Last Session</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {selectedParent.lastLogin 
+                        ? new Date(selectedParent.lastLogin).toLocaleDateString() 
+                        : 'Never'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-slate-500 dark:text-slate-400">Onboarding Date</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                      {selectedParent.createdAt 
+                        ? new Date(selectedParent.createdAt).toLocaleDateString() 
+                        : 'N/A'}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5 shadow-inner">
-                  <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">Linked Students ({selectedParent.linkedStudents?.length || 0})</h3>
-                  {selectedParent.linkedStudents && selectedParent.linkedStudents.length > 0 ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedParent.linkedStudents.map((student) => (
-                        <div key={student._id} className="flex flex-col rounded-xl border border-slate-200/60 bg-white p-4 shadow-sm">
-                          <div className="font-bold text-slate-800 text-base">{student.name}</div>
-                          <div className="text-xs font-medium text-indigo-600 mt-1">Class {student.className} {student.section}</div>
-                          <div className="text-xs text-slate-400 mt-3 border-t border-slate-50 pt-2 flex justify-between">
-                            <span>Roll Position</span>
-                            <span className="font-mono font-semibold text-slate-700">#{student.rollNo}</span>
-                          </div>
+              <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-5 shadow-inner">
+                <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Linked Students ({selectedParent.linkedStudents?.length || 0})</h3>
+                {selectedParent.linkedStudents && selectedParent.linkedStudents.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {selectedParent.linkedStudents.map((student) => (
+                      <div key={student._id} className="flex flex-col rounded-xl border border-slate-200/60 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                        <div className="font-bold text-slate-800 dark:text-slate-100 text-base">{student.name}</div>
+                        <div className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-1">Class {student.className} {student.section}</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-500 mt-3 border-t border-slate-50 dark:border-slate-800 pt-2 flex justify-between">
+                          <span>Roll Position</span>
+                          <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">#{student.rollNo}</span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500 text-center py-4">No linked students found.</p>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No linked students found.</p>
+                )}
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-        {/* Reset Password Dialog */}
-        <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold text-slate-900">Security: Password Updated</DialogTitle>
-            </DialogHeader>
-            {newPassword ? (
-              <div className="space-y-4 mt-2">
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  The parent profile lacks an active email channel. Deliver this temporary code to them directly:
-                </p>
-                <div className="rounded-xl border border-dashed border-purple-300 bg-purple-50/50 p-5 shadow-inner">
-                  <p className="text-center text-3xl font-mono font-bold tracking-wider text-purple-700">{newPassword}</p>
-                </div>
-                <p className="text-xs text-slate-400 italic text-center">
-                  Ensure security standards are met when sharing details.
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-600 leading-relaxed mt-2">
-                A secure initialization string has been formatted and triggered to the verified account communication email.
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="sm:max-w-md dark:bg-slate-950 dark:border-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-50">Security: Password Updated</DialogTitle>
+          </DialogHeader>
+          {newPassword ? (
+            <div className="space-y-4 mt-2">
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                The parent profile lacks an active email channel. Deliver this temporary code to them directly:
               </p>
-            )}
-          </DialogContent>
-        </Dialog>
-      </PageStack>
-    </TooltipProvider>
+              <div className="rounded-xl border border-dashed border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/50 p-5 shadow-inner">
+                <p className="text-center text-3xl font-mono font-bold tracking-wider text-purple-700 dark:text-purple-300">{newPassword}</p>
+              </div>
+              <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center">
+                Ensure security standards are met when sharing details.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mt-2">
+              A secure initialization string has been formatted and triggered to the verified account communication email.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </PageStack>
   );
 }
