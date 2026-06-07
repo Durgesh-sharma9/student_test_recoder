@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { GraduationCap, Search, UserPlus, Download, Upload } from 'lucide-react';
+import { GraduationCap, Search, UserPlus, Download, Upload, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { useSession } from '@/context/SessionContext';
@@ -13,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export default function ManageStudents() {
   const { isArchived } = useSession();
+  const [searchParams] = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [students, setStudents] = useState([]);
@@ -29,9 +31,15 @@ export default function ManageStudents() {
   useEffect(() => {
     api.get('/classes').then((r) => {
       setClasses(r.data.classes || []);
-      if (r.data.classes?.length) setSelectedClass(r.data.classes[0]._id);
+      // Check if classId is in URL
+      const classIdFromUrl = searchParams.get('classId');
+      if (classIdFromUrl) {
+        setSelectedClass(classIdFromUrl);
+      } else if (r.data.classes?.length) {
+        setSelectedClass(r.data.classes[0]._id);
+      }
     });
-  }, []);
+  }, [searchParams]);
 
   const loadStudents = async (classId) => {
     if (!classId) return;
@@ -190,6 +198,24 @@ export default function ManageStudents() {
             Add Student
           </Button>
         </div>
+
+        {/* Top indicator for filtered class view */}
+        {searchParams.get('classId') && selectedClass && (
+          <div className="mt-4 flex items-center justify-between rounded-lg bg-blue-50 px-4 py-2">
+            <span className="text-sm font-medium text-blue-900">
+              Viewing Students of Class {classes.find(c => c._id === selectedClass)?.className}-{classes.find(c => c._id === selectedClass)?.section}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedClass('')}
+              className="h-8 px-2 text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear Filter
+            </Button>
+          </div>
+        )}
       </ErpSection>
 
       <ErpSection title="Search Students" icon={Search} tone="blue">
