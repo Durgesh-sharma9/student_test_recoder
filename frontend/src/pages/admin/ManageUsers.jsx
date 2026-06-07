@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Users, UserPlus, Search, Download, Upload } from 'lucide-react';
+import { Users, UserPlus, Search, Download, Upload, Bell } from 'lucide-react';
 import api from '@/lib/api';
 import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ManageUsers() {
   const { isArchived } = useSession();
@@ -22,6 +24,15 @@ export default function ManageUsers() {
   const [importResults, setImportResults] = useState(null);
   const [importing, setImporting] = useState(false);
   const [reactivateDialog, setReactivateDialog] = useState({ open: false, teacher: null });
+  
+  // Notification modal state
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [notificationForm, setNotificationForm] = useState({
+    title: '',
+    message: '',
+    priority: 'normal',
+  });
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
@@ -142,6 +153,29 @@ export default function ManageUsers() {
     }
   };
 
+  const handleSendNotification = async () => {
+    try {
+      if (!notificationForm.title || !notificationForm.message) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      await api.post('/notifications', {
+        title: notificationForm.title,
+        message: notificationForm.message,
+        priority: notificationForm.priority,
+        recipientIds: [selectedTeacher._id],
+      });
+
+      toast.success('Notification sent successfully');
+      setNotifyModalOpen(false);
+      setSelectedTeacher(null);
+      setNotificationForm({ title: '', message: '', priority: 'normal' });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send notification');
+    }
+  };
+
   return (
     <PageStack>
       <PageHeader
@@ -228,6 +262,19 @@ export default function ManageUsers() {
                         }}
                       >
                         Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        disabled={isArchived}
+                        onClick={() => {
+                          setSelectedTeacher(t);
+                          setNotifyModalOpen(true);
+                        }}
+                        title="Send Notification"
+                      >
+                        <Bell className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -462,6 +509,55 @@ export default function ManageUsers() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={notifyModalOpen} onOpenChange={setNotifyModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Notification</DialogTitle>
+            <DialogDescription>
+              Send a notification to {selectedTeacher?.teacherName || selectedTeacher?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <FormField label="Title">
+              <Input
+                placeholder="Enter notification title"
+                value={notificationForm.title}
+                onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Message">
+              <Textarea
+                placeholder="Enter notification message"
+                value={notificationForm.message}
+                onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
+                rows={4}
+              />
+            </FormField>
+            <FormField label="Priority">
+              <Select value={notificationForm.priority} onValueChange={(value) => setNotificationForm({ ...notificationForm, priority: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="important">Important</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotifyModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendNotification}>
+              <Bell className="mr-2 h-4 w-4" />
+              Send Notification
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageStack>
