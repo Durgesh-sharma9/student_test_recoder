@@ -19,12 +19,16 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
+  Bell,
+  Megaphone,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import NotificationPanel from '@/components/NotificationPanel';
+import AnnouncementModal from '@/components/AnnouncementModal';
 
 // Added customized background and icon configurations for each structural module container box
 const navByRole = {
@@ -46,6 +50,7 @@ const navByRole = {
   ],
   teacher: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
+    { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
@@ -58,10 +63,12 @@ export default function DashboardLayout() {
   const { selectedSession, allSessions, selectSession, isArchived } = useSession();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const navigate = useNavigate();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
   const isAdmin = role === 'school_admin';
+  const isSuperAdmin = role === 'super_admin';
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
@@ -176,6 +183,38 @@ export default function DashboardLayout() {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Super Admin: Only Announcement icon */}
+            {isSuperAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl hover:bg-slate-100 text-slate-500"
+                onClick={() => setIsAnnouncementModalOpen(true)}
+                title="Send Announcement to All Admins"
+              >
+                <Megaphone className="h-5 w-5" />
+              </Button>
+            )}
+            
+            {/* Admin: Both Notification bell and Announcement icon */}
+            {isAdmin && (
+              <>
+                <NotificationPanel />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-slate-100 text-slate-500"
+                  onClick={() => setIsAnnouncementModalOpen(true)}
+                  title="Send Announcement to Teachers"
+                >
+                  <Megaphone className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+            
+            {/* Teacher: Only Notification bell */}
+            {role === 'teacher' && <NotificationPanel />}
+            
             {role === 'school_admin' ? (
               <div className="hidden items-center gap-2 sm:flex">
                 <Select value={selectedSession?._id} onValueChange={(value) => {
@@ -223,6 +262,13 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Announcement Modal */}
+      <AnnouncementModal
+        open={isAnnouncementModalOpen}
+        onOpenChange={setIsAnnouncementModalOpen}
+        role={role}
+      />
     </div>
   );
 }

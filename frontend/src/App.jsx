@@ -25,6 +25,7 @@ import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
 import MainExamEntry from '@/pages/teacher/MainExamEntry';
 import TeacherResults from '@/pages/teacher/TeacherResults';
+import TeacherNotifications from '@/pages/teacher/Notifications';
 import ParentDashboard from '@/pages/parent/Dashboard';
 import ParentLogin from '@/pages/ParentLogin';
 import StudentDetails from '@/pages/parent/StudentDetails';
@@ -96,6 +97,7 @@ export default function App() {
               <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><AcademicSessions /></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
+              <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><TeacherNotifications /></ProtectedRoute>} />
               <Route path="/teacher/classes" element={<ProtectedRoute roles={['teacher']}><TeacherClasses /></ProtectedRoute>} />
               <Route path="/teacher/daily-test" element={<ProtectedRoute roles={['teacher']}><DailyTestEntry /></ProtectedRoute>} />
               <Route path="/teacher/main-exam" element={<ProtectedRoute roles={['teacher']}><MainExamEntry /></ProtectedRoute>} />
