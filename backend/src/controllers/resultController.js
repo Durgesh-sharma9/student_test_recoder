@@ -455,14 +455,16 @@ const sortResults = (rows, sortBy) => {
 
 
 export const getResults = asyncHandler(async (req, res) => {
-  const { view, category, classId, subject, dateFrom, dateTo, testDate, sortBy } = req.query;
+  const { view, category, classId, subject, dateFrom, dateTo, testDate, sortBy, teacher } = req.query;
   
   // For daily test view with the new layout, return data in the format expected by the frontend
   if (view === 'daily' || category === 'daily') {
     const sFilter = withSchool(req, {});
     if (classId) sFilter.class = classId;
     if (subject) sFilter.subject = normalizeSubject(subject);
-    if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
+    // Apply teacher filter if provided (for admin viewing teacher results) or if user is teacher
+    if (teacher) sFilter.teacher = teacher;
+    else if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
     sFilter.category = 'daily';
 
     // DEBUG LOGS - Detailed
@@ -634,12 +636,14 @@ export const downloadResults = asyncHandler(async (req, res) => {
 
   // For daily test view with the new layout, export all tests in range
   if (view === 'daily' || req.query.category === 'daily') {
-    const { classId, subject, dateFrom, dateTo, testDate, sortBy } = req.query;
+    const { classId, subject, dateFrom, dateTo, testDate, sortBy, teacher } = req.query;
     
     const sFilter = withSchool(req, {});
     if (classId) sFilter.class = classId;
     if (subject) sFilter.subject = normalizeSubject(subject);
-    if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
+    // Apply teacher filter if provided (for admin viewing teacher results) or if user is teacher
+    if (teacher) sFilter.teacher = teacher;
+    else if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
     sFilter.category = 'daily';
 
     // Handle date filtering - prioritize date range over specific date
