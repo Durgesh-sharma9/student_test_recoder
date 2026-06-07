@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { School, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { useSession } from '@/context/SessionContext';
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function ManageClasses() {
   const { isArchived } = useSession();
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [suggestions, setSuggestions] = useState({ classSuggestions: [], sectionSuggestions: [] });
   const [open, setOpen] = useState(false);
@@ -83,7 +85,10 @@ export default function ManageClasses() {
               Section {c.section}
             </p>
 
-            <div className="mt-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+            <div
+              className="mt-3 inline-flex cursor-pointer items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 hover:text-blue-800"
+              onClick={() => navigate(`/admin/students?classId=${c._id}`)}
+            >
               👨‍🎓 {c.studentCount || 0} Students
             </div>
           </div>
