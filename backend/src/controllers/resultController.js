@@ -455,6 +455,168 @@ const sortResults = (rows, sortBy) => {
 
 
 export const getResults = asyncHandler(async (req, res) => {
+  const { view, category, classId, subject, dateFrom, dateTo, testDate, sortBy } = req.query;
+  
+  // For daily test view with the new layout, return data in the format expected by the frontend
+  if (view === 'daily' || category === 'daily') {
+    const sFilter = withSchool(req, {});
+    if (classId) sFilter.class = classId;
+    if (subject) sFilter.subject = normalizeSubject(subject);
+    if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
+    sFilter.category = 'daily';
+
+    // DEBUG LOGS - Detailed
+    console.log('=== TEACHER RESULTS DEBUG ===');
+    console.log('Teacher ID:', req.user._id);
+    console.log('Teacher Name:', req.user.name);
+    console.log('Class ID:', classId);
+    console.log('Subject:', subject);
+    console.log('Subject (normalized):', normalizeSubject(subject));
+    console.log('Date From:', dateFrom);
+    console.log('Date To:', dateTo);
+    console.log('Test Date (specific):', testDate);
+    console.log('Filter Object:', JSON.stringify(sFilter, null, 2));
+    console.log('User Role:', req.user.role);
+
+    // Handle date filtering - prioritize date range over specific date
+    if (dateFrom || dateTo) {
+      sFilter.testDate = {};
+      if (dateFrom) {
+        sFilter.testDate.$gte = startOfDay(dateFrom);
+        console.log('Date From filter:', startOfDay(dateFrom));
+      }
+      if (dateTo) {
+        sFilter.testDate.$lte = endOfDay(dateTo);
+        console.log('Date To filter:', endOfDay(dateTo));
+      }
+    } else if (testDate) {
+      sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
+      console.log('Using specific date filter:', sFilter.testDate);
+    } else if (!dateFrom && !dateTo) {
+      const today = new Date();
+      sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
+      console.log('Using today filter:', sFilter.testDate);
+    }
+
+    console.log('Final Filter:', JSON.stringify(sFilter, null, 2));
+
+    // Fetch all matching test sessions - NO LIMIT, NO findOne
+    console.log('Executing query to find ALL matching sessions...');
+    const sessions = await ResultSession.find(sFilter)
+      .populate('class', 'className section')
+      .populate('teacher', 'name')
+      .sort({ testDate: 1 })
+      .lean();
+
+    console.log('Tests Found Count:', sessions.length);
+    console.log('TEST DATES:');
+    sessions.forEach((t, idx) => {
+      console.log(`  ${idx + 1}. ${t.testDate} - ${t.subject} - Teacher: ${t.teacher?.name}`);
+    });
+    console.log('Full Tests Array:', JSON.stringify(sessions, null, 2));
+
+    if (!sessions.length) {
+      console.log('No tests found, returning empty result');
+      return res.json({ 
+        success: true, 
+        results: [], 
+        tests: [],
+        className: '',
+        section: ''
+      });
+    }
+
+    // Get class info
+    const classDoc = await Class.findById(sessions[0].class._id).lean();
+    
+    // Get all students in the class
+    const students = await Student.find({ 
+      class: sessions[0].class._id, 
+      school: req.user.school, 
+      isActive: true 
+    }).sort('rollNo').lean();
+    
+    console.log('Students Count:', students.length);
+    
+    // Get all mark entries for these sessions
+    const sessionIds = sessions.map(s => s._id);
+    const entries = await MarkEntry.find({ session: { $in: sessionIds } }).lean();
+    
+    console.log('Mark Entries Count:', entries.length);
+    
+    // Build test info array
+    const tests = sessions.map(s => ({
+      _id: s._id,
+      testDate: s.testDate,
+      subject: s.subject,
+      maxMarks: s.maxMarks,
+      teacherName: s.teacher?.name || 'Unknown'
+    }));
+
+    console.log('Tests Array for Response:', JSON.stringify(tests, null, 2));
+
+    // Build student results with test marks
+    const results = students.map(student => {
+      const testMarks = {};
+      let totalObtained = 0;
+      let totalMax = 0;
+
+      sessions.forEach(session => {
+        const entry = entries.find(e => 
+          e.session.toString() === session._id.toString() && 
+          e.student.toString() === student._id.toString()
+        );
+        testMarks[session._id.toString()] = entry ? {
+          marksObtained: entry.marksObtained
+        } : null;
+        
+        if (entry) {
+          totalObtained += entry.marksObtained;
+          totalMax += session.maxMarks;
+        }
+      });
+
+      const average = sessions.length > 0 ? round2(totalObtained / sessions.length) : 0;
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+
+      return {
+        _id: student._id,
+        student,
+        totalObtained,
+        average,
+        percentage,
+        rank: 0, // Will be calculated after sorting
+        testMarks
+      };
+    });
+
+    // Calculate ranks based on total obtained
+    const ranked = computeCompetitionRanks(results, 'totalObtained');
+    
+    // Sort results based on sortBy parameter
+    let sortedResults = ranked;
+    if (sortBy === 'rollNo') {
+      sortedResults = [...ranked].sort((a, b) => String(a.student.rollNo).localeCompare(String(b.student.rollNo), undefined, { numeric: true }));
+    } else if (sortBy === 'name') {
+      sortedResults = [...ranked].sort((a, b) => a.student.name.localeCompare(b.student.name));
+    } else if (sortBy === 'rank') {
+      sortedResults = [...ranked].sort((a, b) => a.rank - b.rank);
+    }
+
+    console.log('Final Results Count:', sortedResults.length);
+    console.log('Tests in Response:', tests.length);
+    console.log('=== END DEBUG ===');
+
+    return res.json({
+      success: true,
+      results: sortedResults,
+      tests,
+      className: classDoc?.className || '',
+      section: classDoc?.section || ''
+    });
+  }
+
+  // For main exam and overall views, use the original logic
   let rows = await buildResultRows(req, req.query);
   if (Array.isArray(rows) && rows[0]?.rank !== undefined && req.query.view === 'daily') {
     rows = sortResults(rows, req.query.sortBy);
@@ -470,12 +632,172 @@ export const downloadResults = asyncHandler(async (req, res) => {
   const format = req.query.format || 'csv';
   const view = req.query.view || req.query.category;
 
-  if (view === 'daily') {
-    const exportData = await buildDailyTestExport(req, req.query);
-    if (format === 'pdf') return sendDailyTestPdf(res, exportData);
-    return sendDailyTestCsv(res, exportData);
+  // For daily test view with the new layout, export all tests in range
+  if (view === 'daily' || req.query.category === 'daily') {
+    const { classId, subject, dateFrom, dateTo, testDate, sortBy } = req.query;
+    
+    const sFilter = withSchool(req, {});
+    if (classId) sFilter.class = classId;
+    if (subject) sFilter.subject = normalizeSubject(subject);
+    if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
+    sFilter.category = 'daily';
+
+    // Handle date filtering - prioritize date range over specific date
+    if (dateFrom || dateTo) {
+      sFilter.testDate = {};
+      if (dateFrom) sFilter.testDate.$gte = startOfDay(dateFrom);
+      if (dateTo) sFilter.testDate.$lte = endOfDay(dateTo);
+    } else if (testDate) {
+      sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
+    } else if (!dateFrom && !dateTo) {
+      const today = new Date();
+      sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
+    }
+
+    // Fetch all matching test sessions
+    const sessions = await ResultSession.find(sFilter)
+      .populate('class', 'className section')
+      .populate('teacher', 'name')
+      .sort({ testDate: 1 })
+      .lean();
+
+    if (!sessions.length) {
+      throw new ApiError(404, 'No tests found for the selected criteria.');
+    }
+
+    // Get class info
+    const classDoc = await Class.findById(sessions[0].class._id).lean();
+    const school = await School.findById(req.user.school).lean();
+    
+    // Get all students in the class
+    const students = await Student.find({ 
+      class: sessions[0].class._id, 
+      school: req.user.school, 
+      isActive: true 
+    }).sort('rollNo').lean();
+    
+    // Get all mark entries for these sessions
+    const sessionIds = sessions.map(s => s._id);
+    const entries = await MarkEntry.find({ session: { $in: sessionIds } }).lean();
+    
+    // Build test info array
+    const tests = sessions.map(s => ({
+      _id: s._id,
+      testDate: s.testDate,
+      subject: s.subject,
+      maxMarks: s.maxMarks,
+      teacherName: s.teacher?.name || 'Unknown'
+    }));
+
+    // Build student results with test marks
+    const results = students.map(student => {
+      const testMarks = {};
+      let totalObtained = 0;
+      let totalMax = 0;
+
+      sessions.forEach(session => {
+        const entry = entries.find(e => 
+          e.session.toString() === session._id.toString() && 
+          e.student.toString() === student._id.toString()
+        );
+        testMarks[session._id.toString()] = entry ? {
+          marksObtained: entry.marksObtained
+        } : null;
+        
+        if (entry) {
+          totalObtained += entry.marksObtained;
+          totalMax += session.maxMarks;
+        }
+      });
+
+      const average = sessions.length > 0 ? round2(totalObtained / sessions.length) : 0;
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+
+      return {
+        _id: student._id,
+        student,
+        totalObtained,
+        average,
+        percentage,
+        rank: 0,
+        testMarks
+      };
+    });
+
+    // Calculate ranks based on total obtained
+    const ranked = computeCompetitionRanks(results, 'totalObtained');
+    
+    // Sort results based on sortBy parameter
+    let sortedResults = ranked;
+    if (sortBy === 'rollNo') {
+      sortedResults = [...ranked].sort((a, b) => String(a.student.rollNo).localeCompare(String(b.student.rollNo), undefined, { numeric: true }));
+    } else if (sortBy === 'name') {
+      sortedResults = [...ranked].sort((a, b) => a.student.name.localeCompare(b.student.name));
+    } else if (sortBy === 'rank') {
+      sortedResults = [...ranked].sort((a, b) => a.rank - b.rank);
+    }
+
+    // Build CSV headers
+    const headers = ['School Name', 'Class', 'Subject', 'Teacher Name', 'Date Range', 'Generated On'];
+    const dateRangeStr = dateFrom && dateTo 
+      ? `${new Date(dateFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} - ${new Date(dateTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+      : testDate 
+        ? new Date(testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A';
+    
+    const headerRow = [
+      school?.name || 'N/A',
+      `Class ${classDoc?.className || ''} ${classDoc?.section || ''}`,
+      subject || 'All',
+      req.user.name || 'N/A',
+      dateRangeStr,
+      new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    ];
+
+    // Build data headers
+    const dataHeaders = ['Total', 'Average', '%', 'Rank', 'Roll No', 'Student Name'];
+    tests.forEach((test, idx) => {
+      dataHeaders.push(`DT${idx + 1} Max`, `DT${idx + 1} Obtained`);
+    });
+
+    // Build data rows
+    const dataRows = sortedResults.map(r => {
+      const row = [
+        r.totalObtained,
+        r.average,
+        r.percentage,
+        r.rank,
+        r.student.rollNo,
+        r.student.name
+      ];
+      tests.forEach(test => {
+        const mark = r.testMarks[test._id.toString()];
+        row.push(test.maxMarks, mark ? mark.marksObtained : '');
+      });
+      return row;
+    });
+
+    const filename = `teacher-results.${format === 'pdf' ? 'pdf' : 'csv'}`;
+    
+    if (format === 'pdf') {
+      return sendPdfTable(res, filename, 'Teacher Results Report', [headers, headerRow, dataHeaders], dataRows);
+    }
+    
+    const csvContent = [
+      headers.join(','),
+      headerRow.join(','),
+      '',
+      dataHeaders.join(','),
+      ...dataRows.map(row => row.join(','))
+    ].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+    return;
   }
 
+  // For main exam and overall views, use the original logic
   let rows = await buildResultRows(req, req.query);
   rows = sortResults(rows, req.query.sortBy);
   const headers = ['Rank', 'Roll No', 'Student Name', 'Class', 'Subject', 'Exam Type', 'Test Date', 'Exam Date', 'Obtained', 'Max', 'Percentage'];
