@@ -26,7 +26,9 @@ export default function TeacherResults() {
     sortBy: 'rollNo',
   });
   const [dateFilterType, setDateFilterType] = useState('specific');
-  const [rows, setRows] = useState([]);
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { subjects, loading: subjectsLoading, allowCustom, canAddSubjects, registerSubject, emptyMessage } =
     useSubjects(filters.classId);
@@ -42,21 +44,72 @@ export default function TeacherResults() {
     setFilters((f) => ({ ...f, subject: '' }));
   }, [filters.classId]);
 
+  // Debug log when results change
+  useEffect(() => {
+    if (results) {
+      console.log('=== TEACHER RESULTS STATE UPDATE ===');
+      console.log('Results State:', results);
+      console.log('Tests Array:', results.tests);
+      console.log('Tests Count:', results.tests?.length || 0);
+      console.log('Test Dates:', results.tests?.map(t => t.testDate) || []);
+      console.log('=== END STATE UPDATE ===');
+    }
+  }, [results]);
+
   const load = async () => {
-    const params = { 
-      ...filters, 
-      view: examType, 
-      category: examType === 'daily' ? 'daily' : examType === 'overall' ? undefined : 'main' 
-    };
-    if (examType === 'overall') delete params.category;
-    const res = await api.get('/results', { params });
-    setRows(res.data.results || []);
+    if (!filters.classId) return;
+    
+    if (examType === 'daily') {
+      if (dateFilterType === 'specific' && !filters.testDate) {
+        alert('Please select a test date');
+        return;
+      }
+      if (dateFilterType === 'range' && (!filters.dateFrom || !filters.dateTo)) {
+        alert('Please select date range');
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      const params = { 
+        ...filters, 
+        view: examType, 
+        category: examType === 'daily' ? 'daily' : examType === 'overall' ? undefined : 'main' 
+      };
+      if (examType === 'overall') delete params.category;
+      
+      const res = await api.get('/results', { params });
+      
+      // DEBUG LOGS - Frontend
+      console.log('=== TEACHER RESULTS FRONTEND DEBUG ===');
+      console.log('API Response:', res.data);
+      console.log('Tests Array:', res.data.tests);
+      console.log('Tests Count:', res.data.tests?.length || 0);
+      console.log('Results Count:', res.data.results?.length || 0);
+      console.log('Test Dates:', res.data.tests?.map(t => t.testDate) || []);
+      console.log('=== END FRONTEND DEBUG ===');
+      
+      setResults(res.data);
+    } catch (error) {
+      console.error('Failed to fetch results:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const download = (format) => {
     const q = buildDownloadQuery(filters, examType, format);
     downloadFile(`/results/download?${q}`, `results.${format}`);
   };
+
+  const filteredResults = results?.results ? results.results.filter(
+    (r) =>
+      r.student?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.student?.rollNo?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
+
+  const isDailyTest = examType === 'daily';
 
   return (
     <PageStack className="bg-slate-50">
@@ -153,7 +206,9 @@ export default function TeacherResults() {
             </Select>
           </FormField>
           <div className="flex flex-wrap items-end gap-2 md:col-span-2 lg:col-span-3 pt-2">
-            <Button className="h-10 px-5 shadow-sm bg-blue-600 hover:bg-blue-700" onClick={load}>Apply</Button>
+            <Button className="h-10 px-5 shadow-sm bg-blue-600 hover:bg-blue-700" onClick={load} disabled={loading}>
+              {loading ? 'Loading...' : 'Apply'}
+            </Button>
             <Button className="h-10 px-4 border border-slate-200" variant="outline" onClick={() => download('csv')}>
               <Download className="mr-2 h-4 w-4 text-purple-600" />
               CSV
@@ -166,61 +221,151 @@ export default function TeacherResults() {
         </div>
       </ErpSection>
 
-      <ErpSection title="Results" icon={FileBarChart} tone="green">
-        <div className="overflow-x-auto bg-white rounded-xl border border-slate-100 shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/70 border-b border-slate-100">
-                <TableHead className="font-bold text-slate-700 px-5 py-4">Rank</TableHead>
-                <TableHead className="font-bold text-slate-700 px-5 py-4">Roll</TableHead>
-                <TableHead className="font-bold text-slate-700 px-5 py-4">Name</TableHead>
-                <TableHead className="font-bold text-slate-700 px-5 py-4">Date</TableHead>
-                <TableHead className="font-bold text-slate-700 px-5 py-4">Marks</TableHead>
-                <TableHead className="font-bold text-slate-700 px-5 py-4 text-center">%</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-400 font-medium">
-                    No items found. Adjust filters and apply.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                rows.map((r, i) => (
-                  <TableRow key={i} className="hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all border-b border-slate-100 group">
-                    <TableCell className="font-bold text-slate-950 px-5 py-4 group-hover:text-blue-600 transition-colors">
-                      {r.rank ? `#${r.rank}` : '-'}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 font-mono text-xs text-slate-600 group-hover:text-slate-900">{r.student?.rollNo}</TableCell>
-                    <TableCell className="font-semibold text-slate-900 px-5 py-4 group-hover:text-blue-600 transition-colors">{r.student?.name}</TableCell>
-                    <TableCell className="px-5 py-4 text-slate-600 group-hover:text-slate-900">
-                      {examType === 'main' && r.examDate
-                        ? new Date(r.examDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : examType === 'daily' && r.testDate
-                          ? new Date(r.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                          : '-'}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 font-medium text-slate-800">
-                      {(r.marksObtained ?? r.totalObtained)} <span className="text-slate-400 font-normal">/</span> {(r.maxMarks ?? r.totalMax)}
-                    </TableCell>
-                    <TableCell className="px-5 py-4 text-center">
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-sm ring-1 ring-inset ${
-                        r.percentage >= 80 ? 'bg-green-50 text-green-700 ring-green-600/20' :
-                        r.percentage >= 60 ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
-                        r.percentage >= 40 ? 'bg-amber-50 text-amber-700 ring-amber-600/20' :
-                        'bg-red-50 text-red-700 ring-red-600/20'
-                      }`}>
-                        {r.percentage}%
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </ErpSection>
+      {results && (
+        <>
+          <ErpSection title="Search" icon={Filter} tone="blue">
+            <FormField label="Search by Student Name or Roll No">
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </FormField>
+          </ErpSection>
+
+          <ErpSection title="Results" icon={FileBarChart} tone="green">
+            <div className="mb-4 rounded-lg bg-slate-50 p-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-slate-700">Class:</span>{' '}
+                  <span className="text-slate-600">Class {results.className} {results.section}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-slate-700">Subject:</span>{' '}
+                  <span className="text-slate-600">{filters.subject || 'All'}</span>
+                </div>
+                {isDailyTest && dateFilterType === 'specific' && (
+                  <div>
+                    <span className="font-medium text-slate-700">Test Date:</span>{' '}
+                    <span className="text-slate-600">{new Date(filters.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                )}
+                {isDailyTest && dateFilterType === 'range' && (
+                  <div>
+                    <span className="font-medium text-slate-700">Date Range:</span>{' '}
+                    <span className="text-slate-600">
+                      {new Date(filters.dateFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {new Date(filters.dateTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {filteredResults.length === 0 ? (
+              <div className="py-8 text-center text-slate-500">No results found</div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-slate-200" style={{ minWidth: '100%' }}>
+                <Table style={{ minWidth: 'max-content' }}>
+                  <TableHeader>
+                    {isDailyTest ? (
+                      <>
+                        <TableRow>
+                          <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                          <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                          <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                          <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                          <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                          <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          {results.tests?.map((test, idx) => (
+                            <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
+                              <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
+                                <div className="text-sm font-bold">Daily Test {idx + 1}</div>
+                                <div className="text-xs text-indigo-100">{new Date(test.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <div className="text-xs text-indigo-200">{test.subject}</div>
+                                <div className="text-xs text-indigo-300">Teacher: {test.teacherName}</div>
+                              </div>
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
+                          <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
+                          <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
+                          <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
+                          <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                          <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          {results.tests?.map((test) => (
+                            <>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                            </>
+                          ))}
+                        </TableRow>
+                      </>
+                    ) : (
+                      <TableRow className="bg-slate-50/70 border-b border-slate-100">
+                        <TableHead className="font-bold text-slate-700 px-5 py-4">Rank</TableHead>
+                        <TableHead className="font-bold text-slate-700 px-5 py-4">Roll</TableHead>
+                        <TableHead className="font-bold text-slate-700 px-5 py-4">Name</TableHead>
+                        <TableHead className="font-bold text-slate-700 px-5 py-4">Date</TableHead>
+                        <TableHead className="font-bold text-slate-700 px-5 py-4">Marks</TableHead>
+                        <TableHead className="font-bold text-slate-700 px-5 py-4 text-center">%</TableHead>
+                      </TableRow>
+                    )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredResults.map((r, index) => (
+                      <TableRow key={r._id || index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
+                        {isDailyTest ? (
+                          <>
+                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{r.totalObtained}</TableCell>
+                            <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{r.average}</TableCell>
+                            <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '50px' }}>{r.percentage}%</TableCell>
+                            <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{r.rank}</TableCell>
+                            <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{r.student?.rollNo}</TableCell>
+                            <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{r.student?.name}</TableCell>
+                            {results.tests?.map((test) => {
+                              const mark = r.testMarks?.[test._id];
+                              return (
+                                <>
+                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{test.maxMarks}</TableCell>
+                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                </>
+                              );
+                            })}
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="font-bold text-slate-950 px-5 py-4">{r.rank ? `#${r.rank}` : '-'}</TableCell>
+                            <TableCell className="px-5 py-4 font-mono text-xs text-slate-600">{r.student?.rollNo}</TableCell>
+                            <TableCell className="font-semibold text-slate-900 px-5 py-4">{r.student?.name}</TableCell>
+                            <TableCell className="px-5 py-4 text-slate-600">
+                              {r.examDate ? new Date(r.examDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                            </TableCell>
+                            <TableCell className="px-5 py-4 font-medium text-slate-800">
+                              {r.marksObtained} <span className="text-slate-400 font-normal">/</span> {r.maxMarks}
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-center">
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-sm ring-1 ring-inset ${
+                                r.percentage >= 80 ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                                r.percentage >= 60 ? 'bg-blue-50 text-blue-700 ring-blue-600/20' :
+                                r.percentage >= 40 ? 'bg-amber-50 text-amber-700 ring-amber-600/20' :
+                                'bg-red-50 text-red-700 ring-red-600/20'
+                              }`}>
+                                {r.percentage}%
+                              </span>
+                            </TableCell>
+                          </>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </ErpSection>
+        </>
+      )}
     </PageStack>
   );
 }
