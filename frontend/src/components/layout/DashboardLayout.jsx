@@ -186,9 +186,7 @@ export default function DashboardLayout() {
             {/* Super Admin: Only Announcement icon */}
             {isSuperAdmin && (
               <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl hover:bg-slate-100 text-slate-500"
+                className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
                 onClick={() => setIsAnnouncementModalOpen(true)}
                 title="Send Announcement to All Admins"
               >
@@ -201,9 +199,7 @@ export default function DashboardLayout() {
               <>
                 <NotificationPanel />
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl hover:bg-slate-100 text-slate-500"
+                  className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
                   onClick={() => setIsAnnouncementModalOpen(true)}
                   title="Send Announcement to Teachers"
                 >
