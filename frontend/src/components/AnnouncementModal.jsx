@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, X } from 'lucide-react';
+import { Megaphone, X, Bell } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,7 +77,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
 
       if (finalRecipientIds.length === 0) {
         alert('Please select at least one recipient');
-        setLoading(false);
+        loading(false);
         return;
       }
 
@@ -112,24 +112,30 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-indigo-600" />
-            {role === 'super_admin' ? 'Send Announcement to All Admins' : 'Send Announcement to Teachers'}
-          </DialogTitle>
-          <DialogDescription>
-            {role === 'super_admin'
-              ? 'This announcement will be sent to all School Admins.'
-              : 'Send a broadcast to all teachers or select specific teachers.'}
-          </DialogDescription>
+      {/* Added px-8 to give comfortable spacing on the left and right */}
+      <DialogContent className="max-w-lg rounded-2xl shadow-2xl px-8">
+        <DialogHeader className="space-y-2 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-500 shadow-lg shadow-purple-500/30">
+              <Megaphone className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl font-bold text-slate-900">
+                Teacher Announcement Center
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-500">
+                Broadcast updates, alerts and notices to teachers
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           <FormField label="Title">
             <Input
               placeholder="Enter announcement title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500"
             />
           </FormField>
           <FormField label="Message">
@@ -138,24 +144,46 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               rows={4}
+              className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500"
             />
           </FormField>
           <FormField label="Priority">
             <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="important">Important</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="normal">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-slate-400" />
+                    Normal
+                  </div>
+                </SelectItem>
+                <SelectItem value="info">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                    Info
+                  </div>
+                </SelectItem>
+                <SelectItem value="important">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    Important
+                  </div>
+                </SelectItem>
+                <SelectItem value="urgent">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                    Urgent
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </FormField>
           {role === 'school_admin' && (
             <FormField label="Recipients">
               <Select value={recipientType} onValueChange={setRecipientType}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,27 +195,36 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
           )}
           {role === 'school_admin' && recipientType === 'selected' && (
             <FormField label="Select Teachers">
-              <div className="max-h-48 overflow-y-auto rounded-md border border-slate-200 p-2">
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-3 shadow-sm">
                 {recipients.map((recipient) => (
-                  <label key={recipient._id} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded">
+                  <label key={recipient._id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
                     <input
                       type="checkbox"
                       checked={selectedRecipients.includes(recipient._id)}
                       onChange={() => handleRecipientToggle(recipient._id)}
-                      className="rounded border-slate-300"
+                      className="rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
                     />
-                    <span className="text-sm">{recipient.teacherName || recipient.name}</span>
+                    <span className="text-sm font-medium text-slate-700">{recipient.teacherName || recipient.name}</span>
                   </label>
                 ))}
               </div>
             </FormField>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+        <DialogFooter className="pt-6">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            disabled={loading}
+            className="rounded-xl border-slate-200 font-medium hover:bg-slate-50"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSend} disabled={loading}>
+          <Button 
+            onClick={handleSend} 
+            disabled={loading}
+            className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 font-medium shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
+          >
             {loading ? 'Sending...' : 'Send Announcement'}
           </Button>
         </DialogFooter>

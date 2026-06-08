@@ -250,6 +250,7 @@ export default function ManageUsers() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
                         disabled={isArchived}
                         onClick={() => {
                           setEdit(t);
@@ -265,20 +266,20 @@ export default function ManageUsers() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        className="bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
                         disabled={isArchived}
                         onClick={() => {
                           setSelectedTeacher(t);
                           setNotifyModalOpen(true);
                         }}
-                        title="Send Notification"
+                        title={`Send Notification to ${t.teacherName || t.name}`}
                       >
                         <Bell className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
                         disabled={isArchived}
                         onClick={async () => {
                           if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
@@ -295,7 +296,8 @@ export default function ManageUsers() {
                       </Button>
                       <Button
                         size="sm"
-                        variant={t.status === 'Inactive' ? 'default' : 'destructive'}
+                        variant="outline"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
                         disabled={isArchived}
                         onClick={async () => {
                           if (t.status === 'Inactive') {
