@@ -18,9 +18,6 @@ export const generateStudentImportTemplate = async () => {
   const headers = ['Roll No', 'Student Name', 'Gender', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
   sheet.addRow(headers);
 
-  const exampleRow = ['1', 'John Doe', 'male', 'Rajesh Doe', '+919876543210', 'rajesh.doe@example.com'];
-  sheet.addRow(exampleRow);
-
   const headerRow = sheet.getRow(1);
   headerRow.font = { bold: true };
   headerRow.fill = {
@@ -114,7 +111,7 @@ export const parseStudentImportFile = (buffer, filename) => {
   }
 
   const headers = rows[0].map((h) => String(h).trim());
-  const dataRows = rows.slice(1).filter((row) => row[0] || row[1]);
+  const dataRows = rows.slice(1);
 
   const parsed = dataRows.map((row, index) => {
     const rollNo = String(row[0] || '').trim();
