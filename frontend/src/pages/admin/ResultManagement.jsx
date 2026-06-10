@@ -6,6 +6,10 @@ import api from '@/lib/api';
 
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 
+import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
+
+import AbsentBadge from '@/components/AbsentBadge';
+
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 
 import { Button } from '@/components/ui/button';
@@ -524,23 +528,23 @@ export default function ResultManagement() {
 
         {toppers.length ? (
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3">
 
             {toppers.map((t, i) => (
 
-              <div key={i} className="flex items-center gap-3 rounded-lg border bg-gradient-to-br from-amber-50 to-yellow-50 p-3 shadow-sm">
+              <div key={i} className="flex flex-col items-center gap-3 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-md hover:shadow-lg transition-shadow">
 
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-400 text-white font-bold text-lg shadow-md">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-white font-bold text-2xl shadow-lg">
 
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
 
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-center">
 
-                  <p className="truncate font-semibold text-slate-900">{t.student?.name}</p>
+                  <p className="truncate font-bold text-slate-900 text-lg">{t.student?.name}</p>
 
-                  <p className="text-sm font-bold text-amber-600">{t.percentage}%</p>
+                  <p className="text-2xl font-extrabold text-amber-600">{t.percentage}%</p>
 
                 </div>
 
@@ -552,11 +556,11 @@ export default function ResultManagement() {
 
         ) : (
 
-          <div className="flex items-center gap-3 text-slate-500">
+          <div className="flex flex-col items-center gap-3 py-8 text-slate-500">
 
-            <Trophy className="h-5 w-5" />
+            <Trophy className="h-8 w-8 text-amber-400" />
 
-            <p className="text-sm">Apply filters to view topper students</p>
+            <p className="text-sm font-medium">Apply filters to view topper students</p>
 
           </div>
 
@@ -583,14 +587,14 @@ export default function ResultManagement() {
                 {dateFilterType === 'specific' && (
                   <div>
                     <span className="font-medium text-slate-700">Test Date:</span>{' '}
-                    <span className="text-slate-600">{new Date(filters.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-slate-600">{formatDisplayDate(filters.testDate)}</span>
                   </div>
                 )}
                 {dateFilterType === 'range' && (
                   <div>
                     <span className="font-medium text-slate-700">Date Range:</span>{' '}
                     <span className="text-slate-600">
-                      {new Date(filters.dateFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {new Date(filters.dateTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDisplayDate(filters.dateFrom)} → {formatDisplayDate(filters.dateTo)}
                     </span>
                   </div>
                 )}
@@ -615,7 +619,7 @@ export default function ResultManagement() {
                           <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
                             <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                               <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                              <div className="text-xs text-indigo-100">{new Date(test.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                              <div className="text-xs text-indigo-100">{formatDisplayDateShort(test.testDate)}</div>
                               <div className="text-xs text-indigo-200">{test.subject}</div>
                               <div className="text-xs text-indigo-300">Teacher: {test.teacherName}</div>
                             </div>
@@ -652,7 +656,9 @@ export default function ResultManagement() {
                           return (
                             <>
                               <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{test.maxMarks}</TableCell>
-                              <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>
+                                {mark && mark.status === 'absent' ? <AbsentBadge /> : (mark ? mark.marksObtained : '')}
+                              </TableCell>
                             </>
                           );
                         })}
@@ -742,11 +748,11 @@ export default function ResultManagement() {
 
                           {r.examDate
 
-                            ? new Date(r.examDate).toLocaleDateString('en-GB')
+                            ? formatDisplayDate(r.examDate)
 
                             : r.testDate
 
-                              ? new Date(r.testDate).toLocaleDateString('en-GB')
+                              ? formatDisplayDate(r.testDate)
 
                               : '-'}
 

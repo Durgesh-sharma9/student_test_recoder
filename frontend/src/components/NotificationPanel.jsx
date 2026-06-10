@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -108,7 +109,7 @@ export default function NotificationPanel() {
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hr ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString('en-GB');
+    return formatDisplayDate(date);
   };
 
   const userId = localStorage.getItem('userId');

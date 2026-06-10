@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Filter, FileBarChart, Download } from 'lucide-react';
+import { Filter, FileBarChart, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import api from '@/lib/api';
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 import { useSubjects } from '@/hooks/useSubjects';
@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
+import AbsentBadge from '@/components/AbsentBadge';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
@@ -247,14 +251,14 @@ export default function TeacherResults() {
                 {isDailyTest && dateFilterType === 'specific' && (
                   <div>
                     <span className="font-medium text-slate-700">Test Date:</span>{' '}
-                    <span className="text-slate-600">{new Date(filters.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    <span className="text-slate-600">{formatDisplayDate(filters.testDate)}</span>
                   </div>
                 )}
                 {isDailyTest && dateFilterType === 'range' && (
                   <div>
                     <span className="font-medium text-slate-700">Date Range:</span>{' '}
                     <span className="text-slate-600">
-                      {new Date(filters.dateFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {new Date(filters.dateTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDisplayDate(filters.dateFrom)} → {formatDisplayDate(filters.dateTo)}
                     </span>
                   </div>
                 )}
@@ -280,7 +284,7 @@ export default function TeacherResults() {
                             <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
                               <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                                 <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                                <div className="text-xs text-indigo-100">{new Date(test.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <div className="text-xs text-indigo-100">{formatDisplayDateShort(test.testDate)}</div>
                                 <div className="text-xs text-indigo-200">{test.subject}</div>
                                 <div className="text-xs text-indigo-300">Teacher: {test.teacherName}</div>
                               </div>
@@ -329,7 +333,9 @@ export default function TeacherResults() {
                               return (
                                 <>
                                   <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{test.maxMarks}</TableCell>
-                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>
+                                    {mark && mark.status === 'absent' ? <AbsentBadge /> : (mark ? mark.marksObtained : '')}
+                                  </TableCell>
                                 </>
                               );
                             })}
@@ -340,7 +346,7 @@ export default function TeacherResults() {
                             <TableCell className="px-5 py-4 font-mono text-xs text-slate-600">{r.student?.rollNo}</TableCell>
                             <TableCell className="font-semibold text-slate-900 px-5 py-4">{r.student?.name}</TableCell>
                             <TableCell className="px-5 py-4 text-slate-600">
-                              {r.examDate ? new Date(r.examDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                              {r.examDate ? formatDisplayDate(r.examDate) : '-'}
                             </TableCell>
                             <TableCell className="px-5 py-4 font-medium text-slate-800">
                               {r.marksObtained} <span className="text-slate-400 font-normal">/</span> {r.maxMarks}

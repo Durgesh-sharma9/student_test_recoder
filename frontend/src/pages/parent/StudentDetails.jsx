@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Trophy, Calendar, FileText } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
+import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 
@@ -91,10 +93,10 @@ export default function StudentDetails() {
               <div key={index} className="flex items-center justify-between p-4">
                 <div>
                   <div className="font-medium text-slate-900">{result.examType} - {result.subject}</div>
-                  <div className="text-sm text-slate-500">{new Date(result.date).toLocaleDateString()}</div>
+                  <div className="text-sm text-slate-500">{formatDisplayDate(result.date)}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-slate-900">{result.marksObtained} / {result.maxMarks}</div>
+                  <div className="font-medium text-slate-900">{result.status === 'absent' ? <AbsentBadge /> : `${result.marksObtained} / ${result.maxMarks}`}</div>
                   <div className="text-sm text-slate-500">{result.percentage.toFixed(1)}%</div>
                 </div>
               </div>

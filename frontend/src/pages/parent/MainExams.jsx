@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, FileText } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 
@@ -66,7 +67,7 @@ export default function ParentMainExams() {
               >
                 <h3 className="text-lg font-bold text-slate-900">{exam.examType}</h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  {exam.examDate ? new Date(exam.examDate).toLocaleDateString() : 'No date'}
+                  {exam.examDate ? formatDisplayDate(exam.examDate) : 'No date'}
                 </p>
                 <p className="text-sm text-slate-500 mt-1">
                   {exam.subjects.length} subject{exam.subjects.length !== 1 ? 's' : ''}

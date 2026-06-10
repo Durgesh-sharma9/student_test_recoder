@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Calendar, Filter } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
+import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,10 +123,10 @@ export default function ParentDailyTests() {
                 {dailyTests.map((test) => (
                   <tr key={test._id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm text-slate-900">
-                      {new Date(test.date).toLocaleDateString()}
+                      {formatDisplayDate(test.date)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900">{test.subject}</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-900">{test.marksObtained}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-900">{test.status === 'absent' ? <AbsentBadge /> : test.marksObtained}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">{test.maxMarks}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">{test.percentage.toFixed(1)}%</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">#{test.rankSubject}</td>

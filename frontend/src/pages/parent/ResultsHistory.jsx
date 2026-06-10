@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { ArrowLeft, Calendar, Filter, Trophy, User, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
+import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,7 +74,7 @@ export default function ResultsHistory() {
       if (!date) return 'N/A';
       const d = new Date(date);
       if (isNaN(d.getTime())) return 'N/A';
-      return d.toLocaleDateString();
+      return formatDisplayDate(date);
     } catch {
       return 'N/A';
     }
@@ -244,7 +246,7 @@ export default function ResultsHistory() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-900">{result?.subject || 'N/A'}</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-900">{result?.marksObtained ?? 'N/A'}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-900">{result?.status === 'absent' ? <AbsentBadge /> : (result?.marksObtained ?? 'N/A')}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">{result?.maxMarks ?? 'N/A'}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">{formatPercentageSafe(result?.percentage)}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-900">{result?.rank ? '#' + result.rank : 'N/A'}</td>
