@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { Calendar, Lock, Plus, Edit2, Download, FileText, BarChart3, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
+import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack, FormField } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,8 +120,7 @@ export default function AcademicSessions() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDisplayDate(dateString);
   };
 
   const handleDownloadReport = async (format) => {
@@ -246,7 +246,7 @@ export default function AcademicSessions() {
       
       results.dailyTests.forEach((dt, idx) => {
         const testName = `Daily Test ${idx + 1}`;
-        const dateStr = new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const dateStr = formatDisplayDateShort(dt.testDate);
         headerRow1.push(testName, '');
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
@@ -317,7 +317,7 @@ export default function AcademicSessions() {
       
       results.dailyTests.forEach((dt, idx) => {
         const testName = `Daily Test ${idx + 1}`;
-        const dateStr = new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const dateStr = formatDisplayDateShort(dt.testDate);
         headerRow1.push(testName, '');
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
@@ -793,7 +793,7 @@ export default function AcademicSessions() {
                 <div>
                   <span className="font-medium text-slate-700">Generated:</span>{' '}
                   <span className="text-slate-600">
-                    {new Date(results.generatedDate).toLocaleDateString()}
+                    {formatDisplayDate(results.generatedDate)}
                   </span>
                 </div>
               </div>
@@ -817,7 +817,7 @@ export default function AcademicSessions() {
                           <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
                             <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                               <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                              <div className="text-xs text-indigo-100">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                              <div className="text-xs text-indigo-100">{formatDisplayDateShort(dt.testDate)}</div>
                               <div className="text-xs text-indigo-200">{dt.subject}</div>
                             </div>
                           </TableHead>

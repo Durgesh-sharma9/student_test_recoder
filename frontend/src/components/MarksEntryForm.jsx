@@ -128,10 +128,10 @@ export default function MarksEntryForm({ category, title }) {
     // Clear any existing errors before validation
     setErrorFields([]);
 
-    // Check for empty marks
+    // Check for empty marks (skip absent students)
     const emptyFields = [];
     rows.forEach((r, idx) => {
-      if (r.marksObtained === '' || r.marksObtained == null) {
+      if (r.status !== 'absent' && (r.marksObtained === '' || r.marksObtained == null)) {
         emptyFields.push(idx);
       }
     });
@@ -178,6 +178,7 @@ export default function MarksEntryForm({ category, title }) {
     const entries = rows.map((r) => ({
       studentId: r.studentId,
       marksObtained: r.marksObtained === '' || r.marksObtained == null ? 0 : Number(r.marksObtained),
+      status: r.status || 'present',
     }));
 
     setSaving(true);
@@ -347,6 +348,7 @@ export default function MarksEntryForm({ category, title }) {
                 <TableRow>
                   <TableHead>Roll</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Marks</TableHead>
                   <TableHead>Rank</TableHead>
                 </TableRow>
@@ -354,10 +356,36 @@ export default function MarksEntryForm({ category, title }) {
               <TableBody>
                 {filteredRows.map((r, idx) => {
                   const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
+                  const isAbsent = r.status === 'absent';
                   return (
                     <TableRow key={r.studentId}>
                       <TableCell>{r.rollNo}</TableCell>
                       <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={r.status || 'present'}
+                          onValueChange={(value) => {
+                            setRows((prev) =>
+                              prev.map((x, i) => {
+                                if (i === originalIdx) {
+                                  const newStatus = value;
+                                  const newMarks = newStatus === 'absent' ? '' : x.marksObtained;
+                                  return { ...x, status: newStatus, marksObtained: newMarks };
+                                }
+                                return x;
+                              })
+                            );
+                          }}
+                        >
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="present">Present</SelectItem>
+                            <SelectItem value="absent">Absent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         <Input
                           data-index={originalIdx}
@@ -365,6 +393,7 @@ export default function MarksEntryForm({ category, title }) {
                           min="0"
                           max={form.maxMarks}
                           value={r.marksObtained}
+                          disabled={isAbsent}
                           onChange={(e) => {
                             setRows((prev) =>
                               prev.map((x, i) => (i === originalIdx ? { ...x, marksObtained: e.target.value } : x))

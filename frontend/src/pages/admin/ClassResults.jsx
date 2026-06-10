@@ -4,6 +4,8 @@ import { FileText, Search, Download, Check, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
+import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
+import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,7 +130,7 @@ export default function ClassResults() {
       
       results.assessments.forEach((assessment) => {
         headerRow1.push(assessment.examType, '');
-        headerRow2.push(`Date: ${new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, `Subject: ${assessment.subject}`);
+        headerRow2.push(`Date: ${formatDisplayDateShort(assessment.date)}`, `Subject: ${assessment.subject}`);
       });
 
       const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
@@ -141,7 +143,7 @@ export default function ClassResults() {
         results.assessments.forEach((assessment) => {
           const key = `${assessment.examType}_${assessment._id}`;
           const mark = r.assessments?.[key];
-          row.push(assessment.maxMarks, mark?.marksObtained || '');
+          row.push(assessment.maxMarks, mark && mark.status === 'absent' ? 'A' : (mark?.marksObtained || ''));
         });
         return row;
       });
@@ -158,7 +160,7 @@ export default function ClassResults() {
       
       results.dailyTests.forEach((dt, idx) => {
         const testName = `Daily Test ${idx + 1}`;
-        const dateStr = new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const dateStr = formatDisplayDateShort(dt.testDate);
         headerRow1.push(testName, '');
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
@@ -172,7 +174,7 @@ export default function ClassResults() {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
           const mark = r.dailyTests[dt._id];
-          row.push(dt.maxMarks, mark ? mark.marksObtained : '');
+          row.push(dt.maxMarks, mark && mark.status === 'absent' ? 'A' : (mark ? mark.marksObtained : ''));
         });
         return row;
       });
@@ -229,7 +231,7 @@ export default function ClassResults() {
       
       results.assessments.forEach((assessment) => {
         headerRow1.push(assessment.examType, '');
-        headerRow2.push(`Date: ${new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, `Subject: ${assessment.subject}`);
+        headerRow2.push(`Date: ${formatDisplayDateShort(assessment.date)}`, `Subject: ${assessment.subject}`);
       });
 
       const headerRow3 = ['Total', 'Average', 'Percentage', 'Rank', 'Roll No', 'Student Name'];
@@ -244,7 +246,7 @@ export default function ClassResults() {
         results.assessments.forEach((assessment) => {
           const key = `${assessment.examType}_${assessment._id}`;
           const mark = r.assessments?.[key];
-          row.push(assessment.maxMarks, mark?.marksObtained || '');
+          row.push(assessment.maxMarks, mark && mark.status === 'absent' ? 'A' : (mark?.marksObtained || ''));
         });
         data.push(row);
       });
@@ -398,7 +400,7 @@ export default function ClassResults() {
       
       results.dailyTests.forEach((dt, idx) => {
         const testName = `Daily Test ${idx + 1}`;
-        const dateStr = new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const dateStr = formatDisplayDateShort(dt.testDate);
         headerRow1.push(testName, '');
         headerRow2.push(`Date: ${dateStr}`, `Subject: ${dt.subject}`);
       });
@@ -414,7 +416,7 @@ export default function ClassResults() {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
           const mark = r.dailyTests[dt._id];
-          row.push(dt.maxMarks, mark ? mark.marksObtained : '');
+          row.push(dt.maxMarks, mark && mark.status === 'absent' ? 'A' : (mark ? mark.marksObtained : ''));
         });
         data.push(row);
       });
@@ -558,7 +560,10 @@ export default function ClassResults() {
       const data = [headers];
 
       filteredResults.forEach((r) => {
-        const subjectMarks = results.subjects.map((s) => r.subjects[s]?.marksObtained || '-');
+        const subjectMarks = results.subjects.map((s) => {
+          const mark = r.subjects[s];
+          return mark && mark.status === 'absent' ? 'A' : (mark?.marksObtained || '-');
+        });
         data.push([
           r.rank,
           r.rollNo,
@@ -816,7 +821,7 @@ export default function ClassResults() {
                 <div>
                   <span className="font-medium text-slate-700">Generated:</span>{' '}
                   <span className="text-slate-600">
-                    {new Date(results.generatedDate).toLocaleDateString()}
+                    {formatDisplayDate(results.generatedDate)}
                   </span>
                 </div>
               </div>
@@ -854,7 +859,7 @@ export default function ClassResults() {
                                   : 'bg-red-600'
                               }`}>
                                 <div className="text-sm font-bold">{assessment.examType}</div>
-                                <div className="text-xs opacity-90">{new Date(assessment.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <div className="text-xs opacity-90">{formatDisplayDateShort(assessment.date)}</div>
                                 <div className="text-xs opacity-80">{assessment.subject}</div>
                               </div>
                             </TableHead>
@@ -907,7 +912,7 @@ export default function ClassResults() {
                               <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
                                 <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                                   <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                                  <div className="text-xs text-indigo-100">{new Date(dt.testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                  <div className="text-xs text-indigo-100">{formatDisplayDateShort(dt.testDate)}</div>
                                   <div className="text-xs text-indigo-200">{dt.subject}</div>
                                 </div>
                               </TableHead>
@@ -981,7 +986,7 @@ export default function ClassResults() {
                                     }`} 
                                     style={{ minWidth: '80px' }}
                                   >
-                                    {mark?.marksObtained || '-'}
+                                    {mark && mark.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained || '-')}
                                   </TableCell>
                                 </React.Fragment>
                               );
@@ -1002,7 +1007,7 @@ export default function ClassResults() {
                                   return (
                                     <React.Fragment key={`${dt._id}-student-dt`}>
                                       <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
-                                      <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark ? mark.marksObtained : ''}</TableCell>
+                                      <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark && mark.status === 'absent' ? <AbsentBadge /> : (mark ? mark.marksObtained : '')}</TableCell>
                                     </React.Fragment>
                                   );
                                 })}

@@ -7,6 +7,8 @@ import { BarChart3, Activity, GraduationCap } from 'lucide-react';
 
 import api from '@/lib/api';
 
+import { formatDisplayDate } from '@/lib/dateFormatter';
+
 import StatsCard from '@/components/StatsCard';
 
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
@@ -208,7 +210,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 flex items-center gap-2 text-xs text-slate-500">
                   <span>by {a.actor?.name || 'Unknown'}</span>
                   <span>•</span>
-                  <span>{new Date(a.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  <span>{formatDisplayDate(a.createdAt)}</span>
                   <span>•</span>
                   <span>{new Date(a.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                 </div>

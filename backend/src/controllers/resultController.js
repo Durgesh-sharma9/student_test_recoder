@@ -230,17 +230,23 @@ export const saveMarks = asyncHandler(async (req, res) => {
 
   for (const entry of entries || []) {
     if (!validStudentIds.has(String(entry.studentId))) continue;
-    if (entry.marksObtained < 0 || entry.marksObtained > session.maxMarks) {
+    
+    // Handle absent status
+    const isAbsent = entry.status === 'absent';
+    const marksObtained = isAbsent ? 0 : entry.marksObtained;
+    
+    if (!isAbsent && (marksObtained < 0 || marksObtained > session.maxMarks)) {
       throw new ApiError(400, 'Marks cannot exceed maximum marks.');
     }
-    const percentage = round2((entry.marksObtained / session.maxMarks) * 100);
+    const percentage = round2((marksObtained / session.maxMarks) * 100);
     await MarkEntry.findOneAndUpdate(
       { session: session._id, student: entry.studentId },
       {
         session: session._id,
         student: entry.studentId,
-        marksObtained: entry.marksObtained,
+        marksObtained,
         percentage,
+        status: entry.status || 'present',
         updatedBy: req.user._id,
       },
       { upsert: true, new: true }
@@ -273,6 +279,7 @@ export const getMarksEntryData = asyncHandler(async (req, res) => {
       marksObtained: map.get(s._id.toString())?.marksObtained ?? '',
       rankSubject: map.get(s._id.toString())?.rankSubject ?? null,
       percentage: map.get(s._id.toString())?.percentage ?? null,
+      status: map.get(s._id.toString())?.status ?? 'present',
     })),
   });
 });
@@ -569,7 +576,8 @@ export const getResults = asyncHandler(async (req, res) => {
           e.student.toString() === student._id.toString()
         );
         testMarks[session._id.toString()] = entry ? {
-          marksObtained: entry.marksObtained
+          marksObtained: entry.marksObtained,
+          status: entry.status || 'present'
         } : null;
         
         if (entry) {
@@ -705,7 +713,8 @@ export const downloadResults = asyncHandler(async (req, res) => {
           e.student.toString() === student._id.toString()
         );
         testMarks[session._id.toString()] = entry ? {
-          marksObtained: entry.marksObtained
+          marksObtained: entry.marksObtained,
+          status: entry.status || 'present'
         } : null;
         
         if (entry) {
@@ -776,7 +785,8 @@ export const downloadResults = asyncHandler(async (req, res) => {
       ];
       tests.forEach(test => {
         const mark = r.testMarks[test._id.toString()];
-        row.push(test.maxMarks, mark ? mark.marksObtained : '');
+        const displayValue = mark && mark.status === 'absent' ? 'A' : (mark ? mark.marksObtained : '');
+        row.push(test.maxMarks, displayValue);
       });
       return row;
     });

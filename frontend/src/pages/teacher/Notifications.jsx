@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Check, CheckCheck } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -58,14 +59,7 @@ export default function TeacherNotifications() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDisplayDate(dateString);
   };
 
   const userId = localStorage.getItem('userId');

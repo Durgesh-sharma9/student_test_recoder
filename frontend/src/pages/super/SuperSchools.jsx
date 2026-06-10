@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Search, Building2 } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -86,7 +87,7 @@ export default function SuperSchools() {
                     <span className="text-xs text-slate-500">{s.email}</span>
                   </TableCell>
                   <TableCell>{s.plan?.name || '-'}</TableCell>
-                  <TableCell>{s.planExpiresAt ? new Date(s.planExpiresAt).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>{s.planExpiresAt ? formatDisplayDate(s.planExpiresAt) : '-'}</TableCell>
                   <TableCell>
                     {s.isExpired ? (
                       <span className="font-medium text-amber-600">Expired</span>

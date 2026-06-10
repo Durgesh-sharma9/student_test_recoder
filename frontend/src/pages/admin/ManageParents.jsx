@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Search, Users, Eye, Lock, Unlock, Key, ShieldCheck, ShieldAlert } from 'lucide-react';
 import api from '@/lib/api';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -230,7 +231,7 @@ export default function ManageParents() {
                       <TableCell className="px-5 py-4 text-slate-500 dark:text-slate-400 max-w-[180px] truncate group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentEmail || '-'}</TableCell>
                       <TableCell className="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">
                         {student.parentLastLogin 
-                          ? new Date(student.parentLastLogin).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) 
+                          ? formatDisplayDate(student.parentLastLogin) 
                           : 'Never'}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center">
@@ -335,7 +336,7 @@ export default function ManageParents() {
                     <span className="text-slate-500 dark:text-slate-400">Last Session</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300">
                       {selectedParent.lastLogin 
-                        ? new Date(selectedParent.lastLogin).toLocaleDateString() 
+                        ? formatDisplayDate(selectedParent.lastLogin) 
                         : 'Never'}
                     </span>
                   </div>
@@ -343,7 +344,7 @@ export default function ManageParents() {
                     <span className="text-slate-500 dark:text-slate-400">Onboarding Date</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300">
                       {selectedParent.createdAt 
-                        ? new Date(selectedParent.createdAt).toLocaleDateString() 
+                        ? formatDisplayDate(selectedParent.createdAt) 
                         : 'N/A'}
                     </span>
                   </div>
