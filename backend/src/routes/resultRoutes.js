@@ -10,6 +10,7 @@ import {
   getResults,
   downloadResults,
   dashboardSummary,
+  getWeakStudentsFiltered,
 } from '../controllers/resultController.js';
 
 const router = Router();
@@ -17,6 +18,7 @@ const router = Router();
 router.use(protect, requireSchoolActive);
 router.get('/dashboard', dashboardSummary);
 router.get('/sessions', getSessions);
+router.get('/weak-students', authorize('school_admin', 'teacher'), getWeakStudentsFiltered);
 router.get('/entry-preview', authorize('school_admin', 'teacher'), previewMarksEntry);
 router.post('/entry-save', authorize('school_admin', 'teacher'), saveMarksEntry);
 router.get('/sessions/:sessionId/marks', authorize('school_admin', 'teacher'), getMarksEntryData);
