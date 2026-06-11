@@ -58,10 +58,6 @@ export default function TeacherAssignments() {
         const activeTeachers = (t.data.users || []).filter(teacher => teacher.status !== 'Inactive');
         setTeachers(activeTeachers);
         setClasses(c.data.classes || []);
-
-        if (activeTeachers.length) {
-          setTeacherId(activeTeachers[0]._id);
-        }
       },
     );
   }, []);
