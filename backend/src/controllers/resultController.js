@@ -181,11 +181,35 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
 
   for (const entry of entries || []) {
     if (!validStudentIds.has(String(entry.studentId))) continue;
-    const marks = Number(entry.marksObtained);
-    if (Number.isNaN(marks) || marks < 0 || marks > session.maxMarks) {
-      throw new ApiError(400, 'Marks cannot exceed maximum marks.');
+    const isAbsent = entry.status === 'absent';
+
+    const marks = isAbsent
+      ? 0
+      : Number(entry.marksObtained);
+
+    if (
+      !isAbsent &&
+      (Number.isNaN(marks) ||
+        marks < 0 ||
+        marks > session.maxMarks)
+    ) {
+      throw new ApiError(
+        400,
+        'Marks cannot exceed maximum marks.'
+      );
     }
-    const percentage = round2((marks / session.maxMarks) * 100);
+
+    const percentage = round2(
+      (marks / session.maxMarks) * 100
+    );
+
+    // DEBUG LOG
+    console.log({
+      studentId: entry.studentId,
+      status: entry.status || 'present',
+      marksObtained: marks
+    });
+
     await MarkEntry.findOneAndUpdate(
       { session: session._id, student: entry.studentId },
       {
@@ -194,6 +218,7 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
         student: entry.studentId,
         marksObtained: marks,
         percentage,
+        status: entry.status || 'present',
         updatedBy: req.user._id,
       },
       { upsert: true, new: true }
@@ -230,15 +255,23 @@ export const saveMarks = asyncHandler(async (req, res) => {
 
   for (const entry of entries || []) {
     if (!validStudentIds.has(String(entry.studentId))) continue;
-    
+
     // Handle absent status
     const isAbsent = entry.status === 'absent';
     const marksObtained = isAbsent ? 0 : entry.marksObtained;
-    
+
     if (!isAbsent && (marksObtained < 0 || marksObtained > session.maxMarks)) {
       throw new ApiError(400, 'Marks cannot exceed maximum marks.');
     }
     const percentage = round2((marksObtained / session.maxMarks) * 100);
+
+    // DEBUG LOG
+    console.log({
+      studentId: entry.studentId,
+      status: entry.status || 'present',
+      marksObtained
+    });
+
     await MarkEntry.findOneAndUpdate(
       { session: session._id, student: entry.studentId },
       {
