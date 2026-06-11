@@ -142,14 +142,20 @@ export default function DashboardLayout() {
 
         {/* User Workspace Profile Block */}
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
-          <p className={cn("mt-0.5 truncate text-sm font-semibold text-slate-800", isCollapsed ? "lg:text-center lg:text-xs" : "")}>
-            {isCollapsed ? user?.name?.charAt(0).toUpperCase() : user?.name}
-          </p>
-          {!isCollapsed && (
-            <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-              ({role === 'school_admin' ? 'School Admin' : role === 'super_admin' ? 'Super Admin' : role === 'parent' ? 'Parent / Guardian' : role === 'teacher' ? 'Teacher' : role?.charAt(0).toUpperCase() + role?.slice(1)})
-            </p>
-          )}
+          <div className="flex items-center gap-3">
+            {/* Avatar with initials */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">
+              {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : user?.email?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className={cn("flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
+              <p className="truncate text-sm font-semibold text-slate-800">
+                {user?.name || user?.email || 'User'}
+              </p>
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+                ({role === 'school_admin' ? 'School Admin' : role === 'super_admin' ? 'Super Admin' : role === 'parent' ? 'Parent / Guardian' : role === 'teacher' ? 'Teacher' : role?.charAt(0).toUpperCase() + role?.slice(1)})
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
 

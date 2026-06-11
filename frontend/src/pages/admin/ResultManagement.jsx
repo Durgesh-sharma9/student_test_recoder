@@ -234,7 +234,7 @@ export default function ResultManagement() {
     if (!hasFilters) return []; // Return empty if no filters applied
     
     // Return top 3 students by rank
-    return rows.filter((r) => r.rank === 1).slice(0, 3);
+    return rows.sort((a, b) => a.rank - b.rank).slice(0, 3);
   }, [rows, filters, view]);
 
 
@@ -500,21 +500,29 @@ export default function ResultManagement() {
 
             </Button>
 
-            <Button onClick={() => download('csv')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
-
-              <Download className="mr-2 h-4 w-4" />
-
-              CSV
-
-            </Button>
-
-            <Button onClick={() => download('pdf')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
-
-              <Download className="mr-2 h-4 w-4" />
-
-              PDF
-
-            </Button>
+            {dateFilterType === 'specific' ? (
+              <>
+                <Button onClick={() => download('pdf')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+                <Button onClick={() => download('xlsx')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Excel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => download('csv')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button onClick={() => download('xlsx')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Excel
+                </Button>
+              </>
+            )}
 
           </div>
 
@@ -524,17 +532,17 @@ export default function ResultManagement() {
 
 
 
-      <ErpSection title="Topper Students" icon={Trophy} tone="yellow" className="!p-4">
+      <ErpSection title="Topper Students" icon={Trophy} tone="yellow" className="!p-3">
 
         {toppers.length ? (
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3">
 
             {toppers.map((t, i) => (
 
-              <div key={i} className="flex flex-col items-center gap-3 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-md hover:shadow-lg transition-shadow">
+              <div key={i} className="flex flex-col items-center gap-2 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-3 shadow-sm hover:shadow-md transition-shadow">
 
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-white font-bold text-2xl shadow-lg">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-white font-bold text-lg shadow-md">
 
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
 
@@ -542,9 +550,9 @@ export default function ResultManagement() {
 
                 <div className="flex-1 min-w-0 text-center">
 
-                  <p className="truncate font-bold text-slate-900 text-lg">{t.student?.name}</p>
+                  <p className="truncate font-bold text-slate-900 text-sm">{t.student?.name}</p>
 
-                  <p className="text-2xl font-extrabold text-amber-600">{t.percentage}%</p>
+                  <p className="text-xl font-extrabold text-amber-600">{t.percentage}%</p>
 
                 </div>
 
@@ -556,9 +564,9 @@ export default function ResultManagement() {
 
         ) : (
 
-          <div className="flex flex-col items-center gap-3 py-8 text-slate-500">
+          <div className="flex flex-col items-center gap-2 py-6 text-slate-500">
 
-            <Trophy className="h-8 w-8 text-amber-400" />
+            <Trophy className="h-6 w-6 text-amber-400" />
 
             <p className="text-sm font-medium">Apply filters to view topper students</p>
 

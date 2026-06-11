@@ -83,6 +83,16 @@ export default function TeacherResults() {
       };
       if (examType === 'overall') delete params.category;
       
+      // Ensure only one date filter type is sent
+      if (examType === 'daily') {
+        if (dateFilterType === 'specific') {
+          delete params.dateFrom;
+          delete params.dateTo;
+        } else if (dateFilterType === 'range') {
+          delete params.testDate;
+        }
+      }
+      
       const res = await api.get('/results', { params });
       
       // DEBUG LOGS - Frontend
@@ -274,14 +284,18 @@ export default function TeacherResults() {
                     {isDailyTest ? (
                       <>
                         <TableRow>
-                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Total</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[90px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Average</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>%</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[270px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '80px' }}>Rank</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[350px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Roll No</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[440px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '220px' }}>Student Name</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px' }}>
+                            {results.tests?.length > 5 ? 'TOT' : 'Total'}
+                          </TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px', left: results.tests?.length > 5 ? '70px' : '90px' }}>
+                            {results.tests?.length > 5 ? 'AVG' : 'Average'}
+                          </TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '90px', left: results.tests?.length > 5 ? '140px' : '180px' }}>%</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '80px', left: results.tests?.length > 5 ? '200px' : '270px' }}>{results.tests?.length > 5 ? 'RK' : 'Rank'}</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '80px' : '90px', left: results.tests?.length > 5 ? '260px' : '350px' }}>Roll No</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '180px' : '220px', left: results.tests?.length > 5 ? '340px' : '440px' }}>Student Name</TableHead>
                           {results.tests?.map((test, idx) => (
-                            <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '260px' }}>
+                            <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: results.tests?.length > 5 ? '200px' : '260px' }}>
                               <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                                 <div className="text-sm font-bold">Daily Test {idx + 1}</div>
                                 <div className="text-xs text-indigo-100">{formatDisplayDateShort(test.testDate)}</div>
@@ -294,8 +308,8 @@ export default function TeacherResults() {
                         <TableRow>
                           {results.tests?.map((test) => (
                             <>
-                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '120px' }}>Max Marks</TableHead>
-                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>Marks Obtained</TableHead>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '120px' }}>Max Marks</TableHead>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '140px' }}>Marks Obtained</TableHead>
                             </>
                           ))}
                         </TableRow>
@@ -316,18 +330,18 @@ export default function TeacherResults() {
                       <TableRow key={r._id || index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
                         {isDailyTest ? (
                           <>
-                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{r.totalObtained}</TableCell>
-                            <TableCell className="sticky left-[90px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{r.average}</TableCell>
-                            <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{r.percentage}%</TableCell>
-                            <TableCell className="sticky left-[270px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '80px' }}>{r.rank}</TableCell>
-                            <TableCell className="sticky left-[350px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '90px' }}>{r.student?.rollNo}</TableCell>
-                            <TableCell className="sticky left-[440px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '220px' }}>{r.student?.name}</TableCell>
+                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px' }}>{r.totalObtained}</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px', left: results.tests?.length > 5 ? '70px' : '90px' }}>{r.average}</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '90px', left: results.tests?.length > 5 ? '140px' : '180px' }}>{r.percentage}%</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '80px', left: results.tests?.length > 5 ? '200px' : '270px' }}>{r.rank}</TableCell>
+                            <TableCell className={`sticky bg-white z-10 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '80px' : '90px', left: results.tests?.length > 5 ? '260px' : '350px' }}>{r.student?.rollNo}</TableCell>
+                            <TableCell className={`sticky bg-white z-10 font-medium border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '180px' : '220px', left: results.tests?.length > 5 ? '340px' : '440px' }}>{r.student?.name}</TableCell>
                             {results.tests?.map((test) => {
                               const mark = r.testMarks?.[test._id];
                               return (
                                 <>
-                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '120px' }}>{test.maxMarks}</TableCell>
-                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>
+                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: results.tests?.length > 5 ? '100px' : '120px' }}>{test.maxMarks}</TableCell>
+                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '140px' }}>
                                     {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}
                                   </TableCell>
                                 </>
