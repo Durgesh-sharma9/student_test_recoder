@@ -969,6 +969,104 @@ const getWeakStudents = async (teacherId) => {
     .map((e) => ({ student: e.student, percentage: e.percentage }));
 };
 
+export const getWeakStudentsFiltered = asyncHandler(async (req, res) => {
+  const { classId, subject, topCount, dateType, testDate, dateFrom, dateTo } = req.query;
+  const teacherId = req.user._id;
+  const schoolId = req.user.school;
+
+  // Build session filter
+  const sessionFilter = withSchool(req, { teacher: teacherId });
+  if (classId) sessionFilter.class = classId;
+  if (subject) sessionFilter.subject = normalizeSubject(subject);
+
+  // Date filtering
+  if (dateType === 'specific' && testDate) {
+    const testDateObj = new Date(testDate);
+    sessionFilter.testDate = {
+      $gte: startOfDay(testDateObj),
+      $lte: endOfDay(testDateObj)
+    };
+  } else if (dateType === 'range' && dateFrom && dateTo) {
+    const fromDateObj = new Date(dateFrom);
+    const toDateObj = new Date(dateTo);
+    sessionFilter.testDate = {
+      $gte: startOfDay(fromDateObj),
+      $lte: endOfDay(toDateObj)
+    };
+  }
+
+  const sessions = await ResultSession.find(sessionFilter).lean();
+  if (!sessions.length) {
+    return res.json({ success: true, weakStudents: [] });
+  }
+
+  const sessionIds = sessions.map((s) => s._id);
+  const entries = await MarkEntry.find({ session: { $in: sessionIds } })
+    .populate('student', 'name rollNo')
+    .lean();
+
+  // Group by student and calculate average percentage
+  const studentMap = new Map();
+  entries.forEach((entry) => {
+    const studentId = entry.student?._id?.toString();
+    if (!studentId) return;
+
+    if (!studentMap.has(studentId)) {
+      studentMap.set(studentId, {
+        studentId,
+        studentName: entry.student?.name || 'Unknown',
+        totalPercentage: 0,
+        totalMarks: 0,
+        count: 0,
+        hasAbsent: false
+      });
+    }
+
+    const studentData = studentMap.get(studentId);
+    if (entry.status === 'absent') {
+      studentData.hasAbsent = true;
+      studentData.totalPercentage += 0;
+    } else {
+      studentData.totalPercentage += (entry.percentage || 0);
+    }
+    studentData.totalMarks += (entry.marksObtained || 0);
+    studentData.count += 1;
+  });
+
+  // Calculate average percentage for each student
+  const allStudents = [];
+  studentMap.forEach((data) => {
+    if (data.count === 0) return;
+    const avgPercentage = data.totalPercentage / data.count;
+    allStudents.push({
+      studentId: data.studentId,
+      studentName: data.studentName,
+      percentage: Math.round(avgPercentage * 10) / 10, // Round to 1 decimal
+      status: data.hasAbsent && avgPercentage === 0 ? 'absent' : 'present'
+    });
+  });
+
+  // Sort all students by percentage DESC (highest first) to calculate ranks
+  const sortedByPercentage = [...allStudents].sort((a, b) => b.percentage - a.percentage);
+  
+  // Assign ranks (1 = best, higher = worse)
+  const rankedStudents = sortedByPercentage.map((student, index) => ({
+    ...student,
+    rank: index + 1
+  }));
+
+  // Get total student count
+  const totalStudents = rankedStudents.length;
+
+  // Sort by percentage ASC (lowest first) and limit to topCount
+  const count = parseInt(topCount) || 5;
+  const sortedWeakStudents = rankedStudents
+    .sort((a, b) => a.percentage - b.percentage)
+    .slice(0, count);
+
+  res.json({ success: true, weakStudents: sortedWeakStudents, totalStudents });
+});
+
 const getClassPerformance = async (schoolFilter) => {
   const classes = await Class.find(schoolFilter).lean();
   if (!classes.length) return [];

@@ -836,26 +836,26 @@ export default function ClassResults() {
                     {isCombinedResults ? (
                       <>
                         <TableRow>
-                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                          <TableHead rowSpan={2} className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Total</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-[90px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Average</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>%</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-[270px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '80px' }}>Rank</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-[350px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Roll No</TableHead>
+                          <TableHead rowSpan={2} className="sticky left-[440px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '220px' }}>Student Name</TableHead>
                           {results.assessments?.map((assessment) => (
-                            <TableHead 
-                              key={assessment._id} 
-                              colSpan={2} 
+                            <TableHead
+                              key={assessment._id}
+                              colSpan={2}
                               className={`text-center border-r ${
-                                assessment.category === 'daily' 
-                                  ? 'bg-blue-100 border-blue-200' 
+                                assessment.category === 'daily'
+                                  ? 'bg-blue-100 border-blue-200'
                                   : 'bg-red-100 border-red-200'
-                              }`} 
-                              style={{ minWidth: '120px' }}
+                              }`}
+                              style={{ minWidth: '260px' }}
                             >
                               <div className={`rounded-lg px-3 py-2 text-white shadow-sm ${
-                                assessment.category === 'daily' 
-                                  ? 'bg-blue-600' 
+                                assessment.category === 'daily'
+                                  ? 'bg-blue-600'
                                   : 'bg-red-600'
                               }`}>
                                 <div className="text-sm font-bold">{assessment.examType}</div>
@@ -868,23 +868,23 @@ export default function ClassResults() {
                         <TableRow>
                           {results.assessments?.map((assessment) => (
                             <React.Fragment key={`${assessment._id}-headers`}>
-                              <TableHead 
+                              <TableHead
                                 className={`text-center border-r font-semibold ${
-                                  assessment.category === 'daily' 
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                  assessment.category === 'daily'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
                                     : 'bg-red-50 text-red-700 border-red-200'
-                                }`} 
-                                style={{ minWidth: '80px' }}
+                                }`}
+                                style={{ minWidth: '120px' }}
                               >
                                 Max Marks
                               </TableHead>
-                              <TableHead 
+                              <TableHead
                                 className={`text-center border-r font-semibold ${
-                                  assessment.category === 'daily' 
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                  assessment.category === 'daily'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
                                     : 'bg-red-50 text-red-700 border-red-200'
-                                }`} 
-                                style={{ minWidth: '80px' }}
+                                }`}
+                                style={{ minWidth: '140px' }}
                               >
                                 Marks Obtained
                               </TableHead>
@@ -896,14 +896,14 @@ export default function ClassResults() {
                       <>
                         {selectedExamTypes.includes('Daily Test') && (
                           <TableRow>
-                            <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '60px' }}>Total</TableHead>
-                            <TableHead rowSpan={2} className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Average</TableHead>
-                            <TableHead rowSpan={2} className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>%</TableHead>
-                            <TableHead rowSpan={2} className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '50px' }}>Rank</TableHead>
-                            <TableHead rowSpan={2} className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                            <TableHead rowSpan={2} className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Total</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-[90px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Average</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>%</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-[270px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '80px' }}>Rank</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-[350px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>Roll No</TableHead>
+                            <TableHead rowSpan={2} className="sticky left-[440px] bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '220px' }}>Student Name</TableHead>
                             {results.dailyTests?.map((dt, idx) => (
-                              <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '120px' }}>
+                              <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '260px' }}>
                                 <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                                   <div className="text-sm font-bold">Daily Test {idx + 1}</div>
                                   <div className="text-xs text-indigo-100">{formatDisplayDateShort(dt.testDate)}</div>
@@ -918,8 +918,8 @@ export default function ClassResults() {
                             <>
                               {results.dailyTests?.map((dt) => (
                                 <React.Fragment key={`${dt._id}-subheaders`}>
-                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
-                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>Marks Obtained</TableHead>
+                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '120px' }}>Max Marks</TableHead>
+                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>Marks Obtained</TableHead>
                                 </React.Fragment>
                               ))}
                             </>
@@ -945,34 +945,34 @@ export default function ClassResults() {
                       <TableRow key={student.studentId} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
                         {isCombinedResults ? (
                           <>
-                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
-                            <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
-                            <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.percentage}%</TableCell>
-                            <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
-                            <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
-                            <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{student.name}</TableCell>
+                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
+                            <TableCell className="sticky left-[90px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.average}</TableCell>
+                            <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.percentage}%</TableCell>
+                            <TableCell className="sticky left-[270px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '80px' }}>{student.rank}</TableCell>
+                            <TableCell className="sticky left-[350px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.rollNo}</TableCell>
+                            <TableCell className="sticky left-[440px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '220px' }}>{student.name}</TableCell>
                             {results.assessments?.map((assessment) => {
                               const key = `${assessment.examType}_${assessment._id}`;
                               const mark = student.assessments?.[key];
                               return (
                                 <React.Fragment key={`${assessment._id}-student-marks`}>
-                                  <TableCell 
+                                  <TableCell
                                     className={`text-center border-r ${
-                                      assessment.category === 'daily' 
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                      assessment.category === 'daily'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
                                         : 'bg-red-50 text-red-700 border-red-200'
-                                    }`} 
-                                    style={{ minWidth: '80px' }}
+                                    }`}
+                                    style={{ minWidth: '120px' }}
                                   >
                                     {assessment.maxMarks}
                                   </TableCell>
-                                  <TableCell 
+                                  <TableCell
                                     className={`text-center border-r font-semibold ${
-                                      assessment.category === 'daily' 
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                      assessment.category === 'daily'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
                                         : 'bg-red-50 text-red-700 border-red-200'
-                                    }`} 
-                                    style={{ minWidth: '80px' }}
+                                    }`}
+                                    style={{ minWidth: '140px' }}
                                   >
                                     {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '-')}
                                   </TableCell>
@@ -984,18 +984,18 @@ export default function ClassResults() {
                           <>
                             {selectedExamTypes.includes('Daily Test') ? (
                               <>
-                                <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '60px' }}>{student.totalObtained}</TableCell>
-                                <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.average}</TableCell>
-                                <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.percentage}%</TableCell>
-                                <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '50px' }}>{student.rank}</TableCell>
-                                <TableCell className="sticky left-[230px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '70px' }}>{student.rollNo}</TableCell>
-                                <TableCell className="sticky left-[300px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '150px' }}>{student.name}</TableCell>
+                                <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
+                                <TableCell className="sticky left-[90px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.average}</TableCell>
+                                <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.percentage}%</TableCell>
+                                <TableCell className="sticky left-[270px] bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '80px' }}>{student.rank}</TableCell>
+                                <TableCell className="sticky left-[350px] bg-white z-10 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.rollNo}</TableCell>
+                                <TableCell className="sticky left-[440px] bg-white z-10 font-medium border-r border-slate-200" style={{ minWidth: '220px' }}>{student.name}</TableCell>
                                 {results.dailyTests?.map((dt) => {
                                   const mark = student.dailyTests[dt._id];
                                   return (
                                     <React.Fragment key={`${dt._id}-student-dt`}>
-                                      <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{dt.maxMarks}</TableCell>
-                                      <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>{mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}</TableCell>
+                                      <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '120px' }}>{dt.maxMarks}</TableCell>
+                                      <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>{mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}</TableCell>
                                     </React.Fragment>
                                   );
                                 })}
