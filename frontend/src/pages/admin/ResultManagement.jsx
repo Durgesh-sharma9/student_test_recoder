@@ -657,7 +657,7 @@ export default function ResultManagement() {
                             <>
                               <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{test.maxMarks}</TableCell>
                               <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>
-                                {mark && mark.status === 'absent' ? <AbsentBadge /> : (mark ? mark.marksObtained : '')}
+                                {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}
                               </TableCell>
                             </>
                           );

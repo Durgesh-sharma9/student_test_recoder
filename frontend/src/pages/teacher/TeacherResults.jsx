@@ -334,7 +334,7 @@ export default function TeacherResults() {
                                 <>
                                   <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '80px' }}>{test.maxMarks}</TableCell>
                                   <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '80px' }}>
-                                    {mark && mark.status === 'absent' ? <AbsentBadge /> : (mark ? mark.marksObtained : '')}
+                                    {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}
                                   </TableCell>
                                 </>
                               );
@@ -349,7 +349,7 @@ export default function TeacherResults() {
                               {r.examDate ? formatDisplayDate(r.examDate) : '-'}
                             </TableCell>
                             <TableCell className="px-5 py-4 font-medium text-slate-800">
-                              {r.marksObtained} <span className="text-slate-400 font-normal">/</span> {r.maxMarks}
+                              {r.status === 'absent' ? <AbsentBadge /> : `${r.marksObtained} / ${r.maxMarks}`}
                             </TableCell>
                             <TableCell className="px-5 py-4 text-center">
                               <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-sm ring-1 ring-inset ${

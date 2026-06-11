@@ -155,9 +155,19 @@ export const getClassResults = asyncHandler(async (req, res) => {
           percentage: entry.percentage,
           date: session.assessmentDate,
           category: session.category,
+          status: entry.status || 'present'
         };
         student.totalObtained += entry.marksObtained || 0;
         student.totalMax += session.maxMarks || 0;
+        // DEBUG LOG for absent students
+        if (entry.status === 'absent') {
+          console.log(`=== CLASS RESULTS ASSESSMENTS DEBUG ===`);
+          console.log(`Student Name: ${entry.student.name}`);
+          console.log(`Marks: ${entry.marksObtained}`);
+          console.log(`Status: ${entry.status}`);
+          console.log(`Session: ${session.subject} - ${session.assessmentDate}`);
+          console.log(`======================================`);
+        }
       }
     });
 
@@ -289,7 +299,17 @@ export const getClassResults = asyncHandler(async (req, res) => {
           marksObtained: entry.marksObtained,
           maxMarks: session.maxMarks,
           percentage: entry.percentage,
+          status: entry.status || 'present'
         };
+        // DEBUG LOG for absent students
+        if (entry.status === 'absent') {
+          console.log(`=== CLASS RESULTS DAILY TESTS DEBUG ===`);
+          console.log(`Student Name: ${entry.student.name}`);
+          console.log(`Marks: ${entry.marksObtained}`);
+          console.log(`Status: ${entry.status}`);
+          console.log(`Session: ${session.subject} - ${session.testDate}`);
+          console.log(`=======================================`);
+        }
       }
     });
 
@@ -396,7 +416,17 @@ export const getClassResults = asyncHandler(async (req, res) => {
           marksObtained: entry.marksObtained,
           maxMarks: session.maxMarks,
           percentage: entry.percentage,
+          status: entry.status || 'present'
         };
+        // DEBUG LOG for absent students
+        if (entry.status === 'absent') {
+          console.log(`=== CLASS RESULTS MAIN EXAMS DEBUG ===`);
+          console.log(`Student Name: ${entry.student.name}`);
+          console.log(`Marks: ${entry.marksObtained}`);
+          console.log(`Status: ${entry.status}`);
+          console.log(`Session: ${session.subject} - ${session.examDate}`);
+          console.log(`======================================`);
+        }
       }
     });
 

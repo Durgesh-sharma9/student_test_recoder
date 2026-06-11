@@ -473,7 +473,8 @@ export const getParentStudents = asyncHandler(async (req, res) => {
           maxMarks: session.maxMarks,
           percentage: entry.percentage,
           rank: entry.rankSubject,
-          category: session.category
+          category: session.category,
+          status: entry.status || 'present'
         });
       }
     }
@@ -701,7 +702,8 @@ export const getParentStudentResultsHistory = asyncHandler(async (req, res) => {
         maxMarks: session.maxMarks,
         percentage: entry.percentage,
         rank: entry.rankSubject, // Keep original per-result rank
-        category: session.category
+        category: session.category,
+        status: entry.status || 'present'
       });
     }
   }
@@ -870,7 +872,8 @@ export const getParentStudentDetails = asyncHandler(async (req, res) => {
         maxMarks: session.maxMarks,
         percentage: entry.percentage,
         rank: entry.rankSubject,
-        category: session.category
+        category: session.category,
+        status: entry.status || 'present'
       });
     }
   }
@@ -977,7 +980,8 @@ export const getParentDailyTests = asyncHandler(async (req, res) => {
       marksObtained: mark?.marksObtained || 0,
       maxMarks: session.maxMarks,
       percentage: mark?.percentage || 0,
-      rankSubject: mark?.rankSubject || 0
+      rankSubject: mark?.rankSubject || 0,
+      status: mark?.status || 'present'
     };
   });
   
@@ -1109,7 +1113,8 @@ export const getParentExamDetails = asyncHandler(async (req, res) => {
       marksObtained,
       maxMarks: session.maxMarks,
       percentage: mark?.percentage || 0,
-      rankSubject: mark?.rankSubject || 0
+      rankSubject: mark?.rankSubject || 0,
+      status: mark?.status || 'present'
     };
   });
   
