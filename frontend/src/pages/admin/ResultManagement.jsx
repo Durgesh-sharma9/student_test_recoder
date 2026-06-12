@@ -536,23 +536,23 @@ export default function ResultManagement() {
 
         {toppers.length ? (
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3">
 
             {toppers.map((t, i) => (
 
-              <div key={i} className="flex flex-col items-center gap-2 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-3 shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="flex items-center gap-2 rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-2 shadow-sm hover:shadow-md transition-shadow">
 
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-white font-bold text-lg shadow-md">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 text-white font-bold text-sm shadow-md">
 
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
 
                 </div>
 
-                <div className="flex-1 min-w-0 text-center">
+                <div className="flex-1 min-w-0">
 
-                  <p className="truncate font-bold text-slate-900 text-sm">{t.student?.name}</p>
+                  <p className="truncate font-semibold text-slate-900 text-xs">{t.student?.name}</p>
 
-                  <p className="text-xl font-extrabold text-amber-600">{t.percentage}%</p>
+                  <p className="text-sm font-bold text-amber-600">{t.percentage}%</p>
 
                 </div>
 
@@ -564,11 +564,11 @@ export default function ResultManagement() {
 
         ) : (
 
-          <div className="flex flex-col items-center gap-2 py-6 text-slate-500">
+          <div className="flex flex-col items-center gap-2 py-4 text-slate-500">
 
-            <Trophy className="h-6 w-6 text-amber-400" />
+            <Trophy className="h-5 w-5 text-amber-400" />
 
-            <p className="text-sm font-medium">Apply filters to view topper students</p>
+            <p className="text-xs font-medium">Apply filters to view topper students</p>
 
           </div>
 

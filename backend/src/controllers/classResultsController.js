@@ -463,94 +463,243 @@ export const getClassResults = asyncHandler(async (req, res) => {
 });
 
 export const exportClassResultsPDF = asyncHandler(async (req, res) => {
-  const { classId, examType } = req.query;
+  const { classId, examTypes, reportType, testDate, dateFrom, dateTo } = req.query;
 
   if (!classId) throw new ApiError(400, 'Class ID is required.');
-  if (!examType) throw new ApiError(400, 'Exam Type is required.');
-  if (!MAIN_EXAM_TYPES.includes(examType)) {
-    throw new ApiError(400, 'Invalid exam type.');
-  }
+  if (!examTypes) throw new ApiError(400, 'Exam Types are required.');
 
   const classDoc = await Class.findOne(withSchool(req, { _id: classId }));
   if (!classDoc) throw new ApiError(404, 'Class not found.');
 
   const school = await School.findById(req.user.school);
+  const examTypesArray = examTypes.split(',');
 
-  // Fetch all sessions for this class and exam type
-  const sessions = await ResultSession.find({
-    school: req.user.school,
-    class: classId,
-    category: 'main',
-    examType: examType,
-  }).lean();
+  // Check if Daily Test is included
+  const isDailyTest = examTypesArray.includes('Daily Test');
 
-  if (!sessions.length) {
-    throw new ApiError(404, 'No results found for this class and exam type.');
+  let results, headers, rows, meta;
+
+  if (isDailyTest && reportType === 'daily') {
+    // Handle Daily Test export
+    const sFilter = withSchool(req, { class: classId, category: 'daily' });
+
+    // Apply date filters
+    if (testDate) {
+      sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
+    } else if (dateFrom && dateTo) {
+      sFilter.testDate = { $gte: startOfDay(dateFrom), $lte: endOfDay(dateTo) };
+    }
+
+    const sessions = await ResultSession.find(sFilter)
+      .populate('class', 'className section')
+      .populate('teacher', 'name')
+      .sort({ testDate: 1 })
+      .lean();
+
+    if (!sessions.length) {
+      throw new ApiError(404, 'No daily tests found for the selected criteria.');
+    }
+
+    const students = await Student.find({
+      class: classId,
+      school: req.user.school,
+      isActive: true
+    }).sort('rollNo').lean();
+
+    const sessionIds = sessions.map(s => s._id);
+    const entries = await MarkEntry.find({ session: { $in: sessionIds } }).lean();
+
+    // Build results
+    const studentResults = students.map(student => {
+      const testMarks = {};
+      let totalObtained = 0;
+      let totalMax = 0;
+
+      sessions.forEach(session => {
+        const entry = entries.find(e =>
+          e.session.toString() === session._id.toString() &&
+          e.student.toString() === student._id.toString()
+        );
+        testMarks[session._id.toString()] = entry ? {
+          marksObtained: entry.marksObtained,
+          status: entry.status || 'present'
+        } : null;
+
+        if (entry) {
+          totalObtained += entry.marksObtained;
+          totalMax += session.maxMarks;
+        }
+      });
+
+      const average = sessions.length > 0 ? round2(totalObtained / sessions.length) : 0;
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+
+      return {
+        _id: student._id,
+        student,
+        totalObtained,
+        average,
+        percentage,
+        rank: 0,
+        testMarks
+      };
+    });
+
+    // Calculate ranks
+    const rankedResults = computeCompetitionRanks(studentResults, 'totalObtained');
+
+    // Get top 3 students
+    const top3Students = rankedResults.slice(0, 3).map(r => ({
+      name: r.student.name,
+      percentage: r.percentage,
+      rank: r.rank
+    }));
+
+    // Build headers
+    headers = ['Total', 'Average', '%', 'Rank', 'Roll No', 'Student Name'];
+    sessions.forEach((test, idx) => {
+      headers.push(`DT${idx + 1} Max`, `DT${idx + 1} Obtained`);
+    });
+
+    // Build rows
+    rows = rankedResults.map(r => {
+      const row = [r.totalObtained, r.average, r.percentage, r.rank, r.student.rollNo, r.student.name];
+      sessions.forEach(test => {
+        const mark = r.testMarks[test._id.toString()];
+        const displayValue = mark && mark.status === 'absent' ? 'A' : (mark ? mark.marksObtained : '');
+        row.push(test.maxMarks, displayValue);
+      });
+      return row;
+    });
+
+    // Build meta
+    const dateStr = testDate
+      ? formatDateDDMMYYYY(testDate)
+      : dateFrom && dateTo
+        ? `${formatDateDDMMYYYY(dateFrom)} to ${formatDateDDMMYYYY(dateTo)}`
+        : 'N/A';
+
+    meta = {
+      schoolName: school?.schoolName || 'School',
+      examType: 'Daily Test',
+      classLabel: `Class ${classDoc.className} ${classDoc.section || ''}`,
+      subject: 'All Subjects',
+      testDate: testDate ? formatDateDDMMYYYY(testDate) : undefined,
+      dateFrom: dateFrom ? formatDateDDMMYYYY(dateFrom) : undefined,
+      dateTo: dateTo ? formatDateDDMMYYYY(dateTo) : undefined,
+      generatedAt: formatDateDDMMYYYY(new Date()),
+      generatedBy: req.user.name || 'System',
+      totalStudents: rankedResults.length,
+      top3Students
+    };
+  } else {
+    // Handle Main Exam export
+    const validExamTypes = examTypesArray.filter(t => MAIN_EXAM_TYPES.includes(t));
+    if (!validExamTypes.length) {
+      throw new ApiError(400, 'No valid exam types provided.');
+    }
+
+    const sessions = await ResultSession.find({
+      school: req.user.school,
+      class: classId,
+      category: 'main',
+      examType: { $in: validExamTypes }
+    }).lean();
+
+    if (!sessions.length) {
+      throw new ApiError(404, 'No results found for this class and exam type.');
+    }
+
+    const sessionIds = sessions.map((s) => s._id);
+    const entries = await MarkEntry.find({ session: { $in: sessionIds } })
+      .populate('student', 'name rollNo')
+      .lean();
+
+    const uniqueSubjects = [...new Set(sessions.map((s) => s.subject))].sort();
+
+    const students = await Student.find({
+      school: req.user.school,
+      class: classId,
+      isActive: true,
+    }).sort('rollNo');
+    students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
+
+    const studentMap = new Map();
+    students.forEach((student) => {
+      studentMap.set(student._id.toString(), {
+        studentId: student._id,
+        rollNo: student.rollNo,
+        name: student.name,
+        subjects: {},
+      });
+    });
+
+    entries.forEach((entry) => {
+      const studentId = entry.student._id.toString();
+      const session = sessions.find((s) => s._id.toString() === entry.session.toString());
+      if (session && studentMap.has(studentId)) {
+        const student = studentMap.get(studentId);
+        student.subjects[session.subject] = {
+          marksObtained: entry.marksObtained,
+          maxMarks: session.maxMarks,
+          percentage: entry.percentage,
+        };
+      }
+    });
+
+    const resultsArray = Array.from(studentMap.values()).map((student) => {
+      const subjectMarks = Object.values(student.subjects);
+      const totalObtained = subjectMarks.reduce((sum, s) => sum + s.marksObtained, 0);
+      const totalMax = subjectMarks.reduce((sum, s) => sum + s.maxMarks, 0);
+      const average = subjectMarks.length > 0 ? round2(totalObtained / subjectMarks.length) : 0;
+      const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
+
+      return {
+        ...student,
+        totalObtained,
+        totalMax,
+        average,
+        percentage,
+      };
+    });
+
+    const rankedResults = computeCompetitionRanks(resultsArray, 'totalObtained');
+
+    // Get top 3 students
+    const top3Students = rankedResults.slice(0, 3).map(r => ({
+      name: r.name,
+      percentage: r.percentage,
+      rank: r.rank
+    }));
+
+    headers = ['Rank', 'Roll No', 'Student Name', ...uniqueSubjects, 'Total', 'Average', 'Percentage'];
+    rows = rankedResults.map((r) => {
+      const subjectMarks = uniqueSubjects.map((s) => r.subjects[s]?.marksObtained || '-');
+      return [
+        r.rank,
+        r.rollNo,
+        r.name,
+        ...subjectMarks,
+        r.totalObtained,
+        r.average,
+        r.percentage,
+      ];
+    });
+
+    meta = {
+      schoolName: school?.schoolName || 'School',
+      examType: validExamTypes.join(', '),
+      classLabel: `Class ${classDoc.className} ${classDoc.section || ''}`,
+      subject: 'All Subjects',
+      generatedAt: formatDateDDMMYYYY(new Date()),
+      generatedBy: req.user.name || 'System',
+      totalStudents: rankedResults.length,
+      top3Students
+    };
   }
 
-  const sessionIds = sessions.map((s) => s._id);
-  const entries = await MarkEntry.find({ session: { $in: sessionIds } })
-    .populate('student', 'name rollNo')
-    .lean();
-
-  // Get unique subjects from actual exam data
-  const uniqueSubjects = [...new Set(sessions.map((s) => s.subject))].sort();
-
-  // Get all students in the class
-  const students = await Student.find({
-    school: req.user.school,
-    class: classId,
-    isActive: true,
-  }).sort('rollNo');
-  students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
-
-  // Build results with dynamic subject columns
-  const studentMap = new Map();
-  students.forEach((student) => {
-    studentMap.set(student._id.toString(), {
-      studentId: student._id,
-      rollNo: student.rollNo,
-      name: student.name,
-      subjects: {},
-    });
-  });
-
-  // Populate marks for each student and subject
-  entries.forEach((entry) => {
-    const studentId = entry.student._id.toString();
-    const session = sessions.find((s) => s._id.toString() === entry.session.toString());
-    if (session && studentMap.has(studentId)) {
-      const student = studentMap.get(studentId);
-      student.subjects[session.subject] = {
-        marksObtained: entry.marksObtained,
-        maxMarks: session.maxMarks,
-        percentage: entry.percentage,
-      };
-    }
-  });
-
-  // Calculate totals, averages, percentages
-  const results = Array.from(studentMap.values()).map((student) => {
-    const subjectMarks = Object.values(student.subjects);
-    const totalObtained = subjectMarks.reduce((sum, s) => sum + s.marksObtained, 0);
-    const totalMax = subjectMarks.reduce((sum, s) => sum + s.maxMarks, 0);
-    const average = subjectMarks.length > 0 ? round2(totalObtained / subjectMarks.length) : 0;
-    const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
-
-    return {
-      ...student,
-      totalObtained,
-      totalMax,
-      average,
-      percentage,
-    };
-  });
-
-  // Assign ranks (equal marks get same rank)
-  const rankedResults = computeCompetitionRanks(results, 'totalObtained');
-
-  // Generate PDF
-  const landscape = uniqueSubjects.length > 6;
+  // Generate PDF using professional format
+  const landscape = headers.length > 8;
   const doc = new PDFDocument({
     margin: 36,
     size: 'A4',
@@ -558,77 +707,66 @@ export const exportClassResultsPDF = asyncHandler(async (req, res) => {
   });
 
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename=class-results-${examType}-${new Date().toISOString().split('T')[0]}.pdf`);
+  const filename = `class-results-${examTypesArray.join('-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   doc.pipe(res);
 
-  // Header
-  doc.font('Helvetica-Bold').fontSize(14).text(school?.schoolName || 'School', { align: 'center' });
+  // Professional Header
+  doc.font('Helvetica-Bold').fontSize(16).text(meta.schoolName, { align: 'center' });
+  doc.moveDown(0.3);
+
+  doc.font('Helvetica').fontSize(11);
+  doc.text(`Exam Type: ${meta.examType}`, { align: 'center' });
+  doc.text(`Class: ${meta.classLabel}`, { align: 'center' });
+  doc.text(`Subject: ${meta.subject}`, { align: 'center' });
+  if (meta.testDate) {
+    doc.text(`Date: ${meta.testDate}`, { align: 'center' });
+  } else if (meta.dateFrom && meta.dateTo) {
+    doc.text(`Date Range: ${meta.dateFrom} to ${meta.dateTo}`, { align: 'center' });
+  }
   doc.moveDown(0.4);
-  doc.font('Helvetica').fontSize(10);
-  doc.text(`Class: ${classDoc.className}-${classDoc.section}`, { align: 'center' });
-  doc.text(`Exam Type: ${examType}`, { align: 'center' });
-  doc.text(`Generated: ${formatDateDDMMYYYY(new Date())}`, { align: 'center' });
-  doc.moveDown(0.6);
+
+  // Draw separator line
+  doc.moveTo(36, doc.y)
+     .lineTo(doc.page.width - 36, doc.y)
+     .stroke();
+  doc.moveDown(0.4);
+
+  // Table title
   doc.font('Helvetica-Bold').fontSize(13).text('CLASS RESULTS REPORT', { align: 'center' });
-  doc.moveDown(0.8);
+  doc.moveDown(0.6);
 
-  // Table setup
-  const headers = ['Rank', 'Roll No', 'Student Name', ...uniqueSubjects, 'Total', 'Average', 'Percentage'];
-  const pageWidth = doc.page.width - 72;
-  const colWidth = pageWidth / headers.length;
-  const rowHeight = 18;
-  const headerHeight = 22;
-  let y = doc.y;
+  // Draw table
+  drawPdfTable(doc, headers, rows, landscape);
 
-  const drawHeaderRow = () => {
-    doc.fontSize(9).font('Helvetica-Bold');
-    headers.forEach((h, i) => {
-      doc.rect(36 + i * colWidth, y, colWidth, headerHeight).stroke();
-      doc.text(String(h), 38 + i * colWidth, y + 5, { width: colWidth - 6, align: 'center' });
+  // Top 3 Students section
+  if (meta.top3Students && meta.top3Students.length > 0) {
+    doc.moveDown(1);
+    doc.font('Helvetica-Bold').fontSize(12).text('Top 3 Students', { align: 'center' });
+    doc.moveDown(0.4);
+
+    meta.top3Students.forEach((student, idx) => {
+      const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+      doc.font('Helvetica').fontSize(10).text(
+        `${medal} Rank ${student.rank}: ${student.name} - ${student.percentage}%`,
+        { align: 'center' }
+      );
     });
-    y += headerHeight;
-  };
+  }
 
-  const ensureSpace = (needed) => {
-    const limit = doc.page.height - 56;
-    if (y + needed > limit) {
-      doc.addPage({ layout: landscape ? 'landscape' : 'portrait', margin: 36, size: 'A4' });
-      y = 36;
-      drawHeaderRow();
-    }
-  };
-
-  drawHeaderRow();
-  doc.font('Helvetica').fontSize(8);
-
-  rankedResults.forEach((student) => {
-    ensureSpace(rowHeight);
-    const subjectMarks = uniqueSubjects.map((s) => student.subjects[s]?.marksObtained || '-');
-    const row = [
-      student.rank,
-      student.rollNo,
-      student.name,
-      ...subjectMarks,
-      student.totalObtained,
-      student.average,
-      `${student.percentage}%`,
-    ];
-    row.forEach((cell, i) => {
-      doc.rect(36 + i * colWidth, y, colWidth, rowHeight).stroke();
-      doc.text(String(cell ?? ''), 38 + i * colWidth, y + 4, {
-        width: colWidth - 6,
-        align: i === 0 ? 'left' : 'center',
-      });
-    });
-    y += rowHeight;
-  });
-
-  // Footer
-  const footerY = Math.min(doc.y + 28, doc.page.height - 48);
+  // Professional Footer
+  const footerY = Math.min(doc.y + 32, doc.page.height - 48);
   const contentWidth = doc.page.width - 72;
+
+  // Draw separator line
+  doc.moveTo(36, footerY - 8)
+     .lineTo(doc.page.width - 36, footerY - 8)
+     .stroke();
+
   doc.font('Helvetica').fontSize(9);
-  doc.text(`Total Students: ${rankedResults.length}`, 36, footerY, { width: contentWidth / 2, align: 'left' });
-  doc.text('Generated By System', 36 + contentWidth / 2, footerY, { width: contentWidth / 2, align: 'right' });
+  doc.text(`Generated On: ${meta.generatedAt}`, 36, footerY, { width: contentWidth / 2, align: 'left' });
+  doc.text(`Generated By: ${meta.generatedBy}`, 36 + contentWidth / 2, footerY, { width: contentWidth / 2, align: 'right' });
+  doc.text(`Total Students: ${meta.totalStudents}`, 36, footerY + 12, { width: contentWidth / 2, align: 'left' });
 
   doc.end();
 });

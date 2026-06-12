@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
 import AbsentBadge from '@/components/AbsentBadge';
+import DatePicker from '@/components/ui/DatePicker';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
@@ -182,15 +183,15 @@ export default function TeacherResults() {
               </FormField>
               {dateFilterType === 'specific' ? (
                 <FormField label="Test Date">
-                  <Input type="date" className="h-10 border-slate-200" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} />
+                  <DatePicker value={filters.testDate} onChange={(date) => setFilters({ ...filters, testDate: date })} />
                 </FormField>
               ) : (
                 <>
                   <FormField label="From">
-                    <Input type="date" className="h-10 border-slate-200" placeholder="From" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+                    <DatePicker value={filters.dateFrom} onChange={(date) => setFilters({ ...filters, dateFrom: date })} />
                   </FormField>
                   <FormField label="To">
-                    <Input type="date" className="h-10 border-slate-200" placeholder="To" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+                    <DatePicker value={filters.dateTo} onChange={(date) => setFilters({ ...filters, dateTo: date })} />
                   </FormField>
                 </>
               )}
@@ -205,7 +206,7 @@ export default function TeacherResults() {
                 </Select>
               </FormField>
               <FormField label="Exam Date">
-                <Input type="date" className="h-10 border-slate-200" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} />
+                <DatePicker value={filters.examDate} onChange={(date) => setFilters({ ...filters, examDate: date })} />
               </FormField>
             </>
           )}
@@ -284,18 +285,18 @@ export default function TeacherResults() {
                     {isDailyTest ? (
                       <>
                         <TableRow>
-                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px' }}>
-                            {results.tests?.length > 5 ? 'TOT' : 'Total'}
+                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>
+                            Total
                           </TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px', left: results.tests?.length > 5 ? '70px' : '90px' }}>
-                            {results.tests?.length > 5 ? 'AVG' : 'Average'}
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '90px' }}>
+                            Average
                           </TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '90px', left: results.tests?.length > 5 ? '140px' : '180px' }}>%</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '80px', left: results.tests?.length > 5 ? '200px' : '270px' }}>{results.tests?.length > 5 ? 'RK' : 'Rank'}</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '80px' : '90px', left: results.tests?.length > 5 ? '260px' : '350px' }}>Roll No</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: results.tests?.length > 5 ? '180px' : '220px', left: results.tests?.length > 5 ? '340px' : '440px' }}>Student Name</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '180px' }}>%</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '80px', left: '270px' }}>Rank</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '350px' }}>Roll No</TableHead>
+                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '220px', left: '440px' }}>Student Name</TableHead>
                           {results.tests?.map((test, idx) => (
-                            <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: results.tests?.length > 5 ? '200px' : '260px' }}>
+                            <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '260px' }}>
                               <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
                                 <div className="text-sm font-bold">Daily Test {idx + 1}</div>
                                 <div className="text-xs text-indigo-100">{formatDisplayDateShort(test.testDate)}</div>
@@ -308,8 +309,8 @@ export default function TeacherResults() {
                         <TableRow>
                           {results.tests?.map((test) => (
                             <>
-                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '120px' }}>Max Marks</TableHead>
-                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '140px' }}>Marks Obtained</TableHead>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '120px' }}>Max Marks</TableHead>
+                              <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>Marks Obtained</TableHead>
                             </>
                           ))}
                         </TableRow>
@@ -330,18 +331,18 @@ export default function TeacherResults() {
                       <TableRow key={r._id || index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
                         {isDailyTest ? (
                           <>
-                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px' }}>{r.totalObtained}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '70px' : '90px', left: results.tests?.length > 5 ? '70px' : '90px' }}>{r.average}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '90px', left: results.tests?.length > 5 ? '140px' : '180px' }}>{r.percentage}%</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '60px' : '80px', left: results.tests?.length > 5 ? '200px' : '270px' }}>{r.rank}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '80px' : '90px', left: results.tests?.length > 5 ? '260px' : '350px' }}>{r.student?.rollNo}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 font-medium border-r border-slate-200`} style={{ minWidth: results.tests?.length > 5 ? '180px' : '220px', left: results.tests?.length > 5 ? '340px' : '440px' }}>{r.student?.name}</TableCell>
+                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{r.totalObtained}</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '90px' }}>{r.average}</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '180px' }}>{r.percentage}%</TableCell>
+                            <TableCell className={`sticky bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200`} style={{ minWidth: '80px', left: '270px' }}>{r.rank}</TableCell>
+                            <TableCell className={`sticky bg-white z-10 border-r border-slate-200`} style={{ minWidth: '90px', left: '350px' }}>{r.student?.rollNo}</TableCell>
+                            <TableCell className={`sticky bg-white z-10 font-medium border-r border-slate-200`} style={{ minWidth: '220px', left: '440px' }}>{r.student?.name}</TableCell>
                             {results.tests?.map((test) => {
                               const mark = r.testMarks?.[test._id];
                               return (
                                 <>
-                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: results.tests?.length > 5 ? '100px' : '120px' }}>{test.maxMarks}</TableCell>
-                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: results.tests?.length > 5 ? '100px' : '140px' }}>
+                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '120px' }}>{test.maxMarks}</TableCell>
+                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>
                                     {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}
                                   </TableCell>
                                 </>

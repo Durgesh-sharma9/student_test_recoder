@@ -824,10 +824,35 @@ export const downloadResults = asyncHandler(async (req, res) => {
       return row;
     });
 
-    const filename = `teacher-results.${format === 'pdf' ? 'pdf' : 'csv'}`;
+    const filename = `teacher-results.${format === 'pdf' ? 'pdf' : format === 'xlsx' ? 'xlsx' : 'csv'}`;
     
     if (format === 'pdf') {
       return sendPdfTable(res, filename, 'Teacher Results Report', [headers, headerRow, dataHeaders], dataRows);
+    }
+    
+    if (format === 'xlsx') {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      
+      // Create metadata sheet
+      const metaSheet = XLSX.utils.aoa_to_sheet([
+        ['School Name', school?.name || 'N/A'],
+        ['Class', `Class ${classDoc?.className || ''} ${classDoc?.section || ''}`],
+        ['Subject', subject || 'All'],
+        ['Teacher Name', req.user.name || 'N/A'],
+        ['Date Range', dateRangeStr],
+        ['Generated On', new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]
+      ]);
+      XLSX.utils.book_append_sheet(workbook, metaSheet, 'Info');
+      
+      // Create data sheet
+      const dataSheet = XLSX.utils.aoa_to_sheet([dataHeaders, ...dataRows]);
+      XLSX.utils.book_append_sheet(workbook, dataSheet, 'Results');
+      
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(buffer);
     }
     
     const csvContent = [
@@ -862,8 +887,20 @@ export const downloadResults = asyncHandler(async (req, res) => {
     r.percentage != null ? `${r.percentage}%` : '-',
   ]);
 
-  const filename = `results.${format === 'pdf' ? 'pdf' : 'csv'}`;
+  const filename = `results.${format === 'pdf' ? 'pdf' : format === 'xlsx' ? 'xlsx' : 'csv'}`;
   if (format === 'pdf') return sendPdfTable(res, filename, 'Results Report', headers, data);
+  
+  if (format === 'xlsx') {
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(buffer);
+  }
+  
   return sendCsv(res, filename, headers, data);
 });
 
