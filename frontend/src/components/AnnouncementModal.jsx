@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, X, Bell } from 'lucide-react';
+import { Megaphone, X, Bell, Paperclip } from 'lucide-react';
+import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
   const [recipients, setRecipients] = useState([]);
   const [selectedRecipients, setSelectedRecipients] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [attachmentFile, setAttachmentFile] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -32,6 +34,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
       setFormData({ title: '', message: '', priority: 'normal' });
       setRecipientType('all');
       setSelectedRecipients([]);
+      setAttachmentFile(null);
       
       // Fetch recipients based on role
       if (role === 'super_admin') {
@@ -51,7 +54,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
   const handleSend = async () => {
     try {
       if (!formData.title || !formData.message) {
-        alert('Please fill in all required fields');
+        toast.error('Please fill in all required fields');
         return;
       }
 
@@ -76,25 +79,34 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
       }
 
       if (finalRecipientIds.length === 0) {
-        alert('Please select at least one recipient');
-        loading(false);
+        toast.error('Please select at least one recipient');
+        setLoading(false);
         return;
       }
 
-      await api.post('/notifications', {
-        title: formData.title,
-        message: formData.message,
-        priority: formData.priority,
-        recipientIds: finalRecipientIds,
-        targetRole: role === 'super_admin' ? 'school_admin' : 'teacher',
-        isBroadcast,
+      const formDataObj = new FormData();
+      formDataObj.append('title', formData.title);
+      formDataObj.append('message', formData.message);
+      formDataObj.append('priority', formData.priority);
+      formDataObj.append('recipientIds', JSON.stringify(finalRecipientIds));
+      formDataObj.append('targetRole', role === 'super_admin' ? 'school_admin' : 'teacher');
+      formDataObj.append('isBroadcast', isBroadcast);
+      
+      if (attachmentFile) {
+        formDataObj.append('attachment', attachmentFile);
+      }
+
+      await api.post('/notifications', formDataObj, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       onOpenChange(false);
-      alert('Announcement sent successfully');
+      toast.success('Announcement sent successfully');
     } catch (error) {
       console.error('Failed to send announcement:', error);
-      alert('Failed to send announcement');
+      toast.error(error.response?.data?.message || 'Failed to send announcement');
     } finally {
       setLoading(false);
     }
@@ -210,11 +222,38 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
               </div>
             </FormField>
           )}
+          <FormField label="Attachment (Optional)">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const maxSize = 10 * 1024 * 1024; // 10MB
+                  if (file.size > maxSize) {
+                    toast.error('File size exceeds 10MB limit');
+                    return;
+                  }
+                  setAttachmentFile(file);
+                }
+              }}
+              className="rounded-xl border-slate-200 shadow-sm"
+            />
+            {attachmentFile && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                <Paperclip className="h-4 w-4" />
+                <span className="truncate">{attachmentFile.name}</span>
+              </div>
+            )}
+          </FormField>
         </div>
         <DialogFooter className="pt-6">
           <Button 
             variant="outline" 
-            onClick={() => onOpenChange(false)} 
+            onClick={() => {
+              setAttachmentFile(null);
+              onOpenChange(false);
+            }} 
             disabled={loading}
             className="rounded-xl border-slate-200 font-medium hover:bg-slate-50"
           >

@@ -21,6 +21,18 @@ export function AuthProvider({ children }) {
       return; 
     }
     
+    // If we already have user data from localStorage, use it immediately
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        console.log('[AuthContext] Using stored user from localStorage:', parsedUser);
+      } catch (e) {
+        console.error('[AuthContext] Error parsing stored user:', e);
+      }
+    }
+    
     console.log('[AuthContext] Calling /auth/me');
     api.get('/auth/me')
       .then((res) => {
@@ -30,9 +42,17 @@ export function AuthProvider({ children }) {
       })
       .catch((err) => {
         console.log('[AuthContext] /auth/me error:', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
+        // Only clear localStorage if it's a 401 (unauthorized) error
+        // This prevents clearing user data on network errors or server issues
+        if (err.response?.status === 401) {
+          console.log('[AuthContext] 401 error, clearing auth data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        } else {
+          console.log('[AuthContext] Non-401 error, keeping existing user data');
+          // Keep the user from localStorage if API call fails for other reasons
+        }
       })
       .finally(() => {
         console.log('[AuthContext] Setting loading to false');
