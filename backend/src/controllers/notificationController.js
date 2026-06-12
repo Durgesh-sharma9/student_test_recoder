@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import { uploadFile } from '../utils/imagekit.js';
+import mongoose from 'mongoose';
 
 // Get notifications for current user
 export const getNotifications = asyncHandler(async (req, res) => {
@@ -55,7 +56,13 @@ export const getNotifications = asyncHandler(async (req, res) => {
 
 // Get notification by ID
 export const getNotification = asyncHandler(async (req, res) => {
-  const notification = await Notification.findById(req.params.id)
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid notification ID');
+  }
+
+  const notification = await Notification.findById(id)
     .populate('senderId', 'name email')
     .populate('recipientIds', 'name email');
 
@@ -201,7 +208,13 @@ export const createNotification = asyncHandler(async (req, res) => {
 
 // Mark notification as read
 export const markAsRead = asyncHandler(async (req, res) => {
-  const notification = await Notification.findById(req.params.id);
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid notification ID');
+  }
+
+  const notification = await Notification.findById(id);
 
   if (!notification) throw new ApiError(404, 'Notification not found.');
 
@@ -251,7 +264,13 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
 
 // Delete notification
 export const deleteNotification = asyncHandler(async (req, res) => {
-  const notification = await Notification.findById(req.params.id);
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid notification ID');
+  }
+
+  const notification = await Notification.findById(id);
 
   if (!notification) throw new ApiError(404, 'Notification not found.');
 
@@ -263,7 +282,7 @@ export const deleteNotification = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'You do not have permission to delete this notification.');
   }
 
-  await Notification.findByIdAndDelete(req.params.id);
+  await Notification.findByIdAndDelete(id);
 
   res.json({
     success: true,

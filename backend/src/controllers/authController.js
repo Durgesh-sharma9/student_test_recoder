@@ -187,7 +187,14 @@ export const getMe = asyncHandler(async (req, res) => {
   }
 
   const role = user.role === 'admin' ? 'school_admin' : user.role;
-  res.json({ success: true, user: { ...user, role, mustChangePassword: user.mustChangePassword || false } });
+  
+  // Ensure name field is set for teachers who have teacherName
+  const userObj = { ...user, role, mustChangePassword: user.mustChangePassword || false };
+  if (!userObj.name && userObj.teacherName) {
+    userObj.name = userObj.teacherName;
+  }
+  
+  res.json({ success: true, user: userObj });
 });
 
 export const changePassword = asyncHandler(async (req, res) => {

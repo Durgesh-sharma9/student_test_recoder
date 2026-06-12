@@ -16,7 +16,7 @@ export default function TeacherDashboard() {
   const [weakStudentsData, setWeakStudentsData] = useState([]);
   const [loadingWeakStudents, setLoadingWeakStudents] = useState(false);
   
-  // Weak Students filters
+  // Low Academic Performance Students filters
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [dateType, setDateType] = useState('specific');
@@ -141,7 +141,7 @@ export default function TeacherDashboard() {
           )}
         </ErpSection>
 
-        <ErpSection title="Weak Students Analysis" icon={AlertTriangle} tone="yellow">
+        <ErpSection title="Low Academic Performance Students Analysis" icon={AlertTriangle} tone="yellow">
           <div className="space-y-4">
             {/* Filters */}
             <div className="grid gap-4 p-4 bg-slate-50 rounded-xl">
@@ -246,7 +246,7 @@ export default function TeacherDashboard() {
                   disabled={loadingWeakStudents}
                   className="rounded-xl bg-yellow-600 hover:bg-yellow-700"
                 >
-                  {loadingWeakStudents ? 'Loading...' : 'Generate Weak Students'}
+                  {loadingWeakStudents ? 'Loading...' : 'Generate Low Academic Performance Students'}
                 </Button>
                 <Button
                   onClick={clearWeakStudentFilters}
@@ -261,7 +261,7 @@ export default function TeacherDashboard() {
             {/* Results */}
             {weakStudentsData.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-4">
-                Select filters and click "Generate Weak Students" to view results.
+                Select filters and click "Generate Low Academic Performance Students" to view results.
               </p>
             ) : (
               <div className="space-y-2">

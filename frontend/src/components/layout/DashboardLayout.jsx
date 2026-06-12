@@ -30,6 +30,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import NotificationPanel from '@/components/NotificationPanel';
 import AnnouncementModal from '@/components/AnnouncementModal';
 
+// Helper function to get display name from user object
+const getDisplayName = (user) => {
+  if (!user) return 'User';
+  // Try different possible name fields in order of preference
+  if (user.name) return user.name;
+  if (user.teacherName) return user.teacherName;
+  if (user.parentName) return user.parentName;
+  if (user.adminName) return user.adminName;
+  if (user.email) return user.email;
+  return 'User';
+};
+
+// Helper function to get initials from user object
+const getInitials = (user) => {
+  if (!user) return 'U';
+  const name = getDisplayName(user);
+  if (!name || name === 'User') return 'U';
+  // If it's an email, use first letter
+  if (name.includes('@')) return name.charAt(0).toUpperCase();
+  // Otherwise, get first letters of each word
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
+
 // Added customized background and icon configurations for each structural module container box
 const navByRole = {
   super_admin: [
@@ -145,11 +168,11 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-3">
             {/* Avatar with initials */}
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">
-              {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : user?.email?.[0]?.toUpperCase() || 'U'}
+              {getInitials(user)}
             </div>
             <div className={cn("flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
               <p className="truncate text-sm font-semibold text-slate-800">
-                {user?.name || user?.email || 'User'}
+                {getDisplayName(user)}
               </p>
               <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
                 ({role === 'school_admin' ? 'School Admin' : role === 'super_admin' ? 'Super Admin' : role === 'parent' ? 'Parent / Guardian' : role === 'teacher' ? 'Teacher' : role?.charAt(0).toUpperCase() + role?.slice(1)})
@@ -184,7 +207,7 @@ export default function DashboardLayout() {
             </Button>
 
             <p className="hidden text-sm font-medium sm:block text-slate-500">
-              Welcome back, <span className="font-semibold text-slate-800">{user?.name}</span>
+              Welcome back, <span className="font-semibold text-slate-800">{getDisplayName(user)}</span>
             </p>
           </div>
           

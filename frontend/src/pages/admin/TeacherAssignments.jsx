@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import SearchableTeacherSelect from "@/components/SearchableTeacherSelect";
 
 const COMMON_SUBJECTS = [
   "Maths",
@@ -147,18 +148,13 @@ export default function TeacherAssignments() {
 
       <ErpSection title="Select Teacher" icon={Users} tone="blue">
         <FormField label="Teacher">
-          <Select value={teacherId} onValueChange={setTeacherId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Teacher" />
-            </SelectTrigger>
-            <SelectContent>
-              {teachers.map((teacher) => (
-                <SelectItem key={teacher._id} value={teacher._id}>
-                  {teacher.teacherName || teacher.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableTeacherSelect
+            value={teacherId}
+            onChange={setTeacherId}
+            teachers={teachers}
+            placeholder="Search or select teacher"
+            emptyMessage="No teachers available"
+          />
         </FormField>
       </ErpSection>
 

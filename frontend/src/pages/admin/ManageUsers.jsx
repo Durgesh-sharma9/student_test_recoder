@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Users, UserPlus, Search, Download, Upload, Bell } from 'lucide-react';
+import { Users, UserPlus, Search, Download, Upload, Bell, MessageCircle, Copy, X } from 'lucide-react';
 import api from '@/lib/api';
 import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
@@ -34,6 +34,7 @@ export default function ManageUsers() {
     priority: 'normal',
   });
   const [attachmentFile, setAttachmentFile] = useState(null);
+  const [credentialsModal, setCredentialsModal] = useState({ open: false, data: null });
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
@@ -125,11 +126,24 @@ export default function ManageUsers() {
         if (inactiveTeacher) {
           setReactivateDialog({ open: true, teacher: inactiveTeacher });
         } else {
-          await api.post('/users', { ...form, role: 'teacher' });
-          toast.success('Teacher created. Password will be auto-generated and sent via email.');
+          const res = await api.post('/users', { ...form, role: 'teacher' });
+          toast.success('Teacher created successfully');
           setOpen(false);
           setForm({ teacherName: '', email: '', phoneNo: '' });
           refresh();
+          
+          // Show credentials modal if tempPassword is returned
+          if (res.data.user?.tempPassword) {
+            setCredentialsModal({
+              open: true,
+              data: {
+                name: res.data.user.teacherName || res.data.user.name,
+                email: res.data.user.email,
+                password: res.data.user.tempPassword,
+                phone: res.data.user.phoneNo,
+              },
+            });
+          }
         }
       }
     } catch (err) {
@@ -185,6 +199,23 @@ export default function ManageUsers() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send notification');
     }
+  };
+
+  const handleWhatsAppShare = () => {
+    const { name, email, password, phone } = credentialsModal.data;
+    const siteUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+    const message = `School Login Credentials\n\nName: ${name}\nEmail: ${email}\nPassword: ${password}\n\nLogin URL:\n${siteUrl}/login`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleCopyCredentials = () => {
+    const { name, email, password } = credentialsModal.data;
+    const siteUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
+    const message = `School Login Credentials\n\nName: ${name}\nEmail: ${email}\nPassword: ${password}\n\nLogin URL:\n${siteUrl}/login`;
+    navigator.clipboard.writeText(message);
+    toast.success('Credentials copied to clipboard');
   };
 
   return (
@@ -594,6 +625,52 @@ export default function ManageUsers() {
             <Button onClick={handleSendNotification}>
               <Bell className="mr-2 h-4 w-4" />
               Send Notification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={credentialsModal.open} onOpenChange={(open) => setCredentialsModal({ ...credentialsModal, open })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Account Created Successfully</DialogTitle>
+            <DialogDescription>
+              Share these credentials with the teacher
+            </DialogDescription>
+          </DialogHeader>
+          {credentialsModal.data && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-slate-700">Name:</span>
+                  <span className="text-sm text-slate-900">{credentialsModal.data.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-slate-700">Email:</span>
+                  <span className="text-sm text-slate-900">{credentialsModal.data.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-slate-700">Password:</span>
+                  <span className="text-sm text-slate-900 font-semibold">{credentialsModal.data.password}</span>
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                {credentialsModal.data.phone && (
+                  <Button onClick={handleWhatsAppShare} className="flex-1 bg-green-600 hover:bg-green-700">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Send WhatsApp
+                  </Button>
+                )}
+                <Button onClick={handleCopyCredentials} variant="outline" className="flex-1">
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy Credentials
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCredentialsModal({ open: false, data: null })}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
