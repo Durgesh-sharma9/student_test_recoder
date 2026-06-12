@@ -17,8 +17,8 @@ router.use(protect, requireSchoolActive);
 
 router.get('/suggestions', getSuggestions);
 router.get('/', getClasses);
-router.get('/:id', getClass);
 router.get('/:id/students', getClassStudents);
+router.get('/:id', getClass);
 
 router.post('/', authorize('school_admin'), createClass);
 router.put('/:id', authorize('school_admin'), updateClass);

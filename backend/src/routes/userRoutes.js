@@ -30,7 +30,7 @@ router.get('/download-template', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to generate template' });
   }
 });
-router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);
 router.put('/:id/assignments', assignTeacherWorkload);
+router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);
 
 export default router;

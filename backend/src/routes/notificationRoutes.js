@@ -54,11 +54,11 @@ router.put('/mark-all-read', markAllAsRead);
 // Create notification (only super_admin and school_admin) with file upload support
 router.post('/', authorize('super_admin', 'school_admin'), requireSchoolActive, upload.single('attachment'), createNotification);
 
-// Get notification by ID
-router.get('/:id', getNotification);
-
 // Mark as read
 router.put('/:id/mark-read', markAsRead);
+
+// Get notification by ID
+router.get('/:id', getNotification);
 
 // Delete notification (only sender can delete)
 router.delete('/:id', requireSchoolActive, deleteNotification);

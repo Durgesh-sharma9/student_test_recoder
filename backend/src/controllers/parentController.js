@@ -144,12 +144,14 @@ export const createParent = asyncHandler(async (req, res) => {
     linkedStudents: []
   });
 
+  const parentObj = parent.toObject();
+  // Include password in response for WhatsApp sharing (will be cleared on frontend)
+  parentObj.tempPassword = password;
+  delete parentObj.password;
+
   res.status(201).json({ 
     success: true, 
-    parent: {
-      ...parent.toObject(),
-      password // Return password for email sending
-    }
+    parent: parentObj
   });
 });
 

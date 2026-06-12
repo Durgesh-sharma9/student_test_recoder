@@ -5,6 +5,7 @@ import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../service
 import { parseTeacherImportFile } from '../services/excelService.js';
 import School from '../models/School.js';
 import AcademicSession from '../models/AcademicSession.js';
+import mongoose from 'mongoose';
 
 // Helper function to get active session
 const getActiveSession = async (schoolId) => {
@@ -70,8 +71,13 @@ export const getUsers = asyncHandler(async (req, res) => {
 });
 
 export const getUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-  const user = await User.findById(req.params.id)
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid user ID');
+  }
+
+  const user = await User.findById(id)
     .select('-password')
     .populate('assignedClasses')
     .populate('assignments.class');
@@ -167,6 +173,8 @@ export const createUser = asyncHandler(async (req, res) => {
 
   const userObj = user.toObject();
 
+  // Include password in response for WhatsApp sharing (will be cleared on frontend)
+  userObj.tempPassword = generatedPassword;
   delete userObj.password;
 
   res.status(201).json({
@@ -298,9 +306,14 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
   const { password, ...updates } = req.body;
 
-  const user = await User.findById(req.params.id);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid user ID');
+  }
+
+  const user = await User.findById(id);
 
   if (!user) {
     throw new ApiError(404, 'User not found.');
@@ -329,8 +342,13 @@ export const updateUser = asyncHandler(async (req, res) => {
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-  const user = await User.findById(req.params.id);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid user ID');
+  }
+
+  const user = await User.findById(id);
 
   if (!user) {
     throw new ApiError(404, 'User not found.');
@@ -349,8 +367,14 @@ export const deleteUser = asyncHandler(async (req, res) => {
 });
 
 export const assignTeacherWorkload = asyncHandler(async (req, res) => {
+  const { id } = req.params;
   const { assignedClasses = [], assignments = [] } = req.body;
-  const teacher = await User.findById(req.params.id);
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid user ID');
+  }
+
+  const teacher = await User.findById(id);
   if (!teacher || teacher.role !== 'teacher') throw new ApiError(404, 'Teacher not found.');
 
   // Get active session
