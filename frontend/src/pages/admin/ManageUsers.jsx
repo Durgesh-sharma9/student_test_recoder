@@ -33,6 +33,7 @@ export default function ManageUsers() {
     message: '',
     priority: 'normal',
   });
+  const [attachmentFile, setAttachmentFile] = useState(null);
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
@@ -160,17 +161,27 @@ export default function ManageUsers() {
         return;
       }
 
-      await api.post('/notifications', {
-        title: notificationForm.title,
-        message: notificationForm.message,
-        priority: notificationForm.priority,
-        recipientIds: [selectedTeacher._id],
+      const formData = new FormData();
+      formData.append('title', notificationForm.title);
+      formData.append('message', notificationForm.message);
+      formData.append('priority', notificationForm.priority);
+      formData.append('recipientIds', JSON.stringify([selectedTeacher._id]));
+      
+      if (attachmentFile) {
+        formData.append('attachment', attachmentFile);
+      }
+
+      await api.post('/notifications', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       toast.success('Notification sent successfully');
       setNotifyModalOpen(false);
       setSelectedTeacher(null);
       setNotificationForm({ title: '', message: '', priority: 'normal' });
+      setAttachmentFile(null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to send notification');
     }
@@ -550,9 +561,34 @@ export default function ManageUsers() {
                 </SelectContent>
               </Select>
             </FormField>
+            <FormField label="Attachment (Optional)">
+              <Input
+                type="file"
+                accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                      toast.error('File size exceeds 10MB limit');
+                      return;
+                    }
+                    setAttachmentFile(file);
+                  }
+                }}
+              />
+              {attachmentFile && (
+                <p className="mt-1 text-xs text-slate-600">
+                  Selected: {attachmentFile.name}
+                </p>
+              )}
+            </FormField>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNotifyModalOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setNotifyModalOpen(false);
+              setAttachmentFile(null);
+            }}>
               Cancel
             </Button>
             <Button onClick={handleSendNotification}>

@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
+import { uploadFile } from '../utils/imagekit.js';
 
 // Get notifications for current user
 export const getNotifications = asyncHandler(async (req, res) => {
@@ -98,6 +99,37 @@ export const createNotification = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Title and message are required.');
   }
 
+  // Handle file upload if attachment is present
+  let attachmentUrl = null;
+  let attachmentName = null;
+  let attachmentType = null;
+
+  if (req.file) {
+    try {
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'image/jpeg', 'image/jpg', 'image/png'];
+      
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        throw new ApiError(400, 'Invalid file type. Allowed types: PDF, DOC, DOCX, XLSX, CSV, JPG, JPEG, PNG');
+      }
+
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (req.file.size > maxSize) {
+        throw new ApiError(400, 'File size exceeds 10MB limit');
+      }
+
+      const uploadResult = await uploadFile(req.file, req.file.originalname, 'notifications');
+      attachmentUrl = uploadResult.url;
+      attachmentName = req.file.originalname;
+      attachmentType = req.file.mimetype;
+    } catch (error) {
+      console.error('File upload error:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(500, 'Failed to upload attachment');
+    }
+  }
+
   // Validate recipients based on role
   let finalRecipientIds = recipientIds || [];
 
@@ -152,6 +184,9 @@ export const createNotification = asyncHandler(async (req, res) => {
     schoolId: role === 'super_admin' ? undefined : schoolId,
     targetRole,
     isBroadcast: isBroadcast || false,
+    attachmentUrl,
+    attachmentName,
+    attachmentType,
   });
 
   const populatedNotification = await Notification.findById(notification._id)

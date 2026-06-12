@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, Paperclip, Download, ExternalLink } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { Button } from '@/components/ui/button';
@@ -210,6 +210,59 @@ export default function NotificationPanel() {
                             </Button>
                           )}
                         </div>
+                        {notification.attachmentUrl && (
+                          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-start gap-3">
+                              {notification.attachmentType?.startsWith('image/') ? (
+                                <img
+                                  src={notification.attachmentUrl.startsWith('http') ? notification.attachmentUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${notification.attachmentUrl}`}
+                                  alt={notification.attachmentName}
+                                  className="h-16 w-16 rounded-lg object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <Paperclip className="h-4 w-4 text-slate-500 mt-1 shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-700 truncate">
+                                  Attachment: {notification.attachmentName}
+                                </p>
+                                <div className="mt-2 flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => {
+                                      const url = notification.attachmentUrl.startsWith('http') 
+                                        ? notification.attachmentUrl 
+                                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${notification.attachmentUrl}`;
+                                      window.open(url, '_blank');
+                                    }}
+                                  >
+                                    <ExternalLink className="mr-1 h-3 w-3" />
+                                    View
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => {
+                                      const url = notification.attachmentUrl.startsWith('http') 
+                                        ? notification.attachmentUrl 
+                                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${notification.attachmentUrl}`;
+                                      const link = document.createElement('a');
+                                      link.href = url;
+                                      link.download = notification.attachmentName;
+                                      link.click();
+                                    }}
+                                  >
+                                    <Download className="mr-1 h-3 w-3" />
+                                    Download
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

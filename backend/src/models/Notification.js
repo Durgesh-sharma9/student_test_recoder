@@ -24,6 +24,10 @@ const notificationSchema = new mongoose.Schema(
     isBroadcast: { type: Boolean, default: false },
     isRead: { type: Boolean, default: false },
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    // Attachment fields
+    attachmentUrl: { type: String, trim: true },
+    attachmentName: { type: String, trim: true },
+    attachmentType: { type: String, trim: true },
   },
   { timestamps: true }
 );
