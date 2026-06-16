@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Calendar, Filter, Trophy, User, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, Trophy, User, TrendingUp, Download } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import AbsentBadge from '@/components/AbsentBadge';
@@ -89,16 +91,137 @@ export default function ResultsHistory() {
     }
   };
 
+  const generatePDF = () => {
+    if (!student || !results || results.length === 0) {
+      toast.error('No data available to generate report card');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Header
+      doc.setFillColor(99, 102, 241);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Report Card', pageWidth / 2, 20, { align: 'center' });
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Academic Performance Report', pageWidth / 2, 30, { align: 'center' });
+
+      // Student Information
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Student Information', 14, 55);
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const studentInfo = [
+        ['Name:', student.name],
+        ['Class:', `${student.className} ${student.section ? `(${student.section})` : ''}`],
+        ['Roll No:', student.rollNo],
+        ['Total Tests:', summary?.totalTests || results.length],
+        ['Average Percentage:', formatPercentageSafe(summary?.averagePercentage)],
+        ['Current Rank:', summary?.currentRank ? `#${summary.currentRank}` : 'N/A'],
+        ['Best Score:', formatPercentageSafe(summary?.bestScore)],
+      ];
+
+      autoTable(doc, {
+        startY: 60,
+        head: [],
+        body: studentInfo,
+        theme: 'plain',
+        styles: {
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 50 },
+          1: { cellWidth: 'auto' },
+        },
+      });
+
+      // Results Table
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Results History', 14, doc.lastAutoTable.finalY + 15);
+
+      const tableData = results.map((result) => [
+        formatDateSafe(result.date),
+        result.examType || 'N/A',
+        result.subject || 'N/A',
+        result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A'),
+        result.maxMarks ?? 'N/A',
+        formatPercentageSafe(result.percentage),
+        result.rank ? `#${result.rank}` : 'N/A',
+      ]);
+
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 20,
+        head: [['Date', 'Exam Type', 'Subject', 'Marks Obtained', 'Max Marks', 'Percentage', 'Rank']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [99, 102, 241],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9,
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 4,
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(128, 128, 128);
+        doc.text(
+          `Generated on ${new Date().toLocaleDateString()} - Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+
+      // Save PDF
+      const fileName = `${student.name.replace(/\s+/g, '_')}_Report_Card_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      toast.success('Report card downloaded successfully');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('Failed to generate report card');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/parent/dashboard')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <PageHeader
-          title="Results History"
-          description={student?.name ? `${student.name} - ${student?.className || ''} ${student?.section ? `(${student.section})` : ''}` : ''}
-        />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/parent/dashboard')}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <PageHeader
+            title="Results History"
+            description={student?.name ? `${student.name} - ${student?.className || ''} ${student?.section ? `(${student.section})` : ''}` : ''}
+          />
+        </div>
+        {results && results.length > 0 && (
+          <Button onClick={generatePDF} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Download Report Card
+          </Button>
+        )}
       </div>
 
       {student && (

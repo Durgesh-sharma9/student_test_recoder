@@ -26,7 +26,10 @@ import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
 import MainExamEntry from '@/pages/teacher/MainExamEntry';
 import TeacherResults from '@/pages/teacher/TeacherResults';
 import TeacherNotifications from '@/pages/teacher/Notifications';
+import TeacherSettings from '@/pages/teacher/TeacherSettings';
 import ParentDashboard from '@/pages/parent/Dashboard';
+import ParentSettings from '@/pages/parent/ParentSettings';
+import ParentNotifications from '@/pages/parent/ParentNotifications';
 import ParentLogin from '@/pages/ParentLogin';
 import StudentDetails from '@/pages/parent/StudentDetails';
 import ResultsHistory from '@/pages/parent/ResultsHistory';
@@ -102,9 +105,12 @@ export default function App() {
               <Route path="/teacher/daily-test" element={<ProtectedRoute roles={['teacher']}><DailyTestEntry /></ProtectedRoute>} />
               <Route path="/teacher/main-exam" element={<ProtectedRoute roles={['teacher']}><MainExamEntry /></ProtectedRoute>} />
               <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><TeacherResults /></ProtectedRoute>} />
+              <Route path="/teacher/settings" element={<ProtectedRoute roles={['teacher']}><TeacherSettings /></ProtectedRoute>} />
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><ParentDashboard /></ProtectedRoute>} />
+              <Route path="/parent/settings" element={<ProtectedRoute roles={['parent']}><ParentSettings /></ProtectedRoute>} />
+              <Route path="/parent/notifications" element={<ProtectedRoute roles={['parent']}><ParentNotifications /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId" element={<ProtectedRoute roles={['parent']}><StudentDetails /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/results-history" element={<ProtectedRoute roles={['parent']}><ResultsHistory /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/daily-tests" element={<ProtectedRoute roles={['parent']}><ParentDailyTests /></ProtectedRoute>} />

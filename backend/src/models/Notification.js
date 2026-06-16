@@ -19,11 +19,12 @@ const notificationSchema = new mongoose.Schema(
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School' },
     targetRole: {
       type: String,
-      enum: ['school_admin', 'teacher'],
+      enum: ['school_admin', 'teacher', 'parent'],
     },
     isBroadcast: { type: Boolean, default: false },
     isRead: { type: Boolean, default: false },
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
     // Attachment fields
     attachmentUrl: { type: String, trim: true },
     attachmentName: { type: String, trim: true },
