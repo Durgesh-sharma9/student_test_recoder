@@ -1,5 +1,7 @@
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import Parent from '../models/Parent.js';
+import Student from '../models/Student.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
@@ -20,6 +22,12 @@ export const getNotifications = asyncHandler(async (req, res) => {
       recipientIds: userId,
       schoolId,
     };
+  } else if (role === 'parent') {
+    // Parents can only see notifications sent to them
+    filter = {
+      recipientIds: userId,
+      schoolId,
+    };
   } else if (role === 'school_admin') {
     // Admins can see notifications sent to them and notifications they sent
     filter = {
@@ -35,10 +43,17 @@ export const getNotifications = asyncHandler(async (req, res) => {
     };
   }
 
+  console.log('[getNotifications] filter:', filter);
+  console.log('[getNotifications] userId:', userId);
+  console.log('[getNotifications] role:', role);
+  console.log('[getNotifications] schoolId:', schoolId);
+
   const notifications = await Notification.find(filter)
     .populate('senderId', 'name email')
     .populate('recipientIds', 'name email')
     .sort({ createdAt: -1 });
+
+  console.log('[getNotifications] notifications found:', notifications.length);
 
   const unreadCount = await Notification.countDocuments({
     ...filter,
@@ -72,7 +87,7 @@ export const getNotification = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const role = req.user.role;
 
-  if (role === 'teacher') {
+  if (role === 'teacher' || role === 'parent') {
     if (!notification.recipientIds.some((r) => r._id.toString() === userId.toString())) {
       throw new ApiError(403, 'You do not have permission to view this notification.');
     }
@@ -97,7 +112,7 @@ export const getNotification = asyncHandler(async (req, res) => {
 
 // Create notification
 export const createNotification = asyncHandler(async (req, res) => {
-  const { title, message, priority, recipientIds, targetRole, isBroadcast } = req.body;
+  const { title, message, priority, recipientIds, targetRole, isBroadcast, classId } = req.body;
   const userId = req.user._id;
   const role = req.user.role;
   const schoolId = req.user.school;
@@ -159,23 +174,47 @@ export const createNotification = asyncHandler(async (req, res) => {
       finalRecipientIds = recipientIds;
     }
   } else if (role === 'school_admin') {
-    // School admin can only send to teachers of their school
-    if (isBroadcast) {
-      const teachers = await User.find({ role: 'teacher', school: schoolId });
-      finalRecipientIds = teachers.map((t) => t._id);
+    // School admin can send to teachers or parents of their school
+    if (targetRole === 'parent') {
+      // Send to parents
+      console.log('[createNotification] Sending to parents, isBroadcast:', isBroadcast, 'classId:', classId);
+      if (isBroadcast) {
+        // Send to all parents of the school
+        const parents = await Parent.find({ school: schoolId, status: 'Active' });
+        console.log('[createNotification] Found parents for broadcast:', parents.length);
+        finalRecipientIds = parents.map((p) => p._id);
+      } else if (classId) {
+        // Send to parents of a specific class
+        const students = await Student.find({ classId, school: schoolId, isActive: true });
+        console.log('[createNotification] Found students for class:', students.length);
+        const parentIds = students.map((s) => s.parentId).filter(Boolean);
+        console.log('[createNotification] Parent IDs from students:', parentIds);
+        const parents = await Parent.find({ _id: { $in: parentIds }, school: schoolId, status: 'Active' });
+        console.log('[createNotification] Found parents for class:', parents.length);
+        finalRecipientIds = parents.map((p) => p._id);
+      } else {
+        throw new ApiError(400, 'For parent notifications, either broadcast to all parents or specify a class.');
+      }
+      console.log('[createNotification] Final parent recipient IDs:', finalRecipientIds);
     } else {
-      if (!recipientIds || recipientIds.length === 0) {
-        throw new ApiError(400, 'At least one recipient is required.');
+      // Send to teachers
+      if (isBroadcast) {
+        const teachers = await User.find({ role: 'teacher', school: schoolId });
+        finalRecipientIds = teachers.map((t) => t._id);
+      } else {
+        if (!recipientIds || recipientIds.length === 0) {
+          throw new ApiError(400, 'At least one recipient is required.');
+        }
+        const recipients = await User.find({
+          _id: { $in: recipientIds },
+          role: 'teacher',
+          school: schoolId,
+        });
+        if (recipients.length !== recipientIds.length) {
+          throw new ApiError(400, 'School admin can only send notifications to teachers of their school.');
+        }
+        finalRecipientIds = recipientIds;
       }
-      const recipients = await User.find({
-        _id: { $in: recipientIds },
-        role: 'teacher',
-        school: schoolId,
-      });
-      if (recipients.length !== recipientIds.length) {
-        throw new ApiError(400, 'School admin can only send notifications to teachers of their school.');
-      }
-      finalRecipientIds = recipientIds;
     }
   } else {
     throw new ApiError(403, 'You do not have permission to create notifications.');
@@ -191,6 +230,7 @@ export const createNotification = asyncHandler(async (req, res) => {
     schoolId: role === 'super_admin' ? undefined : schoolId,
     targetRole,
     isBroadcast: isBroadcast || false,
+    classId,
     attachmentUrl,
     attachmentName,
     attachmentType,

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Activity, AlertTriangle, Filter } from 'lucide-react';
+import { BookOpen, Activity, AlertTriangle, Filter, Lock, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { formatDisplayDate } from '@/lib/dateFormatter';
+import { useAuth } from '@/context/AuthContext';
 import StatsCard from '@/components/StatsCard';
 import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection, PageStack, FormField } from '@/components/erp/PagePrimitives';
@@ -10,8 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNavigate } from 'react-router-dom';
 
 export default function TeacherDashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState({ stats: {}, recentActivities: [], weakStudents: [], assignmentDetails: [] });
   const [weakStudentsData, setWeakStudentsData] = useState([]);
   const [loadingWeakStudents, setLoadingWeakStudents] = useState(false);
@@ -86,6 +90,25 @@ export default function TeacherDashboard() {
         title="Teacher Dashboard"
         description="Your assignments, students, and recent activity at a glance."
       />
+
+      {user?.mustChangePassword && (
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-900">
+              Your account is using a temporary password. Please update it from Settings.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate('/teacher/settings')}
+            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            <Lock className="mr-2 h-4 w-4" />
+            Update Password
+          </Button>
+        </div>
+      )}
 
       {/* Changed to lg:grid-cols-4 since there are 4 cards remaining */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

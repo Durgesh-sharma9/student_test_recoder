@@ -52,12 +52,6 @@ export default function Login() {
 
       const role = user.role === 'admin' ? 'school_admin' : user.role;
 
-      // Check if teacher must change password on first login
-      if (role === 'teacher' && user.mustChangePassword) {
-        navigate('/change-password');
-        return;
-      }
-
       
       if (role === 'super_admin') navigate('/super-admin');
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, X, Bell, Paperclip } from 'lucide-react';
+import { Megaphone, X, Bell, Paperclip, Users, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -23,8 +23,11 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
     priority: 'normal',
   });
   const [recipientType, setRecipientType] = useState('all'); // 'all' or 'selected'
+  const [targetRole, setTargetRole] = useState('teacher'); // 'teacher' or 'parent'
   const [recipients, setRecipients] = useState([]);
   const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState(null);
 
@@ -33,7 +36,9 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
       // Reset form when modal opens
       setFormData({ title: '', message: '', priority: 'normal' });
       setRecipientType('all');
+      setTargetRole('teacher');
       setSelectedRecipients([]);
+      setSelectedClass('');
       setAttachmentFile(null);
       
       // Fetch recipients based on role
@@ -43,9 +48,13 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
           setRecipients(res.data.users || []);
         });
       } else if (role === 'school_admin') {
-        // School admin sends to teachers of their school
+        // School admin sends to teachers or parents
         api.get('/users?role=teacher').then((res) => {
           setRecipients(res.data.users || []);
+        });
+        // Fetch classes for class-wise parent notifications
+        api.get('/classes').then((res) => {
+          setClasses(res.data.classes || []);
         });
       }
     }
@@ -62,35 +71,56 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
 
       let finalRecipientIds = [];
       let isBroadcast = false;
+      let finalTargetRole = targetRole;
+      let finalClassId = selectedClass;
 
       if (role === 'super_admin') {
         // Super admin always broadcasts to all admins
         finalRecipientIds = recipients.map((r) => r._id);
         isBroadcast = true;
+        finalTargetRole = 'school_admin';
       } else if (role === 'school_admin') {
-        // School admin can broadcast to all teachers or send to selected
-        if (recipientType === 'all') {
-          finalRecipientIds = recipients.map((r) => r._id);
-          isBroadcast = true;
+        // School admin can send to teachers or parents
+        if (targetRole === 'parent') {
+          // Send to parents
+          if (recipientType === 'all') {
+            // Broadcast to all parents
+            isBroadcast = true;
+          } else if (selectedClass) {
+            // Send to parents of specific class
+            finalClassId = selectedClass;
+            isBroadcast = false;
+          } else {
+            toast.error('Please select a class for class-wise parent notifications');
+            setLoading(false);
+            return;
+          }
         } else {
-          finalRecipientIds = selectedRecipients;
-          isBroadcast = false;
+          // Send to teachers
+          if (recipientType === 'all') {
+            finalRecipientIds = recipients.map((r) => r._id);
+            isBroadcast = true;
+          } else {
+            finalRecipientIds = selectedRecipients;
+            isBroadcast = false;
+          }
         }
-      }
-
-      if (finalRecipientIds.length === 0) {
-        toast.error('Please select at least one recipient');
-        setLoading(false);
-        return;
       }
 
       const formDataObj = new FormData();
       formDataObj.append('title', formData.title);
       formDataObj.append('message', formData.message);
       formDataObj.append('priority', formData.priority);
-      formDataObj.append('recipientIds', JSON.stringify(finalRecipientIds));
-      formDataObj.append('targetRole', role === 'super_admin' ? 'school_admin' : 'teacher');
+      formDataObj.append('targetRole', finalTargetRole);
       formDataObj.append('isBroadcast', isBroadcast);
+      
+      if (finalClassId) {
+        formDataObj.append('classId', finalClassId);
+      }
+      
+      if (finalRecipientIds.length > 0) {
+        formDataObj.append('recipientIds', JSON.stringify(finalRecipientIds));
+      }
       
       if (attachmentFile) {
         formDataObj.append('attachment', attachmentFile);
@@ -193,34 +223,97 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
             </Select>
           </FormField>
           {role === 'school_admin' && (
-            <FormField label="Recipients">
-              <Select value={recipientType} onValueChange={setRecipientType}>
-                <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Teachers</SelectItem>
-                  <SelectItem value="selected">Selected Teachers</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-          )}
-          {role === 'school_admin' && recipientType === 'selected' && (
-            <FormField label="Select Teachers">
-              <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-3 shadow-sm">
-                {recipients.map((recipient) => (
-                  <label key={recipient._id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={selectedRecipients.includes(recipient._id)}
-                      onChange={() => handleRecipientToggle(recipient._id)}
-                      className="rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
-                    />
-                    <span className="text-sm font-medium text-slate-700">{recipient.teacherName || recipient.name}</span>
-                  </label>
-                ))}
-              </div>
-            </FormField>
+            <>
+              <FormField label="Send To">
+                <Select value={targetRole} onValueChange={(value) => {
+                  setTargetRole(value);
+                  setRecipientType('all');
+                  setSelectedRecipients([]);
+                  setSelectedClass('');
+                }}>
+                  <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="teacher">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Teachers
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="parent">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4" />
+                        Parents
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {targetRole === 'teacher' && (
+                <FormField label="Recipients">
+                  <Select value={recipientType} onValueChange={setRecipientType}>
+                    <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Teachers</SelectItem>
+                      <SelectItem value="selected">Selected Teachers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              {targetRole === 'teacher' && recipientType === 'selected' && (
+                <FormField label="Select Teachers">
+                  <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-3 shadow-sm">
+                    {recipients.map((recipient) => (
+                      <label key={recipient._id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedRecipients.includes(recipient._id)}
+                          onChange={() => handleRecipientToggle(recipient._id)}
+                          className="rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500"
+                        />
+                        <span className="text-sm font-medium text-slate-700">{recipient.teacherName || recipient.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FormField>
+              )}
+
+              {targetRole === 'parent' && (
+                <FormField label="Recipients">
+                  <Select value={recipientType} onValueChange={setRecipientType}>
+                    <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Parents</SelectItem>
+                      <SelectItem value="class">Class-wise Parents</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              {targetRole === 'parent' && recipientType === 'class' && (
+                <FormField label="Select Class">
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                      <SelectValue placeholder="Select a class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          {cls.className} {cls.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+            </>
           )}
           <FormField label="Attachment (Optional)">
             <Input

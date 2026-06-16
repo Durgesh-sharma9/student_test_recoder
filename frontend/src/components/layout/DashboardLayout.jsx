@@ -33,12 +33,14 @@ import AnnouncementModal from '@/components/AnnouncementModal';
 // Helper function to get display name from user object
 const getDisplayName = (user) => {
   if (!user) return 'User';
+  
   // Try different possible name fields in order of preference
-  if (user.name) return user.name;
-  if (user.teacherName) return user.teacherName;
-  if (user.parentName) return user.parentName;
-  if (user.adminName) return user.adminName;
-  if (user.email) return user.email;
+  if (user.name && typeof user.name === 'string' && user.name.trim()) return user.name.trim();
+  if (user.teacherName && typeof user.teacherName === 'string' && user.teacherName.trim()) return user.teacherName.trim();
+  if (user.parentName && typeof user.parentName === 'string' && user.parentName.trim()) return user.parentName.trim();
+  if (user.adminName && typeof user.adminName === 'string' && user.adminName.trim()) return user.adminName.trim();
+  if (user.email && typeof user.email === 'string' && user.email.trim()) return user.email.trim();
+  
   return 'User';
 };
 
@@ -47,10 +49,16 @@ const getInitials = (user) => {
   if (!user) return 'U';
   const name = getDisplayName(user);
   if (!name || name === 'User') return 'U';
+  
   // If it's an email, use first letter
   if (name.includes('@')) return name.charAt(0).toUpperCase();
+  
   // Otherwise, get first letters of each word
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) {
+    return words[0].charAt(0).toUpperCase();
+  }
+  return words.map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
 };
 
 // Added customized background and icon configurations for each structural module container box
@@ -78,6 +86,12 @@ const navByRole = {
     { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
     { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/teacher/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
+  ],
+  parent: [
+    { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
+    { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
+    { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 };
 

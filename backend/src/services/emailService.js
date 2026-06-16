@@ -10,12 +10,68 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const logEmailError = (error, context) => {
+const logEmailError = (error, context, retryAttempt = 0) => {
   console.error(`[Email Error - ${context}]:`, error.message);
+  console.error(`[Email Error Details]:`, {
+    code: error.code,
+    command: error.command,
+    responseCode: error.responseCode,
+    response: error.response,
+    retryAttempt,
+  });
 
   if (error.stack) {
     console.error(error.stack);
   }
+};
+
+const logEmailSuccess = (context, recipient, retryAttempt = 0) => {
+  console.log(`[Email Success - ${context}]: Email sent successfully to ${recipient}${retryAttempt > 0 ? ` (after ${retryAttempt} retry attempts)` : ''}`);
+};
+
+const verifyTransporter = async () => {
+  try {
+    await transporter.verify();
+    console.log('[Email Service] SMTP connection verified successfully');
+    return true;
+  } catch (error) {
+    console.error('[Email Service] SMTP connection verification failed:', error.message);
+    return false;
+  }
+};
+
+const sendWithRetry = async (mailOptions, context, maxRetries = 3) => {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[Email Service - ${context}] Retry attempt ${attempt}/${maxRetries}...`);
+        // Add delay before retry (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const result = await transporter.sendMail(mailOptions);
+      logEmailSuccess(context, mailOptions.to, attempt);
+      return { success: true, data: result, attempts: attempt + 1 };
+    } catch (error) {
+      lastError = error;
+      logEmailError(error, context, attempt);
+      
+      if (attempt === maxRetries) {
+        console.error(`[Email Service - ${context}] Failed after ${maxRetries} retry attempts`);
+        break;
+      }
+    }
+  }
+  
+  return { 
+    success: false, 
+    error: lastError.message,
+    code: lastError.code,
+    attempts: maxRetries + 1
+  };
 };
 
 export const sendTeacherCreationEmail = async (
@@ -25,43 +81,93 @@ export const sendTeacherCreationEmail = async (
   password,
   loginUrl
 ) => {
-  try {
-    const result = await transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: teacherEmail,
-      subject: "Teacher Login Credentials",
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Teacher Account Created</h2>
-
-          <p>Hello ${teacherName},</p>
-
-          <p>Your account has been created successfully for ${schoolName}.</p>
-
-          <div style="background:#f5f5f5;padding:15px;border-radius:8px;">
-            <p><strong>Name:</strong> ${teacherName}</p>
-            <p><strong>Email:</strong> ${teacherEmail}</p>
-            <p><strong>Password:</strong> ${password}</p>
-            <p><strong>Login URL:</strong> <a href="${loginUrl}" target="_blank" rel="noreferrer">${loginUrl}</a></p>
+  const mailOptions = {
+    from: process.env.MAIL_FROM,
+    to: teacherEmail,
+    subject: "Welcome to Test Master - Your Teacher Account Credentials",
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Test Master</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background-color: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 15px;">
+              <span style="font-size: 32px; color: #ffffff;">🎓</span>
+            </div>
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 700;">Test Master</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 5px 0 0;">Professional School Management</p>
           </div>
 
-          <p>Please keep these credentials safe.</p>
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 10px; font-weight: 600;">Welcome to ${schoolName}!</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${teacherName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Your teacher account has been successfully created. Below are your login credentials to access the Test Master platform.
+            </p>
+
+            <!-- Credentials Box -->
+            <div style="background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 25px; margin: 25px 0;">
+              <h3 style="color: #495057; font-size: 18px; margin: 0 0 20px; font-weight: 600;">Your Account Details</h3>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Full Name</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${teacherName}</p>
+              </div>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Email Address</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${teacherEmail}</p>
+              </div>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Temporary Password</p>
+                <p style="color: #667eea; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 2px;">${password}</p>
+              </div>
+              
+              <div>
+                <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-top: 10px;">Login to Your Account</a>
+              </div>
+            </div>
+
+            <!-- Important Notice -->
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">⚠️ Important Security Notice</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This is a temporary password. For your account security, please change your password immediately after your first login from the Settings page.
+              </p>
+            </div>
+
+            <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 25px 0 0;">
+              If you have any questions or need assistance, please contact your school administrator.
+            </p>
+
+            <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 10px 0;">
+              Best regards,<br>
+              <strong>${schoolName} Team</strong>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="color: #6c757d; font-size: 13px; margin: 0 0 10px;">© ${new Date().getFullYear()} ${schoolName}. All rights reserved.</p>
+            <p style="color: #adb5bd; font-size: 12px; margin: 0;">This is an automated email. Please do not reply.</p>
+          </div>
         </div>
-      `,
-    });
+      </body>
+      </html>
+    `,
+  };
 
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    logEmailError(error, "Teacher Creation Email");
-
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
+  return await sendWithRetry(mailOptions, "Teacher Creation Email");
 };
 
 export const sendTeacherAssignmentEmail = async (
@@ -70,50 +176,38 @@ export const sendTeacherAssignmentEmail = async (
   assignedClasses = [],
   assignedSubjects = []
 ) => {
-  try {
-    const classesList = assignedClasses
-      .map((c) => `<li>${c}</li>`)
-      .join("");
+  const classesList = assignedClasses
+    .map((c) => `<li>${c}</li>`)
+    .join("");
 
-    const subjectsList = assignedSubjects
-      .map((s) => `<li>${s}</li>`)
-      .join("");
+  const subjectsList = assignedSubjects
+    .map((s) => `<li>${s}</li>`)
+    .join("");
 
-    const result = await transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: teacherEmail,
-      subject: "Teaching Assignments Updated",
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Teaching Assignments Updated</h2>
+  const mailOptions = {
+    from: process.env.MAIL_FROM,
+    to: teacherEmail,
+    subject: "Teaching Assignments Updated",
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Teaching Assignments Updated</h2>
 
-          <p>Hello ${teacherName},</p>
+        <p>Hello ${teacherName},</p>
 
-          <h3>Assigned Classes</h3>
-          <ul>
-            ${classesList || "<li>No classes assigned</li>"}
-          </ul>
+        <h3>Assigned Classes</h3>
+        <ul>
+          ${classesList || "<li>No classes assigned</li>"}
+        </ul>
 
-          <h3>Assigned Subjects</h3>
-          <ul>
-            ${subjectsList || "<li>No subjects assigned</li>"}
-          </ul>
-        </div>
-      `,
-    });
+        <h3>Assigned Subjects</h3>
+        <ul>
+          ${subjectsList || "<li>No subjects assigned</li>"}
+        </ul>
+      </div>
+    `,
+  };
 
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    logEmailError(error, "Teacher Assignment Email");
-
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
+  return await sendWithRetry(mailOptions, "Teacher Assignment Email");
 };
 
 export const sendParentCreationEmail = async (
@@ -123,41 +217,101 @@ export const sendParentCreationEmail = async (
   password,
   loginUrl
 ) => {
-  try {
-    const result = await transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: parentEmail,
-      subject: "Parent Account Created",
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Parent Account Created</h2>
-
-          <p>Hello ${parentName},</p>
-
-          <p>Your parent account has been created successfully for ${schoolName}.</p>
-
-          <div style="background:#f5f5f5;padding:15px;border-radius:8px;">
-            <p><strong>Name:</strong> ${parentName}</p>
-            <p><strong>Email:</strong> ${parentEmail}</p>
-            <p><strong>Password:</strong> ${password}</p>
-            <p><strong>Login URL:</strong> <a href="${loginUrl}" target="_blank" rel="noreferrer">${loginUrl}</a></p>
+  const mailOptions = {
+    from: process.env.MAIL_FROM,
+    to: parentEmail,
+    subject: "Welcome to Test Master - Your Parent Account Credentials",
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Test Master</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background-color: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 15px;">
+              <span style="font-size: 32px; color: #ffffff;">👨‍👩‍👧‍👦</span>
+            </div>
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 700;">Test Master</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 5px 0 0;">Professional School Management</p>
           </div>
 
-          <p>Please keep these credentials safe.</p>
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 10px; font-weight: 600;">Welcome to ${schoolName}!</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${parentName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Your parent account has been successfully created. Below are your login credentials to access the Test Master platform and monitor your child's academic progress.
+            </p>
+
+            <!-- Credentials Box -->
+            <div style="background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 25px; margin: 25px 0;">
+              <h3 style="color: #495057; font-size: 18px; margin: 0 0 20px; font-weight: 600;">Your Account Details</h3>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Parent Name</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${parentName}</p>
+              </div>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Email Address</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${parentEmail}</p>
+              </div>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Temporary Password</p>
+                <p style="color: #667eea; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 2px;">${password}</p>
+              </div>
+              
+              <div>
+                <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-top: 10px;">Login to Your Account</a>
+              </div>
+            </div>
+
+            <!-- Important Notice -->
+            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">⚠️ Important Security Notice</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This is a temporary password. For your account security, please change your password immediately after your first login from the Settings page.
+              </p>
+            </div>
+
+            <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 25px 0 0;">
+              With Test Master, you can:
+            </p>
+            <ul style="color: #666666; font-size: 15px; line-height: 1.8; margin: 10px 0 25px; padding-left: 20px;">
+              <li>View your child's test results and academic performance</li>
+              <li>Monitor attendance and progress reports</li>
+              <li>Receive important school notifications</li>
+              <li>Download report cards and certificates</li>
+            </ul>
+
+            <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 10px 0;">
+              If you have any questions or need assistance, please contact your school administrator.
+            </p>
+
+            <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 10px 0;">
+              Best regards,<br>
+              <strong>${schoolName} Team</strong>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+            <p style="color: #6c757d; font-size: 13px; margin: 0 0 10px;">© ${new Date().getFullYear()} ${schoolName}. All rights reserved.</p>
+            <p style="color: #adb5bd; font-size: 12px; margin: 0;">This is an automated email. Please do not reply.</p>
+          </div>
         </div>
-      `,
-    });
+      </body>
+      </html>
+    `,
+  };
 
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    logEmailError(error, "Parent Creation Email");
-
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
+  return await sendWithRetry(mailOptions, "Parent Creation Email");
 };
