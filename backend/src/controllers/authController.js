@@ -199,14 +199,38 @@ export const getMe = asyncHandler(async (req, res) => {
 
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const user = await User.findById(req.user._id).select('+password');
+  const role = req.user.role;
+  const userId = req.user._id;
 
-  if (!(await user.comparePassword(currentPassword))) {
+  console.log('[changePassword] User role:', role);
+  console.log('[changePassword] User ID:', userId);
+
+  let user;
+  
+  if (role === 'parent') {
+    user = await Parent.findById(userId).select('+password');
+    console.log('[changePassword] Parent found:', !!user);
+  } else {
+    user = await User.findById(userId).select('+password');
+    console.log('[changePassword] User found:', !!user);
+  }
+
+  if (!user) {
+    throw new ApiError(404, 'User not found.');
+  }
+
+  console.log('[changePassword] Comparing password...');
+  const isPasswordValid = await user.comparePassword(currentPassword);
+  console.log('[changePassword] Password valid:', isPasswordValid);
+
+  if (!isPasswordValid) {
     throw new ApiError(400, 'Current password is incorrect.');
   }
 
   user.password = newPassword;
-  user.mustChangePassword = false; // Reset the flag after successful password change
+  if (role !== 'parent') {
+    user.mustChangePassword = false; // Reset the flag after successful password change
+  }
   await user.save();
 
   res.json({ success: true, message: 'Password updated successfully.' });

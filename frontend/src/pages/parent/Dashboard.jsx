@@ -103,7 +103,7 @@ export default function ParentDashboard() {
             <p>No children linked to your account yet.</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
             {students.map((student) => {
               const subjectPerformance = calculateSubjectPerformance(student.recentResults);
               const weakSubjects = getWeakSubjects(subjectPerformance);
@@ -115,47 +115,48 @@ export default function ParentDashboard() {
               return (
                 <div
                   key={student._id}
-                  className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300"
+                  onClick={() => navigate(`/parent/student/${student._id}/results`)}
+                  className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                 >
-                  <div className="mb-4 flex items-start gap-4">
-                    <div className="h-16 w-16 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                  <div className="mb-6 flex items-start gap-6">
+                    <div className="h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
                       {student.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-slate-900 truncate">{student.name}</h3>
-                      <p className="text-sm text-slate-500">
+                      <h3 className="text-2xl font-bold text-slate-900 truncate">{student.name}</h3>
+                      <p className="text-base text-slate-500">
                         {student.className} {student.section && `(${student.section})`}
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-xs font-medium text-slate-500 mb-1">Roll No</div>
-                      <div className="text-lg font-bold text-slate-900">{student.rollNo}</div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <div className="text-sm font-medium text-slate-500 mb-1">Roll No</div>
+                      <div className="text-2xl font-bold text-slate-900">{student.rollNo}</div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-xs font-medium text-slate-500 mb-1">Rank</div>
-                      <div className="text-lg font-bold text-slate-900">#{student.rank || '-'}</div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <div className="text-sm font-medium text-slate-500 mb-1">Rank</div>
+                      <div className="text-2xl font-bold text-slate-900">#{student.rank || '-'}</div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-xs font-medium text-slate-500 mb-1">Total Students</div>
-                      <div className="text-lg font-bold text-slate-900">{student.totalStudents || '-'}</div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <div className="text-sm font-medium text-slate-500 mb-1">Total Students</div>
+                      <div className="text-2xl font-bold text-slate-900">{student.totalStudents || '-'}</div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-xs font-medium text-slate-500 mb-1">Overall %</div>
-                      <div className="text-lg font-bold text-slate-900">{student.percentage}%</div>
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <div className="text-sm font-medium text-slate-500 mb-1">Overall %</div>
+                      <div className="text-2xl font-bold text-slate-900">{student.percentage}%</div>
                     </div>
                   </div>
 
                   {/* Performance Trend */}
                   {trendData.length > 0 && (
-                    <div className="mb-4 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="h-4 w-4 text-indigo-600" />
-                        <span className="text-xs font-medium text-indigo-600">Performance Trend</span>
+                    <div className="mb-6 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <TrendingUp className="h-5 w-5 text-indigo-600" />
+                        <span className="text-sm font-medium text-indigo-600">Performance Trend</span>
                       </div>
-                      <ResponsiveContainer width="100%" height={100}>
+                      <ResponsiveContainer width="100%" height={120}>
                         <LineChart data={trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis 
@@ -195,16 +196,16 @@ export default function ParentDashboard() {
 
                   {/* Subject-wise Performance */}
                   {subjectPerformance.length > 0 && (
-                    <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex items-center gap-2 mb-3">
-                        <BookOpen className="h-4 w-4 text-slate-600" />
-                        <span className="text-xs font-medium text-slate-600">Subject-wise Performance</span>
+                        <BookOpen className="h-5 w-5 text-slate-600" />
+                        <span className="text-sm font-medium text-slate-600">Subject-wise Performance</span>
                       </div>
                       <div className="space-y-2">
                         {subjectPerformance.slice(0, 4).map((sp, idx) => (
                           <div key={idx} className="flex items-center justify-between">
-                            <span className="text-xs text-slate-700">{sp.subject}</span>
-                            <span className={`text-xs font-semibold ${
+                            <span className="text-sm text-slate-700">{sp.subject}</span>
+                            <span className={`text-sm font-semibold ${
                               parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' :
                               parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' :
                               'text-red-600'
@@ -219,53 +220,18 @@ export default function ParentDashboard() {
 
                   {/* Weak Subjects Alert */}
                   {weakSubjects.length > 0 && (
-                    <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                         <div>
-                          <p className="text-xs font-medium text-amber-800">Needs Attention</p>
-                          <p className="text-xs text-amber-700 mt-1">
+                          <p className="text-sm font-medium text-amber-800">Needs Attention</p>
+                          <p className="text-sm text-amber-700 mt-1">
                             {weakSubjects.map(s => s.subject).join(', ')}
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
-
-                  {/* Recent Results */}
-                  {student.recentResults && student.recentResults.length > 0 && (
-                    <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Trophy className="h-4 w-4 text-slate-600" />
-                        <span className="text-xs font-medium text-slate-600">Recent Results</span>
-                      </div>
-                      <div className="space-y-2">
-                        {student.recentResults.slice(0, 3).map((result, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-100 pb-2 last:border-0 last:pb-0">
-                            <div className="flex-1 min-w-0">
-                              <span className="block font-medium text-slate-700 truncate">{result.subject}</span>
-                              <span className="text-slate-500">{formatDateSafe(result.date)}</span>
-                            </div>
-                            <span className={`font-semibold ${
-                              result.percentage >= 75 ? 'text-green-600' :
-                              result.percentage >= 50 ? 'text-orange-600' :
-                              'text-red-600'
-                            }`}>
-                              {result.percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    className="w-full"
-                    onClick={() => navigate(`/parent/student/${student._id}/results-history`)}
-                  >
-                    View Results
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
                 </div>
               );
             })}

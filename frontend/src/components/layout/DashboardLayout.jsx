@@ -90,6 +90,7 @@ const navByRole = {
   ],
   parent: [
     { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
+    { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
