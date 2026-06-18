@@ -377,27 +377,35 @@ export const googleCallback = asyncHandler(async (req, res) => {
     if (err || !user) {
       const errorMessage = err?.message || 'Authentication failed';
       console.error('[Google Auth Error]', errorMessage);
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent(errorMessage)}`);
+      // Default to parent-login for Parent Google auth errors
+      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/parent-login?error=${encodeURIComponent(errorMessage)}`);
     }
 
     try {
       // Check if user is active
       if (!user.isActive) {
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Account is deactivated.')}`);
+        const redirectPath = user.role === 'parent' ? '/parent-login' : '/login';
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}${redirectPath}?error=${encodeURIComponent('Account is deactivated.')}`);
       }
 
       if (user.status === 'Inactive') {
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Teacher account is inactive. Please contact administrator.')}`);
+        const redirectPath = user.role === 'parent' ? '/parent-login' : '/login';
+        const errorMessage = user.role === 'parent' 
+          ? 'Your parent account is inactive. Please contact your school administration.'
+          : 'Teacher account is inactive. Please contact administrator.';
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}${redirectPath}?error=${encodeURIComponent(errorMessage)}`);
       }
 
       // Check if school is active (for non-super_admin users)
       if (user.role !== 'super_admin' && user.school) {
         const school = await School.findById(user.school);
         if (!school?.isActive) {
-          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('School account is deactivated.')}`);
+          const redirectPath = user.role === 'parent' ? '/parent-login' : '/login';
+          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}${redirectPath}?error=${encodeURIComponent('School account is deactivated.')}`);
         }
         if (school.planExpiresAt && new Date() > school.planExpiresAt) {
-          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('School plan has expired.')}`);
+          const redirectPath = user.role === 'parent' ? '/parent-login' : '/login';
+          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}${redirectPath}?error=${encodeURIComponent('School plan has expired.')}`);
         }
 
         // Auto-create current academic session for school admin
@@ -438,7 +446,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('[Google Callback Error]', error);
-      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Authentication failed. Please try again.')}`);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/parent-login?error=${encodeURIComponent('Authentication failed. Please try again.')}`);
     }
   })(req, res);
 });
