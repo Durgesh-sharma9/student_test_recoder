@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema(
     teacherName: { type: String, trim: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false },
+    password: { type: String, required: false, minlength: 6, select: false },
     role: {
       type: String,
       enum: ['super_admin', 'school_admin', 'teacher', 'admin', 'parent'],
@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema(
     assignedClasses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }],
     assignments: [teacherAssignmentSchema],
     mustChangePassword: { type: Boolean, default: false },
+    googleId: { type: String, trim: true },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   },
   { timestamps: true }
 );
@@ -37,7 +39,7 @@ userSchema.index({ school: 1, email: 1 }, { unique: true });
 
 userSchema.pre('save', async function (next) {
   if (this.role === 'admin') this.role = 'school_admin';
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

@@ -7,9 +7,11 @@ const parentSchema = new mongoose.Schema(
     parentName: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false },
+    password: { type: String, required: false, minlength: 6, select: false },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     linkedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
+    googleId: { type: String, trim: true },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   },
   { timestamps: true }
 );
@@ -33,7 +35,7 @@ parentSchema.index(
 );
 
 parentSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import AuthCallback from '@/pages/AuthCallback';
 import SuperDashboard from '@/pages/super/SuperDashboard';
 import SuperSchools from '@/pages/super/SuperSchools';
 import SuperSchoolDetails from '@/pages/super/SuperSchoolDetails';
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/parent-login" element={<ParentLogin />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent']}><DashboardLayout /></ProtectedRoute>}>
               <Route path="/super-admin" element={<ProtectedRoute roles={['super_admin']}><SuperDashboard /></ProtectedRoute>} />
