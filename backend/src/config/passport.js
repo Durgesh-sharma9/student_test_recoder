@@ -68,7 +68,7 @@ passport.use(
 
         // No account found - return error (no auto-signup)
         return done(
-          new Error('Account not found. Please contact your school administrator.'),
+          new Error('No Parent Account Found. Please contact your school administration.'),
           null
         );
       } catch (error) {

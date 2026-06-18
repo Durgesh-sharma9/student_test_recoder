@@ -21,7 +21,7 @@ export default function AuthCallback() {
         
         if (role === 'super_admin') navigate('/super-admin');
         else if (role === 'school_admin') navigate('/admin');
-        else if (role === 'parent') navigate('/parent');
+        else if (role === 'parent') navigate('/parent/dashboard');
         else navigate('/teacher');
       } catch (error) {
         console.error('Auth callback error:', error);
