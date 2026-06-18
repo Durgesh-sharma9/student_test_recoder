@@ -6,6 +6,7 @@ import AcademicSession from '../models/AcademicSession.js';
 import Parent from '../models/Parent.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import passport from '../config/passport.js';
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -363,4 +364,81 @@ export const parentLogin = asyncHandler(async (req, res) => {
     token,
     user: userObj,
   });
+});
+
+// Google OAuth Routes
+export const googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email'],
+  session: false,
+});
+
+export const googleCallback = asyncHandler(async (req, res) => {
+  passport.authenticate('google', { session: false }, async (err, user) => {
+    if (err || !user) {
+      const errorMessage = err?.message || 'Authentication failed';
+      console.error('[Google Auth Error]', errorMessage);
+      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent(errorMessage)}`);
+    }
+
+    try {
+      // Check if user is active
+      if (!user.isActive) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Account is deactivated.')}`);
+      }
+
+      if (user.status === 'Inactive') {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Teacher account is inactive. Please contact administrator.')}`);
+      }
+
+      // Check if school is active (for non-super_admin users)
+      if (user.role !== 'super_admin' && user.school) {
+        const school = await School.findById(user.school);
+        if (!school?.isActive) {
+          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('School account is deactivated.')}`);
+        }
+        if (school.planExpiresAt && new Date() > school.planExpiresAt) {
+          return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('School plan has expired.')}`);
+        }
+
+        // Auto-create current academic session for school admin
+        if (user.role === 'school_admin' || user.role === 'admin') {
+          await ensureActiveSession(user.school);
+        }
+      }
+
+      // Generate JWT token
+      const token = signToken(user._id);
+      
+      // Prepare user object
+      let userObj;
+      if (user.role === 'parent') {
+        userObj = {
+          _id: user._id.toString(),
+          name: user.parentName,
+          email: user.email,
+          phone: user.phone,
+          role: 'parent',
+          school: user.school,
+          isActive: true,
+          status: user.status,
+          authProvider: user.authProvider,
+        };
+      } else {
+        userObj = user.toObject();
+        delete userObj.password;
+        if (userObj.role === 'admin') userObj.role = 'school_admin';
+        if (userObj.role === 'teacher' && userObj.teacherName) {
+          userObj.name = userObj.teacherName;
+        }
+        userObj.authProvider = user.authProvider;
+      }
+
+      // Redirect to frontend with token
+      const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify(userObj))}`;
+      res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('[Google Callback Error]', error);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent('Authentication failed. Please try again.')}`);
+    }
+  })(req, res);
 });
