@@ -117,6 +117,21 @@ export const createNotification = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
+  console.log('[createNotification] req.body.recipientIds:', recipientIds);
+  console.log('[createNotification] typeof recipientIds:', typeof recipientIds);
+
+  // Parse recipientIds if it's a string (from FormData)
+  let parsedRecipientIds = recipientIds;
+  if (typeof recipientIds === 'string') {
+    try {
+      parsedRecipientIds = JSON.parse(recipientIds);
+      console.log('[createNotification] Parsed recipientIds:', parsedRecipientIds);
+    } catch (parseError) {
+      console.error('[createNotification] Failed to parse recipientIds:', parseError);
+      parsedRecipientIds = [];
+    }
+  }
+
   if (!title || !message) {
     throw new ApiError(400, 'Title and message are required.');
   }
@@ -153,7 +168,7 @@ export const createNotification = asyncHandler(async (req, res) => {
   }
 
   // Validate recipients based on role
-  let finalRecipientIds = recipientIds || [];
+  let finalRecipientIds = parsedRecipientIds || [];
 
   if (role === 'super_admin') {
     // Super admin can only send to school admins
@@ -161,17 +176,17 @@ export const createNotification = asyncHandler(async (req, res) => {
       const admins = await User.find({ role: 'school_admin' });
       finalRecipientIds = admins.map((a) => a._id);
     } else {
-      if (!recipientIds || recipientIds.length === 0) {
+      if (!parsedRecipientIds || parsedRecipientIds.length === 0) {
         throw new ApiError(400, 'At least one recipient is required.');
       }
       const recipients = await User.find({
-        _id: { $in: recipientIds },
+        _id: { $in: parsedRecipientIds },
         role: 'school_admin',
       });
-      if (recipients.length !== recipientIds.length) {
+      if (recipients.length !== parsedRecipientIds.length) {
         throw new ApiError(400, 'Super admin can only send notifications to school admins.');
       }
-      finalRecipientIds = recipientIds;
+      finalRecipientIds = parsedRecipientIds;
     }
   } else if (role === 'school_admin') {
     // School admin can send to teachers or parents of their school
@@ -202,18 +217,18 @@ export const createNotification = asyncHandler(async (req, res) => {
         const teachers = await User.find({ role: 'teacher', school: schoolId });
         finalRecipientIds = teachers.map((t) => t._id);
       } else {
-        if (!recipientIds || recipientIds.length === 0) {
+        if (!parsedRecipientIds || parsedRecipientIds.length === 0) {
           throw new ApiError(400, 'At least one recipient is required.');
         }
         const recipients = await User.find({
-          _id: { $in: recipientIds },
+          _id: { $in: parsedRecipientIds },
           role: 'teacher',
           school: schoolId,
         });
-        if (recipients.length !== recipientIds.length) {
+        if (recipients.length !== parsedRecipientIds.length) {
           throw new ApiError(400, 'School admin can only send notifications to teachers of their school.');
         }
-        finalRecipientIds = recipientIds;
+        finalRecipientIds = parsedRecipientIds;
       }
     }
   } else {
