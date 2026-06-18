@@ -34,7 +34,6 @@ import ParentViewResults from '@/pages/parent/ParentViewResults';
 import ParentLogin from '@/pages/ParentLogin';
 import StudentDetails from '@/pages/parent/StudentDetails';
 import ResultsHistory from '@/pages/parent/ResultsHistory';
-import StudentResult from '@/pages/parent/StudentResult';
 import ParentDailyTests from '@/pages/parent/DailyTests';
 import ParentMainExams from '@/pages/parent/MainExams';
 import ParentExamDetails from '@/pages/parent/ExamDetails';
@@ -115,7 +114,7 @@ export default function App() {
               <Route path="/parent/settings" element={<ProtectedRoute roles={['parent']}><ParentSettings /></ProtectedRoute>} />
               <Route path="/parent/notifications" element={<ProtectedRoute roles={['parent']}><ParentNotifications /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId" element={<ProtectedRoute roles={['parent']}><StudentDetails /></ProtectedRoute>} />
-              <Route path="/parent/student/:studentId/results" element={<ProtectedRoute roles={['parent']}><StudentResult /></ProtectedRoute>} />
+              <Route path="/parent/student/:studentId/results" element={<ProtectedRoute roles={['parent']}><ParentViewResults /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/results-history" element={<ProtectedRoute roles={['parent']}><ResultsHistory /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/daily-tests" element={<ProtectedRoute roles={['parent']}><ParentDailyTests /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/main-exams" element={<ProtectedRoute roles={['parent']}><ParentMainExams /></ProtectedRoute>} />

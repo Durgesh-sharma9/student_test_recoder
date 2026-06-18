@@ -17,6 +17,11 @@ const sendTokenResponse = (user, res, statusCode = 200) => {
   const userObj = user.toObject();
   delete userObj.password;
   if (userObj.role === 'admin') userObj.role = 'school_admin';
+  
+  // Ensure name field is set correctly based on role
+  if (userObj.role === 'teacher' && userObj.teacherName) {
+    userObj.name = userObj.teacherName;
+  }
 
   res.status(statusCode).json({
     success: true,
@@ -188,11 +193,15 @@ export const getMe = asyncHandler(async (req, res) => {
 
   const role = user.role === 'admin' ? 'school_admin' : user.role;
   
-  // Ensure name field is set for teachers who have teacherName
+  // Ensure name field is set correctly based on role
   const userObj = { ...user, role, mustChangePassword: user.mustChangePassword || false };
-  if (!userObj.name && userObj.teacherName) {
+  
+  // For teachers, prioritize teacherName over name
+  if (userObj.role === 'teacher' && userObj.teacherName) {
     userObj.name = userObj.teacherName;
   }
+  // For parents, parentName should already be set to name
+  // For admins, use name field
   
   res.json({ success: true, user: userObj });
 });

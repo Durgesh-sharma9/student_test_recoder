@@ -232,6 +232,10 @@ export default function TeacherResults() {
               <Download className="mr-2 h-4 w-4 text-purple-600" />
               PDF
             </Button>
+            <Button className="h-10 px-4 border border-slate-200" variant="outline" onClick={() => download('xlsx')}>
+              <Download className="mr-2 h-4 w-4 text-purple-600" />
+              Excel
+            </Button>
           </div>
         </div>
       </ErpSection>

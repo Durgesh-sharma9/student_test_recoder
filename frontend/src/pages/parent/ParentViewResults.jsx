@@ -363,7 +363,7 @@ export default function ParentViewResults() {
           {summary && (
             <ErpSection title="Performance Summary" icon={Trophy} tone="green">
               <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4 border border-blue-200">
                     <div className="text-sm font-medium text-blue-700 mb-1">Overall %</div>
                     <div className="text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
@@ -375,10 +375,6 @@ export default function ParentViewResults() {
                   <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200">
                     <div className="text-sm font-medium text-green-700 mb-1">Total Tests</div>
                     <div className="text-2xl font-bold text-green-900">{summary.totalTests}</div>
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 p-4 border border-orange-200">
-                    <div className="text-sm font-medium text-orange-700 mb-1">Avg Marks</div>
-                    <div className="text-2xl font-bold text-orange-900">{summary.averageMarks?.toFixed(1) || 'N/A'}</div>
                   </div>
                   <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 border border-emerald-200">
                     <div className="text-sm font-medium text-emerald-700 mb-1">Best Subject</div>
