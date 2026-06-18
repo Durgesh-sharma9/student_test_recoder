@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import passport from './config/passport.js';
+import { verifyTransporter } from './services/emailService.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import classRoutes from './routes/classRoutes.js';
@@ -62,6 +63,21 @@ app.use(errorHandler);
 
 const start = async () => {
   await connectDB();
+  
+  // Verify SMTP connection on startup (non-blocking)
+  console.log('[Server] Verifying SMTP connection...');
+  try {
+    const smtpVerified = await verifyTransporter();
+    if (smtpVerified) {
+      console.log('[Server] SMTP connection verified successfully');
+    } else {
+      console.warn('[Server] WARNING: SMTP connection verification failed. Email delivery may not work.');
+    }
+  } catch (smtpError) {
+    console.error('[Server] ERROR: SMTP verification threw an error:', smtpError.message);
+    console.warn('[Server] Email delivery may not work. Server will continue without email functionality.');
+  }
+  
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

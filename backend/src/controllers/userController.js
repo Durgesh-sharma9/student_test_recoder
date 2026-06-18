@@ -97,6 +97,9 @@ const schoolIdFromUser = (user) => user.school?._id ?? user.school;
 
 export const createUser = asyncHandler(async (req, res) => {
   console.log('[User Controller] Creating new user');
+  console.log('[User Controller] Request body:', JSON.stringify(req.body));
+  console.log('[User Controller] req.user:', JSON.stringify(req.user));
+  
   const {
     teacherName,
     name,
@@ -109,9 +112,11 @@ export const createUser = asyncHandler(async (req, res) => {
   } = req.body;
 
   const schoolId = schoolIdFromUser(req.user);
+  console.log('[User Controller] schoolId:', schoolId);
   if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
 
   const userRole = role || 'teacher';
+  console.log('[User Controller] userRole:', userRole);
 
   // Check only active users in the same school
   const existing = await User.findOne({
@@ -136,76 +141,93 @@ export const createUser = asyncHandler(async (req, res) => {
     generatedPassword = password || generateSecurePassword();
   }
 
-  console.log('[User Controller] Creating user with role:', userRole);
-  console.log('[User Controller] Email:', email);
-
-  // Create user
-  const user = await User.create({
-    school: schoolId,
-    teacherName: teacherName || name,
-    name: userRole === 'teacher' ? teacherName || name : name,
-    email,
-    password: generatedPassword,
-    role: userRole,
-    phoneNo,
-    assignedClasses,
-    assignments,
-    mustChangePassword,
-  });
-
-  console.log('[User Controller] User created successfully:', user._id);
-
-  // Send email only to teachers using Resend
-  let emailSent = false;
-  let emailError = null;
-
-  if (userRole === 'teacher') {
-    console.log('[User Controller] Attempting to send teacher creation email');
-    try {
-      const school = await School.findById(schoolId);
-      const schoolName = school?.schoolName || 'Your School';
-      
-      const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
-      console.log('[User Controller] Sending email to:', email);
-      console.log('[User Controller] School:', schoolName);
-
-      const emailResult = await sendTeacherCreationEmail(
-        schoolName,
-        teacherName || name || 'Teacher',
-        email,
-        generatedPassword,
-        loginUrl
-      );
-
-      if (emailResult.success) {
-        console.log('[User Controller] Teacher creation email sent successfully to:', email);
-        emailSent = true;
-      } else {
-        console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
-        emailError = emailResult.error || emailResult.message;
-      }
-    } catch (emailError) {
-      console.error('[User Controller] Email Error] Failed to send teacher creation email:', emailError.message);
-      emailError = emailError.message;
-    }
+  // Ensure password is always generated
+  if (!generatedPassword || generatedPassword.length < 6) {
+    console.error('[User Controller] Generated password is invalid, regenerating');
+    generatedPassword = generateSecurePassword();
+    mustChangePassword = true;
   }
 
-  const userObj = user.toObject();
+  console.log('[User Controller] Creating user with role:', userRole);
+  console.log('[User Controller] Email:', email);
+  console.log('[User Controller] generatedPassword length:', generatedPassword?.length);
 
-  // Include password in response for WhatsApp sharing (will be cleared on frontend)
-  userObj.tempPassword = generatedPassword;
-  delete userObj.password;
+  try {
+    // Create user
+    const user = await User.create({
+      school: schoolId,
+      teacherName: teacherName || name,
+      name: userRole === 'teacher' ? teacherName || name : name,
+      email,
+      password: generatedPassword,
+      role: userRole,
+      phoneNo,
+      assignedClasses,
+      assignments,
+      mustChangePassword,
+    });
 
-  res.status(201).json({
-    success: true,
-    message:
-      userRole === 'teacher'
-        ? 'Teacher created successfully.'
-        : 'User created successfully.',
-    user: userObj,
-    emailSent,
-    emailError: emailError || undefined,
-  });
+    console.log('[User Controller] User created successfully:', user._id);
+
+    // Send email only to teachers using Resend
+    let emailSent = false;
+    let emailError = null;
+
+    if (userRole === 'teacher') {
+      console.log('[User Controller] Attempting to send teacher creation email');
+      try {
+        const school = await School.findById(schoolId);
+        const schoolName = school?.schoolName || 'Your School';
+        
+        const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+        console.log('[User Controller] Sending email to:', email);
+        console.log('[User Controller] School:', schoolName);
+
+        const emailResult = await sendTeacherCreationEmail(
+          schoolName,
+          teacherName || name || 'Teacher',
+          email,
+          generatedPassword,
+          loginUrl
+        );
+
+        if (emailResult.success) {
+          console.log('[User Controller] Teacher creation email sent successfully to:', email);
+          emailSent = true;
+        } else {
+          console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+          emailError = emailResult.error || emailResult.message;
+        }
+      } catch (emailError) {
+        console.error('[User Controller] Email Error] Failed to send teacher creation email:', emailError.message);
+        console.error('[User Controller] Email Error Stack:', emailError.stack);
+        emailError = emailError.message;
+      }
+    }
+
+    const userObj = user.toObject();
+
+    // Include password in response for WhatsApp sharing (will be cleared on frontend)
+    userObj.tempPassword = generatedPassword;
+    delete userObj.password;
+
+    res.status(201).json({
+      success: true,
+      message:
+        userRole === 'teacher'
+          ? (emailSent 
+              ? 'Teacher created successfully. Credentials email sent.'
+              : 'Teacher created successfully but email could not be delivered. Please check SMTP configuration.')
+          : 'User created successfully.',
+      user: userObj,
+      emailSent,
+      emailError: emailError || undefined,
+    });
+  } catch (createError) {
+    console.error('[User Controller] Error creating user:', createError.message);
+    console.error('[User Controller] Error stack:', createError.stack);
+    throw createError;
+  }
 
 });
 
@@ -532,4 +554,70 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section');
   res.json({ success: true, teacher: updated });
+});
+
+export const resendTeacherCredentials = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid user ID');
+  }
+
+  const teacher = await User.findById(id);
+  if (!teacher || teacher.role !== 'teacher') throw new ApiError(404, 'Teacher not found.');
+
+  console.log('[User Controller] Resending credentials for teacher:', teacher.email);
+
+  // Generate new temporary password
+  const generatedPassword = generateSecurePassword();
+  teacher.password = generatedPassword;
+  teacher.mustChangePassword = true;
+  await teacher.save();
+
+  console.log('[User Controller] New password generated for teacher:', teacher._id);
+
+  // Send email
+  let emailSent = false;
+  let emailError = null;
+
+  try {
+    const school = await School.findById(teacher.school);
+    const schoolName = school?.schoolName || 'Your School';
+    const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+
+    console.log('[User Controller] Sending credentials email to:', teacher.email);
+
+    const emailResult = await sendTeacherCreationEmail(
+      schoolName,
+      teacher.teacherName || teacher.name,
+      teacher.email,
+      generatedPassword,
+      loginUrl
+    );
+
+    if (emailResult.success) {
+      console.log('[User Controller] Credentials email sent successfully to:', teacher.email);
+      emailSent = true;
+    } else {
+      console.log(`[User Controller] Email Failed] Credentials email for ${teacher.email}: ${emailResult.error || emailResult.message}`);
+      emailError = emailResult.error || emailResult.message;
+    }
+  } catch (emailError) {
+    console.error('[User Controller] Email Error] Failed to send credentials email:', emailError.message);
+    emailError = emailError.message;
+  }
+
+  const userObj = teacher.toObject();
+  userObj.tempPassword = generatedPassword;
+  delete userObj.password;
+
+  res.json({
+    success: true,
+    message: emailSent 
+      ? 'Credentials email sent successfully.' 
+      : 'Credentials email could not be delivered. Please check SMTP configuration.',
+    user: userObj,
+    emailSent,
+    emailError: emailError || undefined,
+  });
 });
