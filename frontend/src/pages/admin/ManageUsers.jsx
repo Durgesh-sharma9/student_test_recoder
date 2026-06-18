@@ -24,6 +24,7 @@ export default function ManageUsers() {
   const [importResults, setImportResults] = useState(null);
   const [importing, setImporting] = useState(false);
   const [reactivateDialog, setReactivateDialog] = useState({ open: false, teacher: null });
+  const [activeTab, setActiveTab] = useState('active');
   
   // Notification modal state
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
@@ -40,10 +41,15 @@ export default function ManageUsers() {
     api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
   }, []);
 
-  const filtered = useMemo(() => teachers.filter((t) => `${t.teacherName || t.name} ${t.email}`.toLowerCase().includes(query.toLowerCase())), [teachers, query]);
+  const filtered = useMemo(() => {
+    const statusFiltered = teachers.filter((t) => t.status === (activeTab === 'active' ? 'Active' : 'Inactive'));
+    return statusFiltered.filter((t) => `${t.teacherName || t.name} ${t.email}`.toLowerCase().includes(query.toLowerCase()));
+  }, [teachers, query, activeTab]);
   const perPage = 8;
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
   const pages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const activeCount = teachers.filter((t) => t.status === 'Active').length;
+  const inactiveCount = teachers.filter((t) => t.status === 'Inactive').length;
 
   const refresh = async () => {
     const res = await api.get('/users?role=teacher');
@@ -254,6 +260,28 @@ export default function ManageUsers() {
       </ErpSection>
 
       <ErpSection title="Teachers List" icon={Users} tone="green">
+        <div className="flex gap-4 mb-4 border-b border-slate-200">
+          <button
+            onClick={() => { setActiveTab('active'); setPage(1); }}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'active'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Active Teachers ({activeCount})
+          </button>
+          <button
+            onClick={() => { setActiveTab('inactive'); setPage(1); }}
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === 'inactive'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Inactive Teachers ({inactiveCount})
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -289,77 +317,105 @@ export default function ManageUsers() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                        disabled={isArchived}
-                        onClick={() => {
-                          setEdit(t);
-                          setForm({
-                            teacherName: t.teacherName || t.name,
-                            email: t.email,
-                            phoneNo: t.phoneNo || '',
-                          });
-                          setOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
-                        disabled={isArchived}
-                        onClick={() => {
-                          setSelectedTeacher(t);
-                          setNotifyModalOpen(true);
-                        }}
-                        title={`Send Notification to ${t.teacherName || t.name}`}
-                      >
-                        <Bell className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                        disabled={isArchived}
-                        onClick={async () => {
-                          if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
-                            try {
-                              await api.post(`/auth/reset-teacher-password/${t._id}`);
-                              toast.success('Password reset successfully. New password sent to teacher.');
-                            } catch (err) {
-                              toast.error(err.response?.data?.message || 'Failed to reset password');
-                            }
-                          }
-                        }}
-                      >
-                        Reset Password
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50"
-                        disabled={isArchived}
-                        onClick={async () => {
-                          if (t.status === 'Inactive') {
-                            // Reactivate
-                            await api.put(`/users/${t._id}`, { status: 'Active' });
-                            toast.success('Teacher reactivated');
-                          } else {
-                            // Deactivate with confirmation
-                            if (confirm('Deactivate Teacher?\n\nThis teacher will no longer be able to log in but historical data will remain.')) {
-                              await api.put(`/users/${t._id}`, { status: 'Inactive' });
-                              toast.success('Teacher deactivated');
-                            } else {
-                              return;
-                            }
-                          }
-                          refresh();
-                        }}
-                      >
-                        {t.status === 'Inactive' ? 'Reactivate' : 'Deactivate'}
-                      </Button>
+                      {activeTab === 'active' ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            disabled={isArchived}
+                            onClick={() => {
+                              setEdit(t);
+                              setForm({
+                                teacherName: t.teacherName || t.name,
+                                email: t.email,
+                                phoneNo: t.phoneNo || '',
+                              });
+                              setOpen(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
+                            disabled={isArchived}
+                            onClick={() => {
+                              setSelectedTeacher(t);
+                              setNotifyModalOpen(true);
+                            }}
+                            title={`Send Notification to ${t.teacherName || t.name}`}
+                          >
+                            <Bell className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                            disabled={isArchived}
+                            onClick={async () => {
+                              if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
+                                try {
+                                  await api.post(`/auth/reset-teacher-password/${t._id}`);
+                                  toast.success('Password reset successfully. New password sent to teacher.');
+                                } catch (err) {
+                                  toast.error(err.response?.data?.message || 'Failed to reset password');
+                                }
+                              }
+                            }}
+                          >
+                            Reset Password
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            disabled={isArchived}
+                            onClick={async () => {
+                              if (confirm('Deactivate Teacher?\n\nThis teacher will no longer be able to log in but historical data will remain.')) {
+                                await api.put(`/users/${t._id}`, { status: 'Inactive' });
+                                toast.success('Teacher deactivated');
+                                refresh();
+                              }
+                            }}
+                          >
+                            Deactivate
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            disabled={isArchived}
+                            onClick={() => {
+                              setEdit(t);
+                              setForm({
+                                teacherName: t.teacherName || t.name,
+                                email: t.email,
+                                phoneNo: t.phoneNo || '',
+                              });
+                              setOpen(true);
+                            }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-200 hover:bg-green-50"
+                            disabled={isArchived}
+                            onClick={async () => {
+                              await api.put(`/users/${t._id}`, { status: 'Active' });
+                              toast.success('Teacher reactivated');
+                              refresh();
+                            }}
+                          >
+                            Reactivate
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
