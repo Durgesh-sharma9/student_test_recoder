@@ -332,8 +332,19 @@ export const deleteNotification = asyncHandler(async (req, res) => {
 
 // Get unread count
 export const getUnreadCount = asyncHandler(async (req, res) => {
+  console.log('[getUnreadCount] Starting');
+  console.log('[getUnreadCount] req.user:', req.user);
+  
   const userId = req.user._id;
   const schoolId = req.user.school;
+
+  console.log('[getUnreadCount] userId:', userId);
+  console.log('[getUnreadCount] schoolId:', schoolId);
+
+  if (!userId) {
+    console.error('[getUnreadCount] userId is undefined');
+    throw new ApiError(400, 'User ID is required');
+  }
 
   const filter = {
     recipientIds: userId,
@@ -344,10 +355,19 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
     filter.schoolId = schoolId;
   }
 
-  const count = await Notification.countDocuments(filter);
+  console.log('[getUnreadCount] filter:', filter);
 
-  res.json({
-    success: true,
-    unreadCount: count,
-  });
+  try {
+    const count = await Notification.countDocuments(filter);
+    console.log('[getUnreadCount] count:', count);
+
+    res.json({
+      success: true,
+      unreadCount: count,
+    });
+  } catch (error) {
+    console.error('[getUnreadCount] Error:', error.message);
+    console.error('[getUnreadCount] Stack:', error.stack);
+    throw error;
+  }
 });

@@ -1,5 +1,18 @@
 import nodemailer from "nodemailer";
 
+// Log SMTP configuration on load
+console.log('[Email Service] Initializing email service...');
+console.log('[Email Service] SMTP_HOST:', process.env.SMTP_HOST ? 'SET' : 'MISSING');
+console.log('[Email Service] SMTP_PORT:', process.env.SMTP_PORT || '587 (default)');
+console.log('[Email Service] SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'MISSING');
+console.log('[Email Service] SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'MISSING');
+console.log('[Email Service] MAIL_FROM:', process.env.MAIL_FROM || process.env.SMTP_USER || 'NOT SET');
+
+if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  console.error('[Email Service] CRITICAL: Missing required SMTP configuration!');
+  console.error('[Email Service] Email delivery will fail. Please check your .env file.');
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
@@ -31,7 +44,7 @@ const logEmailSuccess = (context, recipient, retryAttempt = 0) => {
   console.log(`[Email Success - ${context}]: Email sent successfully to ${recipient}${retryAttempt > 0 ? ` (after ${retryAttempt} retry attempts)` : ''}`);
 };
 
-const verifyTransporter = async () => {
+export const verifyTransporter = async () => {
   try {
     await transporter.verify();
     console.log('[Email Service] SMTP connection verified successfully');
@@ -91,6 +104,33 @@ export const sendTeacherCreationEmail = async (
   console.log('[Email Service] SMTP_HOST:', process.env.SMTP_HOST);
   console.log('[Email Service] SMTP_PORT:', process.env.SMTP_PORT);
   console.log('[Email Service] SMTP_USER:', process.env.SMTP_USER);
+
+  // Verify SMTP configuration before sending
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('[Email Service] CRITICAL: Cannot send email - missing SMTP configuration');
+    return { 
+      success: false, 
+      error: 'SMTP configuration is missing. Please configure SMTP_HOST, SMTP_USER, and SMTP_PASS in environment variables.' 
+    };
+  }
+
+  // Verify transporter connection
+  try {
+    const isVerified = await verifyTransporter();
+    if (!isVerified) {
+      console.error('[Email Service] CRITICAL: SMTP connection verification failed');
+      return { 
+        success: false, 
+        error: 'SMTP connection verification failed. Please check your SMTP credentials and network connection.' 
+      };
+    }
+  } catch (verifyError) {
+    console.error('[Email Service] Error during transporter verification:', verifyError.message);
+    return { 
+      success: false, 
+      error: `SMTP verification error: ${verifyError.message}` 
+    };
+  }
 
   const mailOptions = {
     from: MAIL_FROM,

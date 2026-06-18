@@ -8,6 +8,7 @@ import {
   deleteUser,
   assignTeacherWorkload,
   bulkImportTeachers,
+  resendTeacherCredentials,
 } from '../controllers/userController.js';
 import { generateTeacherImportTemplate } from '../services/excelService.js';
 import { protect, authorize } from '../middleware/auth.js';
@@ -31,6 +32,7 @@ router.get('/download-template', async (req, res) => {
   }
 });
 router.put('/:id/assignments', assignTeacherWorkload);
+router.post('/:id/resend-credentials', resendTeacherCredentials);
 router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);
 
 export default router;
