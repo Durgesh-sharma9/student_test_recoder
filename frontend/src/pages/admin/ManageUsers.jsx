@@ -181,21 +181,34 @@ export default function ManageUsers() {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('title', notificationForm.title);
-      formData.append('message', notificationForm.message);
-      formData.append('priority', notificationForm.priority);
-      formData.append('recipientIds', JSON.stringify([selectedTeacher._id]));
-      
-      if (attachmentFile) {
-        formData.append('attachment', attachmentFile);
-      }
+      console.log('[handleSendNotification] selectedTeacher._id:', selectedTeacher._id);
+      console.log('[handleSendNotification] selectedTeacher:', selectedTeacher);
 
-      await api.post('/notifications', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const payload = {
+        title: notificationForm.title,
+        message: notificationForm.message,
+        priority: notificationForm.priority,
+        recipientIds: [selectedTeacher._id],
+      };
+
+      console.log('[handleSendNotification] payload:', payload);
+
+      if (attachmentFile) {
+        const formData = new FormData();
+        formData.append('title', notificationForm.title);
+        formData.append('message', notificationForm.message);
+        formData.append('priority', notificationForm.priority);
+        formData.append('recipientIds', JSON.stringify([selectedTeacher._id]));
+        formData.append('attachment', attachmentFile);
+
+        await api.post('/notifications', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        await api.post('/notifications', payload);
+      }
 
       toast.success('Notification sent successfully');
       setNotifyModalOpen(false);
@@ -203,6 +216,7 @@ export default function ManageUsers() {
       setNotificationForm({ title: '', message: '', priority: 'normal' });
       setAttachmentFile(null);
     } catch (err) {
+      console.error('[handleSendNotification] Error:', err);
       toast.error(err.response?.data?.message || 'Failed to send notification');
     }
   };

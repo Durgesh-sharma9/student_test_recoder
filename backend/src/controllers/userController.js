@@ -503,7 +503,12 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { assignedClasses = [], assignments = [] } = req.body;
 
+  console.log('[assignTeacherWorkload] id received:', id);
+  console.log('[assignTeacherWorkload] id type:', typeof id);
+  console.log('[assignTeacherWorkload] request body:', req.body);
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.error('[assignTeacherWorkload] Invalid ObjectId:', id);
     throw new ApiError(400, 'Invalid user ID');
   }
 

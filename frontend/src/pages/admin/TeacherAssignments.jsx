@@ -104,6 +104,16 @@ export default function TeacherAssignments() {
 
   const save = async () => {
     try {
+      console.log('[TeacherAssignments] save called');
+      console.log('[TeacherAssignments] teacherId:', teacherId);
+      console.log('[TeacherAssignments] teacherId type:', typeof teacherId);
+      console.log('[TeacherAssignments] teacherId value:', JSON.stringify(teacherId));
+      
+      if (!teacherId) {
+        toast.error("Please select a teacher first");
+        return;
+      }
+
       const uniqueClassIds = [...new Set(items.map((i) => i.class))];
       const uniqueSubjects = [
         ...new Set(
@@ -123,16 +133,22 @@ export default function TeacherAssignments() {
         }
       }
 
+      const payload = {
+        assignedClasses: uniqueClassIds,
+        assignments: items,
+      };
+      
+      console.log('[TeacherAssignments] payload:', payload);
+      console.log('[TeacherAssignments] API URL:', `/users/${teacherId}/assignments`);
+
       await api.put(
         `/users/${teacherId}/assignments`,
-        {
-          assignedClasses: uniqueClassIds,
-          assignments: items,
-        },
+        payload,
       );
 
       toast.success("Assignments saved successfully");
     } catch (error) {
+      console.error('[TeacherAssignments] Error:', error);
       toast.error(
         error?.response?.data?.message || "Failed to save assignments",
       );
