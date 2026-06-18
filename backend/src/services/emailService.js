@@ -10,6 +10,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const MAIL_FROM = process.env.MAIL_FROM || process.env.SMTP_USER;
+
 const logEmailError = (error, context, retryAttempt = 0) => {
   console.error(`[Email Error - ${context}]:`, error.message);
   console.error(`[Email Error Details]:`, {
@@ -81,8 +83,17 @@ export const sendTeacherCreationEmail = async (
   password,
   loginUrl
 ) => {
+  console.log('[Email Service] Preparing to send teacher creation email');
+  console.log('[Email Service] Recipient:', teacherEmail);
+  console.log('[Email Service] School:', schoolName);
+  console.log('[Email Service] Teacher:', teacherName);
+  console.log('[Email Service] MAIL_FROM:', MAIL_FROM);
+  console.log('[Email Service] SMTP_HOST:', process.env.SMTP_HOST);
+  console.log('[Email Service] SMTP_PORT:', process.env.SMTP_PORT);
+  console.log('[Email Service] SMTP_USER:', process.env.SMTP_USER);
+
   const mailOptions = {
-    from: process.env.MAIL_FROM,
+    from: MAIL_FROM,
     to: teacherEmail,
     subject: "Welcome to Test Master - Your Teacher Account Credentials",
     html: `
@@ -176,6 +187,10 @@ export const sendTeacherAssignmentEmail = async (
   assignedClasses = [],
   assignedSubjects = []
 ) => {
+  console.log('[Email Service] Preparing to send teacher assignment email');
+  console.log('[Email Service] Recipient:', teacherEmail);
+  console.log('[Email Service] Teacher:', teacherName);
+
   const classesList = assignedClasses
     .map((c) => `<li>${c}</li>`)
     .join("");
@@ -185,7 +200,7 @@ export const sendTeacherAssignmentEmail = async (
     .join("");
 
   const mailOptions = {
-    from: process.env.MAIL_FROM,
+    from: MAIL_FROM,
     to: teacherEmail,
     subject: "Teaching Assignments Updated",
     html: `
@@ -217,8 +232,13 @@ export const sendParentCreationEmail = async (
   password,
   loginUrl
 ) => {
+  console.log('[Email Service] Preparing to send parent creation email');
+  console.log('[Email Service] Recipient:', parentEmail);
+  console.log('[Email Service] School:', schoolName);
+  console.log('[Email Service] Parent:', parentName);
+
   const mailOptions = {
-    from: process.env.MAIL_FROM,
+    from: MAIL_FROM,
     to: parentEmail,
     subject: "Welcome to Test Master - Your Parent Account Credentials",
     html: `

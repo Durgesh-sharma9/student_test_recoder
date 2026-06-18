@@ -96,6 +96,7 @@ export const getUser = asyncHandler(async (req, res) => {
 const schoolIdFromUser = (user) => user.school?._id ?? user.school;
 
 export const createUser = asyncHandler(async (req, res) => {
+  console.log('[User Controller] Creating new user');
   const {
     teacherName,
     name,
@@ -120,6 +121,7 @@ export const createUser = asyncHandler(async (req, res) => {
   });
 
   if (existing) {
+    console.log('[User Controller] Email already in use:', email);
     throw new ApiError(400, 'Email already in use.');
   }
 
@@ -133,6 +135,9 @@ export const createUser = asyncHandler(async (req, res) => {
   } else {
     generatedPassword = password || generateSecurePassword();
   }
+
+  console.log('[User Controller] Creating user with role:', userRole);
+  console.log('[User Controller] Email:', email);
 
   // Create user
   const user = await User.create({
@@ -148,13 +153,22 @@ export const createUser = asyncHandler(async (req, res) => {
     mustChangePassword,
   });
 
+  console.log('[User Controller] User created successfully:', user._id);
+
   // Send email only to teachers using Resend
+  let emailSent = false;
+  let emailError = null;
+
   if (userRole === 'teacher') {
+    console.log('[User Controller] Attempting to send teacher creation email');
     try {
       const school = await School.findById(schoolId);
       const schoolName = school?.schoolName || 'Your School';
       
       const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+      console.log('[User Controller] Sending email to:', email);
+      console.log('[User Controller] School:', schoolName);
+
       const emailResult = await sendTeacherCreationEmail(
         schoolName,
         teacherName || name || 'Teacher',
@@ -163,11 +177,16 @@ export const createUser = asyncHandler(async (req, res) => {
         loginUrl
       );
 
-      if (!emailResult.success) {
-        console.log(`[Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+      if (emailResult.success) {
+        console.log('[User Controller] Teacher creation email sent successfully to:', email);
+        emailSent = true;
+      } else {
+        console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+        emailError = emailResult.error || emailResult.message;
       }
     } catch (emailError) {
-      console.error('[Email Error] Failed to send teacher creation email:', emailError.message);
+      console.error('[User Controller] Email Error] Failed to send teacher creation email:', emailError.message);
+      emailError = emailError.message;
     }
   }
 
@@ -184,11 +203,14 @@ export const createUser = asyncHandler(async (req, res) => {
         ? 'Teacher created successfully.'
         : 'User created successfully.',
     user: userObj,
+    emailSent,
+    emailError: emailError || undefined,
   });
 
 });
 
 export const bulkImportTeachers = asyncHandler(async (req, res) => {
+  console.log('[User Controller] Starting bulk teacher import');
   if (!req.file) {
     throw new ApiError(400, 'No file uploaded.');
   }
@@ -197,9 +219,11 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
   if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
 
   const records = parseTeacherImportFile(req.file.buffer, req.file.originalname);
+  console.log('[User Controller] Parsed', records.length, 'teacher records');
   const emailsSeen = new Set();
   const errors = [];
   let imported = 0;
+  let reactivated = 0;
 
   const existingUsers = await User.find({
     school: schoolId,
@@ -211,6 +235,22 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
   existingUsers.forEach((user) => {
     existingByEmail.set(user.email, user);
   });
+
+  // Also check for inactive users for reactivation
+  const inactiveUsers = await User.find({
+    school: schoolId,
+    email: { $in: records.map((r) => r.email) },
+    isActive: false,
+    status: 'Inactive',
+  }).select('email status _id');
+
+  const inactiveByEmail = new Map();
+  inactiveUsers.forEach((user) => {
+    inactiveByEmail.set(user.email, user);
+  });
+
+  console.log('[User Controller] Found', existingUsers.length, 'active users');
+  console.log('[User Controller] Found', inactiveUsers.length, 'inactive users');
 
   for (const row of records) {
     const { rowNumber, teacherName, email, password, phoneNo } = row;
@@ -254,6 +294,66 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
       continue;
     }
 
+    // Check for inactive teacher - REACTIVATE AND SEND EMAIL
+    const inactive = inactiveByEmail.get(email);
+    if (inactive) {
+      console.log('[User Controller] Reactivating inactive teacher:', email);
+      
+      // Auto-generate new password for reactivated teacher
+      const generatedPassword = password || generateSecurePassword();
+      const mustChangePassword = !password;
+
+      try {
+        // Reactivate the teacher
+        const teacher = await User.findByIdAndUpdate(
+          inactive._id,
+          {
+            isActive: true,
+            status: 'Active',
+            teacherName,
+            name: teacherName,
+            password: generatedPassword,
+            phoneNo: phoneNo || undefined,
+            mustChangePassword,
+          },
+          { new: true }
+        );
+
+        console.log('[User Controller] Teacher reactivated successfully:', teacher._id);
+
+        // Send email to reactivated teacher
+        try {
+          const school = await School.findById(schoolId);
+          const schoolName = school?.schoolName || 'Your School';
+          const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+
+          console.log('[User Controller] Sending reactivation email to:', email);
+
+          const emailResult = await sendTeacherCreationEmail(
+            schoolName,
+            teacherName,
+            email,
+            generatedPassword,
+            loginUrl
+          );
+
+          if (emailResult.success) {
+            console.log('[User Controller] Reactivation email sent successfully to:', email);
+          } else {
+            console.log(`[User Controller] Email Failed] Reactivation email for ${email}: ${emailResult.error || emailResult.message}`);
+          }
+        } catch (emailError) {
+          console.error('[User Controller] Email Error] Failed to send reactivation email:', emailError.message);
+        }
+
+        reactivated += 1;
+      } catch (error) {
+        console.error('[User Controller] Failed to reactivate teacher:', error.message);
+        errors.push({ row: rowNumber, error: 'Failed to reactivate teacher' });
+      }
+      continue;
+    }
+
     // Auto-generate password if not provided
     const generatedPassword = password || generateSecurePassword();
     const mustChangePassword = !password; // Force password change if password was auto-generated
@@ -270,10 +370,14 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
         mustChangePassword,
       });
 
+      console.log('[User Controller] Teacher created successfully:', teacher._id);
+
       try {
         const school = await School.findById(schoolId);
         const schoolName = school?.schoolName || 'Your School';
         const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+
+        console.log('[User Controller] Sending creation email to:', email);
 
         const emailResult = await sendTeacherCreationEmail(
           schoolName,
@@ -283,23 +387,30 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           loginUrl
         );
 
-        if (!emailResult.success) {
-          console.log(`[Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+        if (emailResult.success) {
+          console.log('[User Controller] Teacher creation email sent successfully to:', email);
+        } else {
+          console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
         }
       } catch (emailError) {
-        console.error('[Email Error] Failed to send teacher creation email:', emailError.message);
+        console.error('[User Controller] Email Error] Failed to send teacher creation email:', emailError.message);
       }
 
       imported += 1;
     } catch (error) {
+      console.error('[User Controller] Failed to create teacher:', error.message);
       errors.push({ row: rowNumber, error: 'Failed to create teacher' });
     }
   }
 
+  console.log('[User Controller] Bulk import completed. Imported:', imported, 'Reactivated:', reactivated, 'Errors:', errors.length);
+
   res.json({
     success: true,
+    message: `Imported ${imported} teachers, reactivated ${reactivated} teachers.`,
     totalRows: records.length,
     imported,
+    reactivated,
     failed: errors.length,
     errors,
   });
