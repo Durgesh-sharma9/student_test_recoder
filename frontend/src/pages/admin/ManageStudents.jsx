@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { GraduationCap, Search, UserPlus, Download, Upload, X } from 'lucide-react';
+import { GraduationCap, Search, UserPlus, Download, Upload, X, CheckCircle, AlertCircle, Download as DownloadIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
@@ -27,6 +27,13 @@ export default function ManageStudents() {
   const [importResults, setImportResults] = useState(null);
   const [importing, setImporting] = useState(false);
   const [uploadClassId, setUploadClassId] = useState('');
+  const [importProgress, setImportProgress] = useState({
+    processed: 0,
+    total: 0,
+    success: 0,
+    failed: 0,
+    currentStudent: '',
+  });
 
   useEffect(() => {
     api.get('/classes').then((r) => {
@@ -129,10 +136,33 @@ export default function ManageStudents() {
 
     setImporting(true);
     setImportResults(null);
+    setImportProgress({
+      processed: 0,
+      total: 100,
+      success: 0,
+      failed: 0,
+      currentStudent: '',
+    });
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('classId', uploadClassId);
+
+    // Simulate progress while importing
+    let simulatedProgress = 0;
+    const progressInterval = setInterval(() => {
+      simulatedProgress += Math.random() * 5;
+      if (simulatedProgress > 95) {
+        clearInterval(progressInterval);
+        simulatedProgress = 95;
+      }
+      setImportProgress(prev => ({
+        ...prev,
+        processed: Math.round((simulatedProgress / 100) * 100),
+        total: 100,
+        currentStudent: `Processing student ${Math.round(simulatedProgress)}...`,
+      }));
+    }, 200);
 
     try {
       const response = await api.post('/students/bulk-import', formData, {
@@ -140,14 +170,28 @@ export default function ManageStudents() {
           'Content-Type': 'multipart/form-data',
         },
       });
+      clearInterval(progressInterval);
+      
       setImportResults(response.data);
-      toast.success(`Import completed: ${response.data.imported} students imported, ${response.data.failed} failed`);
+      setImportProgress({
+        processed: response.data.totalRows || 0,
+        total: response.data.totalRows || 0,
+        success: response.data.studentsCreated || 0,
+        failed: response.data.failed || 0,
+        currentStudent: '',
+      });
+      
+      toast.success(`Import completed: ${response.data.studentsCreated} students imported, ${response.data.failed} failed`);
       loadStudents(uploadClassId);
       setFile(null);
-      setUploadOpen(false);
-      setUploadClassId('');
     } catch (err) {
+      clearInterval(progressInterval);
       toast.error(err.response?.data?.message || 'Import failed');
+      setImportProgress(prev => ({
+        ...prev,
+        failed: prev.total,
+        currentStudent: '',
+      }));
     } finally {
       setImporting(false);
     }
@@ -359,123 +403,231 @@ export default function ManageStudents() {
       </Dialog>
 
       {/* --- BULK IMPORT DIALOG FIXES --- */}
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <Dialog open={uploadOpen} onOpenChange={(open) => {
+        if (!importing) setUploadOpen(open);
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 p-0">
           <DialogHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
             <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
-              <Upload className="h-6 w-6 text-blue-600" />
-              Bulk Import Students
+              {importing ? (
+                <>
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                  Importing Students...
+                </>
+              ) : importResults ? (
+                <>
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  Import Complete
+                </>
+              ) : (
+                <>
+                  <Upload className="h-6 w-6 text-blue-600" />
+                  Bulk Import Students
+                </>
+              )}
             </DialogTitle>
             <p className="text-sm text-slate-500 mt-1">
-              Upload student records using CSV or XLSX files
+              {importing ? 'Please wait while students are being imported...' : importResults ? 'Import summary' : 'Upload student records using CSV or XLSX files'}
             </p>
           </DialogHeader>
 
           <div className="space-y-6 p-6">
-            <FormField label="Select Class">
-              <Select value={uploadClassId} onValueChange={setUploadClassId}>
-                <SelectTrigger className="h-11 rounded-xl">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {formatClassName(c.className)}-{c.section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
+            {!importing && !importResults && (
+              <>
+                <FormField label="Select Class">
+                  <Select value={uploadClassId} onValueChange={setUploadClassId}>
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((c) => (
+                        <SelectItem key={c._id} value={c._id}>
+                          {formatClassName(c.className)}-{c.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
 
-            <div className="rounded-xl border bg-slate-50 p-4">
-              <h4 className="mb-2 text-sm font-semibold text-slate-800">
-                Required File Format
-              </h4>
-              <ul className="space-y-1 text-xs text-slate-600 grid grid-cols-3 gap-2">
-                <li>• Roll No (required)</li>
-                <li>• Student Name (required)</li>
-                <li>• Gender (male/female/other)</li>
-                <li>• Parent/Guardian Name</li>
-                <li>• Parent Phone</li>
-                <li>• Parent Email (Optional)</li>
-              </ul>
-            </div>
-
-            <FormField label="Upload File">
-              <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-all hover:border-blue-400 hover:bg-blue-50">
-                <Upload className="mx-auto mb-3 h-10 w-10 text-blue-500" />
-                <h3 className="text-sm font-semibold text-slate-700">
-                  Upload CSV or XLSX File
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Drag & drop or click below to browse
-                </p>
-                <Input
-                  type="file"
-                  accept=".csv,.xlsx"
-                  onChange={handleFileChange}
-                  className="mt-3 max-w-xs mx-auto text-xs h-9"
-                />
-                {file && (
-                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-2 max-w-sm mx-auto">
-                    <p className="text-xs font-medium text-green-700 truncate">
-                      ✓ {file.name}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </FormField>
-
-            {importResults && (
-              <div className="rounded-xl border bg-slate-50 p-4">
-                <h4 className="mb-3 text-sm font-semibold">
-                  Import Summary
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  <div className="rounded-lg bg-white p-3 text-center shadow-sm border">
-                    <p className="text-[11px] text-slate-500 uppercase tracking-wider">Total Rows</p>
-                    <p className="text-2xl font-bold mt-0.5">{importResults.totalRows}</p>
-                  </div>
-                  <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
-                    <p className="text-[11px] text-green-600 uppercase tracking-wider">Students</p>
-                    <p className="text-2xl font-bold text-green-700 mt-0.5">{importResults.studentsCreated}</p>
-                  </div>
-                  <div className="rounded-lg bg-blue-50 p-3 text-center border border-blue-100">
-                    <p className="text-[11px] text-blue-600 uppercase tracking-wider">Parents</p>
-                    <p className="text-2xl font-bold text-blue-700 mt-0.5">{importResults.parentsCreated}</p>
-                  </div>
-                  <div className="rounded-lg bg-purple-50 p-3 text-center border border-purple-100">
-                    <p className="text-[11px] text-purple-600 uppercase tracking-wider">Linked</p>
-                    <p className="text-2xl font-bold text-purple-700 mt-0.5">{importResults.existingParentsLinked}</p>
-                  </div>
-                  <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
-                    <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>
-                    <p className="text-2xl font-bold text-red-700 mt-0.5">{importResults.failed}</p>
-                  </div>
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <h4 className="mb-2 text-sm font-semibold text-slate-800">
+                    Required File Format
+                  </h4>
+                  <ul className="space-y-1 text-xs text-slate-600 grid grid-cols-3 gap-2">
+                    <li>• Roll No (required)</li>
+                    <li>• Student Name (required)</li>
+                    <li>• Gender (male/female/other)</li>
+                    <li>• Parent/Guardian Name</li>
+                    <li>• Parent Phone</li>
+                    <li>• Parent Email (Optional)</li>
+                  </ul>
                 </div>
 
-                {importResults.errors?.length > 0 && (
-                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                    <p className="mb-2 text-xs font-semibold text-red-700">Errors</p>
-                    <div className="max-h-32 overflow-y-auto space-y-1 text-xs text-red-600 custom-scrollbar">
-                      {importResults.errors.map((err, idx) => (
-                        <div key={idx} className="border-b border-red-100/50 pb-1 last:border-0">
-                          Row {err.row}: {err.error}
-                        </div>
-                      ))}
+                <FormField label="Upload File">
+                  <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-all hover:border-blue-400 hover:bg-blue-50">
+                    <Upload className="mx-auto mb-3 h-10 w-10 text-blue-500" />
+                    <h3 className="text-sm font-semibold text-slate-700">
+                      Upload CSV or XLSX File
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Drag & drop or click below to browse
+                    </p>
+                    <Input
+                      type="file"
+                      accept=".csv,.xlsx"
+                      onChange={handleFileChange}
+                      className="mt-3 max-w-xs mx-auto text-xs h-9"
+                    />
+                    {file && (
+                      <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-2 max-w-sm mx-auto">
+                        <p className="text-xs font-medium text-green-700 truncate">
+                          ✓ {file.name}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </FormField>
+              </>
+            )}
+
+            {importing && (
+              <div className="space-y-6">
+                <div className="rounded-xl border bg-slate-50 p-6">
+                  <div className="space-y-4">
+                    {importProgress.currentStudent && (
+                      <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
+                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Current Student</p>
+                        <p className="text-sm font-medium text-blue-900">{importProgress.currentStudent}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Processed: {importProgress.processed} / {importProgress.total}</span>
+                        <span className="font-semibold text-blue-600">{Math.round((importProgress.processed / importProgress.total) * 100)}%</span>
+                      </div>
+
+                      <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out"
+                          style={{ width: `${(importProgress.processed / importProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
+                        <p className="text-[11px] text-green-600 uppercase tracking-wider">Success</p>
+                        <p className="text-2xl font-bold text-green-700 mt-0.5">{importProgress.success}</p>
+                      </div>
+                      <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
+                        <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>
+                        <p className="text-2xl font-bold text-red-700 mt-0.5">{importProgress.failed}</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-100 p-3 text-center border border-slate-200">
+                        <p className="text-[11px] text-slate-600 uppercase tracking-wider">Remaining</p>
+                        <p className="text-2xl font-bold text-slate-700 mt-0.5">{importProgress.total - importProgress.processed}</p>
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
-            <Button
-              className="h-11 w-full rounded-xl text-base font-semibold shadow-sm"
-              onClick={handleBulkImport}
-              disabled={!file || importing}
-            >
-              {importing ? 'Importing Students...' : 'Import Students'}
-            </Button>
+            {importResults && !importing && (
+              <div className="space-y-6">
+                <div className="rounded-xl border bg-slate-50 p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="rounded-lg bg-white p-3 text-center shadow-sm border">
+                      <p className="text-[11px] text-slate-500 uppercase tracking-wider">Total Rows</p>
+                      <p className="text-2xl font-bold mt-0.5">{importResults.totalRows}</p>
+                    </div>
+                    <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
+                      <p className="text-[11px] text-green-600 uppercase tracking-wider">Students</p>
+                      <p className="text-2xl font-bold text-green-700 mt-0.5">{importResults.studentsCreated}</p>
+                    </div>
+                    <div className="rounded-lg bg-blue-50 p-3 text-center border border-blue-100">
+                      <p className="text-[11px] text-blue-600 uppercase tracking-wider">Parents</p>
+                      <p className="text-2xl font-bold text-blue-700 mt-0.5">{importResults.parentsCreated}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
+                      <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>
+                      <p className="text-2xl font-bold text-red-700 mt-0.5">{importResults.failed}</p>
+                    </div>
+                  </div>
+
+                  {importResults.errors?.length > 0 && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-amber-800 mb-2">
+                            {importResults.errors.length} Error{importResults.errors.length > 1 ? 's' : ''} Found
+                          </p>
+                          <div className="max-h-32 overflow-y-auto space-y-1 text-xs text-amber-700">
+                            {importResults.errors.slice(0, 5).map((err, idx) => (
+                              <div key={idx} className="border-b border-amber-100/50 pb-1 last:border-0">
+                                Row {err.row}: {err.error}
+                              </div>
+                            ))}
+                            {importResults.errors.length > 5 && (
+                              <p className="text-amber-600 italic">
+                                ...and {importResults.errors.length - 5} more errors
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => {
+                              const errorContent = importResults.errors
+                                .map((err) => `Row ${err.row}: ${err.error}`)
+                                .join('\n');
+                              const blob = new Blob([errorContent], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = 'student_import_error_report.txt';
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              URL.revokeObjectURL(url);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                          >
+                            <DownloadIcon className="mr-2 h-4 w-4" />
+                            Download Error Report
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!importing && !importResults && (
+              <Button
+                className="h-11 w-full rounded-xl text-base font-semibold shadow-sm"
+                onClick={handleBulkImport}
+                disabled={!file}
+              >
+                Import Students
+              </Button>
+            )}
+
+            {importResults && !importing && (
+              <Button
+                className="h-11 w-full rounded-xl text-base font-semibold shadow-sm"
+                onClick={() => {
+                  setImportResults(null);
+                  setUploadOpen(false);
+                  setUploadClassId('');
+                }}
+              >
+                Done
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
