@@ -114,7 +114,15 @@ export default function TeacherResults() {
   };
 
   const download = (format) => {
+    console.log('[Teacher Export] Export Type:', format);
+    console.log('[Teacher Export] Teacher Export Triggered');
+    console.log('[Teacher Export] Current Filters:', filters);
+    console.log('[Teacher Export] View (examType):', examType);
+    
     const q = buildDownloadQuery(filters, examType, format);
+    console.log('[Teacher Export] Query String:', q);
+    console.log('[Teacher Export] Download URL:', `/results/download?${q}`);
+    
     downloadFile(`/results/download?${q}`, `results.${format}`);
   };
 
