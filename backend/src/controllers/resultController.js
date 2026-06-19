@@ -1,6 +1,7 @@
 import Class from '../models/Class.js';
 import Student from '../models/Student.js';
 import User from '../models/User.js';
+import School from '../models/School.js';
 import ResultSession from '../models/ResultSession.js';
 import MarkEntry from '../models/MarkEntry.js';
 import Activity from '../models/Activity.js';
@@ -672,8 +673,16 @@ export const getResults = asyncHandler(async (req, res) => {
 });
 
 export const downloadResults = asyncHandler(async (req, res) => {
+  console.log('[Export Request] User:', req.user);
+  console.log('[Export Request] Role:', req.user.role);
+  console.log('[Export Request] Query:', req.query);
+  
   const format = req.query.format || 'csv';
   const view = req.query.view || req.query.category;
+  
+  console.log('[Export Request] Format:', format);
+  console.log('[Export Request] View:', view);
+  console.log('[Export Request] Category:', req.query.category);
 
   // For daily test view with the new layout, export all tests in range
   if (view === 'daily' || req.query.category === 'daily') {

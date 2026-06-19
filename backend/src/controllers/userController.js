@@ -531,6 +531,7 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   try {
     const school = await School.findById(teacher.school);
     const schoolName = school?.schoolName || 'Your School';
+    const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     
     const updated = await User.findById(teacher._id)
       .select('-password')
@@ -544,7 +545,9 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
       teacher.teacherName || teacher.name,
       teacher.email,
       assignedClassNames,
-      assignedSubjects
+      assignedSubjects,
+      schoolName,
+      loginUrl
     );
 
     if (!emailResult.success) {

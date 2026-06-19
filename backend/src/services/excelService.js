@@ -41,8 +41,7 @@ export const generateTeacherImportTemplate = async () => {
   const headers = ['Teacher Name', 'Email', 'Phone No (Optional)'];
   sheet.addRow(headers);
 
-  const exampleRow = ['Priya Sharma', 'priya.sharma@example.com', '+919999999999'];
-  sheet.addRow(exampleRow);
+  
 
   const headerRow = sheet.getRow(1);
   headerRow.font = { bold: true };
