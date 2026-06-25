@@ -12,7 +12,9 @@ api.interceptors.request.use((config) => {
 
   // Add selected session ID to params if available
   const selectedSessionId = localStorage.getItem('selectedSessionId');
-  if (selectedSessionId) {
+  const url = String(config.url || '');
+  const shouldAttachSession = selectedSessionId && !url.startsWith('/teacher-performance');
+  if (shouldAttachSession) {
     config.params = config.params || {};
     config.params.academicSession = selectedSessionId;
   }

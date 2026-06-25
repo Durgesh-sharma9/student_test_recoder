@@ -10,6 +10,8 @@ export default function SearchableTeacherSelect({
   loading = false,
   placeholder = 'Search or select teacher',
   emptyMessage = 'No teachers available.',
+  includeAllOption = false,
+  allLabel = 'All Teachers',
   className,
 }) {
   const [open, setOpen] = useState(false);
@@ -49,6 +51,12 @@ export default function SearchableTeacherSelect({
     setOpen(false);
   };
 
+  const pickAll = () => {
+    onChange('');
+    setQuery('');
+    setOpen(false);
+  };
+
   return (
     <div ref={wrapRef} className={cn('relative', className)}>
       <div className="relative">
@@ -78,6 +86,18 @@ export default function SearchableTeacherSelect({
       {open && (
         <div className="absolute z-50 mt-1 max-h-[300px] w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
           {loading && <p className="px-3 py-2 text-sm text-slate-500">Loading...</p>}
+          {!loading && includeAllOption && (
+            <button
+              type="button"
+              className={cn(
+                'w-full px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 border-b border-slate-100',
+                !value && 'bg-blue-50 font-medium text-blue-700'
+              )}
+              onClick={pickAll}
+            >
+              {allLabel}
+            </button>
+          )}
           {!loading && filtered.length === 0 && (
             <p className="px-3 py-2 text-sm text-slate-500">{emptyMessage}</p>
           )}

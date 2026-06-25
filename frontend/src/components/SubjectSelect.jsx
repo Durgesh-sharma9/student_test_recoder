@@ -13,6 +13,8 @@ export default function SubjectSelect({
   onRegisterSubject,
   placeholder = 'Search or select subject',
   emptyMessage = 'No subjects available.',
+  includeAllOption = false,
+  allLabel = 'All Subjects',
   className,
 }) {
   const [open, setOpen] = useState(false);
@@ -87,6 +89,22 @@ export default function SubjectSelect({
       {open && (
         <div className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
           {loading && <p className="px-3 py-2 text-sm text-slate-500">Loading...</p>}
+          {!loading && includeAllOption && (
+            <button
+              type="button"
+              className={cn(
+                'w-full px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 border-b border-slate-100',
+                !value && 'bg-blue-50 font-medium text-blue-700'
+              )}
+              onClick={() => {
+                onChange('');
+                setQuery('');
+                setOpen(false);
+              }}
+            >
+              {allLabel}
+            </button>
+          )}
           {!loading && filtered.length === 0 && !showCustom && (
             <p className="px-3 py-2 text-sm text-slate-500">{emptyMessage}</p>
           )}
