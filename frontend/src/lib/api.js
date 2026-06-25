@@ -21,12 +21,19 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    console.log('[API Interceptor] Success response');
+    console.log('[API Interceptor] Status:', res.status);
+    console.log('[API Interceptor] URL:', res.config?.url);
+    console.log('[API Interceptor] Data:', res.data);
+    return res;
+  },
   (error) => {
     console.log('[API Interceptor] Error received');
     console.log('[API Interceptor] Status:', error.response?.status);
     console.log('[API Interceptor] URL:', error.config?.url);
     console.log('[API Interceptor] Method:', error.config?.method);
+    console.log('[API Interceptor] Error data:', error.response?.data);
     console.log('[API Interceptor] Current path:', window.location.pathname);
     
     if (error.response?.status === 401) {

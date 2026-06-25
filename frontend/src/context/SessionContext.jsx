@@ -13,6 +13,14 @@ export function SessionProvider({ children }) {
 
   useEffect(() => {
     const fetchSessions = async () => {
+      // Check if user is authenticated by checking for token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('[SessionContext] No token found, skipping session fetch (public route)');
+        setLoading(false);
+        return;
+      }
+
       // Parents don't need academic sessions - skip fetching
       if (user?.role === 'parent') {
         console.log('[SessionContext] Parent user, skipping session fetch');
@@ -21,6 +29,7 @@ export function SessionProvider({ children }) {
       }
 
       try {
+        console.log('[SessionContext] Fetching sessions with valid token');
         const res = await api.get('/academic-sessions');
         setAllSessions(res.data.sessions || []);
         
@@ -55,7 +64,7 @@ export function SessionProvider({ children }) {
       }
     };
     fetchSessions();
-  }, [isAdmin, user?.role]);
+  }, [isAdmin, user?.role, user]);
 
   const selectSession = (session) => {
     if (!isAdmin) return; // Teachers cannot switch sessions

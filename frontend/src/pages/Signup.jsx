@@ -14,9 +14,13 @@ import { Input } from '@/components/ui/input';
 
 import { FormField } from '@/components/erp/PagePrimitives';
 
+import { useAuth } from '@/context/AuthContext';
+
 
 
 export default function Signup() {
+
+  const { setUser } = useAuth();
 
   const [form, setForm] = useState({ schoolName: '', adminName: '', email: '', phone: '', password: '' });
 
@@ -27,6 +31,8 @@ export default function Signup() {
   const [showOTP, setShowOTP] = useState(false);
 
   const [otp, setOtp] = useState('');
+
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const navigate = useNavigate();
 
@@ -57,17 +63,40 @@ export default function Signup() {
     setLoading(true);
 
     try {
+      console.log('[handleVerifyOTP] Sending OTP verification request');
       const res = await api.post('/auth/verify-signup-otp', { email: form.email, otp });
+      console.log('[handleVerifyOTP] Verify OTP API Result:', res);
+      console.log('[handleVerifyOTP] Response data:', res.data);
+      console.log('[handleVerifyOTP] Response status:', res.status);
 
+      // Store token and user data
       localStorage.setItem('token', res.data.token);
+      console.log('[handleVerifyOTP] Token saved to localStorage');
 
       localStorage.setItem('user', JSON.stringify(res.data.user));
+      console.log('[handleVerifyOTP] User saved to localStorage');
+      
+      // Update AuthContext state
+      setUser(res.data.user);
+      console.log('[handleVerifyOTP] Auth context user updated');
 
-      toast.success('Account created successfully');
+      console.log('[handleVerifyOTP] OTP Verification Success');
+      console.log('[handleVerifyOTP] Auto Login Triggered');
+      console.log('[handleVerifyOTP] Dashboard Redirect Triggered');
 
-      navigate('/admin');
+      setShowSuccess(true);
+      toast.success('Email verified successfully');
+
+      // Auto-redirect to admin dashboard after 2 seconds
+      setTimeout(() => {
+        console.log('[handleVerifyOTP] Redirecting to /admin');
+        navigate('/admin');
+      }, 2000);
 
     } catch (err) {
+      console.error('[handleVerifyOTP] OTP Verification Error:', err);
+      console.error('[handleVerifyOTP] Error response:', err.response);
+      console.error('[handleVerifyOTP] Error message:', err.response?.data?.message);
 
       toast.error(err.response?.data?.message || 'OTP verification failed');
 
@@ -176,6 +205,19 @@ export default function Signup() {
               </Button>
 
             </form>
+          ) : showSuccess ? (
+            <div className="text-center py-8">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <ShieldCheck className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Email Verified Successfully</h3>
+              <p className="text-slate-600 mb-4">Creating your account...</p>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
           ) : (
             <form className="space-y-4" onSubmit={handleVerifyOTP}>
               <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4">

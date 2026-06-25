@@ -859,6 +859,11 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
     await deleteSignupOTP(email);
 
     admin.password = undefined;
+    console.log('[verifySignupOTP] Sending token response with user:', {
+      _id: admin._id,
+      email: admin.email,
+      role: admin.role,
+    });
     sendTokenResponse(admin, res, 201);
   } catch (error) {
     console.error('[verifySignupOTP] Error creating account:', error);
