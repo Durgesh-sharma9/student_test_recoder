@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
-import { GraduationCap, School } from 'lucide-react';
+import { GraduationCap, School, Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
 
 import api from '@/lib/api';
 
@@ -22,31 +22,54 @@ export default function Signup() {
 
   const [loading, setLoading] = useState(false);
 
+  const [sendingOTP, setSendingOTP] = useState(false);
+
+  const [showOTP, setShowOTP] = useState(false);
+
+  const [otp, setOtp] = useState('');
+
   const navigate = useNavigate();
 
-
-
-  const submit = async (e) => {
-
+  const handleSendOTP = async (e) => {
     e.preventDefault();
+
+    setSendingOTP(true);
+
+    try {
+      await api.post('/auth/send-signup-otp', form);
+      setShowOTP(true);
+      toast.success('OTP sent to your email');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send OTP');
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+
+    if (otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
 
     setLoading(true);
 
     try {
-
-      const res = await api.post('/auth/register-school', form);
+      const res = await api.post('/auth/verify-signup-otp', { email: form.email, otp });
 
       localStorage.setItem('token', res.data.token);
 
       localStorage.setItem('user', JSON.stringify(res.data.user));
 
-      toast.success('School registered successfully');
+      toast.success('Account created successfully');
 
       navigate('/admin');
 
     } catch (err) {
 
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.message || 'OTP verification failed');
 
     } finally {
 
@@ -54,6 +77,23 @@ export default function Signup() {
 
     }
 
+  };
+
+  const handleResendOTP = async () => {
+    setSendingOTP(true);
+    try {
+      await api.post('/auth/send-signup-otp', form);
+      toast.success('OTP resent to your email');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend OTP');
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const handleBack = () => {
+    setShowOTP(false);
+    setOtp('');
   };
 
 
@@ -67,18 +107,22 @@ export default function Signup() {
         <div className="border-b border-blue-100 bg-blue-50 px-6 py-5">
 
           <div className="flex items-center gap-3">
-
+            {showOTP && (
+              <Button variant="ghost" size="icon" onClick={handleBack} className="mr-2">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
 
-              <School className="h-5 w-5" />
+              {showOTP ? <Mail className="h-5 w-5" /> : <School className="h-5 w-5" />}
 
             </div>
 
             <div>
 
-              <h1 className="text-xl font-bold text-slate-900">School Sign Up</h1>
+              <h1 className="text-xl font-bold text-slate-900">{showOTP ? 'Verify Email' : 'School Sign Up'}</h1>
 
-              <p className="text-sm text-slate-500">Create your school account</p>
+              <p className="text-sm text-slate-500">{showOTP ? 'Enter the OTP sent to your email' : 'Create your school account'}</p>
 
             </div>
 
@@ -90,47 +134,100 @@ export default function Signup() {
 
         <div className="p-6">
 
-          <form className="space-y-4" onSubmit={submit}>
+          {!showOTP ? (
+            <form className="space-y-4" onSubmit={handleSendOTP}>
 
-            <FormField label="School Name">
+              <FormField label="School Name">
 
-              <Input placeholder="School Name" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} required />
+                <Input placeholder="School Name" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} required />
 
-            </FormField>
+              </FormField>
 
-            <FormField label="Admin Name">
+              <FormField label="Admin Name">
 
-              <Input placeholder="Admin Name" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} required />
+                <Input placeholder="Admin Name" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} required />
 
-            </FormField>
+              </FormField>
 
-            <FormField label="Email">
+              <FormField label="Email">
 
-              <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
 
-            </FormField>
+              </FormField>
 
-            <FormField label="Phone">
+              <FormField label="Phone">
 
-              <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
 
-            </FormField>
+              </FormField>
 
-            <FormField label="Password">
+              <FormField label="Password">
 
-              <Input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+                <Input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
 
-            </FormField>
+              </FormField>
 
-            <Button className="w-full" variant="success" disabled={loading}>
+              <Button className="w-full" variant="success" disabled={sendingOTP}>
 
-              <GraduationCap className="mr-2 h-4 w-4" />
+                <GraduationCap className="mr-2 h-4 w-4" />
 
-              {loading ? 'Creating...' : 'Create School Account'}
+                {sendingOTP ? 'Sending OTP...' : 'Send OTP'}
 
-            </Button>
+              </Button>
 
-          </form>
+            </form>
+          ) : (
+            <form className="space-y-4" onSubmit={handleVerifyOTP}>
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 mb-1">Verify Your Email</p>
+                    <p className="text-sm text-blue-700">
+                      We have sent a 6-digit verification code to <strong>{form.email}</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <FormField label="Enter OTP">
+                <Input
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  required
+                  className="h-12 text-center text-lg tracking-widest"
+                  maxLength={6}
+                />
+              </FormField>
+
+              <Button className="w-full" variant="success" disabled={loading}>
+                <GraduationCap className="mr-2 h-4 w-4" />
+                {loading ? 'Verifying...' : 'Verify OTP'}
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleResendOTP}
+                disabled={sendingOTP}
+                variant="ghost"
+                className="w-full h-8 text-sm"
+              >
+                <Mail className="mr-2 h-3 w-3" />
+                {sendingOTP ? 'Resending...' : 'Resend OTP'}
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleBack}
+                variant="outline"
+                className="w-full h-8 text-sm"
+              >
+                Change Email
+              </Button>
+            </form>
+          )}
 
 
 

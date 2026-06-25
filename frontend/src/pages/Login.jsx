@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
@@ -24,7 +24,11 @@ import {
 
   BookOpen,
 
+  AlertCircle,
+
 } from 'lucide-react';
+
+import api from '@/lib/api';
 
 export default function Login() {
 
@@ -34,15 +38,52 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
+  const [resendingVerification, setResendingVerification] = useState(false);
+
+  const [showResendVerification, setShowResendVerification] = useState(false);
+
+  const [loginError, setLoginError] = useState('');
+
   const { login } = useAuth();
 
   const navigate = useNavigate();
+
+  const location = useLocation();
+
+  // Check if we should show resend verification from navigation state
+  useEffect(() => {
+    if (location.state?.showResendVerification) {
+      setShowResendVerification(true);
+      setLoginError('Please verify your email before logging in.');
+    }
+  }, [location.state]);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    setResendingVerification(true);
+    try {
+      await api.post('/auth/resend-verification-email', { email });
+      toast.success('Verification email sent successfully. Please check your inbox.');
+      setShowResendVerification(false);
+      setLoginError('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send verification email');
+    } finally {
+      setResendingVerification(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
 
     e.preventDefault();
 
     setLoading(true);
+    setLoginError('');
+    setShowResendVerification(false);
 
     try {
 
@@ -61,7 +102,15 @@ export default function Login() {
 
     } catch (err) {
 
-      toast.error(err.response?.data?.message || 'Login failed');
+      const errorMessage = err.response?.data?.message || 'Login failed';
+      setLoginError(errorMessage);
+      
+      // Check if error is due to unverified email
+      if (errorMessage.includes('verify your email')) {
+        setShowResendVerification(true);
+      }
+      
+      toast.error(errorMessage);
 
     } finally {
 
@@ -330,6 +379,27 @@ export default function Login() {
               {loading ? 'Signing In...' : 'Sign In'}
 
             </Button>
+
+            {/* Show resend verification email option if needed */}
+            {showResendVerification && (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-800 mb-2">{loginError}</p>
+                    <Button
+                      onClick={handleResendVerification}
+                      disabled={resendingVerification}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      {resendingVerification ? 'Sending...' : 'Resend Verification Email'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </form>
 

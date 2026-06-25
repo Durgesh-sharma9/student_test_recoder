@@ -7,6 +7,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
+import VerifyEmail from '@/pages/VerifyEmail';
 import AuthCallback from '@/pages/AuthCallback';
 import SuperDashboard from '@/pages/super/SuperDashboard';
 import SuperSchools from '@/pages/super/SuperSchools';
@@ -21,6 +22,7 @@ import ResultManagement from '@/pages/admin/ResultManagement';
 import ClassResults from '@/pages/admin/ClassResults';
 import AcademicSessions from '@/pages/admin/AcademicSessions';
 import ManageParents from '@/pages/admin/ManageParents';
+import SecuritySettings from '@/pages/admin/SecuritySettings';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
@@ -84,6 +86,7 @@ export default function App() {
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/parent-login" element={<ParentLogin />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
             <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent']}><DashboardLayout /></ProtectedRoute>}>
@@ -101,6 +104,7 @@ export default function App() {
               <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ResultManagement /></ProtectedRoute>} />
               <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ClassResults /></ProtectedRoute>} />
               <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><AcademicSessions /></ProtectedRoute>} />
+              <Route path="/admin/security" element={<ProtectedRoute roles={['school_admin', 'admin']}><SecuritySettings /></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
               <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><TeacherNotifications /></ProtectedRoute>} />
