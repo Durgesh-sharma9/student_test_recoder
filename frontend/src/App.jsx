@@ -23,6 +23,8 @@ import ClassResults from '@/pages/admin/ClassResults';
 import AcademicSessions from '@/pages/admin/AcademicSessions';
 import ManageParents from '@/pages/admin/ManageParents';
 import SecuritySettings from '@/pages/admin/SecuritySettings';
+import TeacherPerformance from '@/pages/admin/TeacherPerformance';
+import TeacherPerformanceDetail from '@/pages/admin/TeacherPerformanceDetail';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
@@ -103,6 +105,8 @@ export default function App() {
               <Route path="/admin/assignments" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherAssignments /></ProtectedRoute>} />
               <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ResultManagement /></ProtectedRoute>} />
               <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ClassResults /></ProtectedRoute>} />
+              <Route path="/admin/teacher-performance" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherPerformance /></ProtectedRoute>} />
+              <Route path="/admin/teacher-performance/view" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherPerformanceDetail /></ProtectedRoute>} />
               <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><AcademicSessions /></ProtectedRoute>} />
               <Route path="/admin/security" element={<ProtectedRoute roles={['school_admin', 'admin']}><SecuritySettings /></ProtectedRoute>} />
 

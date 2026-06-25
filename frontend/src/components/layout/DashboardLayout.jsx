@@ -76,6 +76,7 @@ const navByRole = {
     { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100' },
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100' },
     { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/admin/teacher-performance', label: 'Teacher Performance', icon: BarChart3, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
     { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100' },
   ],
