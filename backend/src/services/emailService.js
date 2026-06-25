@@ -248,6 +248,290 @@ Powered by Test Master Pro
   return await sendWithRetry(mailOptions, "Teacher Creation Email");
 };
 
+export const sendEmailVerificationEmail = async (
+  schoolName,
+  adminName,
+  adminEmail,
+  verificationToken,
+  frontendUrl
+) => {
+  console.log('[Email Service] Preparing to send email verification email');
+  console.log('[Email Service] Recipient:', adminEmail);
+  console.log('[Email Service] School:', schoolName);
+  console.log('[Email Service] Admin:', adminName);
+
+  const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Verify Your Email - Test Master Pro`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">School Management System</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 20px; font-weight: 600;">Verify Your Email Address</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${adminName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Welcome to <strong>${schoolName}</strong>! Your admin account has been created successfully.
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Please verify your email address to activate your account and start using the Test Master Pro portal.
+            </p>
+
+            <!-- Verify Email Button -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">Verify Email Address</a>
+            </div>
+
+            <!-- Alternative Link -->
+            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0 0 10px; font-weight: 500;">Or copy and paste this link:</p>
+              <p style="color: #667eea; font-size: 13px; margin: 0; word-break: break-all;">${verificationUrl}</p>
+            </div>
+
+            <!-- Security Notice -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">Security Notice</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This verification link will expire in 24 hours. If you did not create an account, please ignore this email.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 10px;">
+                Regards,<br>
+                <strong>${schoolName}</strong>
+              </p>
+              <p style="color: #adb5bd; font-size: 13px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Verify Your Email - Test Master Pro
+
+Hello ${adminName},
+
+Welcome to ${schoolName}! Your admin account has been created successfully.
+
+Please verify your email address to activate your account and start using the Test Master Pro portal.
+
+Verify Email Address: ${verificationUrl}
+
+Security Notice:
+This verification link will expire in 24 hours. If you did not create an account, please ignore this email.
+
+Regards,
+${schoolName}
+
+Powered by Test Master Pro
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Email Verification Email");
+};
+
+export const sendPasswordChangeOTPEmail = async (
+  schoolName,
+  adminName,
+  adminEmail,
+  otp
+) => {
+  console.log('[Email Service] Preparing to send password change OTP email');
+  console.log('[Email Service] Recipient:', adminEmail);
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Password Change Verification Code - Test Master Pro`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Change Verification</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">School Management System</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 20px; font-weight: 600;">Password Change Verification</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${adminName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              You requested to change your password for your <strong>${schoolName}</strong> admin account.
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Please use the following verification code to complete the password change process:
+            </p>
+
+            <!-- OTP Display -->
+            <div style="background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 12px; padding: 30px; margin: 30px 0; text-align: center;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0 0 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Your Verification Code</p>
+              <p style="color: #667eea; font-size: 36px; margin: 0; font-weight: 700; letter-spacing: 8px;">${otp}</p>
+            </div>
+
+            <!-- Validity Notice -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">Important</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This code is valid for 10 minutes. If you did not request this change, please ignore this email and your password will remain unchanged.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 10px;">
+                Regards,<br>
+                <strong>${schoolName}</strong>
+              </p>
+              <p style="color: #adb5bd; font-size: 13px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Password Change Verification Code - Test Master Pro
+
+Hello ${adminName},
+
+You requested to change your password for your ${schoolName} admin account.
+
+Your Verification Code: ${otp}
+
+This code is valid for 10 minutes. If you did not request this change, please ignore this email and your password will remain unchanged.
+
+Regards,
+${schoolName}
+
+Powered by Test Master Pro
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Password Change OTP Email");
+};
+
+export const sendEmailChangeOTPEmail = async (
+  schoolName,
+  adminName,
+  adminEmail,
+  newEmail,
+  otp
+) => {
+  console.log('[Email Service] Preparing to send email change OTP email');
+  console.log('[Email Service] Recipient:', adminEmail);
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Email Change Verification Code - Test Master Pro`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Change Verification</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">School Management System</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 20px; font-weight: 600;">Email Change Verification</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${adminName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              You requested to change your email address to <strong>${newEmail}</strong> for your <strong>${schoolName}</strong> admin account.
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Please use the following verification code to complete the email change process:
+            </p>
+
+            <!-- OTP Display -->
+            <div style="background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 12px; padding: 30px; margin: 30px 0; text-align: center;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0 0 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Your Verification Code</p>
+              <p style="color: #667eea; font-size: 36px; margin: 0; font-weight: 700; letter-spacing: 8px;">${otp}</p>
+            </div>
+
+            <!-- Validity Notice -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">Important</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This code is valid for 10 minutes. If you did not request this change, please ignore this email and your email will remain unchanged.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 10px;">
+                Regards,<br>
+                <strong>${schoolName}</strong>
+              </p>
+              <p style="color: #adb5bd; font-size: 13px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Email Change Verification Code - Test Master Pro
+
+Hello ${adminName},
+
+You requested to change your email address to ${newEmail} for your ${schoolName} admin account.
+
+Your Verification Code: ${otp}
+
+This code is valid for 10 minutes. If you did not request this change, please ignore this email and your email will remain unchanged.
+
+Regards,
+${schoolName}
+
+Powered by Test Master Pro
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Email Change OTP Email");
+};
+
 export const sendTeacherAssignmentEmail = async (
   teacherName,
   teacherEmail,
@@ -476,4 +760,88 @@ export const sendParentCreationEmail = async (
   };
 
   return await sendWithRetry(mailOptions, "Parent Creation Email");
+};
+
+export const sendSignupOTPEmail = async (
+  adminName,
+  adminEmail,
+  otp
+) => {
+  console.log('[Email Service] Preparing to send signup OTP email');
+  console.log('[Email Service] Recipient:', adminEmail);
+  console.log('[Email Service] Admin:', adminName);
+  console.log('[Email Service] OTP:', otp);
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Verify Your Email - Test Master Pro`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">TEST MASTER PRO</h1>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+              Hello ${adminName},
+            </p>
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
+              Your verification code is:
+            </p>
+
+            <!-- OTP Display -->
+            <div style="background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center;">
+              <p style="color: #667eea; font-size: 36px; margin: 0; font-weight: 700; letter-spacing: 8px;">${otp}</p>
+            </div>
+
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+              This code will expire in 10 minutes.
+            </p>
+
+            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+              If you did not request this account, ignore this email.
+            </p>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 10px;">
+                Regards,<br>
+                <strong>Test Master Pro Team</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+TEST MASTER PRO
+
+Hello ${adminName},
+
+Your verification code is:
+
+${otp}
+
+This code will expire in 10 minutes.
+
+If you did not request this account, ignore this email.
+
+Regards,
+Test Master Pro Team
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Signup OTP Email");
 };
