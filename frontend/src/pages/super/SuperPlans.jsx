@@ -32,7 +32,10 @@ const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
   if (m <= 0 || c <= 0) return null;
   const baseline = m * multiplier;
   if (baseline <= 0) return null;
-  return Math.max(0, Math.round(((baseline - c) / baseline) * 100));
+  const pct = ((baseline - c) / baseline) * 100;
+  // Only show savings if there's actual discount (cycle price < baseline)
+  if (c >= baseline) return null;
+  return Math.max(0, Math.round(pct));
 };
 
 export default function SuperPlans() {

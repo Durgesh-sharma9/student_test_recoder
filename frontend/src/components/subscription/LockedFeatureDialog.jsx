@@ -8,6 +8,15 @@ export default function LockedFeatureDialog({ open, onOpenChange, featureLabel }
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
+  const currentPath = window.location.pathname;
+
+  const handleViewPlans = () => {
+    onOpenChange(false);
+    // Only navigate if not already on plans page
+    if (currentPath !== '/admin/plans') {
+      navigate('/admin/plans');
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -17,15 +26,15 @@ export default function LockedFeatureDialog({ open, onOpenChange, featureLabel }
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <Lock className="h-5 w-5" />
             </span>
-            Feature Locked
+            Upgrade Your Plan
           </DialogTitle>
           <DialogDescription className="text-slate-600">
             {featureLabel ? (
               <>
-                <span className="font-medium text-slate-800">{featureLabel}</span> is available in your upgraded plan.
+                <span className="font-medium text-slate-800">{featureLabel}</span> is not available in your current subscription.
               </>
             ) : (
-              <>This feature is available in your upgraded plan.</>
+              <>This feature is not available in your current subscription.</>
             )}
           </DialogDescription>
         </DialogHeader>
@@ -37,12 +46,9 @@ export default function LockedFeatureDialog({ open, onOpenChange, featureLabel }
           {role === 'school_admin' ? (
             <Button
               variant="success"
-              onClick={() => {
-                onOpenChange(false);
-                navigate('/admin/plans');
-              }}
+              onClick={handleViewPlans}
             >
-              Upgrade Plan
+              View Plans
             </Button>
           ) : (
             <Button variant="success" onClick={() => onOpenChange(false)}>

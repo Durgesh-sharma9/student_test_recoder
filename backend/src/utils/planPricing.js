@@ -20,7 +20,10 @@ export const normalizePlanPricing = (raw = {}) => {
   const computedFinalPrice = round2(basePrice + computedTaxAmount);
 
   const storedFinalCandidate = Number(raw.finalPrice ?? raw.price ?? 0) || 0;
-  const shouldUseStoredFinal = storedFinalCandidate > 0 || basePrice === 0;
+  
+  // Fix: Only use stored finalPrice if it's non-zero OR if basePrice is actually zero
+  // If basePrice > 0 but storedFinal is 0, compute it to avoid showing ₹0
+  const shouldUseStoredFinal = storedFinalCandidate > 0 && basePrice > 0 ? false : (storedFinalCandidate > 0 || basePrice === 0);
 
   const finalPrice = shouldUseStoredFinal
     ? storedFinalCandidate
