@@ -77,6 +77,8 @@ export const getUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid user ID');
   }
 
+  console.log('[getUser] Fetching user with ID:', id);
+
   const user = await User.findById(id)
     .select('-password')
     .populate('assignedClasses')
@@ -85,6 +87,11 @@ export const getUser = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, 'User not found.');
   }
+
+  console.log('[getUser] User found:', user.name || user.teacherName);
+  console.log('[getUser] User role:', user.role);
+  console.log('[getUser] Assignments count:', user.assignments?.length || 0);
+  console.log('[getUser] Assignments:', JSON.stringify(user.assignments, null, 2));
 
   res.json({
     success: true,

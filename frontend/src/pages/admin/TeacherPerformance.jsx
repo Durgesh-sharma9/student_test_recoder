@@ -47,6 +47,7 @@ export default function TeacherPerformance() {
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [teacherAssignments, setTeacherAssignments] = useState([]);
 
   const [teacherId, setTeacherId] = useState('');
   const [classId, setClassId] = useState('');
@@ -88,21 +89,127 @@ export default function TeacherPerformance() {
   const getLastTestDate = (r) => r?.lastTestDate ?? r?.lastDate ?? r?.lastTest ?? null;
 
   useEffect(() => {
-    Promise.all([api.get('/users?role=teacher'), api.get('/classes')]).then(([t, c]) => {
+    Promise.all([api.get('/users?role=teacher'), api.get('/classes'), api.get('/subjects')]).then(([t, c, s]) => {
       const activeTeachers = (t.data.users || []).filter((x) => x.status !== 'Inactive');
       setTeachers(activeTeachers);
       setClasses(c.data.classes || []);
+      setSubjects(s.data.subjects || []);
     });
   }, []);
 
+  // Load teacher assignments when teacher is selected
   useEffect(() => {
-    const params = {};
-    if (classId) params.classId = classId;
-    api
-      .get('/subjects', { params })
-      .then((r) => setSubjects(r.data.subjects || []))
-      .catch(() => setSubjects([]));
-  }, [classId]);
+    if (teacherId) {
+      console.log('[TeacherPerformance] Teacher selected:', teacherId);
+      api.get(`/users/${teacherId}`)
+        .then((res) => {
+          const assignments = res.data.user?.assignments || [];
+          console.log('[TeacherPerformance] Teacher assignments loaded:', assignments);
+          setTeacherAssignments(assignments);
+        })
+        .catch((err) => {
+          console.error('[TeacherPerformance] Failed to load teacher assignments:', err);
+          setTeacherAssignments([]);
+        });
+    } else {
+      // Reset when teacher is set to All Teachers
+      console.log('[TeacherPerformance] Teacher reset to All Teachers');
+      setTeacherAssignments([]);
+      setSubject('');
+      setClassId('');
+    }
+  }, [teacherId]);
+
+  // Reset classId when subject changes if the current class is not valid for the new subject
+  useEffect(() => {
+    if (subject && teacherId) {
+      const subjectAssignments = teacherAssignments.filter(a => 
+        (a.subject === subject) || (a.subject === subject.toUpperCase())
+      );
+      const subjectClassIds = new Set(subjectAssignments.map(a => a.class?._id || a.class));
+      
+      // If current classId is not in the filtered classes, reset it
+      if (classId && !subjectClassIds.has(classId)) {
+        setClassId('');
+      }
+    }
+  }, [subject, teacherId, teacherAssignments, classId]);
+
+  // Reset subject when class changes if the current subject is not valid for the new class
+  useEffect(() => {
+    if (classId && teacherId) {
+      const classAssignments = teacherAssignments.filter(a => 
+        (a.class?._id === classId) || (a.class === classId)
+      );
+      const classSubjects = new Set(classAssignments.map(a => a.subject));
+      
+      // If current subject is not in the filtered subjects, reset it
+      if (subject && !classSubjects.has(subject) && !classSubjects.has(subject.toUpperCase())) {
+        setSubject('');
+      }
+    }
+  }, [classId, teacherId, teacherAssignments, subject]);
+
+  // Filter subjects based on teacher's assignments and selected class
+  const filteredSubjects = useMemo(() => {
+    console.log('[TeacherPerformance] Filtering subjects - teacherId:', teacherId, 'classId:', classId, 'teacherAssignments:', teacherAssignments);
+    
+    if (!teacherId) {
+      // Show all subjects when no teacher selected
+      console.log('[TeacherPerformance] No teacher selected, showing all subjects:', subjects.length);
+      // Normalize subjects to strings to avoid [object Object] rendering
+      return subjects.map(s => {
+        if (typeof s === 'string') return s;
+        if (typeof s === 'object' && s !== null) {
+          return s.name || s.subjectName || s.title || s.label || s.subject?.name || '';
+        }
+        return '';
+      }).filter(Boolean);
+    }
+    
+    // If teacher is selected, derive subjects from assignments directly
+    if (teacherAssignments.length === 0) {
+      console.log('[TeacherPerformance] No assignments found for teacher, returning empty subjects');
+      return [];
+    }
+    
+    // If teacher is selected and class is also selected, show only subjects for that class
+    if (classId) {
+      const classAssignments = teacherAssignments.filter(a => 
+        (a.class?._id === classId) || (a.class === classId)
+      );
+      console.log('[TeacherPerformance] Class assignments for classId', classId, ':', classAssignments);
+      const classSubjects = new Set(classAssignments.map(a => a.subject));
+      console.log('[TeacherPerformance] Unique subjects for class:', Array.from(classSubjects));
+      return Array.from(classSubjects);
+    }
+    
+    // If only teacher selected (no class), show all unique subjects assigned to that teacher
+    const assignedSubjects = new Set(teacherAssignments.map(a => a.subject));
+    console.log('[TeacherPerformance] Unique subjects for teacher:', Array.from(assignedSubjects));
+    return Array.from(assignedSubjects);
+  }, [subjects, teacherId, teacherAssignments, classId]);
+
+  // Filter classes based on teacher's assignments and selected subject
+  const filteredClasses = useMemo(() => {
+    if (!teacherId) {
+      // Show all classes when no teacher selected
+      return classes;
+    }
+    // Filter classes based on teacher's assignments
+    const assignedClassIds = new Set(teacherAssignments.map(a => a.class?._id || a.class));
+    
+    // If subject is selected, further filter by subject
+    if (subject) {
+      const subjectAssignments = teacherAssignments.filter(a => 
+        (a.subject === subject) || (a.subject === subject.toUpperCase())
+      );
+      const subjectClassIds = new Set(subjectAssignments.map(a => a.class?._id || a.class));
+      return classes.filter(c => subjectClassIds.has(c._id));
+    }
+    
+    return classes.filter(c => assignedClassIds.has(c._id));
+  }, [classes, teacherId, teacherAssignments, subject]);
 
   useEffect(() => {
     if (dateFilter !== 'specific_date') setSpecificDate('');
@@ -178,7 +285,7 @@ export default function TeacherPerformance() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_CLASSES_VALUE}>All Classes</SelectItem>
-                {classes.map((c) => (
+                {filteredClasses.map((c) => (
                   <SelectItem key={c._id} value={c._id}>
                     {formatClassName(c.className)}-{c.section}
                   </SelectItem>
@@ -191,7 +298,7 @@ export default function TeacherPerformance() {
             <SubjectSelect
               value={subject}
               onChange={setSubject}
-              subjects={subjects}
+              subjects={filteredSubjects}
               placeholder="All Subjects"
               includeAllOption
               allLabel="All Subjects"
