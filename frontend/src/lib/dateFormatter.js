@@ -54,3 +54,38 @@ export const formatDisplayDateLocale = (date) => {
   
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
+
+export const formatRelativeTime = (date) => {
+  if (!date) return 'Never';
+
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return 'Never';
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  if (diffMs < 0) return 'Just now';
+
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+  const month = 30 * day;
+
+  if (diffMs < minute) return 'Just now';
+
+  const minutes = Math.floor(diffMs / minute);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(diffMs / hour);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+
+  const days = Math.floor(diffMs / day);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+
+  const weeks = Math.floor(diffMs / week);
+  if (weeks < 4) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+
+  const months = Math.floor(diffMs / month);
+  return `${months} month${months === 1 ? '' : 's'} ago`;
+};

@@ -35,6 +35,32 @@ const sendTokenResponse = (user, res, statusCode = 200) => {
   });
 };
 
+const buildAuthUserObject = (user) => {
+  if (!user) return null;
+
+  const source =
+    typeof user.toObject === 'function'
+      ? user.toObject({ virtuals: true })
+      : { ...user };
+
+  delete source.password;
+
+  const role = source.role === 'admin' ? 'school_admin' : source.role;
+  const name =
+    role === 'teacher'
+      ? source.teacherName || source.name
+      : role === 'parent'
+        ? source.parentName || source.name
+        : source.name || source.adminName || source.parentName || source.teacherName;
+
+  return {
+    ...source,
+    role,
+    name,
+    mustChangePassword: source.mustChangePassword || false,
+  };
+};
+
 // Helper function to ensure active session exists for a school
 const ensureActiveSession = async (schoolId) => {
   const existingActive = await AcademicSession.findOne({
@@ -236,13 +262,16 @@ export const getMe = asyncHandler(async (req, res) => {
       user = {
         _id: user._id,
         name: user.parentName,
+        parentName: user.parentName,
         email: user.email,
         phone: user.phone,
         role: 'parent',
         school: user.school,
         isActive: true,
         status: user.status,
-        mustChangePassword: false
+        mustChangePassword: false,
+        lastLogin: user.lastLogin || null,
+        authProvider: user.authProvider || 'local',
       };
     }
   }
@@ -259,18 +288,7 @@ export const getMe = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found.');
   }
 
-  const role = user.role === 'admin' ? 'school_admin' : user.role;
-  
-  // Ensure name field is set correctly based on role
-  const userObj = { ...user, role, mustChangePassword: user.mustChangePassword || false };
-  
-  // For teachers, prioritize teacherName over name
-  if (userObj.role === 'teacher' && userObj.teacherName) {
-    userObj.name = userObj.teacherName;
-  }
-  // For parents, parentName should already be set to name
-  // For admins, use name field
-  
+  const userObj = buildAuthUserObject(user);
   res.json({ success: true, user: userObj });
 });
 
@@ -423,16 +441,22 @@ export const parentLogin = asyncHandler(async (req, res) => {
     }
   }
 
+  parent.lastLogin = new Date();
+  await parent.save();
+
   // Create a user-like object for token generation
   const userObj = {
     _id: parent._id.toString(),
     name: parent.parentName,
+    parentName: parent.parentName,
     email: parent.email,
     phone: parent.phone,
     role: 'parent',
     school: parent.school,
     isActive: true,
-    status: 'Active'
+    status: 'Active',
+    lastLogin: parent.lastLogin,
+    authProvider: parent.authProvider || 'local',
   };
 
   console.log('userObj._id:', userObj._id, 'type:', typeof userObj._id);
@@ -497,8 +521,12 @@ export const googleCallback = asyncHandler(async (req, res) => {
       // Auto-verify email for Google login
       if (!user.isEmailVerified && (user.role === 'school_admin' || user.role === 'super_admin')) {
         user.isEmailVerified = true;
-        await user.save();
       }
+
+      if (user.role === 'parent' || user.role === 'teacher' || user.role === 'school_admin' || user.role === 'admin' || user.role === 'super_admin') {
+        user.lastLogin = new Date();
+      }
+      await user.save();
 
       // Generate JWT token
       const token = signToken(user._id);
@@ -509,6 +537,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
         userObj = {
           _id: user._id.toString(),
           name: user.parentName,
+          parentName: user.parentName,
           email: user.email,
           phone: user.phone,
           role: 'parent',
@@ -516,6 +545,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
           isActive: true,
           status: user.status,
           authProvider: user.authProvider,
+          lastLogin: user.lastLogin || null,
         };
       } else {
         userObj = user.toObject();

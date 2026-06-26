@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Search, Users, Eye, Lock, Unlock, Key, ShieldCheck, ShieldAlert } from 'lucide-react';
 import api from '@/lib/api';
-import { formatDisplayDate } from '@/lib/dateFormatter';
+import { formatDisplayDate, formatRelativeTime } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function ManageParents() {
-  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchStudent, setSearchStudent] = useState('');
@@ -24,6 +22,22 @@ export default function ManageParents() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState('');
+  const latestRequestRef = useRef(0);
+
+  const debouncedSearchStudent = useDebouncedValue(searchStudent, 400);
+  const debouncedSearchParent = useDebouncedValue(searchParent, 400);
+
+  const sortedStudents = useMemo(
+    () =>
+      [...students].sort((a, b) => {
+        const aRoll = Number(a.rollNo);
+        const bRoll = Number(b.rollNo);
+        if (!Number.isNaN(aRoll) && !Number.isNaN(bRoll)) return aRoll - bRoll;
+        return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
+      }),
+    [students]
+  );
 
   useEffect(() => {
     loadClasses();
@@ -31,7 +45,7 @@ export default function ManageParents() {
 
   useEffect(() => {
     loadStudents();
-  }, [searchStudent, searchParent, classFilter, statusFilter]);
+  }, [debouncedSearchStudent, debouncedSearchParent, classFilter, statusFilter]);
 
   const loadClasses = async () => {
     try {
@@ -43,34 +57,36 @@ export default function ManageParents() {
   };
 
   const loadStudents = async () => {
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
     setLoading(true);
+    setError('');
     try {
       const params = new URLSearchParams();
       
-      if (searchStudent) params.append('search', searchStudent);
-      if (searchParent) params.append('searchParent', searchParent);
+      if (debouncedSearchStudent) params.append('search', debouncedSearchStudent);
+      if (debouncedSearchParent) params.append('searchParent', debouncedSearchParent);
       if (classFilter && classFilter !== 'all') params.append('classId', classFilter);
       if (statusFilter && statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
       
       const res = await api.get(`/parents/admin/list?${params}`);
+      if (requestId !== latestRequestRef.current) return;
       if (res.data && Array.isArray(res.data.students)) {
-        // --- ULTIMATE ALPHANUMERIC SORT FIX ---
-        // Yahan hum string numbers ko proper mathematical integers me evaluate karke sort kar rahe hain
-        const sortedStudents = [...res.data.students].sort((a, b) => {
-          return Number(a.rollNo) - Number(b.rollNo);
-        });
-        setStudents(sortedStudents);
+        setStudents(res.data.students);
       } else {
         setStudents([]);
       }
     } catch (err) {
+      if (requestId !== latestRequestRef.current) return;
       console.error('Failed to load students:', err);
-      toast.error(err.response?.data?.message || 'Failed to load students');
+      setError(err.response?.data?.message || 'Failed to load students');
       setStudents([]);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -116,22 +132,6 @@ export default function ManageParents() {
       toast.error(err.response?.data?.message || 'Failed to load parent details');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!students) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-        <div className="text-slate-500 dark:text-slate-400">Error loading data</div>
-      </div>
-    );
-  }
 
   return (
     <PageStack className="bg-slate-50 dark:bg-slate-950">
@@ -193,7 +193,11 @@ export default function ManageParents() {
       </ErpSection>
 
       <ErpSection title="Students with Parents" icon={Users} tone="green">
-        {!students || students.length === 0 ? (
+        {error ? (
+          <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-rose-200 dark:border-rose-800">
+            <p className="text-rose-600 dark:text-rose-400 font-medium">{error}</p>
+          </div>
+        ) : !loading && sortedStudents.length === 0 ? (
           <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
             <Users className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
             <p className="text-slate-500 dark:text-slate-400 font-medium">No records found matched your filters.</p>
@@ -215,7 +219,14 @@ export default function ManageParents() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => {
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="px-5 py-10 text-center text-slate-500 dark:text-slate-400">
+                      Loading parent records...
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                sortedStudents.map((student) => {
                   const isActive = student.parentStatus === 'Active';
                   return (
                     <TableRow key={student._id} className="hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors border-b border-slate-100 dark:border-slate-800">
@@ -230,9 +241,7 @@ export default function ManageParents() {
                       <TableCell className="px-5 py-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentPhone}</TableCell>
                       <TableCell className="px-5 py-4 text-slate-500 dark:text-slate-400 max-w-[180px] truncate group-hover:text-slate-900 dark:group-hover:text-slate-100">{student.parentEmail || '-'}</TableCell>
                       <TableCell className="px-5 py-4 text-xs text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100">
-                        {student.parentLastLogin 
-                          ? formatDisplayDate(student.parentLastLogin) 
-                          : 'Never'}
+                        {formatRelativeTime(student.parentLastLogin)}
                       </TableCell>
                       <TableCell className="px-5 py-4 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
@@ -294,7 +303,7 @@ export default function ManageParents() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                }))}
               </TableBody>
             </Table>
           </div>
@@ -335,9 +344,7 @@ export default function ManageParents() {
                   <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-500 dark:text-slate-400">Last Session</span>
                     <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {selectedParent.lastLogin 
-                        ? formatDisplayDate(selectedParent.lastLogin) 
-                        : 'Never'}
+                      {formatRelativeTime(selectedParent.lastLogin)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-1">
@@ -402,4 +409,15 @@ export default function ManageParents() {
       </Dialog>
     </PageStack>
   );
+}
+
+function useDebouncedValue(value, delay = 400) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
 }
