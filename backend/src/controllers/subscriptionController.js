@@ -17,6 +17,8 @@ const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
   const baseline = m * multiplier;
   if (baseline <= 0) return null;
   const pct = ((baseline - c) / baseline) * 100;
+  // Only show savings if there's actual discount (cycle price < baseline)
+  if (c >= baseline) return null;
   return Math.max(0, Math.round(pct));
 };
 

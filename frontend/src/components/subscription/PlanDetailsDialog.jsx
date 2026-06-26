@@ -23,6 +23,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   const [qr, setQr] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const timerRef = useRef(null);
+  const [selectedPlanId, setSelectedPlanId] = useState(null);
 
   const [form, setForm] = useState({
     mobileNumber: '',
@@ -32,16 +33,18 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   });
   const [submitted, setSubmitted] = useState(false);
 
-  const load = async () => {
-    if (!planId) return;
+  const load = async (targetPlanId = null) => {
+    const idToLoad = targetPlanId || planId;
+    if (!idToLoad) return;
     setLoading(true);
     try {
       const [planRes, settingsRes] = await Promise.all([
-        api.get(`/subscriptions/plans/${planId}`),
+        api.get(`/subscriptions/plans/${idToLoad}`),
         api.get('/subscriptions/payment-settings'),
       ]);
       setPlanData(planRes.data);
       setSettings(settingsRes.data.settings);
+      setSelectedPlanId(idToLoad);
     } finally {
       setLoading(false);
     }
@@ -58,6 +61,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     if (!open) return;
     setSubmitted(false);
     setForm({ mobileNumber: '', state: '', utr: '', screenshot: null });
+    setSelectedPlanId(null);
     load().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, planId]);
@@ -94,6 +98,17 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
 
   const plan = planData?.plan;
   const comparison = planData?.comparison || [];
+
+  const handleComparisonClick = async (comparisonItem) => {
+    if (!comparisonItem.planId || comparisonItem.planId === selectedPlanId) return;
+    
+    // Reset form when switching plans
+    setSubmitted(false);
+    setForm({ mobileNumber: '', state: '', utr: '', screenshot: null });
+    
+    // Load the new plan
+    await load(comparisonItem.planId);
+  };
 
   const submit = async () => {
     if (!plan?._id) return;
@@ -172,7 +187,11 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                 <p className="text-sm font-semibold text-slate-900">Features</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {SUBSCRIPTION_FEATURES.map((f) => {
-                    const enabled = (plan.features || {})[f.key] !== false;
+                    // Fix: Read the actual feature value from plan.features Map
+                    // If feature is explicitly false, show as Locked
+                    // If feature is true or undefined, show as Enabled (backward compatible)
+                    const featureValue = (plan.features || {})[f.key];
+                    const enabled = featureValue !== false;
                     return (
                       <div
                         key={f.key}
@@ -194,19 +213,31 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
                 <p className="text-sm font-semibold text-slate-900">Comparison</p>
                 <div className="mt-3 grid gap-2">
-                  {comparison.map((c) => (
-                    <div key={c.billingCycle} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                      <span className="font-medium text-slate-700">{c.label}</span>
-                      <span className="font-semibold text-slate-900">
-                        {c.price ? `₹${Number(c.price).toFixed(2)}` : '-'}
-                        {c.savePercent !== null && c.billingCycle !== 'monthly' ? (
-                          <span className="ml-2 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
-                            Save {c.savePercent}%
-                          </span>
-                        ) : null}
-                      </span>
-                    </div>
-                  ))}
+                  {comparison.map((c) => {
+                    const isSelected = c.planId === selectedPlanId;
+                    return (
+                      <div
+                        key={c.billingCycle}
+                        onClick={() => handleComparisonClick(c)}
+                        className={cn(
+                          'flex items-center justify-between rounded-xl px-3 py-2 text-sm cursor-pointer transition-colors',
+                          isSelected
+                            ? 'bg-indigo-50 border-2 border-indigo-200'
+                            : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'
+                        )}
+                      >
+                        <span className="font-medium text-slate-700">{c.label}</span>
+                        <span className="font-semibold text-slate-900">
+                          {c.price ? `₹${Number(c.price).toFixed(2)}` : '-'}
+                          {c.savePercent !== null && c.billingCycle !== 'monthly' ? (
+                            <span className="ml-2 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                              Save {c.savePercent}%
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
