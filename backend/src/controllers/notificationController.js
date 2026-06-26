@@ -37,9 +37,9 @@ export const getNotifications = asyncHandler(async (req, res) => {
       ],
     };
   } else if (role === 'super_admin') {
-    // Super admins can see notifications they sent
+    // Super admins can see notifications they sent AND received (needed for payment request workflow)
     filter = {
-      senderId: userId,
+      $or: [{ recipientIds: userId }, { senderId: userId }],
     };
   }
 

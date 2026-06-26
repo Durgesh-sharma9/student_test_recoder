@@ -3,6 +3,7 @@ import Plan from '../models/Plan.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
 import Student from '../models/Student.js';
+import SubscriptionRequest from '../models/SubscriptionRequest.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendCsv, sendPdfTable } from '../utils/exportService.js';
@@ -20,6 +21,84 @@ export const dashboard = asyncHandler(async (req, res) => {
     Class.countDocuments({ isActive: true }),
   ]);
 
+  // Subscription analytics (manual UPI verification for now)
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  const sumApproved = async (fromDate) => {
+    const match = { status: 'approved', reviewedAt: { $gte: fromDate } };
+    const agg = await SubscriptionRequest.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: '$finalAmount' },
+          tax: { $sum: '$taxAmount' },
+        },
+      },
+    ]);
+    return agg[0] || { revenue: 0, tax: 0 };
+  };
+
+  const [todayAgg, monthAgg, yearAgg, totalAgg, pendingCount, rejectedCount, approvedCount] = await Promise.all([
+    sumApproved(startOfDay),
+    sumApproved(startOfMonth),
+    sumApproved(startOfYear),
+    (async () => {
+      const agg = await SubscriptionRequest.aggregate([
+        { $match: { status: 'approved' } },
+        { $group: { _id: null, revenue: { $sum: '$finalAmount' }, tax: { $sum: '$taxAmount' } } },
+      ]);
+      return agg[0] || { revenue: 0, tax: 0 };
+    })(),
+    SubscriptionRequest.countDocuments({ status: 'pending' }),
+    SubscriptionRequest.countDocuments({ status: 'rejected' }),
+    SubscriptionRequest.countDocuments({ status: 'approved' }),
+  ]);
+
+  // Plan distributions from current school plans
+  const planDistribution = { basic: 0, standard: 0, premium: 0, trial: 0 };
+  const billingCycleDistribution = { monthly: 0, quarterly: 0, half_yearly: 0, yearly: 0 };
+  for (const s of schools) {
+    const plan = s.plan;
+    const planTypeRaw = (plan?.planType || plan?.slug || 'trial').toString().toLowerCase();
+    const planType = planTypeRaw.includes('_') ? planTypeRaw.split('_')[0] : planTypeRaw;
+    const cycle = (plan?.billingCycle || 'monthly').toString().toLowerCase();
+    if (planDistribution[planType] !== undefined) planDistribution[planType] += 1;
+    if (billingCycleDistribution[cycle] !== undefined) billingCycleDistribution[cycle] += 1;
+  }
+
+  // Revenue by month (last 12 months)
+  const start12 = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const monthAggRows = await SubscriptionRequest.aggregate([
+    { $match: { status: 'approved', reviewedAt: { $gte: start12 } } },
+    {
+      $group: {
+        _id: { y: { $year: '$reviewedAt' }, m: { $month: '$reviewedAt' } },
+        revenue: { $sum: '$finalAmount' },
+        tax: { $sum: '$taxAmount' },
+      },
+    },
+    { $sort: { '_id.y': 1, '_id.m': 1 } },
+  ]);
+
+  const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const monthMap = new Map(monthAggRows.map((r) => [monthKey(new Date(r._id.y, r._id.m - 1, 1)), r]));
+  const revenueByMonth = [];
+  for (let i = 0; i < 12; i += 1) {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+    const key = monthKey(d);
+    const row = monthMap.get(key);
+    revenueByMonth.push({
+      month: d.toLocaleString('en-US', { month: 'short' }),
+      year: d.getFullYear(),
+      revenue: row ? Number(row.revenue || 0) : 0,
+      tax: row ? Number(row.tax || 0) : 0,
+    });
+  }
+
   const recentRegistrations = await School.find()
     .sort('-createdAt')
     .limit(10)
@@ -35,6 +114,28 @@ export const dashboard = asyncHandler(async (req, res) => {
       teachers,
       students,
       classes,
+    },
+    subscription: {
+      revenue: {
+        today: Number(todayAgg.revenue || 0),
+        month: Number(monthAgg.revenue || 0),
+        year: Number(yearAgg.revenue || 0),
+        total: Number(totalAgg.revenue || 0),
+      },
+      requests: {
+        pending: pendingCount,
+        rejected: rejectedCount,
+        approved: approvedCount,
+      },
+      distributions: {
+        plan: planDistribution,
+        billingCycle: billingCycleDistribution,
+      },
+      charts: {
+        revenueByMonth,
+        taxCollectedByMonth: revenueByMonth.map((r) => ({ month: r.month, year: r.year, tax: r.tax })),
+        monthlyRevenueTrend: revenueByMonth.map((r) => ({ month: r.month, year: r.year, revenue: r.revenue })),
+      },
     },
     recentRegistrations,
   });

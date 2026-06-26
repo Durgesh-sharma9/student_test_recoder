@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { BarChart3, Activity, GraduationCap } from 'lucide-react';
 
 import api from '@/lib/api';
+import { useSubscription } from '@/context/SubscriptionContext';
 
 import { formatDisplayDate } from '@/lib/dateFormatter';
 
@@ -67,6 +68,7 @@ function ClassStrengthTooltip({ active, payload }) {
 export default function AdminDashboard() {
 
   const navigate = useNavigate();
+  const { hasPendingVerification } = useSubscription();
 
   const [data, setData] = useState({ stats: {}, recentActivities: [], classPerformance: [] });
 
@@ -158,19 +160,31 @@ export default function AdminDashboard() {
 
       />
 
-
+      {hasPendingVerification ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-extrabold">Subscription Status: Pending Verification</p>
+              <p className="mt-0.5 text-sm text-amber-800">
+                Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/plans')}
+              className="mt-3 inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-amber-900 shadow-sm hover:bg-amber-100 sm:mt-0"
+            >
+              View Plans
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
         {stats.map((s) => (
-
           <StatsCard key={s.title} title={s.title} value={s.value} themeIndex={s.themeIndex} />
-
         ))}
-
       </div>
-
-
 
       <ErpSection title="Class Strength Overview" icon={GraduationCap} tone="purple">
         {classStrengthData.length === 0 ? (

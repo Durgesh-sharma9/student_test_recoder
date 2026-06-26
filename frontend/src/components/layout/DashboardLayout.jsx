@@ -7,6 +7,7 @@ import {
   GraduationCap,
   ClipboardList,
   BarChart3,
+  CreditCard,
   LogOut,
   Menu,
   X,
@@ -24,11 +25,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import NotificationPanel from '@/components/NotificationPanel';
 import AnnouncementModal from '@/components/AnnouncementModal';
+import LockedFeatureDialog from '@/components/subscription/LockedFeatureDialog';
 
 // Helper function to get display name from user object
 const getDisplayName = (user) => {
@@ -71,32 +74,35 @@ const navByRole = {
     { to: '/super-admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-blue-600', boxBg: 'bg-blue-50 group-hover:bg-blue-100', end: true },
     { to: '/super-admin/schools', label: 'Schools', icon: Building2, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
     { to: '/super-admin/plans', label: 'Plans', icon: ClipboardList, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
+    { to: '/super-admin/subscription-requests', label: 'Payments', icon: CreditCard, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
+    { to: '/super-admin/payment-settings', label: 'Payment Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
   school_admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
-    { to: '/admin/teachers', label: 'Teachers', icon: Users, iconColor: 'text-teal-600', boxBg: 'bg-teal-50 group-hover:bg-teal-100' },
+    { to: '/admin/teachers', label: 'Teachers', icon: Users, iconColor: 'text-teal-600', boxBg: 'bg-teal-50 group-hover:bg-teal-100', featureKey: 'teacher_portal' },
     { to: '/admin/classes', label: 'Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
-    { to: '/admin/students', label: 'Students', icon: GraduationCap, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100' },
-    { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100' },
-    { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100' },
-    { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
-    { to: '/admin/teacher-performance', label: 'Teacher Performance', icon: BarChart3, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
-    { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
-    { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100' },
+    { to: '/admin/students', label: 'Students', icon: GraduationCap, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100', featureKey: 'student_portal' },
+    { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100', featureKey: 'parent_portal' },
+    { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100', featureKey: 'teacher_portal', lockLabel: 'Assign Subjects' },
+    { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
+    { to: '/admin/teacher-performance', label: 'Teacher Performance', icon: BarChart3, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_performance' },
+    { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'reports' },
+    { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100', featureKey: 'academic_session' },
+    { to: '/admin/plans', label: 'Plans', icon: CreditCard, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
   ],
   teacher: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
-    { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
-    { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
-    { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
-    { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100' },
-    { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
+    { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
+    { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_portal' },
+    { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'daily_test' },
+    { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'main_exam' },
+    { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
     { to: '/teacher/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
   parent: [
-    { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
-    { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
-    { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
+    { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true, featureKey: 'parent_portal' },
+    { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'reports', lockLabel: 'Results' },
+    { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
     { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 };
@@ -104,9 +110,11 @@ const navByRole = {
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { selectedSession, allSessions, selectSession, isArchived } = useSession();
+  const { isFeatureEnabled } = useSubscription();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [lockedDialog, setLockedDialog] = useState({ open: false, label: '' });
   const navigate = useNavigate();
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
@@ -142,45 +150,79 @@ export default function DashboardLayout() {
 
         {/* Navigation Items with Box Wrappers */}
         <nav className="flex-1 space-y-1.5 p-3 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap',
-                  isActive
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15'
-                    : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
-                  isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto'
-                )
-              }
-              title={isCollapsed ? item.label : undefined}
-            >
-              {({ isActive }) => (
-                <>
-                  {/* Icon Container Box */}
-                  <div className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
-                    isActive 
-                      ? "bg-white/20 text-white shadow-inner" 
-                      : item.boxBg
-                  )}>
-                    <item.icon className={cn(
-                      "h-5 w-5 transition-transform duration-200 group-hover:scale-110",
-                      isActive ? "text-white" : item.iconColor
-                    )} />
-                  </div>
-                  
-                  <span className={cn("transition-opacity duration-200 font-medium tracking-wide", isCollapsed ? "lg:hidden" : "block")}>
-                    {item.label}
+          {navItems.map((item) => {
+            const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
+            const label = item.lockLabel || item.label;
+
+            const baseClass = ({ isActive }) =>
+              cn(
+                'flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap',
+                isActive
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                  : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
+                locked && 'opacity-80',
+                isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto'
+              );
+
+            const content = ({ isActive }) => (
+              <>
+                <div
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
+                    isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg
+                  )}
+                >
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 transition-transform duration-200 group-hover:scale-110',
+                      isActive ? 'text-white' : item.iconColor
+                    )}
+                  />
+                </div>
+
+                <span className={cn('transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>
+                  {item.label}
+                </span>
+
+                {!isCollapsed && locked ? (
+                  <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                    <Lock className="h-3.5 w-3.5" />
+                    Locked
                   </span>
-                </>
-              )}
-            </NavLink>
-          ))}
+                ) : null}
+              </>
+            );
+
+            if (locked) {
+              return (
+                <button
+                  key={item.to}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setLockedDialog({ open: true, label });
+                  }}
+                  className={baseClass({ isActive: false })}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  {content({ isActive: false })}
+                </button>
+              );
+            }
+
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setOpen(false)}
+                className={baseClass}
+                title={isCollapsed ? item.label : undefined}
+              >
+                {content}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* User Workspace Profile Block */}
@@ -313,6 +355,12 @@ export default function DashboardLayout() {
         open={isAnnouncementModalOpen}
         onOpenChange={setIsAnnouncementModalOpen}
         role={role}
+      />
+
+      <LockedFeatureDialog
+        open={lockedDialog.open}
+        onOpenChange={(v) => setLockedDialog((s) => ({ ...s, open: v }))}
+        featureLabel={lockedDialog.label}
       />
     </div>
   );
