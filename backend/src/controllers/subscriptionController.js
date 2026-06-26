@@ -8,6 +8,7 @@ import Notification from '../models/Notification.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { uploadFile } from '../utils/imagekit.js';
+import { normalizePlanPricing } from '../utils/planPricing.js';
 
 const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
   const m = Number(monthlyPrice) || 0;
@@ -33,7 +34,11 @@ export const getPlans = asyncHandler(async (req, res) => {
   if (planType) filter.planType = String(planType).toLowerCase();
 
   const plans = await Plan.find(filter).sort('planType billingCycle name');
-  res.json({ success: true, plans });
+  const normalized = plans.map((p) => {
+    const obj = p.toObject({ virtuals: true });
+    return { ...obj, ...normalizePlanPricing(obj) };
+  });
+  res.json({ success: true, plans: normalized });
 });
 
 export const getPlanDetails = asyncHandler(async (req, res) => {
@@ -45,9 +50,15 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
 
   const siblings = await Plan.find({ isActive: true, planType: plan.planType }).sort('billingCycle');
 
-  const monthly = siblings.find((p) => p.billingCycle === 'monthly');
+  const normalizedPlan = { ...plan.toObject({ virtuals: true }), ...normalizePlanPricing(plan.toObject({ virtuals: true })) };
+  const normalizedSiblings = siblings.map((p) => {
+    const obj = p.toObject({ virtuals: true });
+    return { ...obj, ...normalizePlanPricing(obj) };
+  });
+
+  const monthly = normalizedSiblings.find((p) => p.billingCycle === 'monthly');
   const comparison = cycleMeta.map((meta) => {
-    const p = siblings.find((s) => s.billingCycle === meta.cycle);
+    const p = normalizedSiblings.find((s) => s.billingCycle === meta.cycle);
     const price = p?.finalPrice ?? p?.price ?? null;
     return {
       billingCycle: meta.cycle,
@@ -58,7 +69,12 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
     };
   });
 
-  res.json({ success: true, plan, siblings, comparison });
+  res.json({
+    success: true,
+    plan: normalizedPlan,
+    siblings: normalizedSiblings,
+    comparison,
+  });
 });
 
 export const getPaymentSettings = asyncHandler(async (req, res) => {
@@ -134,11 +150,12 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
     paymentScreenshotType = req.file.mimetype;
   }
 
-  const basePrice = Number(requestedPlan.basePrice ?? 0);
-  const taxName = requestedPlan.tax?.enabled ? requestedPlan.tax?.name : undefined;
-  const taxPercentage = requestedPlan.tax?.enabled ? Number(requestedPlan.tax?.percentage ?? 0) : 0;
-  const taxAmount = requestedPlan.tax?.enabled ? Number(requestedPlan.tax?.amount ?? 0) : 0;
-  const finalAmount = Number(requestedPlan.finalPrice ?? requestedPlan.price ?? 0);
+  const computedPricing = normalizePlanPricing(requestedPlan.toObject({ virtuals: true }));
+  const basePrice = Number(computedPricing.basePrice ?? 0);
+  const taxName = computedPricing.taxEnabled ? computedPricing.taxName : undefined;
+  const taxPercentage = computedPricing.taxEnabled ? Number(computedPricing.taxPercentage ?? 0) : 0;
+  const taxAmount = computedPricing.taxEnabled ? Number(computedPricing.taxAmount ?? 0) : 0;
+  const finalAmount = Number(computedPricing.finalPrice ?? 0);
 
   const requestDoc = await SubscriptionRequest.create({
     school: school._id,
@@ -220,4 +237,3 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
     },
   });
 });
-
