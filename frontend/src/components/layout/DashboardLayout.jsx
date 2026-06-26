@@ -39,6 +39,10 @@ const getDisplayName = (user) => {
   if (user.teacherName && typeof user.teacherName === 'string' && user.teacherName.trim()) return user.teacherName.trim();
   if (user.parentName && typeof user.parentName === 'string' && user.parentName.trim()) return user.parentName.trim();
   if (user.adminName && typeof user.adminName === 'string' && user.adminName.trim()) return user.adminName.trim();
+  if (user.role === 'super_admin') return 'Super Admin';
+  if (user.role === 'school_admin' || user.role === 'admin') return 'School Admin';
+  if (user.role === 'teacher') return 'Teacher';
+  if (user.role === 'parent') return 'Parent / Guardian';
   if (user.email && typeof user.email === 'string' && user.email.trim()) return user.email.trim();
   
   return 'User';

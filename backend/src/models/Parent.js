@@ -12,6 +12,7 @@ const parentSchema = new mongoose.Schema(
     linkedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }],
     googleId: { type: String, trim: true },
     authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+    lastLogin: { type: Date },
   },
   { timestamps: true }
 );
