@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { SessionProvider } from '@/context/SessionContext';
+import { SubscriptionProvider } from '@/context/SubscriptionContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Landing from '@/pages/Landing';
@@ -13,7 +14,10 @@ import SuperDashboard from '@/pages/super/SuperDashboard';
 import SuperSchools from '@/pages/super/SuperSchools';
 import SuperSchoolDetails from '@/pages/super/SuperSchoolDetails';
 import SuperPlans from '@/pages/super/SuperPlans';
+import SuperSubscriptionRequests from '@/pages/super/SuperSubscriptionRequests';
+import SuperPaymentSettings from '@/pages/super/SuperPaymentSettings';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminPlans from '@/pages/admin/AdminPlans';
 import ManageUsers from '@/pages/admin/ManageUsers';
 import ManageClasses from '@/pages/admin/ManageClasses';
 import ManageStudents from '@/pages/admin/ManageStudents';
@@ -43,6 +47,7 @@ import ParentDailyTests from '@/pages/parent/DailyTests';
 import ParentMainExams from '@/pages/parent/MainExams';
 import ParentExamDetails from '@/pages/parent/ExamDetails';
 import ChangePassword from '@/pages/ChangePassword';
+import RequireFeature from '@/components/subscription/RequireFeature';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -80,9 +85,10 @@ export default function App() {
   return (
     <AuthProvider>
       <SessionProvider>
-        <BrowserRouter>
-          <Toaster position="top-right" richColors />
-          <Routes>
+        <SubscriptionProvider>
+          <BrowserRouter>
+            <Toaster position="top-right" richColors />
+            <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<Login />} />
             <Route path="/change-password" element={<ChangePassword />} />
@@ -96,33 +102,36 @@ export default function App() {
               <Route path="/super-admin/schools" element={<ProtectedRoute roles={['super_admin']}><SuperSchools /></ProtectedRoute>} />
               <Route path="/super-admin/schools/:id" element={<ProtectedRoute roles={['super_admin']}><SuperSchoolDetails /></ProtectedRoute>} />
               <Route path="/super-admin/plans" element={<ProtectedRoute roles={['super_admin']}><SuperPlans /></ProtectedRoute>} />
+              <Route path="/super-admin/subscription-requests" element={<ProtectedRoute roles={['super_admin']}><SuperSubscriptionRequests /></ProtectedRoute>} />
+              <Route path="/super-admin/payment-settings" element={<ProtectedRoute roles={['super_admin']}><SuperPaymentSettings /></ProtectedRoute>} />
 
               <Route path="/admin" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/teachers" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageUsers /></ProtectedRoute>} />
+              <Route path="/admin/plans" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminPlans /></ProtectedRoute>} />
+              <Route path="/admin/teachers" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><ManageUsers /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/classes" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageClasses /></ProtectedRoute>} />
-              <Route path="/admin/students" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageStudents /></ProtectedRoute>} />
-              <Route path="/admin/parents" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageParents /></ProtectedRoute>} />
-              <Route path="/admin/assignments" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherAssignments /></ProtectedRoute>} />
-              <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ResultManagement /></ProtectedRoute>} />
-              <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><ClassResults /></ProtectedRoute>} />
-              <Route path="/admin/teacher-performance" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherPerformance /></ProtectedRoute>} />
-              <Route path="/admin/teacher-performance/view" element={<ProtectedRoute roles={['school_admin', 'admin']}><TeacherPerformanceDetail /></ProtectedRoute>} />
-              <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><AcademicSessions /></ProtectedRoute>} />
+              <Route path="/admin/students" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="student_portal" label="Student Portal"><ManageStudents /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/parents" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ManageParents /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/assignments" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><TeacherAssignments /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><ResultManagement /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><ClassResults /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/teacher-performance" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_performance" label="Teacher Performance"><TeacherPerformance /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/teacher-performance/view" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_performance" label="Teacher Performance"><TeacherPerformanceDetail /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="academic_session" label="Academic Session"><AcademicSessions /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/security" element={<ProtectedRoute roles={['school_admin', 'admin']}><SecuritySettings /></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
-              <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><TeacherNotifications /></ProtectedRoute>} />
-              <Route path="/teacher/classes" element={<ProtectedRoute roles={['teacher']}><TeacherClasses /></ProtectedRoute>} />
-              <Route path="/teacher/daily-test" element={<ProtectedRoute roles={['teacher']}><DailyTestEntry /></ProtectedRoute>} />
-              <Route path="/teacher/main-exam" element={<ProtectedRoute roles={['teacher']}><MainExamEntry /></ProtectedRoute>} />
-              <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><TeacherResults /></ProtectedRoute>} />
+              <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="notifications" label="Notifications"><TeacherNotifications /></RequireFeature></ProtectedRoute>} />
+              <Route path="/teacher/classes" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><TeacherClasses /></RequireFeature></ProtectedRoute>} />
+              <Route path="/teacher/daily-test" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="daily_test" label="Daily Test"><DailyTestEntry /></RequireFeature></ProtectedRoute>} />
+              <Route path="/teacher/main-exam" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="main_exam" label="Main Exam"><MainExamEntry /></RequireFeature></ProtectedRoute>} />
+              <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="reports" label="Reports"><TeacherResults /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/settings" element={<ProtectedRoute roles={['teacher']}><TeacherSettings /></ProtectedRoute>} />
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
 
-              <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><ParentDashboard /></ProtectedRoute>} />
-              <Route path="/parent/results" element={<ProtectedRoute roles={['parent']}><ParentViewResults /></ProtectedRoute>} />
+              <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
+              <Route path="/parent/results" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="reports" label="Reports"><ParentViewResults /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/settings" element={<ProtectedRoute roles={['parent']}><ParentSettings /></ProtectedRoute>} />
-              <Route path="/parent/notifications" element={<ProtectedRoute roles={['parent']}><ParentNotifications /></ProtectedRoute>} />
+              <Route path="/parent/notifications" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="notifications" label="Notifications"><ParentNotifications /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/student/:studentId" element={<ProtectedRoute roles={['parent']}><StudentDetails /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/results" element={<ProtectedRoute roles={['parent']}><ParentViewResults /></ProtectedRoute>} />
               <Route path="/parent/student/:studentId/results-history" element={<ProtectedRoute roles={['parent']}><ResultsHistory /></ProtectedRoute>} />
@@ -132,8 +141,9 @@ export default function App() {
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+            </Routes>
+          </BrowserRouter>
+        </SubscriptionProvider>
       </SessionProvider>
     </AuthProvider>
   );
