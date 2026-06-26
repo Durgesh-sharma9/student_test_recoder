@@ -7,6 +7,7 @@ import SubscriptionRequest from '../models/SubscriptionRequest.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendCsv, sendPdfTable } from '../utils/exportService.js';
+import { normalizePlanPricing } from '../utils/planPricing.js';
 
 export const dashboard = asyncHandler(async (req, res) => {
   const now = new Date();
@@ -143,16 +144,33 @@ export const dashboard = asyncHandler(async (req, res) => {
 
 export const getPlans = asyncHandler(async (req, res) => {
   const plans = await Plan.find().sort('slug');
-  res.json({ success: true, plans });
+  const normalized = plans.map((p) => {
+    const obj = p.toObject({ virtuals: true });
+    return { ...obj, ...normalizePlanPricing(obj) };
+  });
+  res.json({ success: true, plans: normalized });
 });
 
 export const upsertPlan = asyncHandler(async (req, res) => {
-  const plan = await Plan.findOneAndUpdate({ slug: req.body.slug }, req.body, {
+  // IMPORTANT: findOneAndUpdate does not run document middleware (pre-validate/pre-save),
+  // so we must normalize derived pricing fields here to avoid finalPrice becoming 0.
+  const pricing = normalizePlanPricing(req.body);
+  const updatePayload = {
+    ...req.body,
+    basePrice: pricing.basePrice,
+    finalPrice: pricing.finalPrice,
+    price: pricing.price,
+    tax: pricing.tax,
+  };
+
+  const plan = await Plan.findOneAndUpdate({ slug: req.body.slug }, updatePayload, {
     upsert: true,
     new: true,
     runValidators: true,
   });
-  res.json({ success: true, plan });
+
+  const obj = plan.toObject({ virtuals: true });
+  res.json({ success: true, plan: { ...obj, ...normalizePlanPricing(obj) } });
 });
 
 export const getSchools = asyncHandler(async (req, res) => {
