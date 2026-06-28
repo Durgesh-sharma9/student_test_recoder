@@ -61,12 +61,36 @@ export default function SuperPlans() {
 
   const load = async () => {
     const res = await api.get('/super-admin/plans');
-    setPlans(res.data.plans || []);
+    const plansData = res.data.plans || [];
+    console.table(plansData.map(p => ({
+      slug: p.slug,
+      planType: p.planType,
+      billingCycle: p.billingCycle,
+      basePrice: p.basePrice,
+      finalPrice: p.finalPrice,
+      price: p.price,
+      taxEnabled: p.tax?.enabled
+    })));
+    setPlans(plansData);
   };
 
   useEffect(() => {
     load().catch(() => {});
   }, []);
+
+  // Log plans state whenever it changes
+  useEffect(() => {
+    console.log('[SuperPlans] plans state updated:', plans.length, 'plans');
+    console.table(plans.map(p => ({
+      slug: p.slug,
+      planType: p.planType,
+      billingCycle: p.billingCycle,
+      basePrice: p.basePrice,
+      finalPrice: p.finalPrice,
+      price: p.price,
+      taxEnabled: p.tax?.enabled
+    })));
+  }, [plans]);
 
   const groupedByType = useMemo(() => {
     const map = new Map();
@@ -76,16 +100,35 @@ export default function SuperPlans() {
       list.push(p);
       map.set(type, list);
     }
+    console.log('[SuperPlans] groupedByType:', Array.from(map.entries()).map(([k, v]) => ({
+      type: k,
+      count: v.length,
+      plans: v.map(p => ({
+        slug: p.slug,
+        planType: p.planType,
+        billingCycle: p.billingCycle,
+        basePrice: p.basePrice,
+        finalPrice: p.finalPrice,
+        price: p.price
+      }))
+    })));
     return map;
   }, [plans]);
 
   const visiblePlans = useMemo(() => {
-    return ['basic', 'standard', 'premium']
+    const result = ['basic', 'standard', 'premium']
       .map((t) => {
         const list = groupedByType.get(t) || [];
-        return list.find((p) => (p.billingCycle || 'monthly') === activeCycle);
+        // Find plan matching both planType and billingCycle
+        return list.find((p) => {
+          const planType = (p.planType || (p.slug || '').split('_')[0] || '').toLowerCase();
+          const billingCycle = (p.billingCycle || 'monthly').toLowerCase();
+          return planType === t && billingCycle === activeCycle;
+        });
       })
       .filter(Boolean);
+    console.log('[SuperPlans] visiblePlans for activeCycle', activeCycle, ':', result);
+    return result;
   }, [groupedByType, activeCycle]);
 
   const openCreate = () => {
@@ -142,7 +185,7 @@ export default function SuperPlans() {
       await api.post('/super-admin/plans', payload);
       toast.success('Plan saved');
       setDialog({ open: false, mode: 'create', plan: null });
-      load();
+      await load(); // Await load to ensure cards refresh with latest data
     } finally {
       setSaving(false);
     }
@@ -179,19 +222,51 @@ export default function SuperPlans() {
       <ErpSection title={`Plans (${cycleTitle(activeCycle)})`} icon={CreditCard} tone="green">
         <div className="grid gap-4 md:grid-cols-3">
           {visiblePlans.map((p) => {
+            console.log('[SuperPlans] Rendering plan card:', {
+              _id: p._id,
+              name: p.name,
+              billingCycle: p.billingCycle,
+              basePrice: p.basePrice,
+              finalPrice: p.finalPrice,
+              price: p.price,
+              taxEnabled: p.tax?.enabled,
+            });
+            
             const type = (p.planType || (p.slug || '').split('_')[0] || '').toLowerCase();
             const list = groupedByType.get(type) || [];
             const monthly = list.find((x) => (x.billingCycle || 'monthly') === 'monthly');
             const cycle = cycles.find((c) => c.key === (p.billingCycle || 'monthly')) || cycles[0];
-            const savePct = monthly && cycle.months > 1 ? computeSavePercent(monthly.finalPrice ?? monthly.price, p.finalPrice ?? p.price, cycle.months) : null;
+            
+            // Use displayPrice logic: finalPrice if tax enabled, else basePrice
+            const getDisplayPrice = (plan) => {
+              console.log('[SuperPlans] getDisplayPrice called for plan:', plan.slug, 'tax enabled:', plan.tax?.enabled, 'finalPrice:', plan.finalPrice, 'basePrice:', plan.basePrice, 'price:', plan.price);
+              if (plan.tax?.enabled) {
+                const result = Number(plan.finalPrice ?? plan.price ?? 0);
+                console.log('[SuperPlans] getDisplayPrice returning (tax enabled):', result);
+                return result;
+              }
+              const result = Number(plan.basePrice ?? plan.price ?? 0);
+              console.log('[SuperPlans] getDisplayPrice returning (tax disabled):', result);
+              return result;
+            };
+            
+            const displayPrice = getDisplayPrice(p);
+            console.log('[SuperPlans] Final displayPrice for card:', displayPrice);
+            const monthlyDisplayPrice = monthly ? getDisplayPrice(monthly) : 0;
+            const savePct = monthlyDisplayPrice > 0 && displayPrice > 0 && cycle.months > 1 
+              ? computeSavePercent(monthlyDisplayPrice, displayPrice, cycle.months) 
+              : null;
+            
             const comparison = cycles.map((c) => {
               const cp = list.find((x) => (x.billingCycle || 'monthly') === c.key);
-              const price = cp ? Number(cp.finalPrice ?? cp.price ?? 0) : null;
+              const price = cp ? getDisplayPrice(cp) : null;
               return {
                 cycle: c.key,
                 label: c.key === 'quarterly' ? 'Quarterly' : c.key === 'half_yearly' ? 'Half Year' : c.key === 'yearly' ? 'Yearly' : 'Monthly',
                 price,
-                save: monthly && cp && c.months > 1 ? computeSavePercent(monthly.finalPrice ?? monthly.price, price, c.months) : null,
+                save: monthlyDisplayPrice > 0 && price !== null && price > 0 && c.months > 1 
+                  ? computeSavePercent(monthlyDisplayPrice, price, c.months) 
+                  : null,
               };
             });
 
@@ -210,7 +285,7 @@ export default function SuperPlans() {
 
                 <div className="mt-4 rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold text-slate-500">Price</p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900">₹{Number(p.finalPrice ?? p.price ?? 0).toFixed(2)}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-900">₹{displayPrice.toFixed(2)}</p>
                   {savePct !== null ? (
                     <p className="mt-2 inline-flex rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                       Save {savePct}%

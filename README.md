@@ -63,3 +63,5 @@ npm run dev
   - `MAIL_FROM`
 
 If SMTP is not configured, teacher credentials are logged on backend console.
+
+dnjn
