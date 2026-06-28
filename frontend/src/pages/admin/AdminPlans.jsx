@@ -28,6 +28,17 @@ const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
   return Math.max(0, Math.round(pct));
 };
 
+// Helper to get display price from plan object
+// Priority: finalPrice > price > basePrice
+// Never returns 0 if any valid price exists
+const getDisplayPrice = (plan) => {
+  const finalPrice = Number(plan?.finalPrice ?? 0);
+  if (finalPrice > 0) return finalPrice;
+  const price = Number(plan?.price ?? 0);
+  if (price > 0) return price;
+  return Number(plan?.basePrice ?? 0);
+};
+
 export default function AdminPlans() {
   const { subscription, hasPendingVerification, refresh } = useSubscription();
   const [plans, setPlans] = useState([]);
@@ -36,12 +47,37 @@ export default function AdminPlans() {
 
   const load = async () => {
     const res = await api.get('/subscriptions/plans');
+    console.log('RAW API');
+    console.table(
+      (res.data.plans || []).map(p => ({
+        slug: p.slug,
+        planType: p.planType,
+        billingCycle: p.billingCycle,
+        basePrice: p.basePrice,
+        finalPrice: p.finalPrice,
+        price: p.price,
+        taxEnabled: p.tax?.enabled,
+        taxPercentage: p.tax?.percentage
+      }))
+    );
     setPlans(res.data.plans || []);
   };
 
   useEffect(() => {
     load().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    console.log('STATE');
+    console.table(
+      plans.map(p => ({
+        slug: p.slug,
+        basePrice: p.basePrice,
+        finalPrice: p.finalPrice,
+        price: p.price
+      }))
+    );
+  }, [plans]);
 
   const groupedByType = useMemo(() => {
     const map = new Map();
@@ -55,17 +91,36 @@ export default function AdminPlans() {
       v.sort((a, b) => (a.billingCycle || 'monthly').localeCompare(b.billingCycle || 'monthly'));
       map.set(k, v);
     }
+    console.log('GROUPED');
+    console.table(
+      Array.from(map.values()).flat().map(p => ({
+        slug: p.slug,
+        basePrice: p.basePrice,
+        finalPrice: p.finalPrice,
+        price: p.price
+      }))
+    );
     return map;
   }, [plans]);
 
   const visiblePlans = useMemo(() => {
     const types = ['basic', 'standard', 'premium'];
-    return types
+    const result = types
       .map((t) => {
         const list = groupedByType.get(t) || [];
         return list.find((p) => (p.billingCycle || 'monthly') === activeCycle);
       })
       .filter(Boolean);
+    console.log('VISIBLE');
+    console.table(
+      result.map(p => ({
+        slug: p.slug,
+        basePrice: p.basePrice,
+        finalPrice: p.finalPrice,
+        price: p.price
+      }))
+    );
+    return result;
   }, [groupedByType, activeCycle]);
 
   const currentPlanName = subscription?.currentPlan?.name || subscription?.currentPlan?.slug || '-';
@@ -119,11 +174,25 @@ export default function AdminPlans() {
 
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           {visiblePlans.map((p) => {
+            console.log('CARD');
+            console.log('slug', p.slug);
+            console.log('basePrice', p.basePrice);
+            console.log('finalPrice', p.finalPrice);
+            console.log('price', p.price);
+            console.log('tax', p.tax);
+            
             const type = (p.planType || (p.slug || '').split('_')[0] || '').toLowerCase();
             const list = groupedByType.get(type) || [];
             const monthly = list.find((x) => (x.billingCycle || 'monthly') === 'monthly');
             const cycle = cycles.find((c) => c.key === (p.billingCycle || 'monthly')) || cycles[0];
-            const save = monthly && cycle.months > 1 ? computeSavePercent(monthly.finalPrice ?? monthly.price, p.finalPrice ?? p.price, cycle.months) : null;
+            
+            const displayPrice = getDisplayPrice(p);
+            const monthlyDisplayPrice = monthly ? getDisplayPrice(monthly) : 0;
+            const save = monthlyDisplayPrice > 0 && displayPrice > 0 && cycle.months > 1 
+              ? computeSavePercent(monthlyDisplayPrice, displayPrice, cycle.months) 
+              : null;
+            
+            console.log('DISPLAY PRICE:', displayPrice);
             return (
               <div key={p._id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{type.toUpperCase()}</p>
@@ -132,7 +201,7 @@ export default function AdminPlans() {
 
                 <div className="mt-4 rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold text-slate-500">Price</p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900">₹{Number(p.finalPrice ?? p.price ?? 0).toFixed(2)}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-900">₹{displayPrice.toFixed(2)}</p>
                   {save !== null ? (
                     <p className="mt-2 inline-flex rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                       Save {save}%

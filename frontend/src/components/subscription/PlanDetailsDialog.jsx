@@ -13,6 +13,16 @@ import { cn } from '@/lib/utils';
 
 const cycleLabel = (cycle) =>
   cycle === 'quarterly' ? 'Quarterly' : cycle === 'half_yearly' ? 'Half Yearly' : cycle === 'yearly' ? 'Yearly' : 'Monthly';
+// Helper to get display price from plan object
+// Priority: finalPrice > price > basePrice
+// Never returns 0 if any valid price exists
+const getDisplayPrice = (plan) => {
+  const finalPrice = Number(plan?.finalPrice ?? 0);
+  if (finalPrice > 0) return finalPrice;
+  const price = Number(plan?.price ?? 0);
+  if (price > 0) return price;
+  return Number(plan?.basePrice ?? 0);
+};
 
 export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   const navigate = useNavigate();
@@ -45,6 +55,17 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       setPlanData(planRes.data);
       setSettings(settingsRes.data.settings);
       setSelectedPlanId(idToLoad);
+      
+      const plan = planRes.data.plan;
+      console.log('DETAIL PLAN');
+      console.table([{
+        slug: plan.slug,
+        basePrice: plan.basePrice,
+        finalPrice: plan.finalPrice,
+        price: plan.price,
+        taxEnabled: plan.tax?.enabled,
+        taxPercentage: plan.tax?.percentage
+      }]);
     } finally {
       setLoading(false);
     }
@@ -137,7 +158,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     }
   };
 
-  const price = Number(plan?.finalPrice ?? plan?.price ?? 0).toFixed(2);
+  const displayPrice = getDisplayPrice(plan); const price = displayPrice.toFixed(2);
   const taxEnabled = Boolean(plan?.tax?.enabled);
 
   return (
