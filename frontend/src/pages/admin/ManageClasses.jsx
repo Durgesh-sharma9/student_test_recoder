@@ -8,7 +8,7 @@ import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -140,6 +140,8 @@ export default function ManageClasses() {
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit' : 'Add'} Class</DialogTitle>
           </DialogHeader>
+
+          <DialogBody>
           <form className="space-y-8" onSubmit={submit}>
   <div className="grid gap-8 md:grid-cols-2">
     <FormField label="Class">
@@ -216,6 +218,7 @@ export default function ManageClasses() {
     {edit ? 'Update Class' : 'Create Class'}
   </Button>
 </form>
+</DialogBody>
         </DialogContent>
       </Dialog>
     </PageStack>

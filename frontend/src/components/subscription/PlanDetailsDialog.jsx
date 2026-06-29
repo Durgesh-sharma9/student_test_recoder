@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { CreditCard, Timer, Upload, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/erp/PagePrimitives';
@@ -177,7 +177,8 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
         ) : null}
 
         {!loading && plan ? (
-          <div className="grid gap-5 p-6 pt-0 lg:grid-cols-2">
+          <DialogBody className="p-6 pt-0">
+            <div className="grid gap-5 lg:grid-cols-2">
             {/* Left */}
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -380,6 +381,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               </div>
             </div>
           </div>
+          </DialogBody>
         ) : null}
 
         <DialogFooter>

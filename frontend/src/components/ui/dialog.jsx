@@ -64,7 +64,9 @@ const DialogContent = React.forwardRef(
             bg-white
             shadow-2xl
             duration-200
-            overflow-hidden
+            max-h-[90vh]
+            flex
+            flex-col
 
             data-[state=open]:animate-in
             data-[state=closed]:animate-out
@@ -82,6 +84,7 @@ const DialogContent = React.forwardRef(
             absolute
             right-5
             top-5
+            z-10
             rounded-full
             p-2
             text-slate-500
@@ -117,6 +120,7 @@ const DialogHeader = ({
         space-y-2
         p-6
         pb-4
+        flex-shrink-0
       `,
       className
     )}
@@ -180,6 +184,7 @@ const DialogFooter = ({
         gap-3
         p-6
         pt-0
+        flex-shrink-0
       `,
       className
     )}
@@ -189,6 +194,26 @@ const DialogFooter = ({
 
 DialogFooter.displayName = 'DialogFooter';
 
+const DialogBody = ({
+  className,
+  ...props
+}) => (
+  <div
+    className={cn(
+      `
+        flex-1
+        overflow-y-auto
+        p-6
+        pt-0
+      `,
+      className
+    )}
+    {...props}
+  />
+);
+
+DialogBody.displayName = 'DialogBody';
+
 export {
   Dialog,
   DialogTrigger,
@@ -197,5 +222,6 @@ export {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogBody,
   DialogClose,
 };

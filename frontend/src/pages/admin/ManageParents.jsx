@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 
 export default function ManageParents() {
   const [students, setStudents] = useState([]);
@@ -312,10 +312,11 @@ export default function ManageParents() {
 
       {/* Parent Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-slate-950 dark:border-slate-800">
+        <DialogContent className="sm:max-w-2xl dark:bg-slate-950 dark:border-slate-800">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-50">Parent Profile Overview</DialogTitle>
           </DialogHeader>
+          <DialogBody>
           {selectedParent && (
             <div className="space-y-6 mt-2">
               <div className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-5 shadow-inner">
@@ -379,6 +380,7 @@ export default function ManageParents() {
               </div>
             </div>
           )}
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -388,6 +390,7 @@ export default function ManageParents() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-50">Security: Password Updated</DialogTitle>
           </DialogHeader>
+          <DialogBody>
           {newPassword ? (
             <div className="space-y-4 mt-2">
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -405,6 +408,7 @@ export default function ManageParents() {
               A secure initialization string has been formatted and triggered to the verified account communication email.
             </p>
           )}
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </PageStack>

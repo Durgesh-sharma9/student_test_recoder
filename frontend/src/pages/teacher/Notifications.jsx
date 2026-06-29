@@ -5,7 +5,7 @@ import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export default function TeacherNotifications() {
@@ -259,6 +259,8 @@ export default function TeacherNotifications() {
               </Button>
             </DialogTitle>
           </DialogHeader>
+
+          <DialogBody>
           {selectedNotification && (
             <div className="space-y-4">
               <div>
@@ -329,6 +331,7 @@ export default function TeacherNotifications() {
               )}
             </div>
           )}
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </PageStack>
