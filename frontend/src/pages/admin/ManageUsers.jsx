@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 import { Users, UserPlus, Search, Download, Upload, Bell, MessageCircle, Copy, X, CheckCircle, XCircle, AlertCircle, Download as DownloadIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { useSession } from '@/context/SessionContext';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PlanLimitReachedDialog from '@/components/subscription/PlanLimitReachedDialog';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 export default function ManageUsers() {
   const { isArchived } = useSession();
+  const { canAddTeacher, usage } = useSubscription();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [teachers, setTeachers] = useState([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -32,6 +38,7 @@ export default function ManageUsers() {
   });
   const [reactivateDialog, setReactivateDialog] = useState({ open: false, teacher: null });
   const [activeTab, setActiveTab] = useState('active');
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
   
   // Notification modal state
   const [notifyModalOpen, setNotifyModalOpen] = useState(false);
@@ -294,11 +301,27 @@ export default function ManageUsers() {
             <Download className="mr-2 h-4 w-4" />
             Download Template
           </Button>
-          <Button variant="outline" onClick={() => setUploadOpen(true)}>
+          <Button variant="outline" onClick={() => {
+            if (!checkAndBlock(() => {
+              if (!canAddTeacher) {
+                setLimitDialogOpen(true);
+                return;
+              }
+              setUploadOpen(true);
+            })) return;
+          }}>
             <Upload className="mr-2 h-4 w-4" />
             Upload Teachers
           </Button>
-          <Button onClick={() => setOpen(true)}>
+          <Button onClick={() => {
+            if (!checkAndBlock(() => {
+              if (!canAddTeacher) {
+                setLimitDialogOpen(true);
+                return;
+              }
+              setOpen(true);
+            })) return;
+          }}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Teacher
           </Button>
@@ -912,6 +935,18 @@ export default function ManageUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PlanLimitReachedDialog
+        open={limitDialogOpen}
+        onOpenChange={setLimitDialogOpen}
+        limitType="teacher"
+        currentCount={usage?.teachers || 0}
+        limit={usage?.teacherLimit || 0}
+      />
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

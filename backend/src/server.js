@@ -21,6 +21,8 @@ import parentRoutes from './routes/parentRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import teacherPerformanceRoutes from './routes/teacherPerformanceRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
+import trialRoutes from './routes/trialRoutes.js';
+import enterpriseRoutes from './routes/enterpriseRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +64,8 @@ app.use('/api/parents', parentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/teacher-performance', teacherPerformanceRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/trial', trialRoutes);
+app.use('/api/enterprise', enterpriseRoutes);
 
 app.use(errorHandler);
 

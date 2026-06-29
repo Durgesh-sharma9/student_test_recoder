@@ -12,7 +12,7 @@ import { useSubscription } from '@/context/SubscriptionContext';
 import { cn } from '@/lib/utils';
 
 const cycleLabel = (cycle) =>
-  cycle === 'quarterly' ? 'Quarterly' : cycle === 'half_yearly' ? 'Half Yearly' : cycle === 'yearly' ? 'Yearly' : 'Monthly';
+  cycle === 'yearly' ? 'Yearly' : 'Monthly';
 // Helper to get display price from plan object
 // Priority: finalPrice > price > basePrice
 // Never returns 0 if any valid price exists
@@ -118,7 +118,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   }, [secondsLeft, open]);
 
   const plan = planData?.plan;
-  const comparison = planData?.comparison || [];
+  const comparison = (planData?.comparison || []).filter(c => c.billingCycle === 'monthly' || c.billingCycle === 'yearly');
 
   const handleComparisonClick = async (comparisonItem) => {
     if (!comparisonItem.planId || comparisonItem.planId === selectedPlanId) return;
@@ -178,63 +178,51 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
 
         {!loading && plan ? (
           <DialogBody className="p-6 pt-0">
-            <div className="grid gap-5 lg:grid-cols-2">
-            {/* Left */}
+            <div className="grid gap-6 lg:grid-cols-2">
+            {/* Left - Plan Details */}
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Plan</p>
-                <p className="mt-1 text-2xl font-extrabold text-slate-900">{plan.name}</p>
-                <p className="mt-1 text-sm text-slate-600">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Plan</p>
+                <p className="mt-2 text-3xl font-extrabold text-slate-900">{plan.name}</p>
+                <p className="mt-1 text-sm text-slate-500">
                   {cycleLabel(plan.billingCycle)} · {plan.planType?.toUpperCase?.() || ''}
                 </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs font-semibold text-slate-500">Base Price</p>
-                    <p className="mt-1 font-bold text-slate-900">₹{Number(plan.basePrice || 0).toFixed(2)}</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-xs font-semibold text-slate-500">Final Price</p>
-                    <p className="mt-1 font-bold text-slate-900">₹{price}</p>
-                  </div>
-                </div>
 
-                {taxEnabled ? (
-                  <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
-                    Tax Applied: <span className="font-semibold">{plan.tax?.name}</span> ({plan.tax?.percentage}%)
+                {plan.highlights && plan.highlights.length > 0 && plan.highlights.some(h => h) && (
+                  <div className="mt-6">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Highlights</p>
+                    <ul className="mt-3 space-y-2">
+                      {plan.highlights.filter(h => h).map((highlight, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                ) : null}
-              </div>
+                )}
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="text-sm font-semibold text-slate-900">Features</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {SUBSCRIPTION_FEATURES.map((f) => {
-                    // Fix: Read the actual feature value from plan.features Map
-                    // If feature is explicitly false, show as Locked
-                    // If feature is true or undefined, show as Enabled (backward compatible)
-                    const featureValue = (plan.features || {})[f.key];
-                    const enabled = featureValue !== false;
-                    return (
-                      <div
-                        key={f.key}
-                        className={cn(
-                          'flex items-center justify-between rounded-xl border px-3 py-2 text-sm',
-                          enabled ? 'border-emerald-100 bg-emerald-50/60 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-500'
-                        )}
-                      >
-                        <span className="font-medium">{f.label}</span>
-                        <span className={cn('text-xs font-semibold', enabled ? 'text-emerald-700' : 'text-slate-500')}>
-                          {enabled ? 'Enabled' : 'Locked'}
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4">
+                    <span className="text-sm font-medium text-slate-600">Base Price</span>
+                    <span className="text-lg font-bold text-slate-900">₹{Number(plan.basePrice || 0).toFixed(2)}</span>
+                  </div>
+                  {taxEnabled && (
+                    <div className="flex items-center justify-between rounded-xl bg-amber-50 p-4">
+                      <span className="text-sm font-medium text-amber-700">GST ({plan.tax?.percentage}%)</span>
+                      <span className="text-lg font-bold text-amber-900">₹{Number(plan.tax?.amount || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between rounded-xl bg-indigo-50 p-4">
+                    <span className="text-sm font-semibold text-indigo-700">Final Price</span>
+                    <span className="text-2xl font-extrabold text-indigo-900">₹{price}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                <p className="text-sm font-semibold text-slate-900">Comparison</p>
-                <div className="mt-3 grid gap-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6">
+                <p className="text-sm font-semibold text-slate-900">Compare Plans</p>
+                <div className="mt-4 space-y-2">
                   {comparison.map((c) => {
                     const isSelected = c.planId === selectedPlanId;
                     return (
@@ -242,7 +230,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                         key={c.billingCycle}
                         onClick={() => handleComparisonClick(c)}
                         className={cn(
-                          'flex items-center justify-between rounded-xl px-3 py-2 text-sm cursor-pointer transition-colors',
+                          'flex items-center justify-between rounded-xl px-4 py-3 text-sm cursor-pointer transition-all',
                           isSelected
                             ? 'bg-indigo-50 border-2 border-indigo-200'
                             : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'
@@ -252,7 +240,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                         <span className="font-semibold text-slate-900">
                           {c.price ? `₹${Number(c.price).toFixed(2)}` : '-'}
                           {c.savePercent !== null && c.billingCycle !== 'monthly' ? (
-                            <span className="ml-2 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+                            <span className="ml-2 rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
                               Save {c.savePercent}%
                             </span>
                           ) : null}
@@ -264,31 +252,31 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               </div>
             </div>
 
-            {/* Right */}
+            {/* Right - Payment */}
             <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6">
                 <p className="text-sm font-semibold text-slate-900">Payment</p>
                 {!settings?.upiId ? (
-                  <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+                  <div className="mt-4 rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-700">
                     Super Admin has not configured the UPI ID yet.
                   </div>
                 ) : (
                   <>
-                    <div className="mt-4 flex flex-col items-center gap-3">
+                    <div className="mt-6 flex flex-col items-center gap-4">
                       {qr?.dataUrl ? (
                         <img
                           src={qr.dataUrl}
                           alt="UPI QR"
-                          className="h-56 w-56 rounded-2xl border border-slate-200 bg-white p-3"
+                          className="h-64 w-64 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg"
                         />
                       ) : (
-                        <div className="flex h-56 w-56 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
+                        <div className="flex h-64 w-64 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
                           Generating QR...
                         </div>
                       )}
-                      <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                        <Timer className="h-4 w-4 text-indigo-600" />
-                        Expires in <span className="font-semibold">{secondsLeft}s</span>
+                      <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3 text-sm text-slate-700">
+                        <Timer className="h-5 w-5 text-indigo-600" />
+                        Expires in <span className="font-bold text-indigo-900">{secondsLeft}s</span>
                         <Button variant="outline" size="sm" onClick={() => regenerateQr(plan._id)} disabled={loading}>
                           Regenerate
                         </Button>
@@ -296,7 +284,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                     </div>
 
                     {!submitted ? (
-                      <div className="mt-6 grid gap-4">
+                      <div className="mt-6 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
                           <FormField label="Mobile Number">
                             <Input
@@ -324,7 +312,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                         </FormField>
 
                         <FormField label="Payment Screenshot (Optional)">
-                          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 hover:bg-slate-50">
+                          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                             <span className="flex items-center gap-2">
                               <Upload className="h-4 w-4 text-slate-500" />
                               {form.screenshot ? form.screenshot.name : 'Upload Image'}
@@ -339,23 +327,23 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                         </FormField>
                       </div>
                     ) : (
-                      <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-                        <div className="flex items-start gap-3">
-                          <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
-                            <CheckCircle2 className="h-6 w-6" />
+                      <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-6">
+                        <div className="flex items-start gap-4">
+                          <span className="mt-0.5 flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                            <CheckCircle2 className="h-7 w-7" />
                           </span>
                           <div>
-                            <p className="text-lg font-extrabold text-emerald-900">Payment Request Submitted Successfully</p>
-                            <p className="mt-1 text-sm text-emerald-800">
+                            <p className="text-xl font-extrabold text-emerald-900">Payment Request Submitted Successfully</p>
+                            <p className="mt-2 text-sm text-emerald-800">
                               Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.
                             </p>
-                            <div className="mt-3 inline-flex rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-emerald-900">
+                            <div className="mt-4 inline-flex rounded-xl bg-white/70 px-4 py-2 text-sm font-semibold text-emerald-900">
                               Status: Pending Verification
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-5 flex gap-2">
+                        <div className="mt-6 flex gap-3">
                           <Button
                             variant="outline"
                             onClick={() => {

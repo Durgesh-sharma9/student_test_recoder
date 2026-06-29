@@ -5,15 +5,21 @@ import { useSearchParams } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { useSession } from '@/context/SessionContext';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PlanLimitReachedDialog from '@/components/subscription/PlanLimitReachedDialog';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 export default function ManageStudents() {
   const { isArchived } = useSession();
+  const { canAddStudent, usage } = useSubscription();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [searchParams] = useSearchParams();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
@@ -34,6 +40,7 @@ export default function ManageStudents() {
     failed: 0,
     currentStudent: '',
   });
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false);
 
   useEffect(() => {
     api.get('/classes').then((r) => {
@@ -209,8 +216,14 @@ export default function ManageStudents() {
             Download Template
           </Button>
           <Button variant="outline" onClick={() => {
-            setUploadOpen(true);
-            setUploadClassId(selectedClass || '');
+            if (!checkAndBlock(() => {
+              if (!canAddStudent) {
+                setLimitDialogOpen(true);
+                return;
+              }
+              setUploadOpen(true);
+              setUploadClassId(selectedClass || '');
+            })) return;
           }}>
             <Upload className="mr-2 h-4 w-4" />
             Bulk Import
@@ -237,7 +250,15 @@ export default function ManageStudents() {
           </FormField>
 
           {/* Button right end me align ho chuka hai */}
-          <Button onClick={() => setOpen(true)} disabled={!selectedClass} className="w-full sm:w-auto">
+          <Button onClick={() => {
+            if (!checkAndBlock(() => {
+              if (!canAddStudent) {
+                setLimitDialogOpen(true);
+                return;
+              }
+              setOpen(true);
+            })) return;
+          }} disabled={!selectedClass} className="w-full sm:w-auto">
             <UserPlus className="mr-2 h-4 w-4" />
             Add Student
           </Button>
@@ -636,6 +657,18 @@ export default function ManageStudents() {
           </DialogBody>
         </DialogContent>
       </Dialog>
+
+      <PlanLimitReachedDialog
+        open={limitDialogOpen}
+        onOpenChange={setLimitDialogOpen}
+        limitType="student"
+        currentCount={usage?.students || 0}
+        limit={usage?.studentLimit || 0}
+      />
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

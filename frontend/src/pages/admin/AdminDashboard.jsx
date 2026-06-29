@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-import { BarChart3, Activity, GraduationCap } from 'lucide-react';
+import { BarChart3, Activity, GraduationCap, Users } from 'lucide-react';
 
 import api from '@/lib/api';
 import { useSubscription } from '@/context/SubscriptionContext';
@@ -14,6 +14,7 @@ import StatsCard from '@/components/StatsCard';
 
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { formatClassName } from '@/lib/utils';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 
 
@@ -68,9 +69,10 @@ function ClassStrengthTooltip({ active, payload }) {
 export default function AdminDashboard() {
 
   const navigate = useNavigate();
-  const { hasPendingVerification } = useSubscription();
+  const { hasPendingVerification, usage, isSubscriptionExpired } = useSubscription();
 
   const [data, setData] = useState({ stats: {}, recentActivities: [], classPerformance: [] });
+  const [expiredDialogOpen, setExpiredDialogOpen] = useState(false);
 
 
 
@@ -146,6 +148,23 @@ export default function AdminDashboard() {
 
   ];
 
+  const usageStats = [
+    {
+      title: 'Teachers',
+      current: usage?.teachers || 0,
+      limit: usage?.teacherLimit,
+      icon: Users,
+      themeIndex: 0,
+    },
+    {
+      title: 'Students',
+      current: usage?.students || 0,
+      limit: usage?.studentLimit,
+      icon: GraduationCap,
+      themeIndex: 1,
+    },
+  ];
+
 
 
   return (
@@ -185,6 +204,43 @@ export default function AdminDashboard() {
           <StatsCard key={s.title} title={s.title} value={s.value} themeIndex={s.themeIndex} />
         ))}
       </div>
+
+      {usage && (
+        <ErpSection title="Plan Usage" icon={BarChart3} tone="blue">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {usageStats.map((stat) => (
+              <div key={stat.title} className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-xl p-2.5 ${stat.themeIndex === 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">{stat.title}</p>
+                      <p className="mt-1 text-2xl font-extrabold text-slate-900">
+                        {stat.current} / {stat.limit === null ? 'Unlimited' : stat.limit}
+                      </p>
+                    </div>
+                  </div>
+                  {stat.limit !== null && (
+                    <div className={`text-sm font-semibold ${stat.current >= stat.limit ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {stat.current >= stat.limit ? 'Full' : `${Math.round((stat.current / stat.limit) * 100)}%`}
+                    </div>
+                  )}
+                </div>
+                {stat.limit !== null && (
+                  <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${stat.current >= stat.limit ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                      style={{ width: `${Math.min((stat.current / stat.limit) * 100, 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </ErpSection>
+      )}
 
       <ErpSection title="Class Strength Overview" icon={GraduationCap} tone="purple">
         {classStrengthData.length === 0 ? (
@@ -233,6 +289,11 @@ export default function AdminDashboard() {
           </div>
         )}
       </ErpSection>
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
 
     </PageStack>
 
