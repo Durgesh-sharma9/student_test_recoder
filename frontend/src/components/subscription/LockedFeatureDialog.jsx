@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -39,23 +39,25 @@ export default function LockedFeatureDialog({ open, onOpenChange, featureLabel }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          {role === 'school_admin' ? (
-            <Button
-              variant="success"
-              onClick={handleViewPlans}
-            >
-              View Plans
+        <DialogBody className="mt-2">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
             </Button>
-          ) : (
-            <Button variant="success" onClick={() => onOpenChange(false)}>
-              Contact Admin
-            </Button>
-          )}
-        </div>
+            {role === 'school_admin' ? (
+              <Button
+                variant="success"
+                onClick={handleViewPlans}
+              >
+                View Plans
+              </Button>
+            ) : (
+              <Button variant="success" onClick={() => onOpenChange(false)}>
+                Contact Admin
+              </Button>
+            )}
+          </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

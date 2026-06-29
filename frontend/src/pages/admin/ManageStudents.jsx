@@ -9,7 +9,7 @@ import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ManageStudents() {
@@ -334,6 +334,8 @@ export default function ManageStudents() {
               {edit ? 'Edit' : 'Add'} Student Details
             </DialogTitle>
           </DialogHeader>
+
+          <DialogBody>
           <form className="space-y-5" onSubmit={submit}>
             <FormField label="Roll No">
               <Input
@@ -399,6 +401,7 @@ export default function ManageStudents() {
               </Button>
             </div>
           </form>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -406,7 +409,7 @@ export default function ManageStudents() {
       <Dialog open={uploadOpen} onOpenChange={(open) => {
         if (!importing) setUploadOpen(open);
       }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 p-0">
+        <DialogContent className="sm:max-w-2xl rounded-2xl border-0 p-0">
           <DialogHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
             <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
               {importing ? (
@@ -431,6 +434,7 @@ export default function ManageStudents() {
             </p>
           </DialogHeader>
 
+          <DialogBody>
           <div className="space-y-6 p-6">
             {!importing && !importResults && (
               <>
@@ -629,6 +633,7 @@ export default function ManageStudents() {
               </Button>
             )}
           </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </PageStack>

@@ -6,7 +6,7 @@ import { useSession } from '@/context/SessionContext';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -500,6 +500,8 @@ export default function ManageUsers() {
           <DialogHeader>
             <DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
           </DialogHeader>
+
+          <DialogBody>
           <form className="space-y-8" onSubmit={submit}>
   <div className="grid gap-8 md:grid-cols-2">
     <FormField label="Teacher Name">
@@ -547,13 +549,14 @@ export default function ManageUsers() {
     {edit ? "Save Teacher" : "Create Teacher"}
   </Button>
 </form>
+</DialogBody>
         </DialogContent>
       </Dialog>
 
       <Dialog open={uploadOpen} onOpenChange={(open) => {
         if (!importing) setUploadOpen(open);
       }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 p-0">
+        <DialogContent className="sm:max-w-2xl rounded-2xl border-0 p-0">
           <DialogHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
             <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
               {importing ? (
@@ -578,6 +581,7 @@ export default function ManageUsers() {
             </p>
           </DialogHeader>
 
+          <DialogBody>
           <div className="space-y-6 p-6">
             {!importing && !importResults && (
               <>
@@ -754,6 +758,7 @@ export default function ManageUsers() {
               </Button>
             )}
           </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -762,6 +767,7 @@ export default function ManageUsers() {
           <DialogHeader>
             <DialogTitle>Reactivate Teacher</DialogTitle>
           </DialogHeader>
+          <DialogBody>
           <div className="space-y-4">
             <p className="text-sm text-slate-600">
               Teacher already exists and is inactive.
@@ -779,6 +785,7 @@ export default function ManageUsers() {
               </Button>
             </div>
           </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -790,6 +797,7 @@ export default function ManageUsers() {
               Send a notification to {selectedTeacher?.teacherName || selectedTeacher?.name}
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
           <div className="space-y-4 py-4">
             <FormField label="Title">
               <Input
@@ -841,6 +849,7 @@ export default function ManageUsers() {
               )}
             </FormField>
           </div>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setNotifyModalOpen(false);
@@ -864,6 +873,7 @@ export default function ManageUsers() {
               Share these credentials with the teacher
             </DialogDescription>
           </DialogHeader>
+          <DialogBody>
           {credentialsModal.data && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -894,6 +904,7 @@ export default function ManageUsers() {
               </div>
             </div>
           )}
+          </DialogBody>
           <DialogFooter>
             <Button onClick={() => setCredentialsModal({ open: false, data: null })}>
               Close

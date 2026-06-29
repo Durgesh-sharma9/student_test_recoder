@@ -6,7 +6,7 @@ import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -177,6 +177,7 @@ export default function SuperSubscriptionRequests() {
             <DialogDescription>Verify payment and approve or reject.</DialogDescription>
           </DialogHeader>
 
+          <DialogBody>
           {active ? (
             <div className="grid gap-4 p-6 pt-0 md:grid-cols-2">
               <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-sm">
@@ -231,6 +232,7 @@ export default function SuperSubscriptionRequests() {
               </Button>
             )}
           </DialogFooter>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
@@ -242,6 +244,7 @@ export default function SuperSubscriptionRequests() {
             <DialogDescription>Select a reason and optionally add a message for the admin.</DialogDescription>
           </DialogHeader>
 
+          <DialogBody>
           <div className="grid gap-4 p-6 pt-0">
             <FormField label="Reason">
               <Select value={rejectForm.reason} onValueChange={(v) => setRejectForm((s) => ({ ...s, reason: v }))}>
@@ -264,6 +267,7 @@ export default function SuperSubscriptionRequests() {
               />
             </FormField>
           </div>
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={loading}>

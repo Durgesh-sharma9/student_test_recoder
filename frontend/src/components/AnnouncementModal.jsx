@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogBody,
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/erp/PagePrimitives';
 
@@ -171,6 +172,8 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
             </div>
           </div>
         </DialogHeader>
+
+        <DialogBody className="space-y-6 py-4">
         <div className="space-y-6 py-4">
           <FormField label="Title">
             <Input
@@ -340,6 +343,8 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
             )}
           </FormField>
         </div>
+        </DialogBody>
+
         <DialogFooter className="pt-6">
           <Button 
             variant="outline" 

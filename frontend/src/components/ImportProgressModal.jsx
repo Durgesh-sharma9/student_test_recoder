@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -102,6 +102,7 @@ export default function ImportProgressModal({
           </DialogTitle>
         </DialogHeader>
 
+        <DialogBody>
         <div className="p-6 space-y-6">
           {status === 'importing' && (
             <>
@@ -191,7 +192,9 @@ export default function ImportProgressModal({
             </>
           )}
         </div>
+        </DialogBody>
 
+        <DialogFooter>
         <div className="border-t px-6 py-4 bg-slate-50">
           <Button
             onClick={handleClose}
@@ -201,6 +204,7 @@ export default function ImportProgressModal({
             {status === 'importing' ? 'Importing...' : status === 'completed' ? 'Done' : 'Close'}
           </Button>
         </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

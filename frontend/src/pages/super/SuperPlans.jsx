@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SUBSCRIPTION_FEATURES } from '@/lib/subscriptionFeatures';
 
@@ -328,6 +328,7 @@ export default function SuperPlans() {
             <DialogDescription>Configure general details, tax, and feature controls.</DialogDescription>
           </DialogHeader>
 
+          <DialogBody>
           <div className="grid gap-5 p-6 pt-0 lg:grid-cols-2">
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -453,6 +454,7 @@ export default function SuperPlans() {
               </div>
             </div>
           </div>
+          </DialogBody>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog({ open: false, mode: 'create', plan: null })}>

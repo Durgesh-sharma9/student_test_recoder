@@ -186,10 +186,11 @@ export default function AdminPlans() {
             const monthly = list.find((x) => (x.billingCycle || 'monthly') === 'monthly');
             const cycle = cycles.find((c) => c.key === (p.billingCycle || 'monthly')) || cycles[0];
             
-            const displayPrice = getDisplayPrice(p);
-            const monthlyDisplayPrice = monthly ? getDisplayPrice(monthly) : 0;
-            const save = monthlyDisplayPrice > 0 && displayPrice > 0 && cycle.months > 1 
-              ? computeSavePercent(monthlyDisplayPrice, displayPrice, cycle.months) 
+            // School Admin cards show Base Price only (no GST)
+            const displayPrice = Number(p.basePrice ?? 0);
+            const monthlyBasePrice = monthly ? Number(monthly.basePrice ?? 0) : 0;
+            const save = monthlyBasePrice > 0 && displayPrice > 0 && cycle.months > 1 
+              ? computeSavePercent(monthlyBasePrice, displayPrice, cycle.months) 
               : null;
             
             console.log('DISPLAY PRICE:', displayPrice);
