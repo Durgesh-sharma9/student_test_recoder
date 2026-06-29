@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X, Paperclip, Download, ExternalLink } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
@@ -10,6 +11,7 @@ export default function NotificationPanel() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     try {
@@ -115,6 +117,17 @@ export default function NotificationPanel() {
   const userId = localStorage.getItem('userId');
   const isUnread = (notification) => !notification.readBy?.includes(userId);
 
+  const handleNotificationClick = (notification) => {
+    if (isUnread(notification)) {
+      markAsRead(notification._id);
+    }
+    
+    if (notification.subscriptionRequestId) {
+      setIsOpen(false);
+      navigate(`/super-admin/subscription-requests?requestId=${notification.subscriptionRequestId}`);
+    }
+  };
+
   return (
     <div className="relative">
       <Button
@@ -167,9 +180,11 @@ export default function NotificationPanel() {
                 notifications.map((notification) => (
                   <div
                     key={notification._id}
+                    onClick={() => handleNotificationClick(notification)}
                     className={cn(
                       'border-b border-slate-100 p-4 transition-colors',
-                      isUnread(notification) ? 'bg-indigo-50/50' : 'bg-white'
+                      isUnread(notification) ? 'bg-indigo-50/50' : 'bg-white',
+                      notification.subscriptionRequestId ? 'cursor-pointer hover:bg-slate-50' : ''
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -203,7 +218,10 @@ export default function NotificationPanel() {
                               variant="ghost"
                               size="sm"
                               className="h-6 text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                              onClick={() => markAsRead(notification._id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification._id);
+                              }}
                             >
                               <Check className="mr-1 h-3 w-3" />
                               Mark read
@@ -231,7 +249,8 @@ export default function NotificationPanel() {
                                     variant="outline"
                                     size="sm"
                                     className="h-7 text-xs"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       const url = notification.attachmentUrl.startsWith('http') 
                                         ? notification.attachmentUrl 
                                         : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${notification.attachmentUrl}`;
@@ -245,7 +264,8 @@ export default function NotificationPanel() {
                                     variant="outline"
                                     size="sm"
                                     className="h-7 text-xs"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       const url = notification.attachmentUrl.startsWith('http') 
                                         ? notification.attachmentUrl 
                                         : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${notification.attachmentUrl}`;
@@ -270,13 +290,24 @@ export default function NotificationPanel() {
               )}
             </div>
 
-            <div className="border-t border-slate-100 p-3">
+          <div className="border-t border-slate-100 p-3">
               <Button
                 variant="ghost"
                 className="w-full text-sm font-medium text-slate-600 hover:text-slate-900"
                 onClick={() => {
                   setIsOpen(false);
-                  window.location.href = '/notifications';
+                  
+                  // URL check karke sahi notifications page par bhejega
+                  const path = window.location.pathname;
+                  if (path.includes('/super-admin')) {
+                    navigate('/super-admin/notifications');
+                  } else if (path.includes('/teacher')) {
+                    navigate('/teacher/notifications');
+                  } else if (path.includes('/parent')) {
+                    navigate('/parent/notifications');
+                  } else {
+                    navigate('/notifications');
+                  }
                 }}
               >
                 View all notifications

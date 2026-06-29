@@ -37,7 +37,6 @@ import LockedFeatureDialog from '@/components/subscription/LockedFeatureDialog';
 const getDisplayName = (user) => {
   if (!user) return 'User';
   
-  // Try different possible name fields in order of preference
   if (user.name && typeof user.name === 'string' && user.name.trim()) return user.name.trim();
   if (user.teacherName && typeof user.teacherName === 'string' && user.teacherName.trim()) return user.teacherName.trim();
   if (user.parentName && typeof user.parentName === 'string' && user.parentName.trim()) return user.parentName.trim();
@@ -57,10 +56,8 @@ const getInitials = (user) => {
   const name = getDisplayName(user);
   if (!name || name === 'User') return 'U';
   
-  // If it's an email, use first letter
   if (name.includes('@')) return name.charAt(0).toUpperCase();
   
-  // Otherwise, get first letters of each word
   const words = name.trim().split(/\s+/);
   if (words.length === 1) {
     return words[0].charAt(0).toUpperCase();
@@ -68,10 +65,10 @@ const getInitials = (user) => {
   return words.map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
 };
 
-// Added customized background and icon configurations for each structural module container box
 const navByRole = {
   super_admin: [
     { to: '/super-admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-blue-600', boxBg: 'bg-blue-50 group-hover:bg-blue-100', end: true },
+    { to: '/super-admin/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/super-admin/schools', label: 'Schools', icon: Building2, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
     { to: '/super-admin/plans', label: 'Plans', icon: ClipboardList, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/super-admin/subscription-requests', label: 'Payments', icon: CreditCard, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
@@ -123,245 +120,60 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen',
-          isCollapsed ? 'lg:w-20' : 'lg:w-72 w-72',
-          open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        )}
-      >
-        {/* Colorful Branded Header */}
+      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen', isCollapsed ? 'lg:w-20' : 'lg:w-72 w-72', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
         <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-4 transition-all overflow-hidden whitespace-nowrap">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div className={cn("transition-opacity duration-200", isCollapsed ? "lg:opacity-0" : "opacity-100")}>
-            <div className="flex items-center gap-1">
-              <p className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">
-                Test Master
-              </p>
-              <Sparkles className="h-3 w-3 text-cyan-500 fill-cyan-500" />
-            </div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-              Pro Management
-            </p>
+            <p className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">Test Master</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Pro Management</p>
           </div>
         </div>
-
-        {/* Navigation Items with Box Wrappers */}
         <nav className="flex-1 space-y-1.5 p-3 overflow-y-auto">
           {navItems.map((item) => {
             const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
             const label = item.lockLabel || item.label;
-
-            const baseClass = ({ isActive }) =>
-              cn(
-                'flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap',
-                isActive
-                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15'
-                  : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
-                locked && 'opacity-80',
-                isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto'
-              );
-
+            const baseClass = ({ isActive }) => cn('flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap', isActive ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600', locked && 'opacity-80', isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto');
             const content = ({ isActive }) => (
               <>
-                <div
-                  className={cn(
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
-                    isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 transition-transform duration-200 group-hover:scale-110',
-                      isActive ? 'text-white' : item.iconColor
-                    )}
-                  />
+                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
+                  <item.icon className={cn('h-5 w-5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
                 </div>
-
-                <span className={cn('transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>
-                  {item.label}
-                </span>
-
-                {!isCollapsed && locked ? (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
-                    <Lock className="h-3.5 w-3.5" />
-                    Locked
-                  </span>
-                ) : null}
+                <span className={cn('transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
+                {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700"><Lock className="h-3.5 w-3.5" /> Locked</span>}
               </>
             );
-
-            if (locked) {
-              return (
-                <button
-                  key={item.to}
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    setLockedDialog({ open: true, label });
-                  }}
-                  className={baseClass({ isActive: false })}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  {content({ isActive: false })}
-                </button>
-              );
-            }
-
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={() => setOpen(false)}
-                className={baseClass}
-                title={isCollapsed ? item.label : undefined}
-              >
-                {content}
-              </NavLink>
-            );
+            if (locked) return <button key={item.to} onClick={() => { setOpen(false); setLockedDialog({ open: true, label }); }} className={baseClass({ isActive: false })}>{content({ isActive: false })}</button>;
+            return <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setOpen(false)} className={baseClass}>{content}</NavLink>;
           })}
         </nav>
-
-        {/* User Workspace Profile Block */}
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
           <div className="flex items-center gap-3">
-            {/* Avatar with initials */}
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">
-              {getInitials(user)}
-            </div>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">{getInitials(user)}</div>
             <div className={cn("flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
-              <p className="truncate text-sm font-semibold text-slate-800">
-                {getDisplayName(user)}
-              </p>
-              <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
-                ({role === 'school_admin' ? 'School Admin' : role === 'super_admin' ? 'Super Admin' : role === 'parent' ? 'Parent / Guardian' : role === 'teacher' ? 'Teacher' : role?.charAt(0).toUpperCase() + role?.slice(1)})
-              </p>
+              <p className="truncate text-sm font-semibold text-slate-800">{getDisplayName(user)}</p>
+              <p className="mt-0.5 truncate text-xs font-medium text-slate-500">({role})</p>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Mobile Drawer Overlay */}
-      {open ? (
-        <div className="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} aria-hidden />
-      ) : null}
-
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header Dashboard Control */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
-          <div className="flex items-center gap-2">
-            {/* Mobile Hamburger Trigger */}
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen((v) => !v)}>
-              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-
-            {/* Desktop Collapse/Expand Toggle Action Button */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="hidden lg:flex rounded-xl hover:bg-slate-100 text-slate-500"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-            >
-              {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            </Button>
-
-            <p className="hidden text-sm font-medium sm:block text-slate-500">
-              Welcome back, <span className="font-semibold text-slate-800">{getDisplayName(user)}</span>
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Super Admin: Only Announcement icon */}
-            {isSuperAdmin && (
-              <Button
-                className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
-                onClick={() => setIsAnnouncementModalOpen(true)}
-                title="Send Announcement to All Admins"
-              >
-                <Megaphone className="h-5 w-5" />
-              </Button>
-            )}
-            
-            {/* Admin: Both Notification bell and Announcement icon */}
-            {isAdmin && (
-              <>
-                <NotificationPanel />
-                <Button
-                  className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
-                  onClick={() => setIsAnnouncementModalOpen(true)}
-                  title="Send Announcement to Teachers"
-                >
-                  <Megaphone className="h-5 w-5" />
-                </Button>
-              </>
-            )}
-            
-            {/* Teacher: Only Notification bell */}
-            {role === 'teacher' && <NotificationPanel />}
-            
-            {role === 'school_admin' ? (
-              <div className="hidden items-center gap-2 sm:flex">
-                <Select value={selectedSession?._id} onValueChange={(value) => {
-                  const session = allSessions.find(s => s._id === value);
-                  if (session) selectSession(session);
-                }}>
-                  <SelectTrigger className="w-[200px] rounded-xl font-medium bg-white border-slate-200 shadow-sm">
-                    <Calendar className="h-4 w-4 text-indigo-500" />
-                    <SelectValue placeholder="Select session" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allSessions.map((session) => (
-                      <SelectItem key={session._id} value={session._id}>
-                        {session.sessionName} {session.status === 'archived' && '(Archived)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isArchived && (
-                  <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-1.5 border border-amber-500/20">
-                    <Lock className="h-4 w-4 text-amber-500" />
-                    <span className="text-xs font-semibold text-amber-500">Read Only</span>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Logout Action */}
-            <Button
-              variant="outline"
-              className="rounded-xl font-medium border-red-100 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-sm"
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}><Menu className="h-5 w-5" /></Button>
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Added NotificationPanel back here */}
+            {(isSuperAdmin || isAdmin || role === 'teacher' || role === 'parent') && <NotificationPanel />}
+            <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>
+            <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
           </div>
         </header>
-
-        {/* Main Content Render View */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <Outlet />
-        </main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8"><Outlet /></main>
       </div>
 
-      {/* Announcement Modal */}
-      <AnnouncementModal
-        open={isAnnouncementModalOpen}
-        onOpenChange={setIsAnnouncementModalOpen}
-        role={role}
-      />
-
-      <LockedFeatureDialog
-        open={lockedDialog.open}
-        onOpenChange={(v) => setLockedDialog((s) => ({ ...s, open: v }))}
-        featureLabel={lockedDialog.label}
-      />
+      <AnnouncementModal open={isAnnouncementModalOpen} onOpenChange={setIsAnnouncementModalOpen} role={role} />
+      <LockedFeatureDialog open={lockedDialog.open} onOpenChange={(v) => setLockedDialog({...lockedDialog, open: v})} featureLabel={lockedDialog.label} />
     </div>
   );
 }

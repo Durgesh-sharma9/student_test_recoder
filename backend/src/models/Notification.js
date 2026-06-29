@@ -25,6 +25,7 @@ const notificationSchema = new mongoose.Schema(
     isRead: { type: Boolean, default: false },
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
+    subscriptionRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionRequest' },
     // Attachment fields
     attachmentUrl: { type: String, trim: true },
     attachmentName: { type: String, trim: true },

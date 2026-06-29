@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CreditCard, Search, CheckCircle2, XCircle } from 'lucide-react';
 import api from '@/lib/api';
@@ -24,13 +25,27 @@ export default function SuperSubscriptionRequests() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectForm, setRejectForm] = useState({ reason: 'wrong_utr', message: '' });
   const [loading, setLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const load = async () => {
     const params = {};
     if (query.status !== 'all') params.status = query.status;
     if (query.search) params.search = query.search;
     const res = await api.get('/super-admin/subscription-requests', { params });
-    setRequests(res.data.requests || []);
+    const fetchedRequests = res.data.requests || [];
+    setRequests(fetchedRequests);
+
+    const targetId = searchParams.get('requestId');
+    if (targetId) {
+      const targetReq = fetchedRequests.find(r => r._id === targetId);
+      if (targetReq) {
+        setActive(targetReq);
+        setDetailsOpen(true);
+        // Remove the query param gracefully so it doesn't reopen if the user closes it manually
+        searchParams.delete('requestId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
   };
 
   useEffect(() => {

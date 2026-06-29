@@ -48,6 +48,7 @@ import ParentMainExams from '@/pages/parent/MainExams';
 import ParentExamDetails from '@/pages/parent/ExamDetails';
 import ChangePassword from '@/pages/ChangePassword';
 import RequireFeature from '@/components/subscription/RequireFeature';
+import SuperNotifications from '@/pages/super/SuperNotifications';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -99,6 +100,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent']}><DashboardLayout /></ProtectedRoute>}>
               <Route path="/super-admin" element={<ProtectedRoute roles={['super_admin']}><SuperDashboard /></ProtectedRoute>} />
+              <Route path="/super-admin/notifications" element={<ProtectedRoute roles={['super_admin']}><SuperNotifications /></ProtectedRoute>} /> {/* YEH NAYI LINE ADD KI HAI */}
               <Route path="/super-admin/schools" element={<ProtectedRoute roles={['super_admin']}><SuperSchools /></ProtectedRoute>} />
               <Route path="/super-admin/schools/:id" element={<ProtectedRoute roles={['super_admin']}><SuperSchoolDetails /></ProtectedRoute>} />
               <Route path="/super-admin/plans" element={<ProtectedRoute roles={['super_admin']}><SuperPlans /></ProtectedRoute>} />

@@ -241,6 +241,7 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
       schoolId: school._id,
       targetRole: 'school_admin',
       isBroadcast: false,
+      subscriptionRequestId: requestDoc._id,
     });
   }
 
