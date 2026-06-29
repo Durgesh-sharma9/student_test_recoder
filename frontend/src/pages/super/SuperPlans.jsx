@@ -11,9 +11,7 @@ import { SUBSCRIPTION_FEATURES } from '@/lib/subscriptionFeatures';
 
 const cycles = [
   { key: 'monthly', label: 'Monthly', months: 1 },
-  { key: 'quarterly', label: '3 Months', months: 3 },
-  { key: 'half_yearly', label: '6 Months', months: 6 },
-  { key: 'yearly', label: '1 Year', months: 12 },
+  { key: 'yearly', label: 'Yearly', months: 12 },
 ];
 
 const planTypes = [
@@ -54,7 +52,11 @@ export default function SuperPlans() {
     taxEnabled: false,
     taxName: 'GST',
     taxPercentage: 18,
-    features: Object.fromEntries(SUBSCRIPTION_FEATURES.map((f) => [f.key, true])),
+    teacherCapacityType: 'limited',
+    maxTeachers: 50,
+    studentCapacityType: 'limited',
+    maxStudents: 500,
+    highlights: ['', '', '', '', ''],
   };
 
   const [form, setForm] = useState(emptyForm);
@@ -133,14 +135,12 @@ export default function SuperPlans() {
 
   const openCreate = () => {
     const cycle = activeCycle;
-    const durationDays = cycle === 'quarterly' ? 90 : cycle === 'half_yearly' ? 180 : cycle === 'yearly' ? 365 : 30;
+    const durationDays = cycle === 'yearly' ? 365 : 30;
     setForm({ ...emptyForm, billingCycle: cycle, durationDays });
     setDialog({ open: true, mode: 'create', plan: null });
   };
 
   const openEdit = (plan) => {
-    const features = {};
-    for (const f of SUBSCRIPTION_FEATURES) features[f.key] = plan.features?.[f.key] !== false;
     setForm({
       name: plan.name || '',
       billingCycle: plan.billingCycle || 'monthly',
@@ -151,7 +151,11 @@ export default function SuperPlans() {
       taxEnabled: Boolean(plan.tax?.enabled),
       taxName: plan.tax?.name || 'GST',
       taxPercentage: Number(plan.tax?.percentage ?? 0),
-      features,
+      teacherCapacityType: plan.teacherCapacityType || 'limited',
+      maxTeachers: Number(plan.maxTeachers ?? 50),
+      studentCapacityType: plan.studentCapacityType || 'limited',
+      maxStudents: Number(plan.maxStudents ?? 500),
+      highlights: Array.isArray(plan.highlights) ? [...plan.highlights] : ['', '', '', '', ''],
     });
     setDialog({ open: true, mode: 'edit', plan });
   };
@@ -179,7 +183,11 @@ export default function SuperPlans() {
           name: form.taxEnabled ? form.taxName : undefined,
           percentage: form.taxEnabled ? Number(form.taxPercentage || 0) : 0,
         },
-        features: form.features,
+        teacherCapacityType: form.teacherCapacityType,
+        maxTeachers: form.teacherCapacityType === 'limited' ? Number(form.maxTeachers || 50) : null,
+        studentCapacityType: form.studentCapacityType,
+        maxStudents: form.studentCapacityType === 'limited' ? Number(form.maxStudents || 500) : null,
+        highlights: form.highlights.filter(h => h.trim() !== ''),
       };
 
       await api.post('/super-admin/plans', payload);
@@ -201,7 +209,7 @@ export default function SuperPlans() {
       </PageHeader>
 
       <ErpSection title="Billing Cycles" icon={Settings2} tone="orange">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {cycles.map((c) => (
             <button
               key={c.key}
@@ -209,8 +217,8 @@ export default function SuperPlans() {
               onClick={() => setActiveCycle(c.key)}
               className={
                 c.key === activeCycle
-                  ? 'rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm'
-                  : 'rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50'
+                  ? 'rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:shadow-xl'
+                  : 'rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-indigo-300 hover:bg-slate-50'
               }
             >
               {c.label}
@@ -220,96 +228,91 @@ export default function SuperPlans() {
       </ErpSection>
 
       <ErpSection title={`Plans (${cycleTitle(activeCycle)})`} icon={CreditCard} tone="green">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           {visiblePlans.map((p) => {
-            console.log('[SuperPlans] Rendering plan card:', {
-              _id: p._id,
-              name: p.name,
-              billingCycle: p.billingCycle,
-              basePrice: p.basePrice,
-              finalPrice: p.finalPrice,
-              price: p.price,
-              taxEnabled: p.tax?.enabled,
-            });
-            
             const type = (p.planType || (p.slug || '').split('_')[0] || '').toLowerCase();
             const list = groupedByType.get(type) || [];
             const monthly = list.find((x) => (x.billingCycle || 'monthly') === 'monthly');
             const cycle = cycles.find((c) => c.key === (p.billingCycle || 'monthly')) || cycles[0];
             
-            // Use displayPrice logic: finalPrice if tax enabled, else basePrice
-            const getDisplayPrice = (plan) => {
-              console.log('[SuperPlans] getDisplayPrice called for plan:', plan.slug, 'tax enabled:', plan.tax?.enabled, 'finalPrice:', plan.finalPrice, 'basePrice:', plan.basePrice, 'price:', plan.price);
-              if (plan.tax?.enabled) {
-                const result = Number(plan.finalPrice ?? plan.price ?? 0);
-                console.log('[SuperPlans] getDisplayPrice returning (tax enabled):', result);
-                return result;
-              }
-              const result = Number(plan.basePrice ?? plan.price ?? 0);
-              console.log('[SuperPlans] getDisplayPrice returning (tax disabled):', result);
-              return result;
-            };
-            
-            const displayPrice = getDisplayPrice(p);
-            console.log('[SuperPlans] Final displayPrice for card:', displayPrice);
-            const monthlyDisplayPrice = monthly ? getDisplayPrice(monthly) : 0;
+            const displayPrice = Number(p.basePrice ?? p.price ?? 0);
+            const monthlyDisplayPrice = monthly ? Number(monthly.basePrice ?? monthly.price ?? 0) : 0;
             const savePct = monthlyDisplayPrice > 0 && displayPrice > 0 && cycle.months > 1 
               ? computeSavePercent(monthlyDisplayPrice, displayPrice, cycle.months) 
               : null;
-            
-            const comparison = cycles.map((c) => {
-              const cp = list.find((x) => (x.billingCycle || 'monthly') === c.key);
-              const price = cp ? getDisplayPrice(cp) : null;
-              return {
-                cycle: c.key,
-                label: c.key === 'quarterly' ? 'Quarterly' : c.key === 'half_yearly' ? 'Half Year' : c.key === 'yearly' ? 'Yearly' : 'Monthly',
-                price,
-                save: monthlyDisplayPrice > 0 && price !== null && price > 0 && c.months > 1 
-                  ? computeSavePercent(monthlyDisplayPrice, price, c.months) 
-                  : null,
-              };
-            });
+
+            const typeColors = {
+              basic: 'from-blue-500 to-cyan-500',
+              standard: 'from-purple-500 to-pink-500',
+              premium: 'from-amber-500 to-orange-500',
+            };
+            const typeGradient = typeColors[type] || 'from-slate-500 to-slate-600';
 
             return (
-              <div key={p._id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">{type.toUpperCase()}</p>
-                    <p className="mt-1 text-xl font-extrabold text-slate-900">{p.name}</p>
-                    <p className="mt-1 text-sm text-slate-600">{cycleTitle(p.billingCycle || 'monthly')}</p>
+              <div key={p._id} className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition-all hover:shadow-xl hover:border-indigo-200">
+                <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${typeGradient}`} />
+                
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{type.toUpperCase()}</p>
+                      <p className="mt-2 text-2xl font-extrabold text-slate-900">{p.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">{cycleTitle(p.billingCycle || 'monthly')}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => openEdit(p)}
+                      className="rounded-xl border-slate-200 hover:border-indigo-300 hover:bg-indigo-50"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => openEdit(p)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
 
-                <div className="mt-4 rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold text-slate-500">Price</p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900">₹{displayPrice.toFixed(2)}</p>
-                  {savePct !== null ? (
-                    <p className="mt-2 inline-flex rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
-                      Save {savePct}%
-                    </p>
-                  ) : null}
-                </div>
+                  <div className="mt-6">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</p>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <span className="text-4xl font-extrabold text-slate-900">₹{displayPrice.toFixed(0)}</span>
+                      <span className="text-sm text-slate-500">/month</span>
+                    </div>
+                    {savePct !== null && (
+                      <p className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                        Save {savePct}% vs Monthly
+                      </p>
+                    )}
+                  </div>
 
-                <div className="mt-4">
-                  <p className="text-sm font-semibold text-slate-900">Comparison</p>
-                  <div className="mt-2 grid gap-2">
-                    {comparison.map((c) => (
-                      <div key={c.cycle} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                        <span className="font-medium text-slate-700">{c.label}</span>
+                  <div className="mt-6 space-y-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Capacity</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600">Teachers</span>
                         <span className="font-semibold text-slate-900">
-                          {c.price !== null ? `₹${Number(c.price).toFixed(2)}` : '-'}
-                          {c.save !== null && c.cycle !== 'monthly' ? (
-                            <span className="ml-2 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
-                              Save {c.save}%
-                            </span>
-                          ) : null}
+                          {p.teacherCapacityType === 'unlimited' ? 'Unlimited' : `Up to ${p.maxTeachers}`}
                         </span>
                       </div>
-                    ))}
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-600">Students</span>
+                        <span className="font-semibold text-slate-900">
+                          {p.studentCapacityType === 'unlimited' ? 'Unlimited' : `Up to ${p.maxStudents}`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+
+                  {p.highlights && p.highlights.length > 0 && p.highlights.some(h => h) && (
+                    <div className="mt-6">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Highlights</p>
+                      <ul className="mt-3 space-y-2">
+                        {p.highlights.filter(h => h).map((highlight, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            {highlight}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -317,7 +320,13 @@ export default function SuperPlans() {
         </div>
 
         {visiblePlans.length === 0 ? (
-          <p className="text-sm text-slate-500">No plans created for this billing cycle yet.</p>
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <p className="text-sm text-slate-500">No plans created for this billing cycle yet.</p>
+            <Button variant="outline" className="mt-4" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create First Plan
+            </Button>
+          </div>
         ) : null}
       </ErpSection>
 
@@ -325,7 +334,7 @@ export default function SuperPlans() {
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{dialog.mode === 'edit' ? 'Edit Plan' : 'Create Plan'}</DialogTitle>
-            <DialogDescription>Configure general details, tax, and feature controls.</DialogDescription>
+            <DialogDescription>Configure plan details, pricing, capacity limits, and highlights.</DialogDescription>
           </DialogHeader>
 
           <DialogBody>
@@ -435,22 +444,105 @@ export default function SuperPlans() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-sm font-semibold text-slate-900">Feature Control</p>
-              <p className="mt-1 text-sm text-slate-500">Disable a feature to show lock icons (menu stays visible).</p>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="text-sm font-semibold text-slate-900">Teacher Capacity</p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="radio"
+                        name="teacherCapacity"
+                        value="unlimited"
+                        checked={form.teacherCapacityType === 'unlimited'}
+                        onChange={(e) => setForm((s) => ({ ...s, teacherCapacityType: e.target.value }))}
+                        className="h-4 w-4"
+                      />
+                      Unlimited
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="radio"
+                        name="teacherCapacity"
+                        value="limited"
+                        checked={form.teacherCapacityType === 'limited'}
+                        onChange={(e) => setForm((s) => ({ ...s, teacherCapacityType: e.target.value }))}
+                        className="h-4 w-4"
+                      />
+                      Limited
+                    </label>
+                  </div>
+                  {form.teacherCapacityType === 'limited' && (
+                    <FormField label="Number of Teachers">
+                      <Input
+                        type="number"
+                        value={form.maxTeachers}
+                        onChange={(e) => setForm((s) => ({ ...s, maxTeachers: e.target.value }))}
+                        placeholder="50"
+                      />
+                    </FormField>
+                  )}
+                </div>
+              </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {SUBSCRIPTION_FEATURES.map((f) => (
-                  <label key={f.key} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                    <span className="font-medium text-slate-700">{f.label}</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300"
-                      checked={Boolean(form.features?.[f.key])}
-                      onChange={(e) => setForm((s) => ({ ...s, features: { ...s.features, [f.key]: e.target.checked } }))}
-                    />
-                  </label>
-                ))}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="text-sm font-semibold text-slate-900">Student Capacity</p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="radio"
+                        name="studentCapacity"
+                        value="unlimited"
+                        checked={form.studentCapacityType === 'unlimited'}
+                        onChange={(e) => setForm((s) => ({ ...s, studentCapacityType: e.target.value }))}
+                        className="h-4 w-4"
+                      />
+                      Unlimited
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="radio"
+                        name="studentCapacity"
+                        value="limited"
+                        checked={form.studentCapacityType === 'limited'}
+                        onChange={(e) => setForm((s) => ({ ...s, studentCapacityType: e.target.value }))}
+                        className="h-4 w-4"
+                      />
+                      Limited
+                    </label>
+                  </div>
+                  {form.studentCapacityType === 'limited' && (
+                    <FormField label="Number of Students">
+                      <Input
+                        type="number"
+                        value={form.maxStudents}
+                        onChange={(e) => setForm((s) => ({ ...s, maxStudents: e.target.value }))}
+                        placeholder="500"
+                      />
+                    </FormField>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <p className="text-sm font-semibold text-slate-900">Plan Highlights</p>
+                <p className="mt-1 text-sm text-slate-500">Add up to 5 highlights that will appear on School Admin plan cards.</p>
+                <div className="mt-4 space-y-3">
+                  {form.highlights.map((highlight, index) => (
+                    <FormField key={index} label={`Highlight ${index + 1}`}>
+                      <Input
+                        value={highlight}
+                        onChange={(e) => {
+                          const newHighlights = [...form.highlights];
+                          newHighlights[index] = e.target.value;
+                          setForm((s) => ({ ...s, highlights: newHighlights }));
+                        }}
+                        placeholder="e.g., Parent Portal Access"
+                      />
+                    </FormField>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

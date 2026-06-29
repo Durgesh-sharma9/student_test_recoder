@@ -24,8 +24,7 @@ const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
 
 const cycleMeta = [
   { cycle: 'monthly', label: 'Monthly', months: 1 },
-  { cycle: 'quarterly', label: 'Quarterly', months: 3 },
-  { cycle: 'half_yearly', label: 'Half Yearly', months: 6 },
+  
   { cycle: 'yearly', label: 'Yearly', months: 12 },
 ];
 
@@ -270,6 +269,13 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
   const school = await School.findById(req.user.school).populate('plan');
   if (!school) throw new ApiError(404, 'School not found');
 
+  console.log('[getSubscriptionStatus] School data:', {
+    schoolId: school._id,
+    plan: school.plan,
+    planExpiresAt: school.planExpiresAt,
+    isActive: school.isActive,
+  });
+
   const pendingRequest = await SubscriptionRequest.findOne({
     school: school._id,
     status: 'pending',
@@ -277,7 +283,13 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
     .sort('-submittedAt -createdAt')
     .populate('requestedPlan', 'name planType billingCycle finalPrice');
 
-  res.json({
+  // Count current usage
+  const [teacherCount, studentCount] = await Promise.all([
+    User.countDocuments({ school: school._id, role: 'teacher', isActive: true }),
+    Student.countDocuments({ school: school._id, isActive: true }),
+  ]);
+
+  const response = {
     success: true,
     subscription: {
       schoolId: school._id,
@@ -285,6 +297,19 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
       planExpiresAt: school.planExpiresAt,
       isActive: school.isActive,
       pendingRequest,
+      usage: {
+        teachers: teacherCount,
+        students: studentCount,
+        teacherLimit: school.plan?.teacherCapacityType === 'unlimited' ? null : school.plan?.maxTeachers || null,
+        studentLimit: school.plan?.studentCapacityType === 'unlimited' ? null : school.plan?.maxStudents || null,
+      },
     },
+  };
+
+  console.log('[getSubscriptionStatus] Response:', {
+    currentPlan: response.subscription.currentPlan,
+    planExpiresAt: response.subscription.planExpiresAt,
   });
+
+  res.json(response);
 });
