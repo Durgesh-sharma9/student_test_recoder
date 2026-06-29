@@ -28,6 +28,7 @@ export default function ParentViewResults() {
   const [student, setStudent] = useState(null);
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [totalStudents, setTotalStudents] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +80,7 @@ export default function ParentViewResults() {
       setStudent(res.data.student || null);
       setResults(Array.isArray(res.data.results) ? res.data.results : []);
       setSummary(res.data.summary || null);
+      setTotalStudents(res.data.totalStudents || 0);
     } catch (err) {
       console.error('Failed to load results:', err);
       setError(err.response?.data?.message || 'Failed to load results');
@@ -193,7 +195,7 @@ export default function ParentViewResults() {
         ['Roll No:', student.rollNo],
         ['Total Tests:', summary?.totalTests || results.length],
         ['Average Percentage:', formatPercentageSafe(summary?.averagePercentage)],
-        ['Current Rank:', summary?.currentRank ? `#${summary.currentRank}` : 'N/A'],
+        ['Current Rank:', summary?.currentRank ? `${summary.currentRank} out of ${totalStudents || results.length}` : 'N/A'],
         ['Best Score:', formatPercentageSafe(summary?.bestScore)],
       ];
 
@@ -224,7 +226,7 @@ export default function ParentViewResults() {
         result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A'),
         result.maxMarks ?? 'N/A',
         formatPercentageSafe(result.percentage),
-        result.rank ? `#${result.rank}` : 'N/A',
+        result.rank ? `${result.rank} out of ${totalStudents || results.length}` : 'N/A',
       ]);
 
       autoTable(doc, {
@@ -347,7 +349,8 @@ export default function ParentViewResults() {
                     </div>
                     <div>
                       <div className="text-sm text-slate-500">Rank</div>
-                      <div className="text-lg font-semibold text-slate-900">{summary?.currentRank ? `#${summary.currentRank}` : 'N/A'}</div>
+                      <div className="text-lg font-semibold text-slate-900">{summary?.currentRank || 'N/A'}</div>
+                      <div className="text-xs text-slate-500">Out of {totalStudents || results.length} Students</div>
                     </div>
                     <div>
                       <div className="text-sm text-slate-500">Overall %</div>
@@ -370,7 +373,8 @@ export default function ParentViewResults() {
                   </div>
                   <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-4 border border-purple-200">
                     <div className="text-sm font-medium text-purple-700 mb-1">Rank</div>
-                    <div className="text-2xl font-bold text-purple-900">{summary.currentRank ? `#${summary.currentRank}` : 'N/A'}</div>
+                    <div className="text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
+                    <div className="text-xs text-purple-600">Out of {totalStudents || results.length} Students</div>
                   </div>
                   <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200">
                     <div className="text-sm font-medium text-green-700 mb-1">Total Tests</div>
@@ -507,7 +511,7 @@ export default function ParentViewResults() {
                               {formatPercentageSafe(result.percentage)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">{result.rank ? `#${result.rank}` : 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-slate-600">{result.rank ? `${result.rank} out of ${totalStudents || results.length}` : 'N/A'}</td>
                         </tr>
                       ))}
                     </tbody>
