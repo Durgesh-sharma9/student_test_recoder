@@ -17,6 +17,8 @@ import SuperPlans from '@/pages/super/SuperPlans';
 import SuperSubscriptionRequests from '@/pages/super/SuperSubscriptionRequests';
 import SuperPaymentSettings from '@/pages/super/SuperPaymentSettings';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+// App.jsx ke top par ye import add karein:
+import AdminNotifications from '@/pages/admin/AdminNotifications';
 import AdminPlans from '@/pages/admin/AdminPlans';
 import ManageUsers from '@/pages/admin/ManageUsers';
 import ManageClasses from '@/pages/admin/ManageClasses';
@@ -108,6 +110,7 @@ export default function App() {
               <Route path="/super-admin/payment-settings" element={<ProtectedRoute roles={['super_admin']}><SuperPaymentSettings /></ProtectedRoute>} />
 
               <Route path="/admin" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/notifications" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminNotifications /></ProtectedRoute>} /> {/* Ye add karein */}
               <Route path="/admin/plans" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminPlans /></ProtectedRoute>} />
               <Route path="/admin/teachers" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><ManageUsers /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/classes" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageClasses /></ProtectedRoute>} />
