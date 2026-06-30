@@ -45,8 +45,8 @@ export default function ExamDetails() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(`/parent/student/${studentId}/main-exams`)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -57,22 +57,22 @@ export default function ExamDetails() {
       </div>
 
       <ErpSection title="Overall Performance" icon={Trophy} tone="yellow">
-        <div className="grid gap-4 p-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm text-slate-500">Total Obtained</div>
-            <div className="text-2xl font-bold text-slate-900">{examDetails.totalObtained}</div>
+        <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4 sm:gap-4 sm:p-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+            <div className="text-xs sm:text-sm text-slate-500 truncate">Total Obtained</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-900">{examDetails.totalObtained}</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm text-slate-500">Total Max</div>
-            <div className="text-2xl font-bold text-slate-900">{examDetails.totalMax}</div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+            <div className="text-xs sm:text-sm text-slate-500 truncate">Total Max</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-900">{examDetails.totalMax}</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm text-slate-500">Percentage</div>
-            <div className="text-2xl font-bold text-slate-900">{examDetails.percentage}%</div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+            <div className="text-xs sm:text-sm text-slate-500 truncate">Percentage</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-900">{examDetails.percentage}%</div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm text-slate-500">Rank</div>
-            <div className="text-2xl font-bold text-slate-900">#{examDetails.rank}</div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+            <div className="text-xs sm:text-sm text-slate-500 truncate">Rank</div>
+            <div className="text-xl sm:text-2xl font-bold text-slate-900">#{examDetails.rank}</div>
           </div>
         </div>
       </ErpSection>
@@ -82,21 +82,21 @@ export default function ExamDetails() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">Marks Obtained</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">Max Marks</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">Percentage</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">Rank</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-700">Marks Obtained</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-700">Max Marks</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-700">Percentage</th>
+                <th className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-700">Rank</th>
               </tr>
             </thead>
             <tbody>
               {examDetails.subjectMarks.map((subject, index) => (
                 <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm text-slate-900">{subject.subject}</td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-900">{subject.marksObtained}</td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-900">{subject.maxMarks}</td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-900">{subject.percentage.toFixed(1)}%</td>
-                  <td className="px-4 py-3 text-right text-sm text-slate-900">#{subject.rankSubject}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-900">{subject.subject}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-900">{subject.marksObtained}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-900">{subject.maxMarks}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-900">{subject.percentage.toFixed(1)}%</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-slate-900">#{subject.rankSubject}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GraduationCap, Users, Trophy, ArrowRight, User, TrendingUp, AlertTriangle, BookOpen } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
+import { GraduationCap, Users, TrendingUp, AlertTriangle, BookOpen } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import api from '@/lib/api';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
-import { Button } from '@/components/ui/button';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 
 const getExamTypeColor = (examType) => {
@@ -39,11 +38,9 @@ export default function ParentDashboard() {
   const loadStudents = async () => {
     try {
       const res = await api.get('/parents/students');
-      console.log('Parent students response:', res.data);
       setStudents(res.data.students || []);
       setSessionName(res.data.sessionName || '2026-27');
     } catch (err) {
-      console.error('Failed to load students:', err);
       toast.error(err.response?.data?.message || 'Failed to load students');
     } finally {
       setLoading(false);
@@ -52,26 +49,17 @@ export default function ParentDashboard() {
 
   const calculateSubjectPerformance = (recentResults) => {
     if (!recentResults || recentResults.length === 0) return [];
-
     const subjectMap = {};
     recentResults.forEach(result => {
       if (!subjectMap[result.subject]) {
-        subjectMap[result.subject] = {
-          subject: result.subject,
-          totalPercentage: 0,
-          count: 0,
-          results: []
-        };
+        subjectMap[result.subject] = { subject: result.subject, totalPercentage: 0, count: 0 };
       }
       subjectMap[result.subject].totalPercentage += result.percentage || 0;
       subjectMap[result.subject].count += 1;
-      subjectMap[result.subject].results.push(result);
     });
-
     return Object.values(subjectMap).map(s => ({
       subject: s.subject,
-      averagePercentage: s.count > 0 ? (s.totalPercentage / s.count).toFixed(1) : 0,
-      count: s.count
+      averagePercentage: s.count > 0 ? (s.totalPercentage / s.count).toFixed(1) : 0
     })).sort((a, b) => b.averagePercentage - a.averagePercentage);
   };
 
@@ -82,30 +70,17 @@ export default function ParentDashboard() {
   const formatDateSafe = (date) => {
     try {
       if (!date) return 'N/A';
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return 'N/A';
       return formatDisplayDate(date);
-    } catch {
-      return 'N/A';
-    }
+    } catch { return 'N/A'; }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-slate-500">Loading...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="text-slate-500">Loading...</div></div>;
 
   const selectedStudent = students.find(s => s._id === selectedStudentId);
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Parent Dashboard"
-        description={`Session: ${sessionName}`}
-      />
+      <PageHeader title="Parent Dashboard" description={`Session: ${sessionName}`} />
 
       {students.length === 0 ? (
         <ErpSection title="My Children" icon={Users} tone="blue">
@@ -116,7 +91,6 @@ export default function ParentDashboard() {
         </ErpSection>
       ) : (
         <>
-          {/* Child Selection Cards - Only show if multiple children */}
           {students.length > 1 && (
             <ErpSection title="Select Child" icon={Users} tone="blue">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -125,9 +99,7 @@ export default function ParentDashboard() {
                     key={student._id}
                     onClick={() => setSelectedStudentId(student._id)}
                     className={`cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 ${
-                      selectedStudentId === student._id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                      selectedStudentId === student._id ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -136,9 +108,7 @@ export default function ParentDashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-bold text-slate-900 truncate">{student.name}</h3>
-                        <p className="text-sm text-slate-500">
-                          {student.className} {student.section && `(${student.section})`}
-                        </p>
+                        <p className="text-sm text-slate-500">{student.className} {student.section && `(${student.section})`}</p>
                         <p className="text-xs text-slate-400">Roll No: {student.rollNo}</p>
                       </div>
                     </div>
@@ -158,10 +128,9 @@ export default function ParentDashboard() {
             </ErpSection>
           )}
 
-          {/* Selected Child Dashboard */}
           {selectedStudent && (
             <ErpSection title={`${selectedStudent.name}'s Performance`} icon={GraduationCap} tone="blue">
-              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
+              <div className="grid gap-8">
                 {(() => {
                   const subjectPerformance = calculateSubjectPerformance(selectedStudent.recentResults);
                   const weakSubjects = getWeakSubjects(subjectPerformance);
@@ -182,112 +151,50 @@ export default function ParentDashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-2xl font-bold text-slate-900 truncate">{selectedStudent.name}</h3>
-                          <p className="text-base text-slate-500">
-                            {selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}
-                          </p>
+                          <p className="text-base text-slate-500">{selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="rounded-xl bg-slate-50 p-4">
-                          <div className="text-sm font-medium text-slate-500 mb-1">Roll No</div>
-                          <div className="text-2xl font-bold text-slate-900">{selectedStudent.rollNo}</div>
-                        </div>
-                        <div className="rounded-xl bg-slate-50 p-4">
-                          <div className="text-sm font-medium text-slate-500 mb-1">Rank</div>
-                          <div className="text-2xl font-bold text-slate-900">#{selectedStudent.rank || '-'}</div>
-                        </div>
-                        <div className="rounded-xl bg-slate-50 p-4">
-                          <div className="text-sm font-medium text-slate-500 mb-1">Total Students</div>
-                          <div className="text-2xl font-bold text-slate-900">{selectedStudent.totalStudents || '-'}</div>
-                        </div>
-                        <div className="rounded-xl bg-slate-50 p-4">
-                          <div className="text-sm font-medium text-slate-500 mb-1">Overall %</div>
-                          <div className="text-2xl font-bold text-slate-900">{selectedStudent.percentage}%</div>
-                        </div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Roll No</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.rollNo}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Rank</div><div className="text-2xl font-bold text-slate-900">#{selectedStudent.rank || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Total Students</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.totalStudents || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Overall %</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.percentage}%</div></div>
                       </div>
 
-                      {/* Performance Trend */}
                       {trendData.length > 0 && (
                         <div className="mb-6 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-5">
-                          <div className="flex items-center gap-2 mb-3">
-                            <TrendingUp className="h-5 w-5 text-indigo-600" />
-                            <span className="text-sm font-medium text-indigo-600">Performance Trend</span>
+                          <div className="flex items-center gap-2 mb-3"><TrendingUp className="h-5 w-5 text-indigo-600" /><span className="text-sm font-medium text-indigo-600">Performance Trend</span></div>
+                          <div className="w-full h-[150px] md:h-[120px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                <XAxis dataKey="date" hide />
+                                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }} formatter={(value) => [`${value.toFixed(1)}%`, 'Score']} />
+                                <Line type="monotone" dataKey="percentage" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', strokeWidth: 2, r: 3 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
                           </div>
-                          <ResponsiveContainer width="100%" height={120}>
-                            <LineChart data={trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                              <XAxis 
-                                dataKey="date" 
-                                tick={{ fontSize: 10, fill: '#64748b' }}
-                                axisLine={false}
-                                tickLine={false}
-                                hide={trendData.length > 5}
-                              />
-                              <YAxis 
-                                tick={{ fontSize: 10, fill: '#64748b' }}
-                                axisLine={false}
-                                tickLine={false}
-                                domain={[0, 100]}
-                                hide
-                              />
-                              <Tooltip 
-                                contentStyle={{
-                                  backgroundColor: '#fff',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: '8px',
-                                  fontSize: '12px'
-                                }}
-                                formatter={(value) => [`${value.toFixed(1)}%`, 'Score']}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="percentage" 
-                                stroke="#6366f1" 
-                                strokeWidth={2}
-                                dot={{ fill: '#6366f1', strokeWidth: 2, r: 3 }}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
                         </div>
                       )}
 
-                      {/* Subject-wise Performance */}
                       {subjectPerformance.length > 0 && (
                         <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className="h-5 w-5 text-slate-600" />
-                            <span className="text-sm font-medium text-slate-600">Subject-wise Performance</span>
-                          </div>
+                          <div className="flex items-center gap-2 mb-3"><BookOpen className="h-5 w-5 text-slate-600" /><span className="text-sm font-medium text-slate-600">Subject-wise Performance</span></div>
                           <div className="space-y-2">
                             {subjectPerformance.slice(0, 4).map((sp, idx) => (
                               <div key={idx} className="flex items-center justify-between">
                                 <span className="text-sm text-slate-700">{sp.subject}</span>
-                                <span className={`text-sm font-semibold ${
-                                  parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' :
-                                  parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' :
-                                  'text-red-600'
-                                }`}>
-                                  {sp.averagePercentage}%
-                                </span>
+                                <span className={`text-sm font-semibold ${parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' : parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' : 'text-red-600'}`}>{sp.averagePercentage}%</span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Weak Subjects Alert */}
                       {weakSubjects.length > 0 && (
                         <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-amber-800">Needs Attention</p>
-                              <p className="text-sm text-amber-700 mt-1">
-                                {weakSubjects.map(s => s.subject).join(', ')}
-                              </p>
-                            </div>
-                          </div>
+                          <div className="flex items-start gap-2"><AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" /><div><p className="text-sm font-medium text-amber-800">Needs Attention</p><p className="text-sm text-amber-700 mt-1">{weakSubjects.map(s => s.subject).join(', ')}</p></div></div>
                         </div>
                       )}
                     </div>
