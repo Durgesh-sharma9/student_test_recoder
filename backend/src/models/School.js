@@ -9,8 +9,11 @@ const schoolSchema = new mongoose.Schema(
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', required: true },
     planExpiresAt: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
+    trialUsed: { type: Boolean, default: false },
     subjects: [{ type: String, trim: true, uppercase: true }],
     showParentLeaderboard: { type: Boolean, default: false },
+    scheduledDowngradePlan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+    scheduledDowngradeDate: { type: Date },
   },
   { timestamps: true }
 );

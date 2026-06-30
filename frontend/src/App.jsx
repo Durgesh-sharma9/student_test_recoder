@@ -14,6 +14,7 @@ import SuperDashboard from '@/pages/super/SuperDashboard';
 import SuperSchools from '@/pages/super/SuperSchools';
 import SuperSchoolDetails from '@/pages/super/SuperSchoolDetails';
 import SuperPlans from '@/pages/super/SuperPlans';
+import TrialSettings from '@/pages/super/TrialSettings';
 import SuperSubscriptionRequests from '@/pages/super/SuperSubscriptionRequests';
 import SuperPaymentSettings from '@/pages/super/SuperPaymentSettings';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -106,6 +107,7 @@ export default function App() {
               <Route path="/super-admin/schools" element={<ProtectedRoute roles={['super_admin']}><SuperSchools /></ProtectedRoute>} />
               <Route path="/super-admin/schools/:id" element={<ProtectedRoute roles={['super_admin']}><SuperSchoolDetails /></ProtectedRoute>} />
               <Route path="/super-admin/plans" element={<ProtectedRoute roles={['super_admin']}><SuperPlans /></ProtectedRoute>} />
+              <Route path="/super-admin/trial-settings" element={<ProtectedRoute roles={['super_admin']}><TrialSettings /></ProtectedRoute>} />
               <Route path="/super-admin/subscription-requests" element={<ProtectedRoute roles={['super_admin']}><SuperSubscriptionRequests /></ProtectedRoute>} />
               <Route path="/super-admin/payment-settings" element={<ProtectedRoute roles={['super_admin']}><SuperPaymentSettings /></ProtectedRoute>} />
 

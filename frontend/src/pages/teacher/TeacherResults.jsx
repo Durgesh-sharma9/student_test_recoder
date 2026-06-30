@@ -3,6 +3,7 @@ import { Filter, FileBarChart, Download } from 'lucide-react';
 import api from '@/lib/api';
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 import { useSubjects } from '@/hooks/useSubjects';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import SubjectSelect from '@/components/SubjectSelect';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
 import AbsentBadge from '@/components/AbsentBadge';
 import DatePicker from '@/components/ui/DatePicker';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
 export default function TeacherResults() {
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [classes, setClasses] = useState([]);
   const [examType, setExamType] = useState('daily');
   const [filters, setFilters] = useState({
@@ -83,10 +86,18 @@ export default function TeacherResults() {
           )}
           {examType === 'main' && (<><FormField label="Exam Type"><Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}><SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger><SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select></FormField><FormField label="Exam Date"><DatePicker value={filters.examDate} onChange={(date) => setFilters({ ...filters, examDate: date })} /></FormField></>)}
           <div className="md:col-span-2 lg:col-span-3 flex flex-wrap gap-2 pt-2">
-            <Button onClick={load} disabled={loading}>{loading ? 'Loading...' : 'Apply'}</Button>
-            <Button variant="outline" onClick={() => download('csv')}>CSV</Button>
-            <Button variant="outline" onClick={() => download('pdf')}>PDF</Button>
-            <Button variant="outline" onClick={() => download('xlsx')}>Excel</Button>
+            <Button onClick={() => {
+              if (!checkAndBlock(() => load())) return;
+            }} disabled={loading}>{loading ? 'Loading...' : 'Apply'}</Button>
+            <Button variant="outline" onClick={() => {
+              if (!checkAndBlock(() => download('csv'))) return;
+            }}>CSV</Button>
+            <Button variant="outline" onClick={() => {
+              if (!checkAndBlock(() => download('pdf'))) return;
+            }}>PDF</Button>
+            <Button variant="outline" onClick={() => {
+              if (!checkAndBlock(() => download('xlsx'))) return;
+            }}>Excel</Button>
           </div>
         </div>
       </ErpSection>
@@ -140,6 +151,11 @@ export default function TeacherResults() {
           </div>
         </ErpSection>
       )}
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

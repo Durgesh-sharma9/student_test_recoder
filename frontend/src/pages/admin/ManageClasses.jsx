@@ -5,15 +5,18 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { useSession } from '@/context/SessionContext';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ManageClasses() {
   const { isArchived } = useSession();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [suggestions, setSuggestions] = useState({ classSuggestions: [], sectionSuggestions: [] });
@@ -62,7 +65,9 @@ export default function ManageClasses() {
         title="Class Management"
         description="Create and manage class sections for your school."
       >
-        <Button onClick={() => setOpen(true)}>
+        <Button onClick={() => {
+          if (!checkAndBlock(() => setOpen(true))) return;
+        }}>
           <Plus className="mr-2 h-4 w-4" />
           Add Class
         </Button>
@@ -105,12 +110,14 @@ export default function ManageClasses() {
               className="flex-1 rounded-xl"
               disabled={isArchived}
               onClick={() => {
-                setEdit(c);
-                setForm({
-                  className: c.className,
-                  section: c.section,
-                });
-                setOpen(true);
+                if (!checkAndBlock(() => {
+                  setEdit(c);
+                  setForm({
+                    className: c.className,
+                    section: c.section,
+                  });
+                  setOpen(true);
+                })) return;
               }}
             >
               Edit
@@ -121,9 +128,11 @@ export default function ManageClasses() {
               className="flex-1 rounded-xl"
               disabled={isArchived}
               onClick={async () => {
-                await api.delete(`/classes/${c._id}`);
-                toast.success('Deleted');
-                fetchData();
+                if (!checkAndBlock(async () => {
+                  await api.delete(`/classes/${c._id}`);
+                  toast.success('Deleted');
+                  fetchData();
+                })) return;
               }}
             >
               Delete
@@ -221,6 +230,11 @@ export default function ManageClasses() {
 </DialogBody>
         </DialogContent>
       </Dialog>
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

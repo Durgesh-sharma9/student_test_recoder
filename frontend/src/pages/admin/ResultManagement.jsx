@@ -20,6 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
+
 
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
@@ -27,6 +30,7 @@ const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Fi
 
 
 export default function ResultManagement() {
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
 
   const [classes, setClasses] = useState([]);
 
@@ -488,7 +492,9 @@ export default function ResultManagement() {
           {/* Third Row: Apply, Reset, Export CSV, Export PDF */}
           <div className="flex items-center justify-end gap-2 pt-2">
 
-            <Button onClick={load} className="h-9 px-4" disabled={loading}>
+            <Button onClick={() => {
+              if (!checkAndBlock(() => load())) return;
+            }} className="h-9 px-4" disabled={loading}>
               {loading ? 'Loading...' : 'Apply'}
             </Button>
 
@@ -502,22 +508,30 @@ export default function ResultManagement() {
 
             {dateFilterType === 'specific' ? (
               <>
-                <Button onClick={() => download('pdf')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                <Button onClick={() => {
+                  if (!checkAndBlock(() => download('pdf'))) return;
+                }} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
                   <Download className="mr-2 h-4 w-4" />
                   PDF
                 </Button>
-                <Button onClick={() => download('xlsx')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                <Button onClick={() => {
+                  if (!checkAndBlock(() => download('xlsx'))) return;
+                }} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
                   <Download className="mr-2 h-4 w-4" />
                   Excel
                 </Button>
               </>
             ) : (
               <>
-                <Button onClick={() => download('csv')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                <Button onClick={() => {
+                  if (!checkAndBlock(() => download('csv'))) return;
+                }} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
                   <Download className="mr-2 h-4 w-4" />
                   CSV
                 </Button>
-                <Button onClick={() => download('xlsx')} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
+                <Button onClick={() => {
+                  if (!checkAndBlock(() => download('xlsx'))) return;
+                }} variant="outline" className="h-9 px-3 text-sm" disabled={loading || rows.length === 0}>
                   <Download className="mr-2 h-4 w-4" />
                   Excel
                 </Button>
@@ -785,6 +799,11 @@ export default function ResultManagement() {
         )}
 
       </ErpSection>
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
 
     </PageStack>
 

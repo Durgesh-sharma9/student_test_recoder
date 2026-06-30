@@ -4,16 +4,19 @@ import { Settings2, ClipboardList, Download, Save } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { useSubjects } from '@/hooks/useSubjects';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import SubjectSelect from '@/components/SubjectSelect';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
 export default function MarksEntryForm({ category, title }) {
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const isDaily = category === 'daily';
   const [classes, setClasses] = useState([]);
   const [form, setForm] = useState({
@@ -310,7 +313,9 @@ export default function MarksEntryForm({ category, title }) {
           </FormField>
 
           <div className="flex items-end">
-            <Button type="button" onClick={loadEntry} disabled={loadingStudents} className="w-full">
+            <Button type="button" onClick={() => {
+              if (!checkAndBlock(() => loadEntry())) return;
+            }} disabled={loadingStudents} className="w-full">
               {loadingStudents ? 'Loading...' : loadButtonLabel}
             </Button>
           </div>
@@ -422,11 +427,15 @@ export default function MarksEntryForm({ category, title }) {
               </TableBody>
             </Table>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={save} disabled={saving} variant="success">
+              <Button onClick={() => {
+                if (!checkAndBlock(() => save())) return;
+              }} disabled={saving} variant="success">
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : session ? 'Update Marks' : 'Save Marks'}
               </Button>
-              <Button variant="outline" onClick={download}>
+              <Button variant="outline" onClick={() => {
+                if (!checkAndBlock(() => download())) return;
+              }}>
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
               </Button>
@@ -440,6 +449,11 @@ export default function MarksEntryForm({ category, title }) {
           Select class, subject, and {isDaily ? 'date' : 'exam details'}, then click &quot;{loadButtonLabel}&quot;.
         </p>
       )}
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

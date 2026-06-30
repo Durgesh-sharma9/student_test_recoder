@@ -2,8 +2,10 @@ import mongoose from 'mongoose';
 import Plan from '../models/Plan.js';
 import School from '../models/School.js';
 import User from '../models/User.js';
+import Student from '../models/Student.js';
 import PaymentSettings from '../models/PaymentSettings.js';
 import SubscriptionRequest from '../models/SubscriptionRequest.js';
+import SubscriptionHistory from '../models/SubscriptionHistory.js';
 import Notification from '../models/Notification.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -187,6 +189,22 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
   if (!school) throw new ApiError(404, 'School not found');
   if (!requestedPlan || !requestedPlan.isActive) throw new ApiError(404, 'Requested plan not found');
 
+  // Check if this is an upgrade (higher limits)
+  const currentPlan = school.plan;
+  const isUpgrade = currentPlan && (
+    (requestedPlan.maxTeachers > currentPlan.maxTeachers) ||
+    (requestedPlan.maxStudents > currentPlan.maxStudents) ||
+    (requestedPlan.teacherCapacityType === 'unlimited' && currentPlan.teacherCapacityType !== 'unlimited') ||
+    (requestedPlan.studentCapacityType === 'unlimited' && currentPlan.studentCapacityType !== 'unlimited')
+  );
+
+  const isDowngrade = currentPlan && (
+    (requestedPlan.maxTeachers < currentPlan.maxTeachers) ||
+    (requestedPlan.maxStudents < currentPlan.maxStudents) ||
+    (requestedPlan.teacherCapacityType !== 'unlimited' && currentPlan.teacherCapacityType === 'unlimited') ||
+    (requestedPlan.studentCapacityType !== 'unlimited' && currentPlan.studentCapacityType === 'unlimited')
+  );
+
   // Optional screenshot upload
   let paymentScreenshotUrl = null;
   let paymentScreenshotName = null;
@@ -206,67 +224,153 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
   const taxAmount = computedPricing.taxEnabled ? Number(computedPricing.taxAmount ?? 0) : 0;
   const finalAmount = Number(computedPricing.finalPrice ?? 0);
 
-  const requestDoc = await SubscriptionRequest.create({
-    school: school._id,
-    adminUser: req.user._id,
-    currentPlan: school.plan?._id,
-    requestedPlan: requestedPlan._id,
-    billingCycle: requestedPlan.billingCycle,
-    basePrice,
-    taxName,
-    taxPercentage,
-    taxAmount,
-    finalAmount,
-    mobileNumber,
-    state,
-    utr: String(utr).trim().toUpperCase(),
-    paymentScreenshotUrl,
-    paymentScreenshotName,
-    paymentScreenshotType,
-    status: 'pending',
-    submittedAt: new Date(),
-  });
+  // Calculate new expiry date
+  const currentExpiry = school.planExpiresAt || new Date();
+  const durationDays = requestedPlan.durationDays || 30;
+  const newExpiry = new Date(currentExpiry);
+  newExpiry.setDate(newExpiry.getDate() + durationDays);
 
-  // Notify super admins about new request
-  const superAdmins = await User.find({ role: 'super_admin', isActive: true }).select('_id');
-  if (superAdmins.length) {
+  if (isUpgrade) {
+    // Immediate activation for upgrades
+    school.plan = requestedPlan._id;
+    school.planExpiresAt = newExpiry;
+    school.scheduledDowngradePlan = null;
+    school.scheduledDowngradeDate = null;
+    await school.save();
+
+    // Create subscription history entry
+    await SubscriptionHistory.create({
+      school: school._id,
+      plan: requestedPlan._id,
+      action: 'plan_upgraded',
+      previousPlan: currentPlan?._id,
+      expiryDate: newExpiry,
+    });
+
+    // Notify admin about upgrade
     await Notification.create({
-      title: 'New payment request submitted',
-      message: `${school.schoolName} submitted a payment request for ${requestedPlan.name} (${requestedPlan.billingCycle}).`,
-      priority: 'important',
+      title: 'Plan Upgraded Successfully',
+      message: `Your plan has been upgraded to ${requestedPlan.name}. Valid until ${newExpiry.toLocaleDateString()}.`,
+      priority: 'success',
       senderId: req.user._id,
       senderRole: 'school_admin',
-      recipientIds: superAdmins.map((u) => u._id),
+      recipientIds: [req.user._id],
       schoolId: school._id,
       targetRole: 'school_admin',
       isBroadcast: false,
-      subscriptionRequestId: requestDoc._id,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Plan upgraded successfully',
+      subscription: {
+        currentPlan: requestedPlan,
+        planExpiresAt: newExpiry,
+      },
+    });
+  } else if (isDowngrade) {
+    // Schedule downgrade for end of current billing period
+    school.scheduledDowngradePlan = requestedPlan._id;
+    school.scheduledDowngradeDate = currentExpiry;
+    await school.save();
+
+    // Create subscription history entry
+    await SubscriptionHistory.create({
+      school: school._id,
+      plan: requestedPlan._id,
+      action: 'plan_downgrade_scheduled',
+      previousPlan: currentPlan?._id,
+      expiryDate: currentExpiry,
+      scheduledDowngradeDate: currentExpiry,
+    });
+
+    // Notify admin about scheduled downgrade
+    await Notification.create({
+      title: 'Plan Downgrade Scheduled',
+      message: `Your plan will be downgraded to ${requestedPlan.name} on ${currentExpiry.toLocaleDateString()}. Your current plan remains active until then.`,
+      priority: 'info',
+      senderId: req.user._id,
+      senderRole: 'school_admin',
+      recipientIds: [req.user._id],
+      schoolId: school._id,
+      targetRole: 'school_admin',
+      isBroadcast: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Plan downgrade scheduled successfully',
+      subscription: {
+        currentPlan: currentPlan,
+        planExpiresAt: currentExpiry,
+        scheduledDowngradePlan: requestedPlan,
+        scheduledDowngradeDate: currentExpiry,
+      },
+    });
+  } else {
+    // Pending approval for downgrades or new subscriptions
+    const requestDoc = await SubscriptionRequest.create({
+      school: school._id,
+      adminUser: req.user._id,
+      currentPlan: school.plan?._id,
+      requestedPlan: requestedPlan._id,
+      billingCycle: requestedPlan.billingCycle,
+      basePrice,
+      taxName,
+      taxPercentage,
+      taxAmount,
+      finalAmount,
+      mobileNumber,
+      state,
+      utr: String(utr).trim().toUpperCase(),
+      paymentScreenshotUrl,
+      paymentScreenshotName,
+      paymentScreenshotType,
+      status: 'pending',
+      submittedAt: new Date(),
+    });
+
+    // Notify super admins about new request
+    const superAdmins = await User.find({ role: 'super_admin', isActive: true }).select('_id');
+    if (superAdmins.length) {
+      await Notification.create({
+        title: 'New payment request submitted',
+        message: `${school.schoolName} submitted a payment request for ${requestedPlan.name} (${requestedPlan.billingCycle}).`,
+        priority: 'important',
+        senderId: req.user._id,
+        senderRole: 'school_admin',
+        recipientIds: superAdmins.map((u) => u._id),
+        schoolId: school._id,
+        targetRole: 'school_admin',
+        isBroadcast: false,
+        subscriptionRequestId: requestDoc._id,
+      });
+    }
+
+    // Notify admin about submission (self-notification to show in panel)
+    await Notification.create({
+      title: 'Payment Submitted',
+      message: 'Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.',
+      priority: 'normal',
+      senderId: req.user._id,
+      senderRole: 'school_admin',
+      recipientIds: [req.user._id],
+      schoolId: school._id,
+      targetRole: 'school_admin',
+      isBroadcast: false,
+    });
+
+    res.status(201).json({
+      success: true,
+      request: await SubscriptionRequest.findById(requestDoc._id)
+        .populate('school', 'schoolName email adminName')
+        .populate('requestedPlan', 'name planType billingCycle finalPrice'),
     });
   }
-
-  // Notify admin about submission (self-notification to show in panel)
-  await Notification.create({
-    title: 'Payment Submitted',
-    message: 'Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.',
-    priority: 'normal',
-    senderId: req.user._id,
-    senderRole: 'school_admin',
-    recipientIds: [req.user._id],
-    schoolId: school._id,
-    targetRole: 'school_admin',
-    isBroadcast: false,
-  });
-
-  res.status(201).json({
-    success: true,
-    request: await SubscriptionRequest.findById(requestDoc._id)
-      .populate('school', 'schoolName email adminName')
-      .populate('requestedPlan', 'name planType billingCycle finalPrice'),
-  });
 });
 
 export const getSubscriptionStatus = asyncHandler(async (req, res) => {
-  const school = await School.findById(req.user.school).populate('plan');
+  const school = await School.findById(req.user.school).populate('plan').populate('scheduledDowngradePlan');
   if (!school) throw new ApiError(404, 'School not found');
 
   console.log('[getSubscriptionStatus] School data:', {
@@ -274,6 +378,8 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
     plan: school.plan,
     planExpiresAt: school.planExpiresAt,
     isActive: school.isActive,
+    scheduledDowngradePlan: school.scheduledDowngradePlan,
+    scheduledDowngradeDate: school.scheduledDowngradeDate,
   });
 
   const pendingRequest = await SubscriptionRequest.findOne({
@@ -297,6 +403,8 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
       planExpiresAt: school.planExpiresAt,
       isActive: school.isActive,
       pendingRequest,
+      scheduledDowngradePlan: school.scheduledDowngradePlan,
+      scheduledDowngradeDate: school.scheduledDowngradeDate,
       usage: {
         teachers: teacherCount,
         students: studentCount,
@@ -309,6 +417,7 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
   console.log('[getSubscriptionStatus] Response:', {
     currentPlan: response.subscription.currentPlan,
     planExpiresAt: response.subscription.planExpiresAt,
+    scheduledDowngradePlan: response.subscription.scheduledDowngradePlan,
   });
 
   res.json(response);
