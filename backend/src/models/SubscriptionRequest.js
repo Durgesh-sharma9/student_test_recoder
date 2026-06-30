@@ -19,6 +19,11 @@ const subscriptionRequestSchema = new mongoose.Schema(
     taxAmount: { type: Number, default: 0 },
     finalAmount: { type: Number, default: 0 },
 
+    // Coupon information
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
+    couponCode: { type: String, trim: true, uppercase: true },
+    discountAmount: { type: Number, default: 0 },
+
     mobileNumber: { type: String, trim: true },
     state: { type: String, trim: true },
     utr: { type: String, required: true, trim: true, uppercase: true },
