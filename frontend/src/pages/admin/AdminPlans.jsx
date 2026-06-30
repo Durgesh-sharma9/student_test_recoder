@@ -1,19 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Zap, Star, Gem } from 'lucide-react';
+import { Check, Zap, Star, Gem, CreditCard, History, Users, GraduationCap, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
-import { PageStack } from '@/components/erp/PagePrimitives';
+import { PageStack, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/context/SubscriptionContext';
 import PlanDetailsDialog from '@/components/subscription/PlanDetailsDialog';
 import TrialRequestDialog from '@/components/subscription/TrialRequestDialog';
 import EnterpriseRequestDialog from '@/components/subscription/EnterpriseRequestDialog';
+import ExpiryReminderBanner from '@/components/subscription/ExpiryReminderBanner';
 
 export default function AdminPlans() {
+  const { subscription, currentPlan, usage, refresh } = useSubscription();
   const [plans, setPlans] = useState([]);
   const [activeCycle, setActiveCycle] = useState('monthly');
   const [details, setDetails] = useState({ open: false, planId: null });
   const [trialDialogOpen, setTrialDialogOpen] = useState(false);
   const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
+  const [history, setHistory] = useState([]);
 
   const load = async () => {
     try {
@@ -25,7 +28,17 @@ export default function AdminPlans() {
     } catch (e) { console.error(e); }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadHistory = async () => {
+    try {
+      const res = await api.get('/subscription-history');
+      setHistory(res.data.history || []);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => { 
+    load(); 
+    loadHistory();
+  }, []);
 
   const visiblePlans = useMemo(() => {
     return plans
@@ -44,6 +57,8 @@ export default function AdminPlans() {
 
   return (
     <PageStack>
+      <ExpiryReminderBanner />
+      
       {/* Compact Header */}
       <div className="text-center py-2">
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Choose the Perfect Plan</h1>
@@ -107,6 +122,112 @@ export default function AdminPlans() {
       <PlanDetailsDialog open={details.open} onOpenChange={(v) => setDetails((s) => ({ ...s, open: v }))} planId={details.planId} />
       <TrialRequestDialog open={trialDialogOpen} onOpenChange={setTrialDialogOpen} />
       <EnterpriseRequestDialog open={enterpriseDialogOpen} onOpenChange={setEnterpriseDialogOpen} />
+
+      {/* Current Subscription Card */}
+      {currentPlan && (
+        <ErpSection title="Current Subscription" icon={CreditCard} tone="blue">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Current Plan</p>
+              <p className="mt-1 text-lg font-extrabold text-slate-900 capitalize">{currentPlan.name}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Status</p>
+              <p className="mt-1 text-lg font-extrabold text-emerald-600">Active</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Expires</p>
+              <p className="mt-1 text-lg font-extrabold text-slate-900">
+                {subscription?.planExpiresAt ? new Date(subscription.planExpiresAt).toLocaleDateString() : '-'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Billing Cycle</p>
+              <p className="mt-1 text-lg font-extrabold text-slate-900 capitalize">{currentPlan.billingCycle}</p>
+            </div>
+          </div>
+          
+          {/* Usage */}
+          {usage && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl p-2.5 bg-indigo-50 text-indigo-600">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-500">Teachers</p>
+                    <p className="mt-1 text-2xl font-extrabold text-slate-900">
+                      {usage.teachers} / {usage.teacherLimit === null ? 'Unlimited' : usage.teacherLimit}
+                    </p>
+                  </div>
+                </div>
+                {usage.teacherLimit !== null && (
+                  <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${usage.teachers >= usage.teacherLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                      style={{ width: `${Math.min((usage.teachers / usage.teacherLimit) * 100, 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl p-2.5 bg-emerald-50 text-emerald-600">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-500">Students</p>
+                    <p className="mt-1 text-2xl font-extrabold text-slate-900">
+                      {usage.students} / {usage.studentLimit === null ? 'Unlimited' : usage.studentLimit}
+                    </p>
+                  </div>
+                </div>
+                {usage.studentLimit !== null && (
+                  <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${usage.students >= usage.studentLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                      style={{ width: `${Math.min((usage.students / usage.studentLimit) * 100, 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </ErpSection>
+      )}
+
+      {/* Subscription History */}
+      {history.length > 0 && (
+        <ErpSection title="Subscription History" icon={History} tone="purple">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Plan</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Expiry</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {history.map((h) => (
+                  <tr key={h._id}>
+                    <td className="px-4 py-3 text-sm text-slate-900">{new Date(h.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900 capitalize">{h.plan?.name || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 capitalize">
+                      {h.action.replace(/_/g, ' ')}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {h.expiryDate ? new Date(h.expiryDate).toLocaleDateString() : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ErpSection>
+      )}
     </PageStack>
   );
 }

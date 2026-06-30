@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { useAuth } from '@/context/AuthContext';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import StatsCard from '@/components/StatsCard';
 import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection, PageStack, FormField } from '@/components/erp/PagePrimitives';
@@ -11,9 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const navigate = useNavigate();
   const [data, setData] = useState({ stats: {}, recentActivities: [], weakStudents: [], assignmentDetails: [] });
   const [weakStudentsData, setWeakStudentsData] = useState([]);
@@ -208,7 +211,9 @@ export default function TeacherDashboard() {
               )}
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={fetchWeakStudents} disabled={loadingWeakStudents} className="rounded-xl bg-yellow-600 hover:bg-yellow-700 w-full">
+                <Button onClick={() => {
+                  if (!checkAndBlock(() => fetchWeakStudents())) return;
+                }} disabled={loadingWeakStudents} className="rounded-xl bg-yellow-600 hover:bg-yellow-700 w-full">
                   {loadingWeakStudents ? 'Loading...' : 'Generate Report'}
                 </Button>
                 <Button onClick={clearWeakStudentFilters} variant="outline" className="rounded-xl w-full">Clear</Button>
@@ -229,6 +234,11 @@ export default function TeacherDashboard() {
           </div>
         </ErpSection>
       </div>
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

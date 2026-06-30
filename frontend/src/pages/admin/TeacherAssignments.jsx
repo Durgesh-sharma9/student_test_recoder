@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { formatClassName } from "@/lib/utils";
 import { useSession } from '@/context/SessionContext';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import { Users, ClipboardList, Plus, Save, BookOpen, Trash2 } from "lucide-react";
 import {
   PageHeader,
@@ -20,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import SearchableTeacherSelect from "@/components/SearchableTeacherSelect";
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 const COMMON_SUBJECTS = [
   "Maths",
@@ -40,6 +42,7 @@ const COMMON_SUBJECTS = [
 
 export default function TeacherAssignments() {
   const { isArchived } = useSession();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [teacherId, setTeacherId] = useState("");
@@ -75,20 +78,22 @@ export default function TeacherAssignments() {
   }, [teacherId, teachers]);
 
   const addItem = () => {
-    if (!selectedClass || !subject.trim()) {
-      toast.error("Please select class and enter subject");
-      return;
-    }
+    if (!checkAndBlock(() => {
+      if (!selectedClass || !subject.trim()) {
+        toast.error("Please select class and enter subject");
+        return;
+      }
 
-    setItems((prev) => [
-      ...prev,
-      {
-        class: selectedClass,
-        subject: subject.toUpperCase(),
-      },
-    ]);
+      setItems((prev) => [
+        ...prev,
+        {
+          class: selectedClass,
+          subject: subject.toUpperCase(),
+        },
+      ]);
 
-    setSubject("");
+      setSubject("");
+    })) return;
   };
 
   // Confirmation ke sath handle karne ka custom trigger handler
@@ -103,56 +108,58 @@ export default function TeacherAssignments() {
   };
 
   const save = async () => {
-    try {
-      console.log('[TeacherAssignments] save called');
-      console.log('[TeacherAssignments] teacherId:', teacherId);
-      console.log('[TeacherAssignments] teacherId type:', typeof teacherId);
-      console.log('[TeacherAssignments] teacherId value:', JSON.stringify(teacherId));
-      
-      if (!teacherId) {
-        toast.error("Please select a teacher first");
-        return;
-      }
-
-      const uniqueClassIds = [...new Set(items.map((i) => i.class))];
-      const uniqueSubjects = [
-        ...new Set(
-          items
-            .map((i) => i.subject)
-            .filter(Boolean),
-        ),
-      ];
-
-      for (const subject of uniqueSubjects) {
-        try {
-          await api.post("/subjects", {
-            subject,
-          });
-        } catch {
-          // ignore duplicate
+    if (!checkAndBlock(async () => {
+      try {
+        console.log('[TeacherAssignments] save called');
+        console.log('[TeacherAssignments] teacherId:', teacherId);
+        console.log('[TeacherAssignments] teacherId type:', typeof teacherId);
+        console.log('[TeacherAssignments] teacherId value:', JSON.stringify(teacherId));
+        
+        if (!teacherId) {
+          toast.error("Please select a teacher first");
+          return;
         }
+
+        const uniqueClassIds = [...new Set(items.map((i) => i.class))];
+        const uniqueSubjects = [
+          ...new Set(
+            items
+              .map((i) => i.subject)
+              .filter(Boolean),
+          ),
+        ];
+
+        for (const subject of uniqueSubjects) {
+          try {
+            await api.post("/subjects", {
+              subject,
+            });
+          } catch {
+            // ignore duplicate
+          }
+        }
+
+        const payload = {
+          assignedClasses: uniqueClassIds,
+          assignments: items,
+        };
+        
+        console.log('[TeacherAssignments] payload:', payload);
+        console.log('[TeacherAssignments] API URL:', `/users/${teacherId}/assignments`);
+
+        await api.put(
+          `/users/${teacherId}/assignments`,
+          payload,
+        );
+
+        toast.success("Assignments saved successfully");
+      } catch (error) {
+        console.error('[TeacherAssignments] Error:', error);
+        toast.error(
+          error?.response?.data?.message || "Failed to save assignments",
+        );
       }
-
-      const payload = {
-        assignedClasses: uniqueClassIds,
-        assignments: items,
-      };
-      
-      console.log('[TeacherAssignments] payload:', payload);
-      console.log('[TeacherAssignments] API URL:', `/users/${teacherId}/assignments`);
-
-      await api.put(
-        `/users/${teacherId}/assignments`,
-        payload,
-      );
-
-      toast.success("Assignments saved successfully");
-    } catch (error) {
-      console.error('[TeacherAssignments] Error:', error);
-      toast.error(
-        error?.response?.data?.message || "Failed to save assignments",
-      );
-    }
+    })) return;
   };
 
   return (
@@ -286,6 +293,11 @@ export default function TeacherAssignments() {
           Save Assignments
         </Button>
       </div>
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

@@ -44,6 +44,7 @@ const navByRole = {
     { to: '/super-admin/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/super-admin/schools', label: 'Schools', icon: Building2, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
     { to: '/super-admin/plans', label: 'Plans', icon: ClipboardList, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
+    { to: '/super-admin/trial-settings', label: 'Trial Settings', icon: Settings, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100' },
     { to: '/super-admin/subscription-requests', label: 'Payments', icon: CreditCard, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/super-admin/payment-settings', label: 'Payment Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
@@ -80,7 +81,7 @@ const navByRole = {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const { isFeatureEnabled } = useSubscription();
+  const { isFeatureEnabled, currentPlan } = useSubscription();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -90,6 +91,20 @@ export default function DashboardLayout() {
   const navItems = navByRole[role] || [];
   const isAdmin = role === 'school_admin';
   const isSuperAdmin = role === 'super_admin';
+
+  // Get plan badge text
+  const getPlanBadge = () => {
+    if (!currentPlan?.planType) return null;
+    const planTypeMap = {
+      'trial': 'TRIAL',
+      'basic': 'BASIC',
+      'standard': 'STANDARD',
+      'premium': 'ELITE',
+    };
+    return planTypeMap[currentPlan.planType] || currentPlan.planType.toUpperCase();
+  };
+
+  const planBadge = getPlanBadge();
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
@@ -145,6 +160,14 @@ export default function DashboardLayout() {
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}><Menu className="h-5 w-5" /></Button>
           <div className="flex items-center gap-3 ml-auto">
+            {isAdmin && planBadge && (
+              <button
+                onClick={() => navigate('/admin/plans')}
+                className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1 text-xs font-bold text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all"
+              >
+                {planBadge}
+              </button>
+            )}
             {(isSuperAdmin || isAdmin || role === 'teacher' || role === 'parent') && <NotificationPanel />}
             <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>
             <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>

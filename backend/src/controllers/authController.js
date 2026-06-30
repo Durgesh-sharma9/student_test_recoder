@@ -4,6 +4,8 @@ import School from '../models/School.js';
 import Plan from '../models/Plan.js';
 import AcademicSession from '../models/AcademicSession.js';
 import Parent from '../models/Parent.js';
+import TrialSettings from '../models/TrialSettings.js';
+import SubscriptionHistory from '../models/SubscriptionHistory.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import passport from '../config/passport.js';
@@ -101,19 +103,22 @@ export const registerSchool = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) throw new ApiError(400, 'Email already in use.');
 
+  // Get trial settings
+  const trialSettings = await TrialSettings.getSettings();
   let trialPlan = await Plan.findOne({ slug: 'trial' });
+  
   if (!trialPlan) {
     trialPlan = await Plan.create({
       name: 'Trial',
       slug: 'trial',
-      durationDays: 14,
+      durationDays: trialSettings.durationDays,
       maxTeachers: 10,
       maxStudents: 200,
     });
   }
 
   const planExpiresAt = new Date();
-  planExpiresAt.setDate(planExpiresAt.getDate() + trialPlan.durationDays);
+  planExpiresAt.setDate(planExpiresAt.getDate() + trialSettings.durationDays);
 
   const school = await School.create({
     schoolName,
@@ -122,6 +127,15 @@ export const registerSchool = asyncHandler(async (req, res) => {
     phone,
     plan: trialPlan._id,
     planExpiresAt,
+    trialUsed: true,
+  });
+
+  // Create subscription history entry
+  await SubscriptionHistory.create({
+    school: school._id,
+    plan: trialPlan._id,
+    action: 'trial_started',
+    expiryDate: planExpiresAt,
   });
 
   const admin = await User.create({

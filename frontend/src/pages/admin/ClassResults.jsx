@@ -12,11 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import DatePicker from '@/components/ui/DatePicker';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 const EXAM_TYPES = ['Daily Test', 'PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 const MAIN_EXAM_TYPES = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
 export default function ClassResults() {
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedExamTypes, setSelectedExamTypes] = useState(['Daily Test']);
@@ -791,21 +794,29 @@ export default function ClassResults() {
         </div>
 
         <div className="mt-4 flex gap-2">
-          <Button onClick={fetchResults} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
+          <Button onClick={() => {
+            if (!checkAndBlock(() => fetchResults())) return;
+          }} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
             {loading ? 'Loading...' : 'View Results'}
           </Button>
           {results && (
             <>
-              <Button variant="outline" onClick={exportCSV}>
+              <Button variant="outline" onClick={() => {
+                if (!checkAndBlock(() => exportCSV())) return;
+              }}>
                 <Download className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>
-              <Button variant="outline" onClick={exportXLSX}>
+              <Button variant="outline" onClick={() => {
+                if (!checkAndBlock(() => exportXLSX())) return;
+              }}>
                 <Download className="mr-2 h-4 w-4" />
                 Export XLSX
               </Button>
               {!selectedExamTypes.includes('Daily Test') && (
-                <Button variant="outline" onClick={exportPDF}>
+                <Button variant="outline" onClick={() => {
+                  if (!checkAndBlock(() => exportPDF())) return;
+                }}>
                   <Download className="mr-2 h-4 w-4" />
                   Export PDF
                 </Button>
@@ -1060,6 +1071,11 @@ export default function ClassResults() {
           </ErpSection>
         </>
       )}
+      
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }

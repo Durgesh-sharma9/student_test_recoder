@@ -11,10 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatClassName } from '@/lib/utils';
+import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
+import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
 const EXAM_TYPES = ['Daily Test', 'PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
 export default function AcademicSessions() {
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -443,7 +446,9 @@ export default function AcademicSessions() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleEditClick(activeSession)}
+                  onClick={() => {
+                    if (!checkAndBlock(() => handleEditClick(activeSession))) return;
+                  }}
                 >
                   <Edit2 className="mr-2 h-4 w-4" />
                   Edit Session
@@ -457,7 +462,9 @@ export default function AcademicSessions() {
       {/* Create New Session */}
       <ErpSection title="Create New Session" icon={Plus} tone="green">
         {!showCreateForm ? (
-          <Button onClick={() => setShowCreateForm(true)}>
+          <Button onClick={() => {
+            if (!checkAndBlock(() => setShowCreateForm(true))) return;
+          }}>
             <Plus className="mr-2 h-4 w-4" />
             Create New Session
           </Button>
@@ -633,7 +640,9 @@ export default function AcademicSessions() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEditClick(session)}
+                          onClick={() => {
+                            if (!checkAndBlock(() => handleEditClick(session))) return;
+                          }}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -743,16 +752,22 @@ export default function AcademicSessions() {
               </FormField>
             </div>
             <div className="mt-4 flex gap-2">
-              <Button onClick={fetchResults} disabled={!reportFilters.sessionId || !reportFilters.classId || !reportFilters.examType || loading}>
+              <Button onClick={() => {
+                if (!checkAndBlock(() => fetchResults())) return;
+              }} disabled={!reportFilters.sessionId || !reportFilters.classId || !reportFilters.examType || loading}>
                 {loading ? 'Loading...' : 'Show Results'}
               </Button>
               {results && (
                 <>
-                  <Button variant="outline" onClick={exportCSV}>
+                  <Button variant="outline" onClick={() => {
+                    if (!checkAndBlock(() => exportCSV())) return;
+                  }}>
                     <Download className="mr-2 h-4 w-4" />
                     Export CSV
                   </Button>
-                  <Button variant="outline" onClick={exportXLSX}>
+                  <Button variant="outline" onClick={() => {
+                    if (!checkAndBlock(() => exportXLSX())) return;
+                  }}>
                     <Download className="mr-2 h-4 w-4" />
                     Export XLSX
                   </Button>
@@ -900,6 +915,11 @@ export default function AcademicSessions() {
           </ErpSection>
         </>
       )}
+
+      <SubscriptionExpiredDialog
+        open={expiredDialogOpen}
+        onOpenChange={setExpiredDialogOpen}
+      />
     </PageStack>
   );
 }
