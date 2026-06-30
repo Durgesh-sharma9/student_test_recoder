@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, BarChart3, Users, BookOpen, Trophy,
-  CreditCard, Bus, Calendar, Bell, ArrowRight,
-  ClipboardList, FileSpreadsheet, Smartphone, Building2,
-  ChevronRight, Star, Zap, Cloud, Lock, TrendingUp,
-  FileText, Play, Check, X, Twitter, Linkedin,
-  Facebook, Instagram, Mail, Phone, MapPin,
+  Calendar, ArrowRight, ClipboardList, FileSpreadsheet, 
+  Smartphone, Building2, ChevronRight, Star, Zap, Cloud, 
+  Lock, TrendingUp, FileText, Play, Check, X, Twitter, 
+  Linkedin, Facebook, Instagram, Mail, Phone, MapPin,
 } from "lucide-react";
 
 /* ─── animated counter ─── */
@@ -26,7 +25,7 @@ function useCounter(target, duration = 1400, start = false) {
   return v;
 }
 
-function StatCard({ value, suffix, label, icon: Icon, gradient, textColor, delay, inView }) {
+function StatCard({ value, suffix, label, icon: Icon, gradient, delay, inView }) {
   const count = useCounter(value, 1400, inView);
   const display = value >= 1000
     ? (count / 1000).toFixed(count >= value ? (value >= 10000 ? 0 : 1) : 1) + "K"
@@ -43,6 +42,7 @@ function StatCard({ value, suffix, label, icon: Icon, gradient, textColor, delay
 export default function Landing() {
   const [statsVisible, setStatsVisible] = useState(false);
   const [scrolled, setScrolled]         = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const statsRef = useRef(null);
 
   useEffect(() => {
@@ -58,35 +58,35 @@ export default function Landing() {
   }, []);
 
   const features = [
-    { icon: Users,          title: "Student Management",   desc: "Enroll, track and manage student profiles, classes, and full academic history.",      grad: "linear-gradient(135deg,#6366f1,#3b82f6)", shadow: "rgba(99,102,241,.35)" },
-    { icon: Users,          title: "Teacher Management",   desc: "Assign subjects, manage teacher profiles and track their performance easily.",         grad: "linear-gradient(135deg,#10b981,#06b6d4)", shadow: "rgba(16,185,129,.35)" },
-    { icon: BookOpen,       title: "Daily Test System",    desc: "Create, schedule and auto-grade daily assessments with instant results.",               grad: "linear-gradient(135deg,#f59e0b,#f97316)", shadow: "rgba(245,158,11,.35)" },
-    { icon: Trophy,         title: "Main Exam Management", desc: "Full-cycle exam creation, mark entry, ranking and report generation.",                  grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", shadow: "rgba(236,72,153,.35)" },
-    { icon: BarChart3,      title: "Result Analytics",     desc: "Visual performance charts, subject-wise comparisons and trend tracking.",               grad: "linear-gradient(135deg,#f97316,#ef4444)", shadow: "rgba(249,115,22,.35)" },
-    { icon: ClipboardList,  title: "Class-wise Reports",   desc: "Auto-generate class toppers, pass/fail summaries and performance sheets.",              grad: "linear-gradient(135deg,#14b8a6,#10b981)", shadow: "rgba(20,184,166,.35)" },
-    { icon: FileSpreadsheet,title: "CSV / XLSX Export",    desc: "Export any report to spreadsheet in one click for offline analysis.",                   grad: "linear-gradient(135deg,#3b82f6,#06b6d4)", shadow: "rgba(59,130,246,.35)" },
-    { icon: Smartphone,     title: "Parent Portal",        desc: "Parents view results, ranks and progress from a dedicated mobile-ready portal.",        grad: "linear-gradient(135deg,#a855f7,#ec4899)", shadow: "rgba(168,85,247,.35)" },
-    { icon: Building2,      title: "Multi-school Support", desc: "Manage multiple campuses from one admin account with completely isolated data.",         grad: "linear-gradient(135deg,#f59e0b,#84cc16)", shadow: "rgba(245,158,11,.35)" },
-    { icon: Calendar,       title: "Academic Sessions",    desc: "Manage multiple academic years and session archives with ease.",                         grad: "linear-gradient(135deg,#06b6d4,#6366f1)", shadow: "rgba(6,182,212,.35)" },
+    { icon: Users,          title: "Student Management",      desc: "Manage admissions, student records, academic history and class allocation from one place.",        grad: "linear-gradient(135deg,#6366f1,#3b82f6)", shadow: "rgba(99,102,241,.35)" },
+    { icon: Users,          title: "Teacher Management",      desc: "Manage teachers, subject assignments, attendance and performance with ease.",                   grad: "linear-gradient(135deg,#10b981,#06b6d4)", shadow: "rgba(16,185,129,.35)" },
+    { icon: BookOpen,       title: "Daily Test Management",   desc: "Conduct daily tests, enter marks and monitor student performance continuously.",                 grad: "linear-gradient(135deg,#f59e0b,#f97316)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Trophy,         title: "Main Exam Management",    desc: "Create exams, enter marks, calculate percentages and generate final results.",                   grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", shadow: "rgba(236,72,153,.35)" },
+    { icon: BarChart3,      title: "Smart Result Analytics",  desc: "Track rankings, toppers, percentages and academic growth through visual reports.",               grad: "linear-gradient(135deg,#f97316,#ef4444)", shadow: "rgba(249,115,22,.35)" },
+    { icon: ClipboardList,  title: "Class Reports",           desc: "Generate class-wise reports, topper lists and printable result sheets instantly.",               grad: "linear-gradient(135deg,#14b8a6,#10b981)", shadow: "rgba(20,184,166,.35)" },
+    { icon: FileSpreadsheet,title: "Excel Export",            desc: "Export reports and student data to Excel for offline analysis and printing.",                     grad: "linear-gradient(135deg,#3b82f6,#06b6d4)", shadow: "rgba(59,130,246,.35)" },
+    { icon: Smartphone,     title: "Parent Portal",           desc: "Parents can securely view results, rankings, notices and student progress anytime.",             grad: "linear-gradient(135deg,#a855f7,#ec4899)", shadow: "rgba(168,85,247,.35)" },
+    { icon: Building2,      title: "Multi School Ready",      desc: "Designed for single schools as well as multi-school organizations.",                             grad: "linear-gradient(135deg,#f59e0b,#84cc16)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Calendar,       title: "Academic Sessions",       desc: "Manage multiple academic sessions while keeping previous records secure.",                       grad: "linear-gradient(135deg,#06b6d4,#6366f1)", shadow: "rgba(6,182,212,.35)" },
   ];
 
   const steps = [
-    { num: "01", icon: Building2, title: "Create your school",        desc: "Register and set up your institution with classes, subjects and academic sessions.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.4)"  },
-    { num: "02", icon: Users,      title: "Add teachers & students",   desc: "Import in bulk via CSV or add individually. Roles are auto-assigned.",              grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.4)" },
-    { num: "03", icon: BookOpen,   title: "Conduct tests & exams",     desc: "Schedule assessments, enter marks and manage the full exam lifecycle.",              grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.4)" },
-    { num: "04", icon: Trophy,     title: "Generate results instantly", desc: "Auto-calculate ranks, generate report cards and notify parents in seconds.",        grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.4)" },
+    { num: "01", icon: Building2, title: "Create Your School",         desc: "Register your school and complete the initial setup.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.4)"  },
+    { num: "02", icon: Users,     title: "Add Teachers & Students",    desc: "Import data or add records manually.",                                           grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.4)" },
+    { num: "03", icon: BookOpen,  title: "Conduct Tests & Exams",      desc: "Create assessments, enter marks and monitor progress.",                          grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.4)" },
+    { num: "04", icon: Trophy,    title: "Publish Results",            desc: "Generate rankings, report cards and allow parents to view results instantly.",    grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.4)" },
   ];
 
   const testimonials = [
-    { quote: "Result generation that used to take two full days now finishes in under twenty minutes. The export feature alone was worth switching.", name: "Arvind Kumar", role: "Principal, Delhi Public School",          initials: "AK", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
-    { quote: "Our teachers save hours every week. The daily test module is incredibly easy and parents love the portal for tracking their children.", name: "Priya Sharma", role: "Academic Coordinator, Ryan International", initials: "PS", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
-    { quote: "Managing three school branches from a single dashboard is a game changer. Data is always accurate and support responds within hours.",  name: "Rahul Verma",  role: "Director, Vidya Group of Schools",         initials: "RV", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
+    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, St. Xavier’s School",              initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
+    { quote: "The Parent Portal feature has been a game-changer. Parents are now much more involved, and our office staff is no longer overwhelmed with queries.", name: "Rajesh Meena", role: "Administrator, Global Public School", initials: "RM", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
+    { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.",  name: "Sunita Reddy", role: "Director, Heritage Academy",          initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
   ];
 
   const plans = [
     {
       name: "Starter", price: "₹999", cta: "Sign Up Free", popular: false,
-      desc: "For small schools getting started with digital result management.",
+      desc: "Ideal for small schools getting started with digital result management.",
       grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.15)",
       features: [
         { text: "Up to 500 students", ok: true },
@@ -115,23 +115,23 @@ export default function Landing() {
       desc: "For school chains needing multi-campus management at scale.",
       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.15)",
       features: [
-        { text: "Unlimited students",     ok: true },
-        { text: "Unlimited teachers",     ok: true },
-        { text: "All School features",    ok: true },
+        { text: "Unlimited students",    ok: true },
+        { text: "Unlimited teachers",    ok: true },
+        { text: "All School features",   ok: true },
         { text: "Multi-school dashboard", ok: true },
-        { text: "Dedicated support",      ok: true },
-        { text: "Custom integrations",    ok: true },
+        { text: "Dedicated support",     ok: true },
+        { text: "Custom integrations",   ok: true },
       ],
     },
   ];
 
   const whyCards = [
-    { icon: Zap,        title: "Easy to use",           desc: "Clean interface that non-technical staff can use without any training.",   grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
-    { icon: TrendingUp, title: "Fast result generation", desc: "Generate full result sheets and rank lists in under a minute.",            grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.12)" },
-    { icon: Cloud,      title: "Cloud based",            desc: "Access from anywhere, any device. No installation required.",              grad: "linear-gradient(135deg,#3b82f6,#6366f1)", glow: "rgba(59,130,246,.12)" },
-    { icon: Lock,       title: "Secure data",            desc: "School data completely isolated with HTTPS encryption end-to-end.",        grad: "linear-gradient(135deg,#ec4899,#ef4444)", glow: "rgba(236,72,153,.12)" },
-    { icon: Building2,  title: "Multi-school ready",     desc: "Run a chain of schools from one account with separate dashboards.",        grad: "linear-gradient(135deg,#8b5cf6,#a855f7)", glow: "rgba(139,92,246,.12)" },
-    { icon: FileText,   title: "Professional reports",   desc: "Print-ready report cards and performance sheets in one click.",            grad: "linear-gradient(135deg,#14b8a6,#84cc16)", glow: "rgba(20,184,166,.12)" },
+    { icon: Zap,        title: "Easy to Use",          desc: "Simple interface designed for school administrators and teachers.",  grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
+    { icon: TrendingUp, title: "Fast Result Generation", desc: "Generate rankings and report cards within seconds.",              grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.12)" },
+    { icon: Cloud,      title: "Cloud Based",          desc: "Access your school anytime from any device.",                        grad: "linear-gradient(135deg,#3b82f6,#6366f1)", glow: "rgba(59,130,246,.12)" },
+    { icon: Lock,       title: "Secure Data",          desc: "School data remains private, secure and isolated.",                  grad: "linear-gradient(135deg,#ec4899,#ef4444)", glow: "rgba(236,72,153,.12)" },
+    { icon: Building2,  title: "Scalable Platform",     desc: "Perfect for schools of every size.",                                  grad: "linear-gradient(135deg,#8b5cf6,#a855f7)", glow: "rgba(139,92,246,.12)" },
+    { icon: FileText,   title: "Professional Reports",  desc: "Generate clean printable reports with one click.",                  grad: "linear-gradient(135deg,#14b8a6,#84cc16)", glow: "rgba(20,184,166,.12)" },
   ];
 
   return (
@@ -176,6 +176,27 @@ export default function Landing() {
         .nav-links{display:flex;align-items:center;gap:28px;font-size:14px;font-weight:600;color:var(--text-2)}
         .nav-links a:hover{color:var(--text)}
         .nav-actions{display:flex;gap:10px;align-items:center}
+        
+        .mobile-menu-btn { display: none; background: none; font-size: 24px; padding: 10px; border: none; cursor: pointer; }
+        .mobile-menu { 
+          display: none; 
+          background: #fff; 
+          padding: 24px; 
+          border-radius: 0 0 20px 20px;
+          border-bottom: 1px solid var(--border); 
+          flex-direction: column; 
+          gap: 20px; 
+          text-align: left; 
+          position: fixed; 
+          width: 100%; 
+          left: 0; 
+          top: 66px; 
+          z-index: 2000; 
+          box-shadow: 0 20px 50px rgba(0,0,0,0.1); 
+        }
+        .mobile-menu.open { display: flex !important; }
+        .mobile-menu a { font-weight: 600; color: var(--text-2); font-size: 16px; }
+        .mobile-menu .btn { width: 100%; justify-content: center; }
 
         /* ── HERO ── */
         .hero-wrap{max-width:1160px;margin:0 auto;padding:88px 32px 72px}
@@ -345,6 +366,36 @@ export default function Landing() {
         .footer-legal a:hover{color:#94a3b8}
         .contact-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin-bottom:10px}
 
+        /* ── MOBILE RESPONSIVE RULES ── */
+        @media (max-width: 1024px) {
+          .hero-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+          .hero-actions { justify-content: center; }
+          .hero-sub { margin-left: auto; margin-right: auto; }
+          .hero-checks { justify-content: center; }
+          .feat-grid, .steps-grid, .why-grid, .testi-grid, .pricing-grid { grid-template-columns: 1fr; }
+          .portal-grid { grid-template-columns: 1fr; gap: 40px; }
+          .footer-top { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 768px) {
+          .nav-inner { padding: 0 20px; }
+          .nav-links, .nav-actions { display: none; }
+          .mobile-menu-btn { display: block; }
+          .stats-inner { grid-template-columns: 1fr 1fr; }
+          .section { padding: 60px 20px; }
+          .cta-box { padding: 40px 20px; }
+          .footer-top { grid-template-columns: 1fr; text-align: center; }
+          .footer-desc { margin: 0 auto; }
+          .footer-socials { justify-content: center; }
+          .footer-bottom { flex-direction: column; gap: 16px; }
+        }
+
+        @media (max-width: 480px) {
+          h1.hero-h1 { font-size: 36px; }
+          .stats-inner { grid-template-columns: 1fr; }
+          .pc-price { font-size: 32px; }
+        }
+
         @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         .fade-up{animation:fadeUp .65s ease forwards}
       `}</style>
@@ -354,7 +405,7 @@ export default function Landing() {
         <div className="nav-inner">
           <div className="logo">
             <div className="logo-mark"><GraduationCap size={18} /></div>
-            SchoolResult
+            Test Master Pro
           </div>
           <div className="nav-links">
             <a href="#features">Features</a>
@@ -367,6 +418,25 @@ export default function Landing() {
             <Link to="/parent-login" className="btn btn-ghost">Parent Login</Link>
             <Link to="/signup" className="btn btn-primary">Sign Up <ArrowRight size={15} /></Link>
           </div>
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X size={24} /> : '☰'}
+          </button>
+        </div>
+
+        {/* Mobile Dropdown */}
+        <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="logo"><div className="logo-mark"><GraduationCap size={18} /></div> Test Master Pro</div>
+            <button onClick={() => setMobileMenuOpen(false)} style={{background:'none', border:'none', cursor:'pointer'}}><X size={28}/></button>
+          </div>
+          <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+          <a href="#about" onClick={() => setMobileMenuOpen(false)}>About</a>
+          <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
+          <div style={{borderTop: '1px solid #f1f5f9', margin: '5px 0'}}></div>
+          <Link to="/login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Staff Login</Link>
+          <Link to="/parent-login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Parent Login</Link>
+          <Link to="/signup" className="btn btn-primary" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
         </div>
       </nav>
 
@@ -376,19 +446,20 @@ export default function Landing() {
           <div>
             <div className="hero-pill">
               <span className="pill-dot" />
-              Live on 100+ schools across India
+              Trusted by Schools Across India
             </div>
             <h1 className="hero-h1">
-              School Result<br />Management<br />
+              Complete School Result &<br />
+              Daily Test Management<br />
               <span className="hero-accent">Made Simple</span>
             </h1>
-            <p className="hero-sub">Manage Students, Teachers, Daily Tests, Exams, Results, Reports and Parent Access from one powerful platform.</p>
+            <p className="hero-sub">Manage Students, Teachers, Daily Tests, Main Exams, Parent Portal, Rankings and Reports from one secure cloud platform.</p>
             <div className="hero-actions">
-              <Link to="/signup" className="btn btn-primary btn-lg">Sign Up Free <ArrowRight size={16} /></Link>
+              <Link to="/signup" className="btn btn-primary btn-lg">Start Free Trial <ArrowRight size={16} /></Link>
               <button className="btn btn-outline btn-lg"><Play size={15} /> Watch Demo</button>
             </div>
             <div className="hero-checks">
-              {["Multi-school support","Daily test system","Parent portal","Result analytics","CSV / XLSX export","Cloud based"].map(t => (
+              {["Student Management","Teacher Management","Daily Test System","Parent Portal","Smart Reports","Cloud Based Platform"].map(t => (
                 <div className="hc" key={t}>
                   <div className="hc-dot"><Check size={11} color="#fff" strokeWidth={3} /></div>
                   {t}
@@ -441,10 +512,10 @@ export default function Landing() {
       {/* ── STATS ── */}
       <div className="stats-section" ref={statsRef}>
         <div className="stats-inner">
-          <StatCard value={100}   suffix="+" label="Schools"           icon={Building2}     gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0}   inView={statsVisible} />
-          <StatCard value={15000} suffix="" label="Students"           icon={Users}         gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80}  inView={statsVisible} />
+          <StatCard value={100}   suffix="+" label="Schools"           icon={Building2}    gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0}   inView={statsVisible} />
+          <StatCard value={15000} suffix="" label="Students"          icon={Users}        gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80}  inView={statsVisible} />
           <StatCard value={800}   suffix="+" label="Teachers"          icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
-          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText}      gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
+          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText}       gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
         </div>
       </div>
 
@@ -452,9 +523,8 @@ export default function Landing() {
       <div id="features">
         <div className="section">
           <div className="section-head">
-            <div className="s-tag">✦ Everything you need</div>
-            <h2>Powerful features for modern schools</h2>
-            <p>From student enrollment to result publication — all managed from one place.</p>
+            <div className="s-tag">✦ Everything Your School Needs</div>
+            <h2>Manage your complete academic workflow from a single dashboard.</h2>
           </div>
           <div className="feat-grid">
             {features.map(f => (
@@ -473,8 +543,7 @@ export default function Landing() {
         <div className="how-inner">
           <div className="section-head">
             <div className="s-tag">✦ Get started fast</div>
-            <h2>How it works</h2>
-            <p>Set up your school and go live in four simple steps.</p>
+            <h2>Start Managing Your School in Minutes</h2>
           </div>
           <div className="steps-grid">
             {steps.map(s => (
@@ -497,13 +566,13 @@ export default function Landing() {
         <div className="portal-grid">
           <div className="portal-text">
             <div className="s-tag" style={{ marginBottom: 18 }}>✦ Parent portal</div>
-            <h2>Keep parents informed<br />in real time</h2>
-            <p>Give every parent a secure login to track their child's academic progress, results and ranks — anytime, anywhere.</p>
+            <h2>Keep Parents Connected</h2>
+            <p>Parents receive secure access to monitor results, rankings, academic progress and important school updates from anywhere.</p>
             <div className="portal-feats">
               {[
-                { icon: FileText,   title: "View results",      desc: "Instant access to subject-wise marks and total scores for every exam.",     grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
-                { icon: Trophy,     title: "View class rank",   desc: "See where their child stands in class with a clear rank display.",           grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
-                { icon: TrendingUp, title: "Track performance", desc: "Visual trend charts show progress across academic sessions over time.",       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+                { icon: FileText,   title: "View Results",       desc: "Access subject-wise marks and overall performance.",    grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+                { icon: Trophy,     title: "View Rankings",      desc: "Check class rank and overall academic position.",       grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+                { icon: TrendingUp, title: "Track Progress",     desc: "Monitor performance trends throughout the academic session.",    grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
               ].map(pf => (
                 <div className="pf" key={pf.title}>
                   <div className="pf-icon" style={{ background: pf.grad, boxShadow: `0 6px 18px rgba(0,0,0,.15)` }}>
@@ -520,10 +589,10 @@ export default function Landing() {
               <p>Academic year 2025–26</p>
             </div>
             {[
-              { icon: FileText,   title: "Math — Unit Test 3", sub: "92/100 · Rank 3rd in class",  grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
-              { icon: BarChart3,  title: "Overall percentage", sub: "88.4% · Grade A",             grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
-              { icon: Trophy,     title: "Semester rank",      sub: "5th out of 42 students",       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
-              { icon: TrendingUp, title: "Progress trend",     sub: "+6.2% vs last term",           grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+              { icon: FileText,  title: "Math — Unit Test 3", sub: "92/100 · Rank 3rd in class",  grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+              { icon: BarChart3, title: "Overall percentage", sub: "88.4% · Grade A",            grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
+              { icon: Trophy,    title: "Semester rank",      sub: "5th out of 42 students",      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+              { icon: TrendingUp, title: "Progress trend",    sub: "+6.2% vs last term",          grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
             ].map(pc => (
               <div className="p-card" key={pc.title}>
                 <div className="p-card-icon" style={{ background: pc.grad }}><pc.icon size={16} color="#fff" /></div>
@@ -539,8 +608,7 @@ export default function Landing() {
         <div className="why-inner">
           <div className="section-head">
             <div className="s-tag">✦ Why schools choose us</div>
-            <h2>Built for school administrators</h2>
-            <p>Designed with real school needs in mind — simple, fast and powerful.</p>
+            <h2>Why Schools Choose Test Master Pro</h2>
           </div>
           <div className="why-grid">
             {whyCards.map(w => (
@@ -561,7 +629,6 @@ export default function Landing() {
         <div className="section-head">
           <div className="s-tag">✦ What schools say</div>
           <h2>Trusted by educators across India</h2>
-          <p>Real feedback from principals, coordinators and administrators.</p>
         </div>
         <div className="testi-grid">
           {testimonials.map(t => (
@@ -586,8 +653,8 @@ export default function Landing() {
         <div className="pricing-inner">
           <div className="section-head">
             <div className="s-tag">✦ Transparent pricing</div>
-            <h2>Simple plans for every school</h2>
-            <p>Start free. Scale as you grow. No hidden charges.</p>
+            <h2>Simple Plans for Every School</h2>
+            <p>Choose the plan that best matches your school's student strength.</p>
           </div>
           <div className="pricing-grid">
             {plans.map(plan => (
@@ -638,10 +705,10 @@ export default function Landing() {
       <div className="section">
         <div className="cta-box">
           <div className="cta-orb-1" /><div className="cta-orb-2" />
-          <h2>Ready to transform your school?</h2>
-          <p>Join 100+ schools already saving time with SchoolResult SaaS.<br />14-day free trial. No credit card required.</p>
+          <h2>Ready to Digitize Your School?</h2>
+          <p>Start managing students, teachers, daily tests and results through one powerful cloud platform.</p>
           <div className="cta-actions">
-            <Link to="/signup" className="btn btn-white btn-lg">Sign Up Free <ArrowRight size={16} /></Link>
+            <Link to="/signup" className="btn btn-white btn-lg">Start Free Trial <ArrowRight size={16} /></Link>
             <a href="mailto:support@schoolresult.app" className="btn btn-ghost-white btn-lg">
               <Phone size={15} /> Contact Sales
             </a>
@@ -658,9 +725,9 @@ export default function Landing() {
               <div>
                 <div className="footer-logo">
                   <div className="footer-logo-mark"><GraduationCap size={16} /></div>
-                  SchoolResult SaaS
+                  Test Master Pro
                 </div>
-                <p className="footer-desc">Modern cloud-based school ERP and result management trusted by schools across India.</p>
+                <p className="footer-desc">Test Master Pro is a cloud-based School Result & Daily Test Management Platform that helps schools manage students, teachers, exams, rankings and parent communication efficiently.</p>
                 <div className="footer-socials">
                   {[Twitter, Linkedin, Facebook, Instagram].map((Icon, i) => (
                     <button className="fs-btn" key={i}><Icon size={15} /></button>
@@ -669,18 +736,19 @@ export default function Landing() {
               </div>
               <div className="footer-col">
                 <h4>Features</h4>
-                <a href="#">Student management</a>
-                <a href="#">Exam &amp; tests</a>
-                <a href="#">Result analytics</a>
-                <a href="#">Parent portal</a>
-                <a href="#">Reports &amp; export</a>
+                <a href="#">Student Management</a>
+                <a href="#">Teacher Management</a>
+                <a href="#">Daily Tests</a>
+                <a href="#">Results</a>
+                <a href="#">Parent Portal</a>
               </div>
               <div className="footer-col">
                 <h4>Support</h4>
+                <a href="#">Help Center</a>
                 <a href="#">Documentation</a>
-                <a href="#">Help center</a>
-                <a href="#">Status page</a>
-                <a href="#">Changelog</a>
+                <a href="#">Contact</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms & Conditions</a>
               </div>
               <div className="footer-col">
                 <h4>Contact</h4>
@@ -690,7 +758,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="footer-bottom">
-              <div className="footer-copy">© 2026 SchoolResult SaaS. All rights reserved.</div>
+              <div className="footer-copy">© 2026 Test Master Pro. All rights reserved.</div>
               <div className="footer-legal">
                 <a href="#">Privacy policy</a>
                 <a href="#">Terms of service</a>
