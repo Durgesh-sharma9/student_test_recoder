@@ -433,12 +433,12 @@ export default function MarksEntryForm({ category, title }) {
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : session ? 'Update Marks' : 'Save Marks'}
               </Button>
-              <Button variant="outline" onClick={() => {
+              {/* <Button variant="outline" onClick={() => {
                 if (!checkAndBlock(() => download())) return;
               }}>
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
-              </Button>
+              </Button> */}
             </div>
           </div>
         </ErpSection>

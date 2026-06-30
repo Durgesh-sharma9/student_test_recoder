@@ -89,7 +89,7 @@ export default function TeacherResults() {
             <Button onClick={() => {
               if (!checkAndBlock(() => load())) return;
             }} disabled={loading}>{loading ? 'Loading...' : 'Apply'}</Button>
-            <Button variant="outline" onClick={() => {
+            {/* <Button variant="outline" onClick={() => {
               if (!checkAndBlock(() => download('csv'))) return;
             }}>CSV</Button>
             <Button variant="outline" onClick={() => {
@@ -97,7 +97,7 @@ export default function TeacherResults() {
             }}>PDF</Button>
             <Button variant="outline" onClick={() => {
               if (!checkAndBlock(() => download('xlsx'))) return;
-            }}>Excel</Button>
+            }}>Excel</Button> */}
           </div>
         </div>
       </ErpSection>

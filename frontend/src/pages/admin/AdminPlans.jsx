@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Zap, Star, Gem, CreditCard, History, Users, GraduationCap, AlertCircle } from 'lucide-react';
+import { Check, Zap, Star, Gem, CreditCard, History, Users, GraduationCap } from 'lucide-react';
 import api from '@/lib/api';
 import { PageStack, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -55,11 +55,19 @@ export default function AdminPlans() {
     return themes[index] || themes[2];
   };
 
+  // Helper for DD MM YYYY format
+  const formatDate = (dateString) => {
+    const d = new Date(dateString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
   return (
     <PageStack>
       <ExpiryReminderBanner />
       
-      {/* Compact Header */}
       <div className="text-center py-2">
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Choose the Perfect Plan</h1>
         <p className="text-slate-500 mt-0.5 text-sm font-medium">Scale your test records management with plans for any school size.</p>
@@ -123,72 +131,101 @@ export default function AdminPlans() {
       <TrialRequestDialog open={trialDialogOpen} onOpenChange={setTrialDialogOpen} />
       <EnterpriseRequestDialog open={enterpriseDialogOpen} onOpenChange={setEnterpriseDialogOpen} />
 
-      {/* Current Subscription Card */}
+      {/* Redesigned Current Subscription Section */}
       {currentPlan && (
         <ErpSection title="Current Subscription" icon={CreditCard} tone="blue">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Current Plan</p>
-              <p className="mt-1 text-lg font-extrabold text-slate-900 capitalize">{currentPlan.name}</p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Card 1: Plan */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Current Plan</p>
+              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
+                currentPlan.name.toLowerCase().includes('trial') ? 'bg-green-100 text-green-800 border-green-300' : 
+                currentPlan.name.toLowerCase().includes('basic') ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                currentPlan.name.toLowerCase().includes('standard') ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                'bg-orange-50 text-orange-700 border-orange-200'
+              }`}>
+                {currentPlan.name.toLowerCase().includes('trial') ? `🟢 ${currentPlan.name}` : currentPlan.name}
+              </div>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Status</p>
-              <p className="mt-1 text-lg font-extrabold text-emerald-600">Active</p>
+
+            {/* Card 2: Status */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status</p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Active
+              </div>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Expires</p>
-              <p className="mt-1 text-lg font-extrabold text-slate-900">
-                {subscription?.planExpiresAt ? new Date(subscription.planExpiresAt).toLocaleDateString() : '-'}
-              </p>
+
+            {/* Card 3: Expires */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Expires On</p>
+              {(() => {
+                const diffDays = Math.ceil((new Date(subscription?.planExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+                return (
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{formatDate(subscription?.planExpiresAt)}</p>
+                    <p className={`text-[11px] font-semibold ${diffDays < 0 ? 'text-red-500' : 'text-slate-500'}`}>
+                      {diffDays < 0 ? `Expired ${Math.abs(diffDays)} days ago` : `${diffDays} days left`}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Billing Cycle</p>
-              <p className="mt-1 text-lg font-extrabold text-slate-900 capitalize">{currentPlan.billingCycle}</p>
+
+            {/* Card 4: Billing Cycle */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Billing Cycle</p>
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <div className="p-1.5 bg-slate-100 rounded-lg text-slate-600">📅</div>
+                <span className="capitalize">{currentPlan.billingCycle}</span>
+              </div>
             </div>
           </div>
           
-          {/* Usage */}
+          {/* Usage Section */}
           {usage && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl p-2.5 bg-indigo-50 text-indigo-600">
-                    <Users className="h-5 w-5" />
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Teachers</p>
+                      <p className="text-lg font-black text-slate-900">
+                        {usage.teachers} <span className="text-slate-400 font-medium">/ {usage.teacherLimit === null ? '∞' : usage.teacherLimit}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-500">Teachers</p>
-                    <p className="mt-1 text-2xl font-extrabold text-slate-900">
-                      {usage.teachers} / {usage.teacherLimit === null ? 'Unlimited' : usage.teacherLimit}
-                    </p>
-                  </div>
+                  {usage.teacherLimit !== null && <span className="text-xs font-black text-indigo-600">{Math.round((usage.teachers / usage.teacherLimit) * 100)}%</span>}
                 </div>
                 {usage.teacherLimit !== null && (
-                  <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${usage.teachers >= usage.teacherLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${Math.min((usage.teachers / usage.teacherLimit) * 100, 100)}%` }}
-                    />
+                  <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min((usage.teachers / usage.teacherLimit) * 100, 100)}%` }} />
                   </div>
                 )}
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl p-2.5 bg-emerald-50 text-emerald-600">
-                    <GraduationCap className="h-5 w-5" />
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      <GraduationCap size={20} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase">Students</p>
+                      <p className="text-lg font-black text-slate-900">
+                        {usage.students} <span className="text-slate-400 font-medium">/ {usage.studentLimit === null ? '∞' : usage.studentLimit}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-500">Students</p>
-                    <p className="mt-1 text-2xl font-extrabold text-slate-900">
-                      {usage.students} / {usage.studentLimit === null ? 'Unlimited' : usage.studentLimit}
-                    </p>
-                  </div>
+                  {usage.studentLimit !== null && <span className="text-xs font-black text-emerald-600">{Math.round((usage.students / usage.studentLimit) * 100)}%</span>}
                 </div>
                 {usage.studentLimit !== null && (
-                  <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${usage.students >= usage.studentLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                      style={{ width: `${Math.min((usage.students / usage.studentLimit) * 100, 100)}%` }}
-                    />
+                  <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.min((usage.students / usage.studentLimit) * 100, 100)}%` }} />
                   </div>
                 )}
               </div>
@@ -213,14 +250,10 @@ export default function AdminPlans() {
               <tbody className="divide-y divide-slate-100">
                 {history.map((h) => (
                   <tr key={h._id}>
-                    <td className="px-4 py-3 text-sm text-slate-900">{new Date(h.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-sm text-slate-900">{formatDate(h.createdAt)}</td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 capitalize">{h.plan?.name || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 capitalize">
-                      {h.action.replace(/_/g, ' ')}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {h.expiryDate ? new Date(h.expiryDate).toLocaleDateString() : '-'}
-                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600 capitalize">{h.action.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{h.expiryDate ? formatDate(h.expiryDate) : '-'}</td>
                   </tr>
                 ))}
               </tbody>
