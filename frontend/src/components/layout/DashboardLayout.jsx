@@ -1,42 +1,21 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  School,
-  GraduationCap,
-  ClipboardList,
-  BarChart3,
-  CreditCard,
-  LogOut,
-  Menu,
-  X,
-  Calendar,
-  FileText,
-  Building2,
-  Settings,
-  Lock,
-  UserCheck,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  Bell,
-  Megaphone,
+  LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
+  CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
+  Lock, UserCheck, Bell, Megaphone,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import NotificationPanel from '@/components/NotificationPanel';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import LockedFeatureDialog from '@/components/subscription/LockedFeatureDialog';
 
-// Helper function to get display name from user object
 const getDisplayName = (user) => {
   if (!user) return 'User';
-  
   if (user.name && typeof user.name === 'string' && user.name.trim()) return user.name.trim();
   if (user.teacherName && typeof user.teacherName === 'string' && user.teacherName.trim()) return user.teacherName.trim();
   if (user.parentName && typeof user.parentName === 'string' && user.parentName.trim()) return user.parentName.trim();
@@ -46,22 +25,16 @@ const getDisplayName = (user) => {
   if (user.role === 'teacher') return 'Teacher';
   if (user.role === 'parent') return 'Parent / Guardian';
   if (user.email && typeof user.email === 'string' && user.email.trim()) return user.email.trim();
-  
   return 'User';
 };
 
-// Helper function to get initials from user object
 const getInitials = (user) => {
   if (!user) return 'U';
   const name = getDisplayName(user);
   if (!name || name === 'User') return 'U';
-  
   if (name.includes('@')) return name.charAt(0).toUpperCase();
-  
   const words = name.trim().split(/\s+/);
-  if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase();
-  }
+  if (words.length === 1) return words[0].charAt(0).toUpperCase();
   return words.map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2);
 };
 
@@ -99,7 +72,7 @@ const navByRole = {
   ],
   parent: [
     { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true, featureKey: 'parent_portal' },
-    { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'reports', lockLabel: 'Results' },
+    { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-100', featureKey: 'reports', lockLabel: 'Results' },
     { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
     { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
@@ -107,7 +80,6 @@ const navByRole = {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const { selectedSession, allSessions, selectSession, isArchived } = useSession();
   const { isFeatureEnabled } = useSubscription();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -131,24 +103,33 @@ export default function DashboardLayout() {
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Pro Management</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-1.5 p-3 overflow-y-auto">
+        
+        {/* COMPACTED NAV SECTION - Padding and Gap reduced here */}
+        <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
           {navItems.map((item) => {
             const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
             const label = item.lockLabel || item.label;
-            const baseClass = ({ isActive }) => cn('flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap', isActive ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600', locked && 'opacity-80', isCollapsed && 'lg:justify-center lg:px-0 lg:h-12 lg:w-12 lg:mx-auto');
+            const baseClass = ({ isActive }) => cn(
+              'flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap', 
+              isActive ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600', 
+              locked && 'opacity-80', 
+              isCollapsed && 'lg:justify-center lg:px-0 lg:h-10 lg:w-10 lg:mx-auto'
+            );
             const content = ({ isActive }) => (
               <>
-                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
-                  <item.icon className={cn('h-5 w-5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
+                {/* Icon box height and width reduced slightly */}
+                <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
+                  <item.icon className={cn('h-4 w-4 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
                 </div>
                 <span className={cn('transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
-                {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700"><Lock className="h-3.5 w-3.5" /> Locked</span>}
+                {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><Lock className="h-3 w-3" /> Locked</span>}
               </>
             );
             if (locked) return <button key={item.to} onClick={() => { setOpen(false); setLockedDialog({ open: true, label }); }} className={baseClass({ isActive: false })}>{content({ isActive: false })}</button>;
             return <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setOpen(false)} className={baseClass}>{content}</NavLink>;
           })}
         </nav>
+        
         <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">{getInitials(user)}</div>
@@ -164,7 +145,6 @@ export default function DashboardLayout() {
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}><Menu className="h-5 w-5" /></Button>
           <div className="flex items-center gap-3 ml-auto">
-            {/* Added NotificationPanel back here */}
             {(isSuperAdmin || isAdmin || role === 'teacher' || role === 'parent') && <NotificationPanel />}
             <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>
             <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
