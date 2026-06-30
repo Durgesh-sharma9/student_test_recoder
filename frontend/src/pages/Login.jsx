@@ -67,17 +67,15 @@ export default function Login() {
           </h2>
           
           <p className="mb-12 text-lg leading-relaxed text-slate-600 max-w-lg drop-shadow-sm font-medium">
-            Experience the future of academic administration with our comprehensive, cloud-based platform. 
-            Designed to empower educators, streamline complex workflows, and enhance the overall learning 
-            journey through data-driven insights and seamless connectivity.
+            Simplify school management with one powerful platform. Manage students, teachers, daily tests, results, parent communication, and academic performance—all from a single dashboard.
           </p>
 
           <div className="grid grid-cols-2 gap-4">
             {[
-              { icon: UserCircle, title: "Student Records", desc: "Digital profiles & academic history tracking.", color: "bg-blue-500" },
-              { icon: Briefcase, title: "Staff Portals", desc: "Manage faculty assignments and payroll.", color: "bg-emerald-500" },
-              { icon: PieChart, title: "Advanced Analytics", desc: "Deep insights into performance metrics.", color: "bg-amber-500" },
-              { icon: ClipboardList, title: "Exam Management", desc: "End-to-end scheduling and grading.", color: "bg-rose-500" },
+              { icon: UserCircle, title: "Student Management", desc: "Manage student profiles, admissions, attendance, and academic records.", color: "bg-blue-500" },
+              { icon: Briefcase, title: "Teacher Management", desc: "Assign classes, subjects, daily tests, and monitor teacher performance.", color: "bg-emerald-500" },
+              { icon: PieChart, title: "Daily Test & Results", desc: "Conduct daily tests, generate results, rankings, and performance reports.", color: "bg-amber-500" },
+              { icon: ClipboardList, title: "Parent Portal", desc: "Parents can view results, rankings, progress, notifications, and student performance.", color: "bg-rose-500" },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-4 rounded-2xl border border-white bg-white/70 p-5 backdrop-blur-md shadow-sm transition-transform hover:scale-[1.02]">
                 <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white ${item.color}`}>

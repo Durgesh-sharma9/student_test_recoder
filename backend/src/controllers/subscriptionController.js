@@ -6,6 +6,7 @@ import Student from '../models/Student.js';
 import PaymentSettings from '../models/PaymentSettings.js';
 import SubscriptionRequest from '../models/SubscriptionRequest.js';
 import SubscriptionHistory from '../models/SubscriptionHistory.js';
+import Coupon from '../models/Coupon.js';
 import Notification from '../models/Notification.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -137,7 +138,7 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
 });
 
 export const generateUpiQr = asyncHandler(async (req, res) => {
-  const { planId, purpose } = req.body;
+  const { planId, purpose, couponCode } = req.body;
   if (!planId || !mongoose.Types.ObjectId.isValid(planId)) throw new ApiError(400, 'planId is required');
 
   const [plan, settings] = await Promise.all([
@@ -148,11 +149,67 @@ export const generateUpiQr = asyncHandler(async (req, res) => {
   if (!plan || !plan.isActive) throw new ApiError(404, 'Plan not found');
   if (!settings?.upiId) throw new ApiError(400, 'UPI ID is not configured by Super Admin');
 
+  // Calculate base price
+  let basePrice = Number(plan.finalPrice ?? plan.price ?? 0);
+  let discountAmount = 0;
+  let appliedCoupon = null;
+
+  // Validate and apply coupon if provided
+  if (couponCode && couponCode.trim()) {
+    const coupon = await Coupon.findOne({ code: couponCode.trim().toUpperCase() });
+    
+    if (coupon) {
+      // Check if coupon is valid
+      if (!coupon.isActive) {
+        throw new ApiError(400, 'Coupon is disabled');
+      }
+      if (coupon.isExpired) {
+        throw new ApiError(400, 'Coupon has expired');
+      }
+      if (coupon.isUsageLimitReached) {
+        throw new ApiError(400, 'Coupon usage limit reached');
+      }
+      
+      // Check if coupon is applicable to the plan type
+      if (coupon.applicablePlans && coupon.applicablePlans.length > 0) {
+        const normalizedPlanType = plan.planType?.toLowerCase();
+        if (!coupon.applicablePlans.includes(normalizedPlanType)) {
+          throw new ApiError(400, 'Coupon is not applicable to this plan');
+        }
+      }
+
+      // Apply discount
+      if (coupon.discountType === 'percentage') {
+        discountAmount = (basePrice * coupon.discountValue) / 100;
+      }
+      
+      appliedCoupon = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount,
+      };
+    } else {
+      throw new ApiError(404, 'Invalid coupon code');
+    }
+  }
+
+  // Calculate discounted price after coupon
+  const discountedPrice = Math.max(0, basePrice - discountAmount);
+  
+  // Calculate GST on discounted price
+  const taxEnabled = plan.tax?.enabled;
+  const taxPercentage = taxEnabled ? Number(plan.tax?.percentage ?? 18) : 0;
+  const taxAmount = taxEnabled ? (discountedPrice * taxPercentage) / 100 : 0;
+  
+  // Final amount = discounted price + GST
+  const finalAmount = discountedPrice + taxAmount;
+
   // Generate a short ref to help in bank statement search (not a security token)
   const ref = `SUB${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
   const note = purpose || `School ERP Subscription - ${plan.name} (${plan.billingCycle || 'monthly'}) - ${ref}`;
 
-  const amount = Number(plan.finalPrice ?? plan.price ?? 0).toFixed(2);
+  const amount = finalAmount.toFixed(2);
   const params = new URLSearchParams({
     pa: settings.upiId,
     pn: settings.merchantName || 'Merchant',
@@ -173,11 +230,23 @@ export const generateUpiQr = asyncHandler(async (req, res) => {
   });
 
   const expiresInSeconds = (settings.qrExpiryMinutes || 5) * 60;
-  res.json({ success: true, qr: { dataUrl, upiUri, expiresInSeconds, amount: Number(amount) } });
+  res.json({ 
+    success: true, 
+    qr: { dataUrl, upiUri, expiresInSeconds, amount: Number(amount) },
+    pricing: {
+      basePrice,
+      discountAmount,
+      discountedPrice,
+      taxPercentage,
+      taxAmount,
+      finalAmount: Number(amount),
+      appliedCoupon,
+    },
+  });
 });
 
 export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
-  const { planId, utr, mobileNumber, state } = req.body;
+  const { planId, utr, mobileNumber, state, couponCode } = req.body;
 
   if (!planId || !mongoose.Types.ObjectId.isValid(planId)) throw new ApiError(400, 'planId is required');
   if (!utr) throw new ApiError(400, 'UPI Transaction ID / UTR is required');
@@ -186,8 +255,17 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
     School.findById(req.user.school).populate('plan'),
     Plan.findById(planId),
   ]);
-  if (!school) throw new ApiError(404, 'School not found');
+  if (!school) throw new ApiError(400, 'School not found');
   if (!requestedPlan || !requestedPlan.isActive) throw new ApiError(404, 'Requested plan not found');
+
+  // Check if there's already a pending request - only ONE pending request allowed at a time
+  const existingPendingRequest = await SubscriptionRequest.findOne({
+    school: school._id,
+    status: 'pending',
+  });
+  if (existingPendingRequest) {
+    throw new ApiError(400, 'You already have a pending subscription request. Please wait for it to be approved or rejected before submitting a new one.');
+  }
 
   // Check if this is an upgrade (higher limits)
   const currentPlan = school.plan;
@@ -205,6 +283,36 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
     (requestedPlan.studentCapacityType !== 'unlimited' && currentPlan.studentCapacityType === 'unlimited')
   );
 
+  // Handle coupon
+  let couponId = null;
+  let discountAmount = 0;
+  
+  if (couponCode && couponCode.trim()) {
+    const coupon = await Coupon.findOne({ code: couponCode.trim().toUpperCase() });
+    
+    if (coupon) {
+      // Validate coupon
+      if (!coupon.isActive) throw new ApiError(400, 'Coupon is disabled');
+      if (coupon.isExpired) throw new ApiError(400, 'Coupon has expired');
+      if (coupon.isUsageLimitReached) throw new ApiError(400, 'Coupon usage limit reached');
+      
+      // Check applicability
+      if (coupon.applicablePlans && coupon.applicablePlans.length > 0) {
+        const normalizedPlanType = requestedPlan.planType?.toLowerCase();
+        if (!coupon.applicablePlans.includes(normalizedPlanType)) {
+          throw new ApiError(400, 'Coupon is not applicable to this plan');
+        }
+      }
+
+      couponId = coupon._id;
+      discountAmount = (Number(requestedPlan.finalPrice ?? requestedPlan.price ?? 0) * coupon.discountValue) / 100;
+      
+      // Increment coupon usage
+      coupon.usedCount += 1;
+      await coupon.save();
+    }
+  }
+
   // Optional screenshot upload
   let paymentScreenshotUrl = null;
   let paymentScreenshotName = null;
@@ -221,8 +329,11 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
   const basePrice = Number(computedPricing.basePrice ?? 0);
   const taxName = computedPricing.taxEnabled ? computedPricing.taxName : undefined;
   const taxPercentage = computedPricing.taxEnabled ? Number(computedPricing.taxPercentage ?? 0) : 0;
-  const taxAmount = computedPricing.taxEnabled ? Number(computedPricing.taxAmount ?? 0) : 0;
-  const finalAmount = Number(computedPricing.finalPrice ?? 0);
+  
+  // Calculate tax on discounted price
+  const discountedPrice = Math.max(0, basePrice - discountAmount);
+  const taxAmount = computedPricing.taxEnabled ? (discountedPrice * taxPercentage) / 100 : 0;
+  const finalAmount = discountedPrice + taxAmount;
 
   // Calculate new expiry date
   const currentExpiry = school.planExpiresAt || new Date();
@@ -320,6 +431,9 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
       taxPercentage,
       taxAmount,
       finalAmount,
+      couponId,
+      couponCode: couponCode ? couponCode.trim().toUpperCase() : null,
+      discountAmount,
       mobileNumber,
       state,
       utr: String(utr).trim().toUpperCase(),
