@@ -292,13 +292,13 @@ export default function ParentViewResults() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
         <PageHeader
           title="View Results"
           description="View detailed performance reports and results history"
         />
         {results && results.length > 0 && (
-          <Button onClick={generatePDF} className="flex items-center gap-2">
+          <Button onClick={generatePDF} className="flex items-center justify-center gap-2 w-full md:w-auto">
             <Download className="h-4 w-4" />
             Download Report Card
           </Button>
@@ -365,28 +365,32 @@ export default function ParentViewResults() {
           {/* SECTION 2: Performance Summary */}
           {summary && (
             <ErpSection title="Performance Summary" icon={Trophy} tone="green">
-              <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4 border border-blue-200">
-                    <div className="text-sm font-medium text-blue-700 mb-1">Overall %</div>
-                    <div className="text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
+              <div className="p-4 md:p-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                  <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 md:p-4 border border-blue-200 overflow-hidden">
+                    <div className="text-xs md:text-sm font-medium text-blue-700 mb-1 truncate">Overall %</div>
+                    <div className="text-xl md:text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-4 border border-purple-200">
-                    <div className="text-sm font-medium text-purple-700 mb-1">Rank</div>
-                    <div className="text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
-                    <div className="text-xs text-purple-600">Out of {totalStudents || results.length} Students</div>
+                  <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 md:p-4 border border-purple-200 overflow-hidden">
+                    <div className="text-xs md:text-sm font-medium text-purple-700 mb-1 truncate">Rank</div>
+                    <div className="text-xl md:text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
+                    <div className="text-[10px] md:text-xs text-purple-600 truncate">Out of {totalStudents || results.length} Students</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4 border border-green-200">
-                    <div className="text-sm font-medium text-green-700 mb-1">Total Tests</div>
-                    <div className="text-2xl font-bold text-green-900">{summary.totalTests}</div>
+                  <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-3 md:p-4 border border-green-200 overflow-hidden">
+                    <div className="text-xs md:text-sm font-medium text-green-700 mb-1 truncate">Total Tests</div>
+                    <div className="text-xl md:text-2xl font-bold text-green-900">{summary.totalTests}</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 border border-emerald-200">
-                    <div className="text-sm font-medium text-emerald-700 mb-1">Best Subject</div>
-                    <div className="text-2xl font-bold text-emerald-900">{bestSubject?.subject || 'N/A'}</div>
+                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 md:p-4 border border-emerald-200 overflow-hidden">
+                    <div className="text-xs md:text-sm font-medium text-emerald-700 mb-1 truncate">Best Subject</div>
+                    <div className="text-xl md:text-2xl font-bold text-emerald-900 truncate" title={bestSubject?.subject || 'N/A'}>
+                      {bestSubject?.subject || 'N/A'}
+                    </div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4 border border-red-200">
-                    <div className="text-sm font-medium text-red-700 mb-1">Weak Subject</div>
-                    <div className="text-2xl font-bold text-red-900">{weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}</div>
+                  <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 md:p-4 border border-red-200 overflow-hidden">
+                    <div className="text-xs md:text-sm font-medium text-red-700 mb-1 truncate">Weak Subject</div>
+                    <div className="text-xl md:text-2xl font-bold text-red-900 truncate" title={weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}>
+                      {weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -397,67 +401,73 @@ export default function ParentViewResults() {
           <ErpSection title="Results History" icon={BookOpen} tone="blue">
             <div className="p-6 space-y-4">
               {/* Filters */}
-              <div className="flex flex-wrap items-end gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="range"
-                    name="filterMode"
-                    value="range"
-                    checked={filterMode === 'range'}
-                    onChange={(e) => setFilterMode(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor="range" className="text-sm font-medium text-slate-700">Date Range</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="specific"
-                    name="filterMode"
-                    value="specific"
-                    checked={filterMode === 'specific'}
-                    onChange={(e) => setFilterMode(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor="specific" className="text-sm font-medium text-slate-700">Specific Date</label>
-                </div>
-                
-                {filterMode === 'range' ? (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
-                      <Input
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="w-40"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
-                      <Input
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        className="w-40"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                    <Input
-                      type="date"
-                      value={specificDate}
-                      onChange={(e) => setSpecificDate(e.target.value)}
-                      className="w-40"
+              <div className="flex flex-col md:flex-row flex-wrap items-start md:items-end gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="range"
+                      name="filterMode"
+                      value="range"
+                      checked={filterMode === 'range'}
+                      onChange={(e) => setFilterMode(e.target.value)}
+                      className="h-4 w-4"
                     />
+                    <label htmlFor="range" className="text-sm font-medium text-slate-700">Date Range</label>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="specific"
+                      name="filterMode"
+                      value="specific"
+                      checked={filterMode === 'specific'}
+                      onChange={(e) => setFilterMode(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="specific" className="text-sm font-medium text-slate-700">Specific Date</label>
+                  </div>
+                </div>
                 
-                <Button onClick={applyFilters} size="sm">Apply</Button>
-                <Button variant="outline" onClick={clearFilters} size="sm">Clear</Button>
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-end gap-4 w-full md:w-auto">
+                  {filterMode === 'range' ? (
+                    <>
+                      <div className="w-full sm:w-auto">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
+                        <Input
+                          type="date"
+                          value={dateFrom}
+                          onChange={(e) => setDateFrom(e.target.value)}
+                          className="w-full md:w-40"
+                        />
+                      </div>
+                      <div className="w-full sm:w-auto">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
+                        <Input
+                          type="date"
+                          value={dateTo}
+                          onChange={(e) => setDateTo(e.target.value)}
+                          className="w-full md:w-40"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full sm:w-auto">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                      <Input
+                        type="date"
+                        value={specificDate}
+                        onChange={(e) => setSpecificDate(e.target.value)}
+                        className="w-full md:w-40"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    <Button onClick={applyFilters} size="sm" className="flex-1 sm:flex-none">Apply</Button>
+                    <Button variant="outline" onClick={clearFilters} size="sm" className="flex-1 sm:flex-none">Clear</Button>
+                  </div>
+                </div>
               </div>
 
               {/* Search */}
@@ -481,28 +491,28 @@ export default function ParentViewResults() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Exam Type</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Marks</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Max</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">%</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Rank</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Exam Type</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Marks</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Max</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">%</th>
+                        <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Rank</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredResults.map((result, idx) => (
                         <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="px-4 py-3 text-sm text-slate-600">{formatDateSafe(result.date)}</td>
-                          <td className="px-4 py-3">
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDateSafe(result.date)}</td>
+                          <td className="whitespace-nowrap px-4 py-3">
                             <span className={`px-2 py-1 rounded text-xs font-medium ${getExamTypeColor(result.examType)}`}>
                               {result.examType || 'N/A'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-900">{result.subject || 'N/A'}</td>
-                          <td className="px-4 py-3 text-sm text-slate-600">{result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A')}</td>
-                          <td className="px-4 py-3 text-sm text-slate-600">{result.maxMarks ?? 'N/A'}</td>
-                          <td className="px-4 py-3">
+                          <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">{result.subject || 'N/A'}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A')}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.maxMarks ?? 'N/A'}</td>
+                          <td className="whitespace-nowrap px-4 py-3">
                             <span className={`font-semibold ${
                               result.percentage >= 75 ? 'text-green-600' :
                               result.percentage >= 50 ? 'text-orange-600' :
@@ -511,7 +521,7 @@ export default function ParentViewResults() {
                               {formatPercentageSafe(result.percentage)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">{result.rank ? `${result.rank} out of ${totalStudents || results.length}` : 'N/A'}</td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.rank ? `${result.rank} out of ${totalStudents || results.length}` : 'N/A'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -524,40 +534,47 @@ export default function ParentViewResults() {
           {/* SECTION 4: Performance Trend Graph */}
           {trendData.length > 0 && (
             <ErpSection title="Performance Trend" icon={TrendingUp} tone="purple">
-              <div className="p-6">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 12, fill: '#64748b' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12, fill: '#64748b' }}
-                      axisLine={false}
-                      tickLine={false}
-                      domain={[0, 100]}
-                    />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: '#fff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
-                      formatter={(value) => [`${value.toFixed(1)}%`, 'Score']}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="percentage" 
-                      stroke="#6366f1" 
-                      strokeWidth={2}
-                      dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="p-4 md:p-6">
+                <div className="text-xs text-slate-400 mb-2 md:hidden italic">Swipe horizontally to view full chart</div>
+                <div className="w-full overflow-x-auto pb-2">
+                  {/* Graph gets a min-width on mobile to prevent overlapping dates */}
+                  <div className="min-w-[500px] md:min-w-0 w-full h-[250px] md:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis 
+                          dataKey="date" 
+                          tick={{ fontSize: 12, fill: '#64748b' }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickMargin={10}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12, fill: '#64748b' }}
+                          axisLine={false}
+                          tickLine={false}
+                          domain={[0, 100]}
+                        />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: '#fff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value) => [`${value.toFixed(1)}%`, 'Score']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="percentage" 
+                          stroke="#6366f1" 
+                          strokeWidth={2}
+                          dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </ErpSection>
           )}

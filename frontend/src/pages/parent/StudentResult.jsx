@@ -247,9 +247,9 @@ export default function StudentResult() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/parent/dashboard')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -259,7 +259,7 @@ export default function StudentResult() {
           />
         </div>
         {results && results.length > 0 && (
-          <Button onClick={generatePDF} className="flex items-center gap-2">
+          <Button onClick={generatePDF} className="flex items-center justify-center gap-2 w-full md:w-auto">
             <Download className="h-4 w-4" />
             Download Report Card
           </Button>
@@ -268,84 +268,101 @@ export default function StudentResult() {
 
       {/* Filters */}
       <ErpSection title="Filter Results" icon={Filter} tone="blue">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
-              id="range"
-              name="filterMode"
-              value="range"
-              checked={filterMode === 'range'}
-              onChange={(e) => setFilterMode(e.target.value)}
-              className="h-4 w-4"
-            />
-            <label htmlFor="range" className="text-sm font-medium text-slate-700">Date Range</label>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
-              id="specific"
-              name="filterMode"
-              value="specific"
-              checked={filterMode === 'specific'}
-              onChange={(e) => setFilterMode(e.target.value)}
-              className="h-4 w-4"
-            />
-            <label htmlFor="specific" className="text-sm font-medium text-slate-700">Specific Date</label>
-          </div>
-          
-          {filterMode === 'range' ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-48"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-48"
-                />
-              </div>
-            </>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-              <Input
-                type="date"
-                value={specificDate}
-                onChange={(e) => setSpecificDate(e.target.value)}
-                className="w-48"
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-end gap-4 p-4">
+          <div className="flex gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="range"
+                name="filterMode"
+                value="range"
+                checked={filterMode === 'range'}
+                onChange={(e) => setFilterMode(e.target.value)}
+                className="h-4 w-4"
               />
+              <label htmlFor="range" className="text-sm font-medium text-slate-700">Date Range</label>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="specific"
+                name="filterMode"
+                value="specific"
+                checked={filterMode === 'specific'}
+                onChange={(e) => setFilterMode(e.target.value)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="specific" className="text-sm font-medium text-slate-700">Specific Date</label>
+            </div>
+          </div>
           
-          <Button onClick={applyFilters}>Apply Filters</Button>
-          <Button variant="outline" onClick={clearFilters}>Clear</Button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            {filterMode === 'range' ? (
+              <>
+                <div className="w-full sm:w-auto">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full sm:w-48"
+                  />
+                </div>
+                <div className="w-full sm:w-auto">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full sm:w-48"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="w-full sm:w-auto">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <Input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="w-full sm:w-48"
+                />
+              </div>
+            )}
+            
+            <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <Button onClick={applyFilters} className="flex-1 sm:flex-none">Apply Filters</Button>
+              <Button variant="outline" onClick={clearFilters} className="flex-1 sm:flex-none">Clear</Button>
+            </div>
+          </div>
         </div>
       </ErpSection>
 
       {student && (
         <ErpSection title="Student Information" icon={User} tone="blue">
-          <div className="grid gap-4 p-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Student Name</div>
-              <div className="text-xl font-bold text-slate-900">{student.name}</div>
+          <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-3 sm:gap-4 sm:p-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+              <div className="text-xs sm:text-sm text-slate-500 truncate">Student Name</div>
+              <div className="text-lg sm:text-xl font-bold text-slate-900 truncate">{student.name}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Class</div>
-              <div className="text-xl font-bold text-slate-900">{student.className} {student.section ? `(${student.section})` : ''}</div>
+            <div className="grid grid-cols-2 gap-3 sm:hidden">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 overflow-hidden">
+                <div className="text-xs text-slate-500 truncate">Class</div>
+                <div className="text-lg font-bold text-slate-900 truncate">{student.className} {student.section ? `(${student.section})` : ''}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 overflow-hidden">
+                <div className="text-xs text-slate-500 truncate">Roll No</div>
+                <div className="text-lg font-bold text-slate-900 truncate">{student.rollNo}</div>
+              </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Roll No</div>
-              <div className="text-xl font-bold text-slate-900">{student.rollNo}</div>
+            {/* Desktop views for Class and Roll No */}
+            <div className="hidden sm:block rounded-lg border border-slate-200 bg-slate-50 p-4 overflow-hidden">
+              <div className="text-sm text-slate-500 truncate">Class</div>
+              <div className="text-xl font-bold text-slate-900 truncate">{student.className} {student.section ? `(${student.section})` : ''}</div>
+            </div>
+            <div className="hidden sm:block rounded-lg border border-slate-200 bg-slate-50 p-4 overflow-hidden">
+              <div className="text-sm text-slate-500 truncate">Roll No</div>
+              <div className="text-xl font-bold text-slate-900 truncate">{student.rollNo}</div>
             </div>
           </div>
         </ErpSection>
@@ -353,22 +370,22 @@ export default function StudentResult() {
 
       {summary && (
         <ErpSection title="Performance Summary" icon={Trophy} tone="green">
-          <div className="grid gap-4 p-4 sm:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Total Tests</div>
-              <div className="text-2xl font-bold text-slate-900">{summary.totalTests}</div>
+          <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4 sm:gap-4 sm:p-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+              <div className="text-xs sm:text-sm text-slate-500 truncate">Total Tests</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{summary.totalTests}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Average %</div>
-              <div className="text-2xl font-bold text-slate-900">{formatPercentageSafe(summary.averagePercentage)}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+              <div className="text-xs sm:text-sm text-slate-500 truncate">Average %</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{formatPercentageSafe(summary.averagePercentage)}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Current Rank</div>
-              <div className="text-2xl font-bold text-slate-900">{summary.currentRank ? `#${summary.currentRank}` : 'N/A'}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+              <div className="text-xs sm:text-sm text-slate-500 truncate">Current Rank</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{summary.currentRank ? `#${summary.currentRank}` : 'N/A'}</div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">Best Score</div>
-              <div className="text-2xl font-bold text-slate-900">{formatPercentageSafe(summary.bestScore)}</div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-hidden">
+              <div className="text-xs sm:text-sm text-slate-500 truncate">Best Score</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{formatPercentageSafe(summary.bestScore)}</div>
             </div>
           </div>
         </ErpSection>
@@ -376,50 +393,57 @@ export default function StudentResult() {
 
       {trendData.length > 0 && (
         <ErpSection title="Performance Trend" icon={TrendingUp} tone="purple">
-          <div className="p-4">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12, fill: '#64748b' }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[0, 100]}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                  }}
-                  formatter={(value) => [`${value.toFixed(1)}%`, 'Score']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="percentage" 
-                  stroke="#6366f1" 
-                  strokeWidth={2}
-                  dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="p-3 sm:p-4">
+            <div className="text-xs text-slate-400 mb-2 md:hidden italic">Swipe horizontally to view full chart</div>
+            <div className="w-full overflow-x-auto pb-2">
+              <div className="min-w-[500px] md:min-w-0 w-full h-[250px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickMargin={10}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12, fill: '#64748b' }}
+                      axisLine={false}
+                      tickLine={false}
+                      domain={[0, 100]}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`${value.toFixed(1)}%`, 'Score']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="percentage" 
+                      stroke="#6366f1" 
+                      strokeWidth={2}
+                      dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </ErpSection>
       )}
 
       {subjectPerformance.length > 0 && (
         <ErpSection title="Subject-wise Performance" icon={BookOpen} tone="blue">
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {subjectPerformance.map((sp, idx) => (
-                <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div key={idx} className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-slate-900">{sp.subject}</span>
                     <span className={`text-lg font-bold ${
@@ -430,7 +454,7 @@ export default function StudentResult() {
                       {sp.averagePercentage}%
                     </span>
                   </div>
-                  <div className="text-sm text-slate-500">{sp.count} tests</div>
+                  <div className="text-xs sm:text-sm text-slate-500">{sp.count} tests</div>
                 </div>
               ))}
             </div>
@@ -440,10 +464,10 @@ export default function StudentResult() {
 
       {weakSubjects.length > 0 && (
         <ErpSection title="Subjects Needing Attention" icon={AlertTriangle} tone="amber">
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <div className="flex flex-wrap gap-2">
               {weakSubjects.map((s, idx) => (
-                <span key={idx} className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-sm font-medium">
+                <span key={idx} className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs sm:text-sm font-medium">
                   {s.subject}
                 </span>
               ))}
@@ -464,28 +488,28 @@ export default function StudentResult() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Exam Type</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Marks</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Max</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">%</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Rank</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Exam Type</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Subject</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Marks</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Max</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">%</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Rank</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((result, idx) => (
                   <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDateSafe(result.date)}</td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDateSafe(result.date)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getExamTypeColor(result.examType)}`}>
                         {result.examType || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{result.subject || 'N/A'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A')}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{result.maxMarks ?? 'N/A'}</td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">{result.subject || 'N/A'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.status === 'absent' ? 'Absent' : (result.marksObtained ?? 'N/A')}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.maxMarks ?? 'N/A'}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
                       <span className={`font-semibold ${
                         result.percentage >= 75 ? 'text-green-600' :
                         result.percentage >= 50 ? 'text-orange-600' :
@@ -494,7 +518,7 @@ export default function StudentResult() {
                         {formatPercentageSafe(result.percentage)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{result.rank ? `#${result.rank}` : 'N/A'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{result.rank ? `#${result.rank}` : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>

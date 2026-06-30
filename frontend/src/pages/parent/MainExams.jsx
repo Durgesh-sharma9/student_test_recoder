@@ -41,8 +41,8 @@ export default function ParentMainExams() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(`/parent/student/${studentId}`)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -58,18 +58,18 @@ export default function ParentMainExams() {
             No main exams available yet.
           </div>
         ) : (
-          <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 p-3 sm:gap-4 sm:p-4 sm:grid-cols-2 lg:grid-cols-3">
             {exams.map((exam) => (
               <div
                 key={exam.examType}
                 onClick={() => handleExamClick(exam.examType)}
-                className="cursor-pointer rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
+                className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md active:scale-[0.98] sm:active:scale-100"
               >
-                <h3 className="text-lg font-bold text-slate-900">{exam.examType}</h3>
-                <p className="text-sm text-slate-500 mt-1">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 break-words">{exam.examType}</h3>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   {exam.examDate ? formatDisplayDate(exam.examDate) : 'No date'}
                 </p>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   {exam.subjects.length} subject{exam.subjects.length !== 1 ? 's' : ''}
                 </p>
               </div>

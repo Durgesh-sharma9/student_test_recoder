@@ -57,9 +57,9 @@ export default function ParentNotifications() {
         <Button
           onClick={markAllAsRead}
           variant="outline"
-          className="rounded-xl"
+          className="rounded-xl w-full sm:w-auto"
         >
-          <Check className="mr-2 h-4 w-4" />
+          <Check className="mr-2 h-4 w-4 shrink-0" />
           Mark All as Read
         </Button>
       </div>
@@ -79,17 +79,17 @@ export default function ParentNotifications() {
                 !notification.read ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200'
               }`}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex-1 w-full min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     {!notification.read && (
-                      <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                      <span className="h-2 w-2 rounded-full bg-indigo-600 shrink-0" />
                     )}
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-semibold text-slate-900 break-words">
                       {notification.title}
                     </h3>
                   </div>
-                  <p className="text-sm text-slate-600 mb-3">{notification.message}</p>
+                  <p className="text-sm text-slate-600 mb-3 break-words">{notification.message}</p>
                   
                   {notification.attachmentUrl && (
                     <div className="mb-3">
@@ -97,11 +97,11 @@ export default function ParentNotifications() {
                         size="sm"
                         variant="outline"
                         onClick={() => window.open(notification.attachmentUrl, '_blank')}
-                        className="rounded-lg"
+                        className="rounded-lg max-w-full flex items-center"
                       >
-                        <FileText className="mr-2 h-4 w-4" />
-                        {notification.attachmentName}
-                        <ExternalLink className="ml-2 h-3 w-3" />
+                        <FileText className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">{notification.attachmentName}</span>
+                        <ExternalLink className="ml-2 h-3 w-3 shrink-0" />
                       </Button>
                     </div>
                   )}
@@ -116,7 +116,7 @@ export default function ParentNotifications() {
                     size="sm"
                     onClick={() => markAsRead(notification._id)}
                     variant="outline"
-                    className="rounded-xl shrink-0"
+                    className="rounded-xl shrink-0 w-full sm:w-auto"
                   >
                     <Check className="mr-2 h-4 w-4" />
                     Mark Read
