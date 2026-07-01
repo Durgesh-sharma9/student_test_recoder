@@ -94,7 +94,7 @@ export default function TeacherDashboard() {
     setLoadingNotebook(true);
     try {
       const res = await api.get(`/notebook/grid?classId=${nbClass}&subject=${nbSubject}`);
-      setNotebookStats(res.data.stats || null);
+      setNotebookStats(res.data.progress || null);
     } catch (err) {
       console.error('Failed to fetch notebook stats', err);
     } finally {
@@ -173,16 +173,16 @@ export default function TeacherDashboard() {
         ) : notebookStats ? (
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-              <div className="text-sm font-semibold text-slate-500">Checked Entries</div>
-              <div className="mt-2 text-2xl font-bold text-emerald-600">{notebookStats.checked}</div>
+              <div className="text-sm font-semibold text-slate-500">Unlocked Chapters</div>
+              <div className="mt-2 text-2xl font-bold text-fuchsia-600">{notebookStats.unlockedCount} / {notebookStats.totalChapters}</div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-              <div className="text-sm font-semibold text-slate-500">Pending Entries</div>
-              <div className="mt-2 text-2xl font-bold text-amber-500">{notebookStats.pending}</div>
+              <div className="text-sm font-semibold text-slate-500">Checked Copies</div>
+              <div className="mt-2 text-2xl font-bold text-emerald-600">{notebookStats.totalChecked}</div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-              <div className="text-sm font-semibold text-slate-500">Not Submitted</div>
-              <div className="mt-2 text-2xl font-bold text-rose-500">{notebookStats.notSubmitted}</div>
+              <div className="text-sm font-semibold text-slate-500">Pending Copies</div>
+              <div className="mt-2 text-2xl font-bold text-amber-500">{notebookStats.totalPending}</div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-4 text-center">
               <div className="text-sm font-semibold text-slate-500">Overall Progress</div>

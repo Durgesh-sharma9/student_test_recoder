@@ -255,9 +255,28 @@ export default function NotebookAnalytics() {
                 <th className="p-3 font-semibold text-slate-700 min-w-[80px] sticky left-0 z-30 bg-slate-50 border-r border-slate-200">Roll No</th>
                 <th className="p-3 font-semibold text-slate-700 min-w-[200px] sticky left-[80px] z-30 bg-slate-50 border-r border-slate-200">Student Name</th>
                 <th className="p-3 font-semibold text-slate-700 min-w-[100px] sticky left-[280px] z-30 bg-slate-50 border-r border-slate-200">Progress %</th>
-                {Array.from({ length: data.totalChapters }, (_, i) => (
-                  <th key={i} className="p-3 text-center font-semibold text-slate-600 min-w-[100px]">Ch {i + 1}</th>
-                ))}
+                {Array.from({ length: data.totalChapters }, (_, i) => {
+                  const chapterNum = i + 1;
+                  const isUnlocked = data.unlockedChapters?.includes(chapterNum);
+                  const cp = data.chapterProgress?.find(c => c.chapterNumber === chapterNum);
+                  return (
+                    <th key={i} className="p-2 text-center font-semibold text-slate-600 min-w-[100px]">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          {isUnlocked ? (
+                            <span className="text-emerald-600">☑</span>
+                          ) : (
+                            <span className="text-slate-400">☐</span>
+                          )}
+                          <span>Ch {chapterNum}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          {isUnlocked && cp ? `${cp.checkedCount}/${cp.totalStudents}` : 'Locked'}
+                        </span>
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -266,13 +285,16 @@ export default function NotebookAnalytics() {
                   <td className="p-3 font-medium text-slate-900 sticky left-0 z-10 bg-white border-r border-slate-200">{student.rollNo}</td>
                   <td className="p-3 font-medium text-slate-900 sticky left-[80px] z-10 bg-white border-r border-slate-200">{student.name}</td>
                   <td className="p-3 font-bold text-fuchsia-700 sticky left-[280px] z-10 bg-white border-r border-slate-200">{student.progressPercentage}%</td>
-                  {student.chapters.map((ch) => (
-                    <td key={ch.chapterNumber} className="p-2 text-center">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getStatusColor(ch.status)}`}>
-                        {getStatusIcon(ch.status)}
-                      </span>
-                    </td>
-                  ))}
+                  {student.chapters.map((ch) => {
+                    const isUnlocked = data.unlockedChapters?.includes(ch.chapterNumber);
+                    return (
+                      <td key={ch.chapterNumber} className="p-2 text-center">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getStatusColor(ch.status)} ${!isUnlocked ? 'opacity-40' : ''}`}>
+                          {getStatusIcon(ch.status)}
+                        </span>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
