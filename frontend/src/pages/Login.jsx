@@ -74,7 +74,7 @@ export default function Login() {
             {[
               { icon: UserCircle, title: "Student Management", desc: "Manage student profiles, admissions, attendance, and academic records.", color: "bg-blue-500" },
               { icon: Briefcase, title: "Teacher Management", desc: "Assign classes, subjects, daily tests, and monitor teacher performance.", color: "bg-emerald-500" },
-              { icon: PieChart, title: "Daily Test & Results", desc: "Conduct daily tests, generate results, rankings, and performance reports.", color: "bg-amber-500" },
+              { icon: PieChart, title: "Notebook Checking", desc: "Track chapter-wise notebook checking progress, pending copies, and student completion status..", color: "bg-amber-500" },
               { icon: ClipboardList, title: "Parent Portal", desc: "Parents can view results, rankings, progress, notifications, and student performance.", color: "bg-rose-500" },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-4 rounded-2xl border border-white bg-white/70 p-5 backdrop-blur-md shadow-sm transition-transform hover:scale-[1.02]">

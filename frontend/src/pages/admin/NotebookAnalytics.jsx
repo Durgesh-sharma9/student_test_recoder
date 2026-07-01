@@ -181,11 +181,15 @@ export default function NotebookAnalytics() {
             onValueChange={(v) => setSelected({ ...selected, subject: v })}
             disabled={!selected.classId}
           >
-            <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder={selected.classId ? "Select Subject" : "Select Class First"} /></SelectTrigger>
             <SelectContent>
-              {subjects.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
+              {subjects.length === 0 && selected.classId ? (
+                <div className="p-2 text-sm text-slate-500">No subjects assigned to this class</div>
+              ) : (
+                subjects.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <Select 

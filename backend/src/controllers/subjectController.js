@@ -32,7 +32,7 @@ export const listSchoolSubjects = asyncHandler(async (req, res) => {
 
   const subjects = [
     ...new Set([
-      ...(school?.subjects || []).map(normalizeSubject),
+      ...(classId ? [] : (school?.subjects || []).map(normalizeSubject)),
       ...fromAssignments,
       ...fromSessions.map(normalizeSubject),
     ]),
