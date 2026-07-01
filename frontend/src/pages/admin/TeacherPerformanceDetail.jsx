@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Users, ClipboardList, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BarChart3, Users, ClipboardList, TrendingUp, FileCheck } from 'lucide-react';
 import {
   Line,
   LineChart,
@@ -21,6 +21,10 @@ export default function TeacherPerformanceDetail() {
   const [sp] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState(null);
+  
+  // Notebook Checking Analytics
+  const [nbLoading, setNbLoading] = useState(false);
+  const [nbStats, setNbStats] = useState(null);
 
   const params = useMemo(() => {
     const p = {
@@ -48,6 +52,38 @@ export default function TeacherPerformanceDetail() {
       }
     };
     load();
+  }, [params]);
+
+  useEffect(() => {
+    const loadNb = async () => {
+      if (!params.teacherId || !params.classId || !params.subject) return;
+      setNbLoading(true);
+      try {
+        // Fetch all notebook checks matching this criteria for analytics
+        const res = await api.get(`/notebook/analytics`, { params });
+        if (res.data.success && res.data.data) {
+          let checked = 0;
+          let pending = 0;
+          let notSubmitted = 0;
+          res.data.data.forEach(d => {
+            checked += d.checkedCount || 0;
+            pending += d.pendingCount || 0;
+            notSubmitted += d.notSubmittedCount || 0;
+          });
+          setNbStats({
+            overallPercentage: res.data.overallPercentage,
+            checked,
+            pending,
+            notSubmitted
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load notebook analytics', err);
+      } finally {
+        setNbLoading(false);
+      }
+    };
+    loadNb();
   }, [params]);
 
   const trendData = useMemo(() => {
@@ -108,6 +144,33 @@ export default function TeacherPerformanceDetail() {
               <div className="text-xs text-slate-500">
                 Last Test: {detail?.lastTestDate ? formatDisplayDateShort(detail.lastTestDate) : '-'}
               </div>
+            </div>
+          </div>
+        )}
+      </ErpSection>
+
+      <ErpSection title="Notebook Checking Progress" icon={FileCheck} tone="fuchsia">
+        {nbLoading ? (
+          <div className="py-8 text-center text-slate-500">Loading notebook data...</div>
+        ) : !nbStats ? (
+          <div className="py-8 text-center text-slate-500">No notebook checking data found for this assignment</div>
+        ) : (
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">Checked Entries</div>
+              <div className="mt-2 text-2xl font-bold text-emerald-600">{nbStats.checked}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">Pending Entries</div>
+              <div className="mt-2 text-2xl font-bold text-amber-500">{nbStats.pending}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">Not Submitted</div>
+              <div className="mt-2 text-2xl font-bold text-rose-500">{nbStats.notSubmitted}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-4 text-center shadow-sm">
+              <div className="text-sm font-semibold text-slate-500">Overall Progress</div>
+              <div className="mt-2 text-2xl font-bold text-fuchsia-700">{nbStats.overallPercentage}%</div>
             </div>
           </div>
         )}
@@ -263,4 +326,3 @@ export default function TeacherPerformanceDetail() {
     </PageStack>
   );
 }
-

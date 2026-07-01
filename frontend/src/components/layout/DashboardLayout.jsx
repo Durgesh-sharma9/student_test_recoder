@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
   CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
-  Lock, UserCheck, Bell, Megaphone,
+  Lock, UserCheck, Bell, Megaphone, FileCheck,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -57,9 +57,9 @@ const navByRole = {
     { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100', featureKey: 'parent_portal' },
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100', featureKey: 'teacher_portal', lockLabel: 'Assign Subjects' },
     { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
+    { to: '/admin/notebook-analytics', label: 'Notebook Analytics', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100', featureKey: 'reports' },
     { to: '/admin/teacher-performance', label: 'Teacher Performance', icon: BarChart3, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_performance' },
     { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'reports' },
-    // { to: '/admin/academic-sessions', label: 'Academic Sessions', icon: Settings, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100', featureKey: 'academic_session' },
     { to: '/admin/plans', label: 'Plans', icon: CreditCard, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
   ],
   teacher: [
@@ -68,6 +68,7 @@ const navByRole = {
     { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_portal' },
     { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'daily_test' },
     { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'main_exam' },
+    { to: '/teacher/notebook-checking', label: 'Notebook Checking', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100', featureKey: 'teacher_portal' },
     { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
     { to: '/teacher/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],

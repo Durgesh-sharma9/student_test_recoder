@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Activity, AlertTriangle, Lock, AlertCircle } from 'lucide-react';
+import { BookOpen, Activity, AlertTriangle, Lock, AlertCircle, FileCheck } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { formatDisplayDate } from '@/lib/dateFormatter';
@@ -29,6 +29,12 @@ export default function TeacherDashboard() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [topCount, setTopCount] = useState('5');
+
+  // Notebook Analytics State
+  const [nbClass, setNbClass] = useState('');
+  const [nbSubject, setNbSubject] = useState('');
+  const [notebookStats, setNotebookStats] = useState(null);
+  const [loadingNotebook, setLoadingNotebook] = useState(false);
 
   useEffect(() => { api.get('/results/dashboard').then((r) => setData(r.data)); }, []);
   const s = data.stats || {};
@@ -83,6 +89,25 @@ export default function TeacherDashboard() {
     setWeakStudentsData([]);
   };
 
+  const fetchNotebookStats = async () => {
+    if (!nbClass || !nbSubject) return;
+    setLoadingNotebook(true);
+    try {
+      const res = await api.get(`/notebook/grid?classId=${nbClass}&subject=${nbSubject}`);
+      setNotebookStats(res.data.stats || null);
+    } catch (err) {
+      console.error('Failed to fetch notebook stats', err);
+    } finally {
+      setLoadingNotebook(false);
+    }
+  };
+
+  useEffect(() => {
+    if (nbClass && nbSubject) {
+      fetchNotebookStats();
+    }
+  }, [nbClass, nbSubject]);
+
   return (
     <PageStack>
       <PageHeader
@@ -116,6 +141,56 @@ export default function TeacherDashboard() {
         <StatsCard title="Total Students" value={s.students || 0} />
         <StatsCard title="Tests Conducted" value={s.testsConducted || 0} />
       </div>
+
+      <ErpSection title="Notebook Checking Progress" icon={FileCheck} tone="fuchsia">
+        <div className="grid gap-4 sm:grid-cols-2 mb-6">
+          <FormField label="Class">
+            <Select value={nbClass} onValueChange={(v) => { setNbClass(v); setNbSubject(''); setNotebookStats(null); }}>
+              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select Class" /></SelectTrigger>
+              <SelectContent>
+                {[...new Map(assignments.map(a => [a.classId, a])).values()].map((a) => (
+                  <SelectItem key={a.classId} value={a.classId}>{formatClassName(a.className)} {a.section}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+          <FormField label="Subject">
+            <Select value={nbSubject} onValueChange={setNbSubject}>
+              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+              <SelectContent>
+                {[...new Set(assignments.filter(a => nbClass ? a.classId === nbClass : true).map(a => a.subject))].map((subj) => (
+                  <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+        </div>
+
+        {!nbClass || !nbSubject ? (
+          <div className="py-6 text-center text-slate-500 text-sm">Select a class and subject to view notebook checking progress.</div>
+        ) : loadingNotebook ? (
+          <div className="py-6 text-center text-slate-500 text-sm">Loading notebook stats...</div>
+        ) : notebookStats ? (
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="text-sm font-semibold text-slate-500">Checked Entries</div>
+              <div className="mt-2 text-2xl font-bold text-emerald-600">{notebookStats.checked}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="text-sm font-semibold text-slate-500">Pending Entries</div>
+              <div className="mt-2 text-2xl font-bold text-amber-500">{notebookStats.pending}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+              <div className="text-sm font-semibold text-slate-500">Not Submitted</div>
+              <div className="mt-2 text-2xl font-bold text-rose-500">{notebookStats.notSubmitted}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-4 text-center">
+              <div className="text-sm font-semibold text-slate-500">Overall Progress</div>
+              <div className="mt-2 text-2xl font-bold text-fuchsia-700">{notebookStats.progressPercentage}%</div>
+            </div>
+          </div>
+        ) : null}
+      </ErpSection>
 
       <ErpSection title="Assigned Subjects" icon={BookOpen} tone="blue">
         {assignments.length === 0 ? (

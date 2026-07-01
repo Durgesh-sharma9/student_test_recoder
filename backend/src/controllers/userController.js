@@ -530,6 +530,7 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   teacher.assignments = assignments.map((a) => ({
     class: a.class,
     subject: String(a.subject).toUpperCase(),
+    totalChapters: Number(a.totalChapters) || 0,
     academicSession: activeSession._id,
   }));
   await teacher.save();

@@ -5,6 +5,7 @@ const teacherAssignmentSchema = new mongoose.Schema(
   {
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     subject: { type: String, required: true, trim: true, uppercase: true },
+    totalChapters: { type: Number, default: 0 },
     academicSession: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicSession', required: true },
   },
   { _id: false }

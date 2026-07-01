@@ -53,6 +53,9 @@ import ChangePassword from '@/pages/ChangePassword';
 import RequireFeature from '@/components/subscription/RequireFeature';
 import SuperNotifications from '@/pages/super/SuperNotifications';
 
+import NotebookChecking from '@/pages/teacher/NotebookChecking';
+import NotebookAnalytics from '@/pages/admin/NotebookAnalytics';
+
 function HomeRoute() {
   const { user, loading } = useAuth();
   console.log('[HomeRoute] Component mounted');
@@ -125,6 +128,7 @@ export default function App() {
               <Route path="/admin/teacher-performance/view" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_performance" label="Teacher Performance"><TeacherPerformanceDetail /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="academic_session" label="Academic Session"><AcademicSessions /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/security" element={<ProtectedRoute roles={['school_admin', 'admin']}><SecuritySettings /></ProtectedRoute>} />
+              <Route path="/admin/notebook-analytics" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><NotebookAnalytics /></RequireFeature></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
               <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="notifications" label="Notifications"><TeacherNotifications /></RequireFeature></ProtectedRoute>} />
@@ -134,6 +138,7 @@ export default function App() {
               <Route path="/teacher/results" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="reports" label="Reports"><TeacherResults /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/settings" element={<ProtectedRoute roles={['teacher']}><TeacherSettings /></ProtectedRoute>} />
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
+              <Route path="/teacher/notebook-checking" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><NotebookChecking /></RequireFeature></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/results" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="reports" label="Reports"><ParentViewResults /></RequireFeature></ProtectedRoute>} />

@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, Trophy, Calendar, FileText } from 'lucide-react';
+import { ArrowLeft, Trophy, Calendar, FileText, FileCheck } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function StudentDetails() {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Notebook Check State
+  const [notebookData, setNotebookData] = useState(null);
+  const [loadingNotebook, setLoadingNotebook] = useState(false);
 
   useEffect(() => {
     loadStudentDetails();
+    loadNotebookProgress();
   }, [studentId]);
 
   const loadStudentDetails = async () => {
@@ -27,6 +33,20 @@ export default function StudentDetails() {
       navigate('/parent/dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadNotebookProgress = async () => {
+    setLoadingNotebook(true);
+    try {
+      const res = await api.get(`/notebook/parent/${studentId}`);
+      if (res.data.success) {
+        setNotebookData(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load notebook details:', err);
+    } finally {
+      setLoadingNotebook(false);
     }
   };
 
@@ -73,6 +93,46 @@ export default function StudentDetails() {
             <div className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{student.percentage}%</div>
           </div>
         </div>
+      </ErpSection>
+
+      <ErpSection title="Notebook Checking Progress" icon={FileCheck} tone="fuchsia">
+        {loadingNotebook ? (
+          <div className="p-8 text-center text-slate-500">Loading notebook data...</div>
+        ) : !notebookData || notebookData.subjectProgress?.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No notebook checking data available</div>
+        ) : (
+          <div className="space-y-4 p-3 sm:p-4">
+            <div className="rounded-lg border border-fuchsia-200 bg-fuchsia-50 p-4">
+              <div className="text-sm font-semibold text-fuchsia-800 mb-1">Overall Notebook Checking Progress</div>
+              <div className="text-2xl font-extrabold text-fuchsia-900">{notebookData.overallPercentage}%</div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/70">
+                    <TableHead>Subject</TableHead>
+                    <TableHead className="text-center">Checked</TableHead>
+                    <TableHead className="text-center">Pending</TableHead>
+                    <TableHead className="text-center">Not Submitted</TableHead>
+                    <TableHead className="text-right">Progress</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {notebookData.subjectProgress.map((subj, idx) => (
+                    <TableRow key={idx} className="hover:bg-slate-50">
+                      <TableCell className="font-medium">{subj.subject}</TableCell>
+                      <TableCell className="text-center font-semibold text-emerald-600">{subj.checked}</TableCell>
+                      <TableCell className="text-center font-semibold text-amber-500">{subj.pending}</TableCell>
+                      <TableCell className="text-center font-semibold text-rose-500">{subj.notSubmitted}</TableCell>
+                      <TableCell className="text-right font-bold text-fuchsia-700">{subj.percentage}%</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
       </ErpSection>
 
       <ErpSection title="Results" icon={Trophy} tone="yellow">
