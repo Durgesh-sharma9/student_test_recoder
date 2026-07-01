@@ -33,9 +33,10 @@ export default function NotebookGrid({ grid, totalChapters, classId, subject, on
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50">
+        <thead className="bg-slate-50 sticky top-0 z-20">
           <tr>
-            <th className="p-3 font-semibold text-slate-700 min-w-[200px]">Student</th>
+            <th className="p-3 font-semibold text-slate-700 min-w-[80px] sticky left-0 z-30 bg-slate-50 border-r border-slate-200">Roll No</th>
+            <th className="p-3 font-semibold text-slate-700 min-w-[200px] sticky left-[80px] z-30 bg-slate-50 border-r border-slate-200">Student Name</th>
             {Array.from({ length: totalChapters }, (_, i) => (
               <th key={i} className="p-3 text-center font-semibold text-slate-600 min-w-[100px]">Ch {i + 1}</th>
             ))}
@@ -44,7 +45,8 @@ export default function NotebookGrid({ grid, totalChapters, classId, subject, on
         <tbody className="divide-y divide-slate-100">
           {grid.map((student) => (
             <tr key={student.studentId} className="hover:bg-slate-50/50">
-              <td className="p-3 font-medium text-slate-900">{student.rollNo}. {student.name}</td>
+              <td className="p-3 font-medium text-slate-900 sticky left-0 z-10 bg-white border-r border-slate-200">{student.rollNo}</td>
+              <td className="p-3 font-medium text-slate-900 sticky left-[80px] z-10 bg-white border-r border-slate-200">{student.name}</td>
               {student.chapters.map((ch) => (
                 <td key={ch.chapterNumber} className="p-2 text-center">
                   <button

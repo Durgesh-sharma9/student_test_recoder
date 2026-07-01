@@ -1,0 +1,1 @@
+﻿              <Route path="/parent/notebook-progress" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><NotebookProgress /></RequireFeature></ProtectedRoute>} />

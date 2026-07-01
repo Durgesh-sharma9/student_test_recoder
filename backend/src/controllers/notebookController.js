@@ -173,134 +173,90 @@ export const updateChapterStatus = asyncHandler(async (req, res) => {
 
 export const getAdminAnalytics = asyncHandler(async (req, res) => {
   const schoolId = req.user.school?._id ?? req.user.school;
-  const {
-    classId,
-    subject,
-    teacherId,
-    filterType, // e.g., 'top_5', 'bottom_10', 'below_90', 'pending_only'
-    exportFormat // 'excel', 'csv'
-  } = req.query;
+  const { classId, subject, exportFormat } = req.query;
 
-  const activeSession = await getActiveSession(schoolId);
-  const query = { school: schoolId, isActive: true };
-  if (classId) query.class = classId;
-
-  // Step 1: Find Students
-  let students = await Student.find(query).populate('class', 'className section');
-
-  // Step 2: Resolve subject & total chapters based on teacher assignments
-  let totalChaptersMap = new Map(); // key: "classId_subject", value: totalChapters
-  const teacherQuery = { school: schoolId, role: 'teacher', isActive: true };
-  if (teacherId) teacherQuery._id = teacherId;
-
-  const teachers = await User.find(teacherQuery);
-  teachers.forEach(t => {
-    t.assignments.forEach(a => {
-      const matchSubject = subject ? a.subject === String(subject).toUpperCase() : true;
-      const matchClass = classId ? a.class.toString() === classId : true;
-      if (matchSubject && matchClass) {
-        const key = `${a.class.toString()}_${a.subject}`;
-        totalChaptersMap.set(key, a.totalChapters || 0);
-      }
-    });
-  });
-
-  // Collect relevant checks
-  const checksQuery = { school: schoolId, academicSession: activeSession._id };
-  if (classId) checksQuery.class = classId;
-  if (subject) checksQuery.subject = String(subject).toUpperCase();
-  
-  const checks = await NotebookCheck.find(checksQuery);
-  const checksByStudentMap = new Map();
-  checks.forEach(c => {
-    const key = `${c.student.toString()}_${c.subject}`;
-    checksByStudentMap.set(key, c);
-  });
-
-  // Step 3: Build Analytic Rows
-  let analyticsData = [];
-
-  students.forEach(student => {
-    // For each student, check against assigned subjects from totalChaptersMap
-    totalChaptersMap.forEach((maxChapters, classSubjKey) => {
-      const [assignedClassId, assignedSubject] = classSubjKey.split('_');
-      
-      if (student.class._id.toString() === assignedClassId) {
-        const checkKey = `${student._id.toString()}_${assignedSubject}`;
-        const existingCheck = checksByStudentMap.get(checkKey);
-        
-        let checkedCount = 0;
-        let pendingCount = maxChapters; // assume pending initially
-        let notSubmittedCount = 0;
-
-        if (existingCheck) {
-          existingCheck.chapters.forEach(ch => {
-            if (ch.chapterNumber <= maxChapters) {
-              if (ch.status === 'Checked') { checkedCount++; pendingCount--; }
-              if (ch.status === 'Copy Not Submitted') { notSubmittedCount++; pendingCount--; }
-            }
-          });
-        }
-
-        const percentage = maxChapters > 0 ? Math.round((checkedCount / maxChapters) * 100) : 0;
-
-        analyticsData.push({
-          studentId: student._id,
-          name: student.name,
-          rollNo: student.rollNo,
-          className: student.class.className,
-          section: student.class.section,
-          subject: assignedSubject,
-          totalChapters: maxChapters,
-          checkedCount,
-          pendingCount,
-          notSubmittedCount,
-          percentage
-        });
-      }
-    });
-  });
-
-  // Step 4: Apply Advanced Filters
-  if (filterType) {
-    if (filterType.startsWith('top_')) {
-      const limit = parseInt(filterType.split('_')[1]);
-      analyticsData.sort((a, b) => b.percentage - a.percentage);
-      analyticsData = analyticsData.slice(0, limit);
-    } else if (filterType.startsWith('bottom_')) {
-      const limit = parseInt(filterType.split('_')[1]);
-      analyticsData.sort((a, b) => a.percentage - b.percentage);
-      analyticsData = analyticsData.slice(0, limit);
-    } else if (filterType.startsWith('below_')) {
-      const threshold = parseInt(filterType.split('_')[1]);
-      analyticsData = analyticsData.filter(item => item.percentage < threshold);
-    } else if (filterType === 'pending_only') {
-      analyticsData = analyticsData.filter(item => item.pendingCount > 0);
-    } else if (filterType === 'not_submitted_only') {
-      analyticsData = analyticsData.filter(item => item.notSubmittedCount > 0);
-    }
+  if (!classId || !subject) {
+    throw new ApiError(400, 'classId and subject are required');
   }
 
-  // Calculate top level stats
-  let totalOverallChecked = 0;
-  let totalOverallChapters = 0;
-  analyticsData.forEach(d => {
-    totalOverallChecked += d.checkedCount;
-    totalOverallChapters += d.totalChapters;
+  const normalizedSubject = String(subject).toUpperCase().trim();
+  const activeSession = await getActiveSession(schoolId);
+
+  // Get total chapters from teacher assignments
+  const teacher = await User.findOne({
+    school: schoolId,
+    role: 'teacher',
+    isActive: true,
+    'assignments.class': classId,
+    'assignments.subject': normalizedSubject
   });
-  const overallPercentage = totalOverallChapters > 0 ? Math.round((totalOverallChecked / totalOverallChapters) * 100) : 0;
+
+  if (!teacher) {
+    throw new ApiError(404, 'No teacher assigned to this class and subject');
+  }
+
+  const assignment = teacher.assignments.find(
+    (a) => a.class.toString() === classId && a.subject === normalizedSubject
+  );
+
+  const totalChapters = assignment?.totalChapters || 0;
+
+  // Fetch all active students in this class
+  const students = await Student.find({
+    school: schoolId,
+    class: classId,
+    isActive: true,
+  }).sort({ rollNo: 1 });
+
+  // Fetch existing notebook checks for these students
+  const checks = await NotebookCheck.find({
+    school: schoolId,
+    academicSession: activeSession._id,
+    class: classId,
+    subject: normalizedSubject,
+  });
+
+  const checkMap = new Map(checks.map((c) => [c.student.toString(), c]));
+
+  // Build grid data with progress percentage
+  const grid = students.map((student) => {
+    const existingCheck = checkMap.get(student._id.toString());
+    const chapters = [];
+
+    let checkedCount = 0;
+
+    // Map existing chapters or default to Pending
+    for (let i = 1; i <= totalChapters; i++) {
+      const existingChap = existingCheck?.chapters.find((ch) => ch.chapterNumber === i);
+      const status = existingChap ? existingChap.status : 'Pending';
+      chapters.push({
+        chapterNumber: i,
+        status,
+      });
+      if (status === 'Checked') checkedCount++;
+    }
+
+    const progressPercentage = totalChapters > 0 ? Math.round((checkedCount / totalChapters) * 100) : 0;
+
+    return {
+      studentId: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      chapters,
+      progressPercentage,
+    };
+  });
 
   // Export Logic
   if (exportFormat === 'excel') {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Notebook Analytics');
-    sheet.addRow(['Roll No', 'Name', 'Class', 'Section', 'Subject', 'Total Chapters', 'Checked', 'Pending', 'Not Submitted', 'Progress %']);
+    sheet.addRow(['Roll No', 'Name', ...Array.from({ length: totalChapters }, (_, i) => `Ch ${i + 1}`), 'Progress %']);
     
-    analyticsData.forEach(r => {
-      sheet.addRow([r.rollNo, r.name, r.className, r.section, r.subject, r.totalChapters, r.checkedCount, r.pendingCount, r.notSubmittedCount, r.percentage]);
+    grid.forEach(r => {
+      sheet.addRow([r.rollNo, r.name, ...r.chapters.map(ch => ch.status), r.progressPercentage + '%']);
     });
-
-    sheet.getRow(1).font = { bold: true };
+    
     const buffer = await workbook.xlsx.writeBuffer();
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -310,8 +266,8 @@ export const getAdminAnalytics = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: analyticsData,
-    overallPercentage
+    grid,
+    totalChapters,
   });
 });
 

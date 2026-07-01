@@ -17,7 +17,13 @@ export default function NotebookChecking() {
   const loadGrid = async () => {
     if (!selected.classId || !selected.subject) return;
     const res = await api.get(`/notebook/grid?classId=${selected.classId}&subject=${selected.subject}`);
-    setData(res.data);
+    // Sort students by numeric roll number
+    const sortedGrid = [...res.data.grid].sort((a, b) => {
+      const rollA = parseInt(a.rollNo, 10) || 0;
+      const rollB = parseInt(b.rollNo, 10) || 0;
+      return rollA - rollB;
+    });
+    setData({ ...res.data, grid: sortedGrid });
   };
 
   useEffect(() => { loadGrid(); }, [selected]);

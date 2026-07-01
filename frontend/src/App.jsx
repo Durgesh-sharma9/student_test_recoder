@@ -55,6 +55,7 @@ import SuperNotifications from '@/pages/super/SuperNotifications';
 
 import NotebookChecking from '@/pages/teacher/NotebookChecking';
 import NotebookAnalytics from '@/pages/admin/NotebookAnalytics';
+import NotebookProgress from '@/pages/parent/NotebookProgress';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -141,6 +142,7 @@ export default function App() {
               <Route path="/teacher/notebook-checking" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><NotebookChecking /></RequireFeature></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
+              <Route path="/parent/notebook-progress" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><NotebookProgress /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/results" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="reports" label="Reports"><ParentViewResults /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/settings" element={<ProtectedRoute roles={['parent']}><ParentSettings /></ProtectedRoute>} />
               <Route path="/parent/notifications" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="notifications" label="Notifications"><ParentNotifications /></RequireFeature></ProtectedRoute>} />
