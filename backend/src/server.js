@@ -27,6 +27,7 @@ import enterpriseRoutes from './routes/enterpriseRoutes.js';
 import trialSettingsRoutes from './routes/trialSettingsRoutes.js';
 import subscriptionHistoryRoutes from './routes/subscriptionHistoryRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import notebookRoutes from './routes/notebookRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,7 @@ app.use('/api/enterprise', enterpriseRoutes);
 app.use('/api/trial-settings', trialSettingsRoutes);
 app.use('/api/subscription-history', subscriptionHistoryRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/notebook', notebookRoutes);
 
 app.use(errorHandler);
 
