@@ -26,6 +26,19 @@ export default function NotebookChecking() {
     setData({ ...res.data, grid: sortedGrid });
   };
 
+  const handleUnlockChapter = async (chapterNumber) => {
+    try {
+      await api.post('/notebook/unlock', {
+        classId: selected.classId,
+        subject: selected.subject,
+        chapterNumber,
+      });
+      loadGrid();
+    } catch (err) {
+      console.error('Failed to unlock chapter:', err);
+    }
+  };
+
   useEffect(() => { loadGrid(); }, [selected]);
 
   return (
@@ -55,9 +68,13 @@ export default function NotebookChecking() {
         <NotebookGrid 
           grid={data.grid} 
           totalChapters={data.totalChapters} 
+          unlockedChapters={data.unlockedChapters || []}
+          chapterProgress={data.chapterProgress || []}
+          progress={data.progress}
           classId={selected.classId} 
           subject={selected.subject} 
-          onUpdate={loadGrid} 
+          onUpdate={loadGrid}
+          onUnlockChapter={handleUnlockChapter}
         />
       )}
     </PageStack>

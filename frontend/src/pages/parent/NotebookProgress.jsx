@@ -147,7 +147,7 @@ export default function NotebookProgress() {
 
                       <div className="mb-3">
                         <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-slate-600">{subject.checked} / {subject.totalChapters} Chapters Checked</span>
+                          <span className="text-slate-600">{subject.checked} / {subject.unlockedChapters?.length || 0} Unlocked Chapters Checked</span>
                           <span className="text-slate-500">{subject.percentage}%</span>
                         </div>
                         <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -163,13 +163,17 @@ export default function NotebookProgress() {
                           <div
                             key={ch.chapterNumber}
                             className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                              !ch.isUnlocked ? 'opacity-30 bg-slate-200 text-slate-400' :
                               ch.status === 'Checked' ? 'bg-emerald-500 text-white' :
                               ch.status === 'Copy Not Submitted' ? 'bg-rose-500 text-white' :
                               'bg-slate-100 text-slate-600'
                             }`}
-                            title={`Chapter ${ch.chapterNumber}: ${ch.status}`}
+                            title={`Chapter ${ch.chapterNumber}: ${ch.isUnlocked ? ch.status : 'Locked'}`}
                           >
-                            {ch.status === 'Checked' ? '✔' : ch.status === 'Copy Not Submitted' ? '❌' : ch.chapterNumber}
+                            {!ch.isUnlocked ? '🔒' :
+                             ch.status === 'Checked' ? '✔' :
+                             ch.status === 'Copy Not Submitted' ? '❌' :
+                             ch.chapterNumber}
                           </div>
                         ))}
                       </div>
