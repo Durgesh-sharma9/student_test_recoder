@@ -48,6 +48,7 @@ export default function TeacherAssignments() {
   const [teacherId, setTeacherId] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [subject, setSubject] = useState("");
+  const [totalChapters, setTotalChapters] = useState("");
   const [items, setItems] = useState([]);
 
   useEffect(() => {
@@ -73,14 +74,15 @@ export default function TeacherAssignments() {
       (teacher?.assignments || []).map((a) => ({
         class: a.class?._id || a.class,
         subject: a.subject,
+        totalChapters: a.totalChapters || 0,
       })),
     );
   }, [teacherId, teachers]);
 
   const addItem = () => {
     if (!checkAndBlock(() => {
-      if (!selectedClass || !subject.trim()) {
-        toast.error("Please select class and enter subject");
+      if (!selectedClass || !subject.trim() || !totalChapters) {
+        toast.error("Please select class, enter subject and total chapters");
         return;
       }
 
@@ -89,14 +91,15 @@ export default function TeacherAssignments() {
         {
           class: selectedClass,
           subject: subject.toUpperCase(),
+          totalChapters: Number(totalChapters),
         },
       ]);
 
       setSubject("");
+      setTotalChapters("");
     })) return;
   };
 
-  // Confirmation ke sath handle karne ka custom trigger handler
   const handleRemoveItem = (indexToRemove, className, subjectName) => {
     const classDisplay = className ? formatClassName(className) : "this class";
     const confirmMessage = `Are you sure you want to remove ${subjectName} from ${classDisplay}?`;
@@ -110,11 +113,6 @@ export default function TeacherAssignments() {
   const save = async () => {
     if (!checkAndBlock(async () => {
       try {
-        console.log('[TeacherAssignments] save called');
-        console.log('[TeacherAssignments] teacherId:', teacherId);
-        console.log('[TeacherAssignments] teacherId type:', typeof teacherId);
-        console.log('[TeacherAssignments] teacherId value:', JSON.stringify(teacherId));
-        
         if (!teacherId) {
           toast.error("Please select a teacher first");
           return;
@@ -129,10 +127,10 @@ export default function TeacherAssignments() {
           ),
         ];
 
-        for (const subject of uniqueSubjects) {
+        for (const subj of uniqueSubjects) {
           try {
             await api.post("/subjects", {
-              subject,
+              subject: subj,
             });
           } catch {
             // ignore duplicate
@@ -144,9 +142,6 @@ export default function TeacherAssignments() {
           assignments: items,
         };
         
-        console.log('[TeacherAssignments] payload:', payload);
-        console.log('[TeacherAssignments] API URL:', `/users/${teacherId}/assignments`);
-
         await api.put(
           `/users/${teacherId}/assignments`,
           payload,
@@ -182,7 +177,7 @@ export default function TeacherAssignments() {
       </ErpSection>
 
       <ErpSection title="Add New Assignment" icon={Plus} tone="orange">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-4">
           <FormField label="Class">
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger>
@@ -215,6 +210,17 @@ export default function TeacherAssignments() {
             </>
           </FormField>
 
+          <FormField label="Total Chapters">
+            <Input
+              type="number"
+              min="0"
+              placeholder="e.g. 12"
+              value={totalChapters}
+              onChange={(e) => setTotalChapters(e.target.value)}
+              className="h-10 rounded-md border-slate-200 bg-white shadow-sm"
+            />
+          </FormField>
+
           <div className="flex items-end">
             <Button onClick={addItem} className="w-full h-10" variant="success" disabled={isArchived}>
               <Plus className="mr-2 h-4 w-4" />
@@ -230,7 +236,7 @@ export default function TeacherAssignments() {
             No assignments added yet
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 w-full">
             {items.map((item, index) => {
               const classInfo = classes.find((c) => c._id === item.class);
 
@@ -257,8 +263,9 @@ export default function TeacherAssignments() {
 
                   {/* Middle Block: Subject with Color/Gradient Fill */}
                   <div className="my-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-100/70 p-3.5 shadow-inner">
-                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">
-                      Subject
+                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between">
+                      <span>Subject</span>
+                      <span>Chapters: {item.totalChapters || 0}</span>
                     </div>
                     <div className="text-base font-extrabold text-blue-700 tracking-wide uppercase truncate mt-0.5">
                       {item.subject}
