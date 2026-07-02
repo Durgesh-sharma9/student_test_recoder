@@ -1,18 +1,61 @@
 import Student from '../models/Student.js';
 import MarkEntry from '../models/MarkEntry.js';
 import NotebookCheck from '../models/NotebookCheck.js';
+import AcademicSession from '../models/AcademicSession.js';
 import mongoose from 'mongoose';
+
+// Helper function to get active session
+const getActiveSession = async (schoolId) => {
+  let activeSession = await AcademicSession.findOne({
+    school: schoolId,
+    status: 'active'
+  });
+  
+  if (!activeSession) {
+    // Auto-create if doesn't exist
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+    const startDate = new Date(currentYear, 5, 1);
+    const endDate = new Date(nextYear, 2, 31);
+    
+    activeSession = await AcademicSession.create({
+      school: schoolId,
+      sessionName,
+      startDate,
+      endDate,
+      status: 'active'
+    });
+  }
+  
+  return activeSession;
+};
 
 export const getStudentPerformanceAnalytics = async (req, res, next) => {
   try {
-    const { classId, studentId, assessments, examType, dateRange, academicSession } = req.query;
+    const { classId, studentId, assessments, examType, dateRange, specificDate, dateFrom, dateTo, academicSession } = req.query;
+    const schoolId = req.user.school?._id ?? req.user.school;
 
     if (!classId) {
       return res.status(400).json({ success: false, message: 'Class ID is required.' });
     }
 
+    // Get active session if not provided
+    const activeSession = academicSession 
+      ? await AcademicSession.findById(academicSession)
+      : await getActiveSession(schoolId);
+
+    if (!activeSession) {
+      return res.status(400).json({ success: false, message: 'No active academic session found.' });
+    }
+
     // 1. Fetch Students
-    const studentQuery = { class: classId, academicSession, isActive: true };
+    const studentQuery = { 
+      class: classId, 
+      academicSession: activeSession._id, 
+      school: schoolId,
+      isActive: true 
+    };
     if (studentId && studentId !== 'all') {
       studentQuery._id = studentId;
     }
@@ -27,25 +70,48 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
 
     // 2. Fetch Marks (Daily Tests & Main Exams)
     let marks = [];
-    if (assessmentArray.includes('Daily Test') || assessmentArray.includes('Main Exam') || assessmentArray.includes('All Assessments')) {
+    if (assessmentArray.includes('Daily Test') || assessmentArray.includes('Main Exam') || assessmentArray.includes('All Assessments') || assessmentArray.length === 0) {
       // Fetch MarkEntries and populate session to determine exam type/dates
       marks = await MarkEntry.find({
         student: { $in: studentIds },
-        academicSession
+        academicSession: activeSession._id
       }).populate('session').lean();
 
-      // Apply Date Filters if session date exists
-      if (dateRange && dateRange !== 'This Year') {
+      // Apply Date Filters
+      if (dateRange && dateRange !== 'All Time') {
         const now = new Date();
         let startDate = new Date();
+        let endDate = new Date();
         
-        if (dateRange === 'Today') startDate.setHours(0,0,0,0);
-        else if (dateRange === 'This Week') startDate.setDate(now.getDate() - 7);
-        else if (dateRange === 'This Month') startDate.setMonth(now.getMonth() - 1);
+        if (dateRange === 'Today') {
+          startDate.setHours(0,0,0,0);
+          endDate.setHours(23,59,59,999);
+        } else if (dateRange === 'This Week') {
+          const day = now.getDay();
+          const diff = day === 0 ? 6 : day - 1;
+          startDate.setDate(now.getDate() - diff);
+          startDate.setHours(0,0,0,0);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23,59,59,999);
+        } else if (dateRange === 'This Month') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          endDate.setHours(23,59,59,999);
+        } else if (dateRange === 'Specific Date' && specificDate) {
+          startDate = new Date(specificDate);
+          startDate.setHours(0,0,0,0);
+          endDate = new Date(specificDate);
+          endDate.setHours(23,59,59,999);
+        } else if (dateRange === 'Date Range' && dateFrom && dateTo) {
+          startDate = new Date(dateFrom);
+          startDate.setHours(0,0,0,0);
+          endDate = new Date(dateTo);
+          endDate.setHours(23,59,59,999);
+        }
         
         marks = marks.filter(m => {
-          const examDate = m.session?.date || m.createdAt;
-          return new Date(examDate) >= startDate;
+          const examDate = m.session?.date || m.session?.testDate || m.session?.examDate || m.createdAt;
+          return new Date(examDate) >= startDate && new Date(examDate) <= endDate;
         });
       }
 
@@ -57,10 +123,10 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
 
     // 3. Fetch Notebook Checks
     let notebooks = [];
-    if (assessmentArray.includes('Notebook Checking') || assessmentArray.includes('All Assessments')) {
+    if (assessmentArray.includes('Notebook Checking') || assessmentArray.includes('All Assessments') || assessmentArray.length === 0) {
       notebooks = await NotebookCheck.find({
         student: { $in: studentIds },
-        academicSession
+        academicSession: activeSession._id
       }).lean();
     }
 
