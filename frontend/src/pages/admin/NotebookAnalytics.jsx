@@ -115,6 +115,7 @@ export default function NotebookAnalytics() {
       totalStudents,
       totalChapters,
       overallProgress,
+      unlockedChapterPerformance: analyticsData.unlockedChapterPerformance || 0,
     });
   };
 
@@ -147,7 +148,6 @@ export default function NotebookAnalytics() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'Checked': return '✔';
-      case 'Copy Not Submitted': return '❌';
       default: return '⬜';
     }
   };
@@ -155,7 +155,6 @@ export default function NotebookAnalytics() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Checked': return 'bg-emerald-500 text-white';
-      case 'Copy Not Submitted': return 'bg-rose-500 text-white';
       default: return 'bg-slate-100 text-slate-600';
     }
   };
@@ -223,7 +222,7 @@ export default function NotebookAnalytics() {
       </ErpSection>
       
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2 mb-2"><BookOpen className="h-5 w-5 text-fuchsia-600" /><span className="text-sm font-medium text-slate-600">Class</span></div>
             <div className="text-xl font-bold text-slate-900">{summary.className}</div>
@@ -240,9 +239,13 @@ export default function NotebookAnalytics() {
             <div className="flex items-center gap-2 mb-2"><BookOpen className="h-5 w-5 text-fuchsia-600" /><span className="text-sm font-medium text-slate-600">Total Chapters</span></div>
             <div className="text-xl font-bold text-slate-900">{summary.totalChapters}</div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center gap-2 mb-2"><TrendingUp className="h-5 w-5 text-fuchsia-600" /><span className="text-sm font-medium text-slate-600">Overall Progress</span></div>
-            <div className="text-xl font-bold text-fuchsia-700">{summary.overallProgress}%</div>
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-4">
+            <div className="flex items-center gap-2 mb-2"><TrendingUp className="h-5 w-5 text-fuchsia-600" /><span className="text-sm font-medium text-slate-600">Unlocked Chapter Performance</span></div>
+            <div className="text-xl font-bold text-fuchsia-700">{summary.unlockedChapterPerformance || 0}%</div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+            <div className="flex items-center gap-2 mb-2"><TrendingUp className="h-5 w-5 text-blue-600" /><span className="text-sm font-medium text-slate-600">Overall Progress</span></div>
+            <div className="text-xl font-bold text-blue-700">{summary.overallProgress}%</div>
           </div>
         </div>
       )}
