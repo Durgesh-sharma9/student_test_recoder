@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
   CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
-  Lock, UserCheck, Bell, Megaphone, FileCheck,
+  Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -50,7 +50,6 @@ const navByRole = {
   ],
   school_admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
-    { to: '/admin/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/admin/teachers', label: 'Teachers', icon: Users, iconColor: 'text-teal-600', boxBg: 'bg-teal-50 group-hover:bg-teal-100', featureKey: 'teacher_portal' },
     { to: '/admin/classes', label: 'Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
     { to: '/admin/students', label: 'Students', icon: GraduationCap, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100', featureKey: 'student_portal' },
@@ -58,7 +57,17 @@ const navByRole = {
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100', featureKey: 'teacher_portal', lockLabel: 'Assign Subjects' },
     { to: '/admin/results', label: 'Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
     { to: '/admin/notebook-analytics', label: 'Notebook Analytics', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100', featureKey: 'reports' },
-    { to: '/admin/teacher-performance', label: 'Teacher Performance', icon: BarChart3, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_performance' },
+    {
+      label: 'Performance',
+      icon: BarChart3,
+      iconColor: 'text-indigo-600',
+      boxBg: 'bg-indigo-50 group-hover:bg-indigo-100',
+      children: [
+        { to: '/admin/teacher-performance', label: 'Teacher Performance', featureKey: 'teacher_performance' },
+        { to: '/admin/student-performance', label: 'Student Performance', featureKey: 'reports' },
+      ]
+    },
+     { to: '/admin/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
     { to: '/admin/class-results', label: 'Class Results', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'reports' },
     { to: '/admin/plans', label: 'Plans', icon: CreditCard, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100' },
   ],
@@ -88,10 +97,31 @@ export default function DashboardLayout() {
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [lockedDialog, setLockedDialog] = useState({ open: false, label: '' });
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const role = user?.role === 'admin' ? 'school_admin' : user?.role;
   const navItems = navByRole[role] || [];
   const isAdmin = role === 'school_admin';
   const isSuperAdmin = role === 'super_admin';
+
+  // State to manage expanded parent menus
+  const [expandedMenus, setExpandedMenus] = useState({});
+
+  // Auto-expand menu if active route is a child of a menu item
+  useEffect(() => {
+    navItems.forEach(item => {
+      if (item.children && item.children.some(c => location.pathname.includes(c.to))) {
+        setExpandedMenus(prev => ({ ...prev, [item.label]: true }));
+      }
+    });
+  }, [location.pathname, navItems]);
+
+  const toggleMenu = (label) => {
+    if (isCollapsed) {
+      setIsCollapsed(false); // Auto expand sidebar if collapsed
+    }
+    setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   // Get plan badge text
   const getPlanBadge = () => {
@@ -120,9 +150,98 @@ export default function DashboardLayout() {
           </div>
         </div>
         
-        {/* COMPACTED NAV SECTION - Padding and Gap reduced here */}
+        {/* COMPACTED NAV SECTION */}
         <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
           {navItems.map((item) => {
+            // Handle Parent Menus (Like Performance)
+            if (item.children) {
+              const isParentActive = item.children.some(child => location.pathname.includes(child.to));
+              const isExpanded = expandedMenus[item.label];
+
+              return (
+                <div key={item.label} className="flex flex-col space-y-1">
+                  <button
+                    onClick={() => toggleMenu(item.label)}
+                    className={cn(
+                      'flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap w-full text-left',
+                      isParentActive 
+                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' 
+                        : isExpanded
+                          ? 'bg-slate-50 text-slate-900 border border-slate-100 shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
+                      isCollapsed && 'lg:justify-center lg:px-0 lg:h-10 lg:w-10 lg:mx-auto'
+                    )}
+                  >
+                    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200', 
+                      isParentActive ? 'bg-white/20 text-white shadow-inner' : (isExpanded ? 'bg-white shadow-sm text-indigo-600' : item.boxBg)
+                    )}>
+                      <item.icon className={cn('h-4 w-4 transition-transform duration-200 group-hover:scale-110', 
+                        isParentActive ? 'text-white' : (isExpanded ? 'text-indigo-600' : item.iconColor)
+                      )} />
+                    </div>
+                    <span className={cn('flex-1 transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
+                    {!isCollapsed && (
+                      <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", 
+                        isExpanded && "rotate-180", 
+                        isParentActive ? 'text-white' : (isExpanded ? 'text-slate-600' : 'text-slate-400')
+                      )} />
+                    )}
+                  </button>
+                  
+                  {/* SMOOTH SUB-MENU WITH VERTICAL LINE */}
+                  <div className={cn(
+                    "grid transition-all duration-300 ease-in-out",
+                    isExpanded && !isCollapsed ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  )}>
+                    <div className="overflow-hidden">
+                      <div className="relative flex flex-col space-y-0.5 mt-1 pb-1">
+                        {/* Connecting Line (UI Guide) */}
+                        <div className="absolute left-[1.45rem] top-2 bottom-3 w-px bg-slate-200" />
+                        
+                        {item.children.map(child => {
+                          const childLocked = child.featureKey ? !isFeatureEnabled(child.featureKey) : false;
+                          const childLabel = child.lockLabel || child.label;
+                          
+                          const childClass = ({ isActive }) => cn(
+                            'relative flex items-center gap-3 rounded-xl py-2 pl-[3.25rem] pr-3 text-[13px] font-medium transition-all duration-200 group',
+                            isActive ? 'text-indigo-700 bg-indigo-50/70 shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600',
+                            childLocked && 'opacity-80'
+                          );
+
+                          const ChildContent = ({ isActive }) => (
+                            <>
+                              {/* Indicator Dot exactly on the line */}
+                              <div className={cn(
+                                "absolute left-[1.25rem] h-2 w-2 rounded-full ring-4 ring-white transition-all duration-300 z-10", 
+                                isActive ? "bg-indigo-600" : "bg-slate-300 group-hover:bg-indigo-400"
+                              )} />
+                              <span className={cn("flex-1 truncate", isActive && "font-semibold")}>{child.label}</span>
+                              {childLocked && <Lock className="h-3 w-3 text-amber-600" />}
+                            </>
+                          );
+
+                          if (childLocked) {
+                            return (
+                              <button key={child.to} onClick={() => { setOpen(false); setLockedDialog({ open: true, label: childLabel }); }} className={cn("w-full text-left", childClass({ isActive: false }))}>
+                                <ChildContent isActive={false} />
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <NavLink key={child.to} to={child.to} onClick={() => setOpen(false)} className={childClass}>
+                              {({ isActive }) => <ChildContent isActive={isActive} />}
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Standard Single Links
             const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
             const label = item.lockLabel || item.label;
             const baseClass = ({ isActive }) => cn(
@@ -131,9 +250,9 @@ export default function DashboardLayout() {
               locked && 'opacity-80', 
               isCollapsed && 'lg:justify-center lg:px-0 lg:h-10 lg:w-10 lg:mx-auto'
             );
+            
             const content = ({ isActive }) => (
               <>
-                {/* Icon box height and width reduced slightly */}
                 <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
                   <item.icon className={cn('h-4 w-4 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
                 </div>
@@ -141,7 +260,8 @@ export default function DashboardLayout() {
                 {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><Lock className="h-3 w-3" /> Locked</span>}
               </>
             );
-            if (locked) return <button key={item.to} onClick={() => { setOpen(false); setLockedDialog({ open: true, label }); }} className={baseClass({ isActive: false })}>{content({ isActive: false })}</button>;
+            
+            if (locked) return <button key={item.to} onClick={() => { setOpen(false); setLockedDialog({ open: true, label }); }} className={cn("w-full text-left", baseClass({ isActive: false }))}>{content({ isActive: false })}</button>;
             return <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setOpen(false)} className={baseClass}>{content}</NavLink>;
           })}
         </nav>
