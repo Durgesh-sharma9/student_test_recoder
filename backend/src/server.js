@@ -21,6 +21,7 @@ import academicSessionRoutes from './routes/academicSessionRoutes.js';
 import parentRoutes from './routes/parentRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import teacherPerformanceRoutes from './routes/teacherPerformanceRoutes.js';
+import studentPerformanceRoutes from './routes/studentPerformanceRoutes.js'; // <-- NEW IMPORT
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import trialRoutes from './routes/trialRoutes.js';
 import enterpriseRoutes from './routes/enterpriseRoutes.js';
@@ -71,6 +72,7 @@ app.use('/api/academic-sessions', academicSessionRoutes);
 app.use('/api/parents', parentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/teacher-performance', teacherPerformanceRoutes);
+app.use('/api/student-performance', studentPerformanceRoutes); // <-- NEW ROUTE
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/trial', trialRoutes);
 app.use('/api/enterprise', enterpriseRoutes);
@@ -84,7 +86,6 @@ app.use(errorHandler);
 const start = async () => {
   await connectDB();
   
-  // Verify SMTP connection on startup (non-blocking)
   console.log('[Server] Verifying SMTP connection...');
   try {
     const smtpVerified = await verifyTransporter();
