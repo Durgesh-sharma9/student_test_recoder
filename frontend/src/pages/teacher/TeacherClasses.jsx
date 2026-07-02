@@ -37,49 +37,52 @@ export default function TeacherClasses() {
 
       {groupedAssignments.length === 0 ? (
         <ErpSection title="Assignments" icon={GraduationCap} tone="green">
-          <p className="text-sm text-slate-500">
-            No assignments yet.
-          </p>
+          <div className="py-6 text-center rounded-lg border border-slate-100 bg-slate-50/50">
+            <p className="text-sm text-slate-500">
+              No assignments yet.
+            </p>
+          </div>
         </ErpSection>
       ) : (
-        // Mobile mein 1 column, tablets mein 2, aur laptop/desktop mein 3-4 columns
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {groupedAssignments.map((assignment, idx) => (
             <div
               key={idx}
-              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              className="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-indigo-200 hover:shadow"
             >
-              <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+              {/* Maintained the gradient accent bar as requested */}
+              <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
-              <div className="p-4">
+              <div className="flex flex-col flex-1 p-3.5">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800">
+                  <div className="overflow-hidden pr-2">
+                    <h3 className="text-base font-semibold text-slate-800 truncate">
                       {formatClassName(assignment.className)} {assignment.section}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs font-medium text-slate-500">
                       Assigned Class
                     </p>
                   </div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 shrink-0">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-50 border border-blue-100/50 shrink-0 transition-colors group-hover:bg-blue-100/50">
+                    <BookOpen className="h-4 w-4 text-blue-600" />
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
-                  <p className="text-[11px] uppercase tracking-wider text-slate-500">
+                {/* Maintained the colored subjects box */}
+                <div className="mt-3 flex-1 rounded-md border border-blue-100/60 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
                     Subjects
                   </p>
-                  <p className="mt-1 text-sm md:text-base font-bold text-blue-700 break-words">
+                  <p className="text-sm font-semibold text-blue-700 leading-snug break-words">
                     {assignment.subjects.join(', ')}
                   </p>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                  <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-semibold text-green-700">
+                  <span className="inline-flex items-center rounded-md bg-green-50 border border-green-200/60 px-2 py-0.5 text-[11px] font-semibold text-green-700">
                     Active
                   </span>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {assignment.subjects.length} Subject{assignment.subjects.length > 1 ? 's' : ''}
                   </span>
                 </div>
