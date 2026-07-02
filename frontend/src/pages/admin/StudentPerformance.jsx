@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart3, Search, Calendar, Filter, Download, Printer, User, X, 
-  TrendingUp, Award, BookOpen, Target, BrainCircuit, XCircle 
+  TrendingUp, Award, BookOpen, Target, BrainCircuit, XCircle, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -12,6 +12,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function StudentPerformance() {
   // State for Filters
@@ -22,7 +24,11 @@ export default function StudentPerformance() {
   const [searchQuery, setSearchQuery] = useState('');
   const [assessmentTypes, setAssessmentTypes] = useState(['All Assessments']);
   const [mainExamType, setMainExamType] = useState('All Exams');
-  const [dateRange, setDateRange] = useState('This Year');
+  const [dateRange, setDateRange] = useState('All Time');
+  const [specificDate, setSpecificDate] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortBy, setSortBy] = useState('rollNo');
   
   // State for Data
   const [loading, setLoading] = useState(false);
@@ -31,6 +37,7 @@ export default function StudentPerformance() {
   // State for Drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeStudent, setActiveStudent] = useState(null);
+  const [activeTab, setActiveTab] = useState('daily');
 
   // Fetch Classes on Mount
   useEffect(() => {
@@ -71,18 +78,27 @@ export default function StudentPerformance() {
 
     setLoading(true);
     try {
-      const { data } = await api.get('/student-performance/analytics', {
-        params: {
-          classId: selectedClass,
-          studentId: selectedStudent,
-          assessments: assessmentTypes.join(','),
-          examType: mainExamType,
-          dateRange: dateRange
-        }
-      });
+      const params = {
+        classId: selectedClass,
+        studentId: selectedStudent,
+        assessments: assessmentTypes.join(','),
+        examType: mainExamType,
+        dateRange: dateRange
+      };
+      
+      if (dateRange === 'Specific Date' && specificDate) {
+        params.specificDate = specificDate;
+      }
+      if (dateRange === 'Date Range' && dateFrom && dateTo) {
+        params.dateFrom = dateFrom;
+        params.dateTo = dateTo;
+      }
+
+      const { data } = await api.get('/student-performance/analytics', { params });
       setAnalyticsData(data.data || []);
       if(data.data?.length === 0) toast.info('No data found for selected filters.');
     } catch (error) {
+      console.error('Failed to generate analytics:', error);
       toast.error('Failed to generate analytics');
     } finally {
       setLoading(false);
@@ -122,15 +138,65 @@ export default function StudentPerformance() {
     document.body.removeChild(link);
   };
 
+  const handleExportPDF = () => {
+    if (!analyticsData.length) return toast.warning('No data to export');
+    
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Student Performance Report', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Class: ${classes.find(c => c._id === selectedClass)?.className || 'N/A'}`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 40);
+
+    const tableData = analyticsData.map(s => [
+      s.rollNo,
+      s.name,
+      s.overallPercentage.toFixed(1) + '%',
+      s.notebookPercentage.toFixed(1) + '%',
+      s.dailyPercentage.toFixed(1) + '%',
+      s.mainPercentage.toFixed(1) + '%',
+      s.rank
+    ]);
+
+    autoTable(doc, {
+      head: [['Roll No', 'Student Name', 'Overall %', 'Notebook %', 'Daily Test %', 'Main Exam %', 'Rank']],
+      body: tableData,
+      startY: 50,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [79, 70, 229] }
+    });
+
+    doc.save('student_performance.pdf');
+  };
+
   // Filter Data for Table Display
   const filteredTableData = useMemo(() => {
-    if (!searchQuery) return analyticsData;
-    const lowerQ = searchQuery.toLowerCase();
-    return analyticsData.filter(s => 
-      s.name.toLowerCase().includes(lowerQ) || 
-      s.rollNo.toString().toLowerCase().includes(lowerQ)
-    );
-  }, [analyticsData, searchQuery]);
+    let data = analyticsData;
+    
+    // Apply search filter
+    if (searchQuery) {
+      const lowerQ = searchQuery.toLowerCase();
+      data = data.filter(s => 
+        s.name.toLowerCase().includes(lowerQ) || 
+        s.rollNo.toString().toLowerCase().includes(lowerQ)
+      );
+    }
+    
+    // Apply sorting
+    if (sortBy === 'rollNo') {
+      data = [...data].sort((a, b) => {
+        const numA = parseInt(a.rollNo.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.rollNo.replace(/\D/g, '')) || 0;
+        return numA - numB;
+      });
+    } else if (sortBy === 'performance_desc') {
+      data = [...data].sort((a, b) => b.overallPercentage - a.overallPercentage);
+    } else if (sortBy === 'performance_asc') {
+      data = [...data].sort((a, b) => a.overallPercentage - b.overallPercentage);
+    }
+    
+    return data;
+  }, [analyticsData, searchQuery, sortBy]);
 
   // Chart Colors
   const COLORS = ['#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -149,7 +215,10 @@ export default function StudentPerformance() {
             <Printer className="h-4 w-4 mr-2" /> Print
           </Button>
           <Button variant="outline" className="shadow-sm" onClick={handleExportCSV}>
-            <Download className="h-4 w-4 mr-2" /> Export
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+          <Button variant="outline" className="shadow-sm" onClick={handleExportPDF}>
+            <FileText className="h-4 w-4 mr-2" /> Export PDF
           </Button>
         </div>
       </div>
@@ -212,10 +281,58 @@ export default function StudentPerformance() {
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
             >
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="This Year">This Year</option>
+              <option value="All Time">All Time</option>
+              <option value="Specific Date">Specific Date</option>
+              <option value="Date Range">Date Range</option>
+            </select>
+          </div>
+
+          {dateRange === 'Specific Date' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-600">Specific Date</label>
+              <input
+                type="date"
+                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          {dateRange === 'Date Range' && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600">From Date</label>
+                <input
+                  type="date"
+                  className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600">To Date</label>
+                <input
+                  type="date"
+                  className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Sorting */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-600">Sort By</label>
+            <select
+              className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="rollNo">Roll Number</option>
+              <option value="performance_desc">Performance High → Low</option>
+              <option value="performance_asc">Performance Low → High</option>
             </select>
           </div>
 
@@ -322,18 +439,20 @@ export default function StudentPerformance() {
 
       {/* Right Drawer for Student Details */}
       {drawerOpen && activeStudent && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm transition-all">
-          <div className="w-full max-w-2xl bg-slate-50 h-full overflow-y-auto shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[2px] transition-all">
+          <div className="w-full max-w-[50%] lg:max-w-[45%] xl:max-w-[50%] md:max-w-[55%] sm:max-w-[70%] bg-white h-full overflow-y-auto shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             
-            {/* Drawer Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
+            {/* Compact Student Header */}
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
                   {activeStudent.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">{activeStudent.name}</h2>
-                  <p className="text-sm font-medium text-slate-500">Roll No: {activeStudent.rollNo} • Rank: #{activeStudent.rank}</p>
+                  <h2 className="text-lg font-bold text-slate-800">{activeStudent.name}</h2>
+                  <p className="text-xs font-medium text-slate-500">
+                    Roll: {activeStudent.rollNo} • Rank: #{activeStudent.rank} • {classes.find(c => c._id === selectedClass)?.className || 'N/A'}
+                  </p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setDrawerOpen(false)} className="rounded-full hover:bg-slate-100">
@@ -341,132 +460,218 @@ export default function StudentPerformance() {
               </Button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-5 space-y-5">
               
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm text-center">
-                  <p className="text-xs font-semibold text-indigo-600 uppercase mb-1">Overall</p>
-                  <p className="text-2xl font-bold text-slate-800">{activeStudent.overallPercentage.toFixed(1)}%</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-sky-100 shadow-sm text-center">
-                  <p className="text-xs font-semibold text-sky-600 uppercase mb-1">Notebook</p>
-                  <p className="text-2xl font-bold text-slate-800">{activeStudent.notebookPercentage.toFixed(1)}%</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm text-center">
-                  <p className="text-xs font-semibold text-emerald-600 uppercase mb-1">Daily Test</p>
-                  <p className="text-2xl font-bold text-slate-800">{activeStudent.dailyPercentage.toFixed(1)}%</p>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-center">
-                  <p className="text-xs font-semibold text-rose-600 uppercase mb-1">Main Exam</p>
-                  <p className="text-2xl font-bold text-slate-800">{activeStudent.mainPercentage.toFixed(1)}%</p>
-                </div>
-              </div>
-
-              {/* Smart Insights */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 text-white shadow-md">
-                <div className="flex items-center gap-2 mb-4">
-                  <BrainCircuit className="h-5 w-5 text-indigo-100" />
-                  <h3 className="font-semibold text-lg">Smart Insights</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-indigo-200 text-xs uppercase tracking-wider font-medium">Strongest Subject</p>
-                    <p className="font-bold text-lg mt-0.5">{activeStudent.insights.strongestSubject}</p>
+              {/* Performance Summary Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-xl border border-indigo-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-4 w-4 text-indigo-600" />
+                    <p className="text-xs font-semibold text-indigo-700 uppercase">Overall</p>
                   </div>
-                  <div>
-                    <p className="text-indigo-200 text-xs uppercase tracking-wider font-medium">Weakest Subject</p>
-                    <p className="font-bold text-lg mt-0.5">{activeStudent.insights.weakestSubject}</p>
+                  <p className="text-2xl font-bold text-indigo-900">{activeStudent.overallPercentage.toFixed(1)}%</p>
+                  <div className="w-full bg-indigo-200 rounded-full h-1.5 mt-2">
+                    <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${activeStudent.overallPercentage}%` }} />
                   </div>
-                  <div>
-                    <p className="text-indigo-200 text-xs uppercase tracking-wider font-medium">Best Assessment Area</p>
-                    <p className="font-bold text-sm mt-0.5">{activeStudent.insights.highestAssessment}</p>
+                </div>
+                <div className="bg-gradient-to-br from-sky-50 to-sky-100 p-4 rounded-xl border border-sky-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="h-4 w-4 text-sky-600" />
+                    <p className="text-xs font-semibold text-sky-700 uppercase">Notebook</p>
                   </div>
-                  <div>
-                    <p className="text-indigo-200 text-xs uppercase tracking-wider font-medium">Needs Work On</p>
-                    <p className="font-bold text-sm mt-0.5">{activeStudent.insights.lowestAssessment}</p>
+                  <p className="text-2xl font-bold text-sky-900">{activeStudent.notebookPercentage.toFixed(1)}%</p>
+                  <div className="w-full bg-sky-200 rounded-full h-1.5 mt-2">
+                    <div className="bg-sky-600 h-1.5 rounded-full" style={{ width: `${activeStudent.notebookPercentage}%` }} />
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-xl border border-emerald-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="h-4 w-4 text-emerald-600" />
+                    <p className="text-xs font-semibold text-emerald-700 uppercase">Daily Test</p>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-900">{activeStudent.dailyPercentage.toFixed(1)}%</p>
+                  <div className="w-full bg-emerald-200 rounded-full h-1.5 mt-2">
+                    <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${activeStudent.dailyPercentage}%` }} />
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-rose-50 to-rose-100 p-4 rounded-xl border border-rose-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="h-4 w-4 text-rose-600" />
+                    <p className="text-xs font-semibold text-rose-700 uppercase">Main Exam</p>
+                  </div>
+                  <p className="text-2xl font-bold text-rose-900">{activeStudent.mainPercentage.toFixed(1)}%</p>
+                  <div className="w-full bg-rose-200 rounded-full h-1.5 mt-2">
+                    <div className="bg-rose-600 h-1.5 rounded-full" style={{ width: `${activeStudent.mainPercentage}%` }} />
                   </div>
                 </div>
               </div>
 
-              {/* Subject Performance Breakdown */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-slate-500" />
-                  <h3 className="font-semibold text-slate-800">Subject Performance</h3>
+              {/* Subject Performance - Chart + List */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-slate-500" />
+                  <h3 className="font-semibold text-slate-800 text-sm">Subject Performance</h3>
                 </div>
-                <div className="p-5">
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={activeStudent.subjectAnalytics} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="subject" tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                        <YAxis tick={{fontSize: 12, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                        <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                        <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}}/>
-                        <Bar dataKey="average" name="Average %" fill="#4f46e5" radius={[4, 4, 0, 0]} barSize={30} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left: Bar Chart */}
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={activeStudent.subjectAnalytics} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis dataKey="subject" tick={{fontSize: 11, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                          <YAxis tick={{fontSize: 11, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                          <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '6px', border: 'none', boxShadow: '0 2px 4px rgb(0 0 0 / 0.1)', fontSize: '12px'}} />
+                          <Bar dataKey="average" name="Average %" fill="#4f46e5" radius={[3, 3, 0, 0]} barSize={24} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Right: Subject List */}
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {activeStudent.subjectAnalytics.map(subj => (
+                        <div key={subj.subject} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                          <span className="text-xs font-semibold text-slate-700">{subj.subject}</span>
+                          <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{subj.average.toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="mt-6 space-y-4">
-                    {activeStudent.subjectAnalytics.map(subj => (
-                      <div key={subj.subject} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="font-bold text-slate-700">{subj.subject}</h4>
-                          <span className="text-sm font-bold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">{subj.average.toFixed(1)}% Avg</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <p className="text-[10px] font-semibold text-slate-500 uppercase">Notebook</p>
-                            <p className="text-sm font-semibold text-slate-700 mt-0.5">{subj.notebookPercent.toFixed(0)}%</p>
-                            {subj.notebookData?.total > 0 && (
-                              <p className="text-[10px] text-slate-400">{subj.notebookData.checked}/{subj.notebookData.total} Chps</p>
-                            )}
-                          </div>
-                          <div className="border-x border-slate-200">
-                            <p className="text-[10px] font-semibold text-slate-500 uppercase">Daily Test</p>
-                            <p className="text-sm font-semibold text-slate-700 mt-0.5">{subj.dailyTestAvg.toFixed(0)}%</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold text-slate-500 uppercase">Main Exam</p>
-                            <p className="text-sm font-semibold text-slate-700 mt-0.5">{subj.mainExamAvg.toFixed(0)}%</p>
-                          </div>
-                        </div>
-                        {/* Custom Progress Bar */}
-                        <div className="mt-4 w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex">
-                          <div className="bg-indigo-500 h-1.5 rounded-l-full transition-all" style={{ width: `${subj.average}%` }} />
-                        </div>
+                </div>
+              </div>
+
+              {/* Smart Insights - 4 Small Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Strongest</p>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">{activeStudent.insights.strongestSubject}</p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-rose-500" />
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Weakest</p>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">{activeStudent.insights.weakestSubject}</p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Award className="h-3.5 w-3.5 text-amber-500" />
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Best Area</p>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">{activeStudent.insights.highestAssessment}</p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="h-3.5 w-3.5 text-indigo-500" />
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Needs Work</p>
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">{activeStudent.insights.lowestAssessment}</p>
+                </div>
+              </div>
+
+              {/* Assessment Breakdown Tabs */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex border-b border-slate-200">
+                  <button
+                    onClick={() => setActiveTab('daily')}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors ${activeTab === 'daily' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    Daily Test
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('main')}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors ${activeTab === 'main' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    Main Exam
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('notebook')}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold transition-colors ${activeTab === 'notebook' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    Notebook
+                  </button>
+                </div>
+                <div className="p-4">
+                  {activeTab === 'daily' && (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-slate-600">Average</span>
+                        <span className="text-sm font-bold text-emerald-600">{activeStudent.dailyPercentage.toFixed(1)}%</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-slate-600">Highest</span>
+                        <span className="text-sm font-bold text-slate-800">{activeStudent.dailyStats.highest.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-slate-600">Lowest</span>
+                        <span className="text-sm font-bold text-slate-800">{activeStudent.dailyStats.lowest.toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-medium text-slate-600">Attempted</span>
+                        <span className="text-sm font-bold text-slate-800">{activeStudent.dailyStats.attempted}</span>
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === 'main' && (
+                    <div className="text-center py-4">
+                      <p className="text-sm font-medium text-slate-600">Main Exam Performance</p>
+                      <p className="text-2xl font-bold text-rose-600 mt-1">{activeStudent.mainPercentage.toFixed(1)}%</p>
+                    </div>
+                  )}
+                  {activeTab === 'notebook' && (
+                    <div className="text-center py-4">
+                      <p className="text-sm font-medium text-slate-600">Notebook Completion</p>
+                      <p className="text-2xl font-bold text-sky-600 mt-1">{activeStudent.notebookPercentage.toFixed(1)}%</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Assessment Breakdown Chart */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                 <h3 className="font-semibold text-slate-800 mb-4">Overall Distribution</h3>
-                 <div className="h-64 flex justify-center items-center">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                       <Pie
-                         data={[
-                           { name: 'Notebooks', value: activeStudent.notebookPercentage },
-                           { name: 'Daily Tests', value: activeStudent.dailyPercentage },
-                           { name: 'Main Exams', value: activeStudent.mainPercentage }
-                         ].filter(d => d.value > 0)}
-                         cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5}
-                         dataKey="value" stroke="none"
-                       >
-                         {[...Array(3)].map((_, index) => (
-                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                         ))}
-                       </Pie>
-                       <RechartsTooltip formatter={(value) => `${value.toFixed(1)}%`} />
-                       <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                     </PieChart>
-                   </ResponsiveContainer>
-                 </div>
+              {/* Subject Performance Table */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <Target className="h-4 w-4 text-slate-500" />
+                  <h3 className="font-semibold text-slate-800 text-sm">Subject-wise Performance</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="text-[10px] text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-4 py-2 font-semibold">Subject</th>
+                        <th className="px-4 py-2 font-semibold text-center">Daily</th>
+                        <th className="px-4 py-2 font-semibold text-center">Main</th>
+                        <th className="px-4 py-2 font-semibold text-center">Notebook</th>
+                        <th className="px-4 py-2 font-semibold text-center">Overall</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeStudent.subjectAnalytics.map(subj => (
+                        <tr key={subj.subject} className="border-b border-slate-50 hover:bg-slate-50">
+                          <td className="px-4 py-2 font-medium text-slate-700">{subj.subject}</td>
+                          <td className="px-4 py-2 text-center text-slate-600">{subj.dailyTestAvg.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-center text-slate-600">{subj.mainExamAvg.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-center text-slate-600">{subj.notebookPercent.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-center font-bold text-indigo-600">{subj.average.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Export Section */}
+              <div className="flex gap-2 pt-2 border-t border-slate-200">
+                <Button variant="outline" size="sm" className="flex-1 shadow-sm" onClick={handlePrint}>
+                  <Printer className="h-3.5 w-3.5 mr-2" /> Print
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 shadow-sm" onClick={handleExportPDF}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> PDF
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1 shadow-sm" onClick={handleExportCSV}>
+                  <Download className="h-3.5 w-3.5 mr-2" /> Excel
+                </Button>
               </div>
 
             </div>
