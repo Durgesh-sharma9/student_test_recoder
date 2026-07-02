@@ -171,10 +171,10 @@ export default function TeacherDashboard() {
         ) : loadingNotebook ? (
           <div className="py-6 text-center text-slate-500 text-sm">Loading notebook stats...</div>
         ) : notebookStats ? (
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-              <div className="text-sm font-semibold text-slate-500">Unlocked Chapters</div>
-              <div className="mt-2 text-2xl font-bold text-fuchsia-600">{notebookStats.unlockedCount} / {notebookStats.totalChapters}</div>
+              <div className="text-sm font-semibold text-slate-500">Unlocked Chapter Progress</div>
+              <div className="mt-2 text-2xl font-bold text-fuchsia-600">{notebookStats.unlockedChapterProgress || `${notebookStats.unlockedCount}/${notebookStats.totalChapters}`}</div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <div className="text-sm font-semibold text-slate-500">Checked Copies</div>
@@ -185,8 +185,12 @@ export default function TeacherDashboard() {
               <div className="mt-2 text-2xl font-bold text-amber-500">{notebookStats.totalPending}</div>
             </div>
             <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-4 text-center">
+              <div className="text-sm font-semibold text-slate-500">Unlocked Chapter Performance</div>
+              <div className="mt-2 text-2xl font-bold text-fuchsia-700">{notebookStats.unlockedChapterPerformance || notebookStats.progressPercentage}%</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 text-center">
               <div className="text-sm font-semibold text-slate-500">Overall Progress</div>
-              <div className="mt-2 text-2xl font-bold text-fuchsia-700">{notebookStats.progressPercentage}%</div>
+              <div className="mt-2 text-2xl font-bold text-blue-700">{notebookStats.overallProgress || 0}%</div>
             </div>
           </div>
         ) : null}

@@ -6,7 +6,8 @@ import {
   updateChapterStatus,
   getAdminAnalytics,
   getParentProgress,
-  unlockChapter
+  unlockChapter,
+  lockChapter
 } from '../controllers/notebookController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.use(protect, requireSchoolActive);
 router.get('/grid', authorize('teacher'), getNotebookGrid);
 router.post('/update', authorize('teacher'), updateChapterStatus);
 router.post('/unlock', authorize('teacher'), unlockChapter);
+router.post('/lock', authorize('teacher'), lockChapter);
 
 // Admin Routes (Analytics and Export)
 router.get('/analytics', authorize('school_admin', 'super_admin'), getAdminAnalytics);

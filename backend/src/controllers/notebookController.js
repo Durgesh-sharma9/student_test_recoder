@@ -94,7 +94,6 @@ export const getNotebookGrid = asyncHandler(async (req, res) => {
   // Calculate teacher progress cards (only for unlocked chapters)
   let totalChecked = 0;
   let totalPending = 0;
-  let totalNotSubmitted = 0;
   let unlockedCount = 0;
 
   grid.forEach((row) => {
@@ -102,13 +101,12 @@ export const getNotebookGrid = asyncHandler(async (req, res) => {
       if (unlockedChapters.includes(ch.chapterNumber)) {
         unlockedCount++;
         if (ch.status === 'Checked') totalChecked++;
-        else if (ch.status === 'Copy Not Submitted') totalNotSubmitted++;
         else totalPending++;
       }
     });
   });
 
-  const totalUnlockedCells = totalChecked + totalPending + totalNotSubmitted;
+  const totalUnlockedCells = totalChecked + totalPending;
   const progressPercentage = totalUnlockedCells > 0 ? Math.round((totalChecked / totalUnlockedCells) * 100) : 0;
 
   // Calculate chapter-wise progress (checked students / total students)
@@ -138,10 +136,12 @@ export const getNotebookGrid = asyncHandler(async (req, res) => {
     progress: {
       totalChecked,
       totalPending,
-      totalNotSubmitted,
       progressPercentage,
       unlockedCount,
       totalChapters,
+      unlockedChapterProgress: unlockedChapters.length > 0 ? `${unlockedChapters.length}/${totalChapters}` : `0/${totalChapters}`,
+      unlockedChapterPerformance: progressPercentage,
+      overallProgress: grid.length > 0 && totalChapters > 0 ? Math.round((totalChecked / (grid.length * totalChapters)) * 100) : 0,
     },
   });
 });
@@ -251,6 +251,69 @@ export const unlockChapter = asyncHandler(async (req, res) => {
   await chapterUnlock.save();
 
   res.json({ success: true, message: 'Chapter unlocked successfully' });
+});
+
+export const lockChapter = asyncHandler(async (req, res) => {
+  const { classId, subject, chapterNumber, resetRecords } = req.body;
+  const schoolId = req.user.school?._id ?? req.user.school;
+
+  if (!classId || !subject || !chapterNumber) {
+    throw new ApiError(400, 'classId, subject, and chapterNumber are required');
+  }
+
+  const normalizedSubject = String(subject).toUpperCase().trim();
+  const activeSession = await getActiveSession(schoolId);
+
+  // Validate teacher assignment
+  const teacher = await User.findById(req.user._id);
+  const assignment = teacher.assignments.find(
+    (a) => a.class.toString() === classId && a.subject === normalizedSubject
+  );
+
+  if (!assignment) {
+    throw new ApiError(403, 'You are not assigned to this class and subject.');
+  }
+
+  // Find chapter unlock record
+  const chapterUnlock = await NotebookChapterUnlock.findOne({
+    school: schoolId,
+    academicSession: activeSession._id,
+    class: classId,
+    subject: normalizedSubject,
+  });
+
+  if (!chapterUnlock) {
+    throw new ApiError(404, 'Chapter unlock record not found');
+  }
+
+  // Remove chapter from unlocked list
+  chapterUnlock.unlockedChapters = chapterUnlock.unlockedChapters.filter(
+    (ch) => ch !== chapterNumber
+  );
+
+  // If no unlocked chapters remain, delete the record
+  if (chapterUnlock.unlockedChapters.length === 0) {
+    await chapterUnlock.deleteOne();
+  } else {
+    await chapterUnlock.save();
+  }
+
+  // If resetRecords is true, reset all notebook checks for this chapter
+  if (resetRecords) {
+    await NotebookCheck.updateMany(
+      {
+        school: schoolId,
+        academicSession: activeSession._id,
+        class: classId,
+        subject: normalizedSubject,
+      },
+      {
+        $pull: { chapters: { chapterNumber } },
+      }
+    );
+  }
+
+  res.json({ success: true, message: 'Chapter locked successfully' });
 });
 
 // ==========================================
@@ -365,6 +428,20 @@ export const getAdminAnalytics = asyncHandler(async (req, res) => {
     }
   }
 
+  // Calculate unlocked chapter performance
+  let totalChecked = 0;
+  grid.forEach(student => {
+    student.chapters.forEach(ch => {
+      if (unlockedChapters.includes(ch.chapterNumber) && ch.status === 'Checked') {
+        totalChecked++;
+      }
+    });
+  });
+
+  const unlockedChapterPerformance = unlockedChapters.length > 0 && grid.length > 0
+    ? Math.round((totalChecked / (unlockedChapters.length * grid.length)) * 100)
+    : 0;
+
   // Export Logic
   if (exportFormat === 'excel') {
     const workbook = new ExcelJS.Workbook();
@@ -388,6 +465,7 @@ export const getAdminAnalytics = asyncHandler(async (req, res) => {
     totalChapters,
     unlockedChapters,
     chapterProgress,
+    unlockedChapterPerformance,
   });
 });
 
@@ -454,7 +532,6 @@ export const getParentProgress = asyncHandler(async (req, res) => {
     const existingCheck = checks.find(c => c.subject === subject);
     let checked = 0;
     let pending = 0;
-    let notSubmitted = 0;
     let unlockedCount = 0;
 
     const chaptersDetail = [];
@@ -472,7 +549,6 @@ export const getParentProgress = asyncHandler(async (req, res) => {
       if (isUnlocked) {
         unlockedCount++;
         if (status === 'Checked') { checked++; }
-        else if (status === 'Copy Not Submitted') { notSubmitted++; }
         else { pending++; }
       }
     }
@@ -488,7 +564,6 @@ export const getParentProgress = asyncHandler(async (req, res) => {
       unlockedChapters,
       checked,
       pending,
-      notSubmitted,
       percentage,
       chaptersDetail
     });

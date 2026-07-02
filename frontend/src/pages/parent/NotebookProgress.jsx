@@ -127,7 +127,7 @@ export default function NotebookProgress() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 mb-4">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="rounded-lg bg-slate-50 p-3 text-center">
                           <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-emerald-600" />
                           <p className="text-xs text-slate-500">Checked</p>
@@ -137,11 +137,6 @@ export default function NotebookProgress() {
                           <Clock className="h-5 w-5 mx-auto mb-1 text-amber-600" />
                           <p className="text-xs text-slate-500">Pending</p>
                           <p className="text-lg font-bold text-slate-900">{subject.pending}</p>
-                        </div>
-                        <div className="rounded-lg bg-slate-50 p-3 text-center">
-                          <XCircle className="h-5 w-5 mx-auto mb-1 text-rose-600" />
-                          <p className="text-xs text-slate-500">Not Submitted</p>
-                          <p className="text-lg font-bold text-slate-900">{subject.notSubmitted}</p>
                         </div>
                       </div>
 
@@ -165,14 +160,12 @@ export default function NotebookProgress() {
                             className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                               !ch.isUnlocked ? 'opacity-30 bg-slate-200 text-slate-400' :
                               ch.status === 'Checked' ? 'bg-emerald-500 text-white' :
-                              ch.status === 'Copy Not Submitted' ? 'bg-rose-500 text-white' :
                               'bg-slate-100 text-slate-600'
                             }`}
                             title={`Chapter ${ch.chapterNumber}: ${ch.isUnlocked ? ch.status : 'Locked'}`}
                           >
                             {!ch.isUnlocked ? '🔒' :
                              ch.status === 'Checked' ? '✔' :
-                             ch.status === 'Copy Not Submitted' ? '❌' :
                              ch.chapterNumber}
                           </div>
                         ))}
