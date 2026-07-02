@@ -31,7 +31,8 @@ export const getNotebookGrid = asyncHandler(async (req, res) => {
   const activeSession = await getActiveSession(schoolId);
 
   // Validate teacher assignment and get total chapters
-  const teacher = await User.findById(req.user._id);
+  // Fetch fresh teacher data to ensure we have the latest assignment
+  const teacher = await User.findById(req.user._id).select('assignments');
   const assignment = teacher.assignments.find(
     (a) => a.class.toString() === classId && a.subject === normalizedSubject
   );

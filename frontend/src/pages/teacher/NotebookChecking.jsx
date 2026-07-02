@@ -10,20 +10,31 @@ export default function NotebookChecking() {
   const [selected, setSelected] = useState({ classId: '', subject: '' });
   const [data, setData] = useState(null);
 
-  useEffect(() => {
-    api.get('/teacher/subjects').then(r => setAssignments(r.data.assignments));
-  }, []);
-
   const loadGrid = async () => {
-    if (!selected.classId || !selected.subject) return;
-    const res = await api.get(`/notebook/grid?classId=${selected.classId}&subject=${selected.subject}`);
-    // Sort students by numeric roll number
-    const sortedGrid = [...res.data.grid].sort((a, b) => {
-      const rollA = parseInt(a.rollNo, 10) || 0;
-      const rollB = parseInt(b.rollNo, 10) || 0;
-      return rollA - rollB;
-    });
-    setData({ ...res.data, grid: sortedGrid });
+    try {
+      if (!selected.classId || !selected.subject) return;
+      const res = await api.get(`/notebook/grid?classId=${selected.classId}&subject=${selected.subject}`);
+      // Sort students by numeric roll number
+      const sortedGrid = [...res.data.grid].sort((a, b) => {
+        const rollA = parseInt(a.rollNo, 10) || 0;
+        const rollB = parseInt(b.rollNo, 10) || 0;
+        return rollA - rollB;
+      });
+      setData({ ...res.data, grid: sortedGrid });
+    } catch (err) {
+      console.error('Failed to load grid:', err);
+      setData(null);
+    }
+  };
+
+  const loadAssignments = async () => {
+    try {
+      const res = await api.get('/teacher/subjects');
+      setAssignments(res.data.assignments);
+    } catch (err) {
+      console.error('Failed to load assignments:', err);
+      setAssignments([]);
+    }
   };
 
   const handleUnlockChapter = async (chapterNumber) => {
@@ -38,6 +49,17 @@ export default function NotebookChecking() {
       console.error('Failed to unlock chapter:', err);
     }
   };
+
+  useEffect(() => {
+    loadAssignments();
+  }, []);
+
+  // Refresh assignments when class changes to ensure latest totalChapters
+  useEffect(() => {
+    if (selected.classId) {
+      loadAssignments();
+    }
+  }, [selected.classId]);
 
   useEffect(() => { loadGrid(); }, [selected]);
 

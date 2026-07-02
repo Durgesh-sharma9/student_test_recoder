@@ -5,6 +5,7 @@ import { normalizeSubject, toIdString } from '../utils/subjectAccess.js';
 export const getAssignedSubjects = asyncHandler(async (req, res) => {
   const { classId } = req.query;
 
+  // Fetch fresh teacher data to ensure we have the latest assignments
   const teacher = await User.findById(req.user._id).populate(
     'assignments.class',
     'className section'
@@ -19,6 +20,7 @@ export const getAssignedSubjects = asyncHandler(async (req, res) => {
     className: a.class?.className,
     section: a.class?.section,
     subject: normalizeSubject(a.subject),
+    totalChapters: a.totalChapters || 0,
     label: a.class
       ? `${a.class.className}-${a.class.section} · ${normalizeSubject(a.subject)}`
       : normalizeSubject(a.subject),
