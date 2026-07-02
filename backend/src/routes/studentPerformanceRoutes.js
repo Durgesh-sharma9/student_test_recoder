@@ -1,12 +1,11 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 import { getStudentPerformanceAnalytics } from '../controllers/studentPerformanceController.js';
-import { verifyTenant } from '../middleware/tenant.js';
+import { requireSchoolActive } from '../middleware/tenant.js';
 
 const router = express.Router();
 
-router.use(protect);
-router.use(verifyTenant);
+router.use(protect, requireSchoolActive);
 
 router.get(
   '/analytics',

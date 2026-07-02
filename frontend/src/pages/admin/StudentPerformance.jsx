@@ -46,18 +46,20 @@ export default function StudentPerformance() {
   const fetchClasses = async () => {
     try {
       const { data } = await api.get('/classes');
-      setClasses(data.data || []);
+      setClasses(data.classes || []);
     } catch (error) {
+      console.error('Failed to fetch classes:', error);
       toast.error('Failed to fetch classes');
     }
   };
 
   const fetchStudents = async (classId) => {
     try {
-      const { data } = await api.get(`/students?classId=${classId}`);
-      setStudents(data.data || []);
+      const { data } = await api.get(`/students?class=${classId}`);
+      setStudents(data.students || []);
       setSelectedStudent('all');
     } catch (error) {
+      console.error('Failed to fetch students:', error);
       toast.error('Failed to fetch students');
     }
   };
