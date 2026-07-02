@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock, Unlock, Check, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function NotebookGrid({ grid, totalChapters, unlockedChapters, chapterProgress, progress, classId, subject, onUpdate, onUnlockChapter }) {
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
@@ -10,180 +11,107 @@ export default function NotebookGrid({ grid, totalChapters, unlockedChapters, ch
 
   const handleStatusChange = async (studentId, chapterNumber, currentStatus) => {
     if (!unlockedChapters.includes(chapterNumber)) {
-      toast.error('This chapter is locked. Please unlock it first.');
+      toast.error('Chapter is locked. Unlock first!');
       return;
     }
-
-    const statuses = ['Pending', 'Checked'];
-    const nextStatus = statuses[(statuses.indexOf(currentStatus) + 1) % statuses.length];
-
+    const nextStatus = currentStatus === 'Checked' ? 'Pending' : 'Checked';
     try {
-      await api.post('/notebook/update', {
-        classId,
-        studentId,
-        subject,
-        chapterNumber,
-        status: nextStatus,
-      });
+      await api.post('/notebook/update', { classId, studentId, subject, chapterNumber, status: nextStatus });
       onUpdate();
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
-  };
-
-  const handleUnlock = (chapterNumber) => {
-    if (unlockedChapters.includes(chapterNumber)) return;
-    onUnlockChapter(chapterNumber);
-  };
-
-  const handleLockClick = (chapterNumber) => {
-    if (!unlockedChapters.includes(chapterNumber)) return;
-    
-    // Check if any student has a non-pending status in this chapter
-    const hasNonPendingStatus = grid.some(student => {
-      const chapter = student.chapters.find(ch => ch.chapterNumber === chapterNumber);
-      return chapter && chapter.status !== 'Pending';
-    });
-
-    if (hasNonPendingStatus) {
-      setPendingLockChapter(chapterNumber);
-      setLockDialogOpen(true);
-    } else {
-      // No records to reset, lock immediately
-      lockChapter(chapterNumber, false);
-    }
+    } catch (err) { toast.error('Update failed'); }
   };
 
   const lockChapter = async (chapterNumber, resetRecords) => {
     try {
-      await api.post('/notebook/lock', {
-        classId,
-        subject,
-        chapterNumber,
-        resetRecords,
-      });
+      await api.post('/notebook/lock', { classId, subject, chapterNumber, resetRecords });
       onUpdate();
-      toast.success('Chapter locked successfully');
-    } catch (err) {
-      toast.error('Failed to lock chapter');
-    }
+      toast.success('Chapter status updated');
+    } catch (err) { toast.error('Action failed'); }
     setLockDialogOpen(false);
     setPendingLockChapter(null);
   };
 
-  const handleUnlockToggle = (chapterNumber) => {
-    if (unlockedChapters.includes(chapterNumber)) {
-      handleLockClick(chapterNumber);
-    } else {
-      handleUnlock(chapterNumber);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Checked': return 'bg-emerald-500 text-white';
-      default: return 'bg-slate-100 text-slate-600';
-    }
-  };
-
-  const getChapterProgress = (chapterNumber) => {
-    const cp = chapterProgress.find(c => c.chapterNumber === chapterNumber);
-    if (cp) return `${cp.checkedCount}/${cp.totalStudents}`;
-    return 'Locked';
-  };
-
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 sticky top-0 z-20">
-          <tr>
-            <th className="p-3 font-semibold text-slate-700 min-w-[80px] sticky left-0 z-30 bg-slate-50 border-r border-slate-200">Roll No</th>
-            <th className="p-3 font-semibold text-slate-700 min-w-[200px] sticky left-[80px] z-30 bg-slate-50 border-r border-slate-200">Student Name</th>
-            {Array.from({ length: totalChapters }, (_, i) => {
-              const chapterNum = i + 1;
-              const isUnlocked = unlockedChapters.includes(chapterNum);
-              return (
-                <th key={i} className="p-2 text-center font-semibold text-slate-600 min-w-[100px]">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={isUnlocked}
-                        onChange={() => handleUnlockToggle(chapterNum)}
-                        className="h-4 w-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500"
-                      />
-                      <span>Ch {chapterNum}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500">{getChapterProgress(chapterNum)}</span>
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {grid.map((student) => (
-            <tr key={student.studentId} className="hover:bg-slate-50/50">
-              <td className="p-3 font-medium text-slate-900 sticky left-0 z-10 bg-white border-r border-slate-200">{student.rollNo}</td>
-              <td className="p-3 font-medium text-slate-900 sticky left-[80px] z-10 bg-white border-r border-slate-200">{student.name}</td>
-              {student.chapters.map((ch) => {
-                const isUnlocked = unlockedChapters.includes(ch.chapterNumber);
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px] border-collapse">
+          <thead>
+            <tr className="bg-slate-200 border-b border-slate-300">
+              {/* ROLL NO. aur NAME ke beech ki border (line) hata di hai */}
+              <th className="p-3 font-black text-slate-700 sticky left-0 z-20 bg-slate-300 w-14">ROLL NO.</th>
+              <th className="p-3 font-black text-slate-700 sticky left-14 z-20 bg-slate-300 min-w-[140px]">NAME</th>
+              
+              {Array.from({ length: totalChapters }, (_, i) => {
+                const chNum = i + 1;
+                const isUnlocked = unlockedChapters.includes(chNum);
                 return (
-                  <td key={ch.chapterNumber} className="p-2 text-center">
-                    <button
-                      onClick={() => handleStatusChange(student.studentId, ch.chapterNumber, ch.status)}
-                      disabled={!isUnlocked}
+                  <th key={i} className={cn("p-1.5 border-r border-slate-300 min-w-[90px]", isUnlocked ? "bg-emerald-100" : "bg-red-50")}>
+                    <button 
+                      onClick={() => isUnlocked ? (setPendingLockChapter(chNum), setLockDialogOpen(true)) : onUnlockChapter(chNum)}
                       className={cn(
-                        'px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm w-full',
-                        getStatusColor(ch.status),
-                        !isUnlocked && 'opacity-30 blur-[1px] cursor-not-allowed'
+                        "w-full flex flex-col items-center gap-0.5 p-1.5 rounded-lg border transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]", 
+                        isUnlocked ? "bg-emerald-200 border-emerald-400 text-emerald-900 shadow-sm" : "bg-white border-red-200 text-red-600 hover:bg-red-100"
                       )}
                     >
-                      {ch.status === 'Checked' ? '✔' : '⬜'}
+                      <span className="flex items-center gap-1 font-black uppercase tracking-wider text-[9px]">
+                        {isUnlocked ? <Unlock size={9}/> : <Lock size={9}/>} CH {chNum}
+                      </span>
+                      <span className="text-[8px] font-bold opacity-70 italic">
+                        {isUnlocked ? "Click to Lock" : "Click to Unlock"}
+                      </span>
                     </button>
-                  </td>
+                  </th>
                 );
               })}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {grid.map((student) => (
+              <tr key={student.studentId} className="hover:bg-slate-50 transition-colors">
+                {/* Yahan bhi border hata di hai */}
+                <td className="p-3 font-bold text-slate-600 sticky left-0 z-10 bg-slate-100 text-center">{student.rollNo}</td>
+                <td className="p-3 font-bold text-slate-900 sticky left-14 z-10 bg-slate-100 truncate max-w-[140px]">{student.name}</td>
+                
+                {student.chapters.map((ch) => {
+                  const isChecked = ch.status === 'Checked';
+                  const isUnlocked = unlockedChapters.includes(ch.chapterNumber);
+                  return (
+                    <td key={ch.chapterNumber} className={cn("p-1.5 text-center border-r border-slate-200 last:border-0 align-middle", !isUnlocked && "bg-slate-50/50")}>
+                      <div className="flex justify-center items-center">
+                        <button
+                          onClick={() => handleStatusChange(student.studentId, ch.chapterNumber, ch.status)}
+                          disabled={!isUnlocked}
+                          className={cn("h-7 w-7 flex items-center justify-center rounded transition-all border-2", 
+                            !isUnlocked 
+                              ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" 
+                              : isChecked 
+                                ? "bg-emerald-500 border-emerald-600 text-white shadow-sm" 
+                                : "bg-white border-slate-300 hover:border-indigo-400"
+                          )}
+                        >
+                          {!isUnlocked ? <Lock size={12} /> : isChecked ? <Check size={16} strokeWidth={3} /> : null}
+                        </button>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Lock Confirmation Dialog */}
       {lockDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            <div className="bg-gradient-to-r from-rose-500 to-red-600 px-6 py-4">
-              <h3 className="text-lg font-bold text-white">Lock Chapter?</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+            <div className="bg-red-100 p-4 border-b border-red-200 flex items-center gap-3">
+              <AlertTriangle className="text-red-700" size={18} />
+              <h3 className="font-bold text-red-900 text-sm">Lock Chapter {pendingLockChapter}?</h3>
             </div>
-            <div className="p-6 space-y-4">
-              <p className="text-slate-700">
-                You are about to lock Chapter {pendingLockChapter}.
-              </p>
-              <p className="text-slate-700">This will:</p>
-              <ul className="list-disc list-inside text-slate-700 space-y-1">
-                <li>Lock this chapter</li>
-                <li>Remove all notebook checking records for this chapter</li>
-                <li>Reset every student's status back to Pending</li>
-              </ul>
-              <p className="text-slate-700 font-semibold">This action cannot be undone.</p>
-            </div>
-            <div className="bg-slate-50 px-6 py-4 flex gap-3 justify-end border-t border-slate-200">
-              <button
-                onClick={() => {
-                  setLockDialogOpen(false);
-                  setPendingLockChapter(null);
-                }}
-                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => lockChapter(pendingLockChapter, true)}
-                className="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 font-semibold"
-              >
-                Yes, Lock Chapter
-              </button>
+            <div className="p-4 text-xs text-slate-700">All student records for this chapter will be reset to pending. Proceed?</div>
+            <div className="p-3 flex gap-2 justify-end bg-slate-100">
+              <Button variant="ghost" size="sm" onClick={() => setLockDialogOpen(false)}>Cancel</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => lockChapter(pendingLockChapter, true)}>Confirm Lock</Button>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Filter, FileBarChart, Download } from 'lucide-react';
+import { Filter, FileBarChart, Search } from 'lucide-react';
 import api from '@/lib/api';
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 import { useSubjects } from '@/hooks/useSubjects';
@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
-import AbsentBadge from '@/components/AbsentBadge';
+import { formatDisplayDate } from '@/lib/dateFormatter';
 import DatePicker from '@/components/ui/DatePicker';
 import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
+import { formatClassName } from '@/lib/utils';
 
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
 
@@ -69,93 +69,85 @@ export default function TeacherResults() {
   const isDailyTest = examType === 'daily';
 
   return (
-    <PageStack className="bg-slate-50">
-      <PageHeader title="Results" description="View and export results for your assigned classes and subjects." />
+    <PageStack>
+      <PageHeader title="Results" description="View and export student performance data." />
 
       <ErpSection title="Filters" icon={Filter} tone="blue">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-          {/* ... (Filters remains same as original) */}
-          <FormField label="Exam Type"><Select value={examType} onValueChange={setExamType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Daily Test</SelectItem><SelectItem value="main">Main Exam</SelectItem></SelectContent></Select></FormField>
-          <FormField label="Class"><Select value={filters.classId || undefined} onValueChange={(v) => setFilters({ ...filters, classId: v, subject: '' })}><SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger><SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>Class {c.className} {c.section}</SelectItem>)}</SelectContent></Select></FormField>
-          <FormField label="Subject"><SubjectSelect value={filters.subject} onChange={(subject) => setFilters({ ...filters, subject })} subjects={subjects} loading={subjectsLoading} allowCustom={allowCustom} canAddSubjects={canAddSubjects} onRegisterSubject={registerSubject} emptyMessage={emptyMessage} /></FormField>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <FormField label="Exam Type"><Select value={examType} onValueChange={setExamType}><SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Daily Test</SelectItem><SelectItem value="main">Main Exam</SelectItem></SelectContent></Select></FormField>
+          <FormField label="Class"><Select value={filters.classId || undefined} onValueChange={(v) => setFilters({ ...filters, classId: v, subject: '' })}><SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Class" /></SelectTrigger><SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)} {c.section}</SelectItem>)}</SelectContent></Select></FormField>
+          <FormField label="Subject"><div className="h-9"><SubjectSelect value={filters.subject} onChange={(subject) => setFilters({ ...filters, subject })} subjects={subjects} loading={subjectsLoading} allowCustom={allowCustom} canAddSubjects={canAddSubjects} onRegisterSubject={registerSubject} emptyMessage={emptyMessage} /></div></FormField>
+          
           {examType === 'daily' && (
             <>
-              <FormField label="Date Filter Type"><Select value={dateFilterType} onValueChange={setDateFilterType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="specific">Specific Date</SelectItem><SelectItem value="range">Date Range</SelectItem></SelectContent></Select></FormField>
-              {dateFilterType === 'specific' ? <FormField label="Test Date"><DatePicker value={filters.testDate} onChange={(date) => setFilters({ ...filters, testDate: date })} /></FormField> : <><FormField label="From"><DatePicker value={filters.dateFrom} onChange={(date) => setFilters({ ...filters, dateFrom: date })} /></FormField><FormField label="To"><DatePicker value={filters.dateTo} onChange={(date) => setFilters({ ...filters, dateTo: date })} /></FormField></>}
+              <FormField label="Type"><Select value={dateFilterType} onValueChange={setDateFilterType}><SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="specific">Specific Date</SelectItem><SelectItem value="range">Date Range</SelectItem></SelectContent></Select></FormField>
+              {dateFilterType === 'specific' ? <FormField label="Date"><div className="h-9"><DatePicker value={filters.testDate} onChange={(date) => setFilters({ ...filters, testDate: date })} /></div></FormField> : <><FormField label="From"><div className="h-9"><DatePicker value={filters.dateFrom} onChange={(date) => setFilters({ ...filters, dateFrom: date })} /></div></FormField><FormField label="To"><div className="h-9"><DatePicker value={filters.dateTo} onChange={(date) => setFilters({ ...filters, dateTo: date })} /></div></FormField></>}
             </>
           )}
-          {examType === 'main' && (<><FormField label="Exam Type"><Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}><SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger><SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select></FormField><FormField label="Exam Date"><DatePicker value={filters.examDate} onChange={(date) => setFilters({ ...filters, examDate: date })} /></FormField></>)}
-          <div className="md:col-span-2 lg:col-span-3 flex flex-wrap gap-2 pt-2">
-            <Button onClick={() => {
-              if (!checkAndBlock(() => load())) return;
-            }} disabled={loading}>{loading ? 'Loading...' : 'Apply'}</Button>
-            {/* <Button variant="outline" onClick={() => {
-              if (!checkAndBlock(() => download('csv'))) return;
-            }}>CSV</Button>
-            <Button variant="outline" onClick={() => {
-              if (!checkAndBlock(() => download('pdf'))) return;
-            }}>PDF</Button>
-            <Button variant="outline" onClick={() => {
-              if (!checkAndBlock(() => download('xlsx'))) return;
-            }}>Excel</Button> */}
+          {examType === 'main' && (<><FormField label="Exam Type"><Select value={filters.examType} onValueChange={(v) => setFilters({ ...filters, examType: v })}><SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger><SelectContent>{MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select></FormField><FormField label="Exam Date"><div className="h-9"><DatePicker value={filters.examDate} onChange={(date) => setFilters({ ...filters, examDate: date })} /></div></FormField></>)}
+          
+          <div className="flex items-end gap-2">
+            <Button size="sm" onClick={() => checkAndBlock(load)} disabled={loading} className="h-9 px-6 bg-blue-600 hover:bg-blue-700">{loading ? 'Loading...' : 'Apply'}</Button>
+            {/* 
+            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('csv'))}>CSV</Button>
+            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('pdf'))}>PDF</Button>
+            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('xlsx'))}>Excel</Button> 
+            */}
           </div>
         </div>
       </ErpSection>
 
       {results && (
-        <ErpSection title="Results" icon={FileBarChart} tone="green">
-          {/* Table Container with Responsive Scroll */}
-          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <div className="min-w-[800px]"> {/* Ensures table doesn't squish on mobile */}
-              <Table>
-                <TableHeader>
-                  {isDailyTest ? (
-                    <TableRow>
-                      <TableHead className="sticky left-0 z-20 bg-slate-100 border-r">Total</TableHead>
-                      <TableHead>Avg</TableHead>
-                      <TableHead>Roll No</TableHead>
-                      <TableHead>Student Name</TableHead>
-                      {results.tests?.map((t, i) => <TableHead key={t._id} className="text-center">Test {i + 1}</TableHead>)}
-                    </TableRow>
-                  ) : (
-                    <TableRow>
-                      <TableHead>Rank</TableHead><TableHead>Roll</TableHead><TableHead>Name</TableHead><TableHead>Marks</TableHead><TableHead>%</TableHead>
-                    </TableRow>
-                  )}
-                </TableHeader>
-                <TableBody>
-                  {filteredResults.map((r, i) => (
-                    <TableRow key={i}>
-                      {isDailyTest ? (
-                        <>
-                          <TableCell className="sticky left-0 z-20 bg-white border-r font-bold">{r.totalObtained}</TableCell>
-                          <TableCell>{r.average}</TableCell>
-                          <TableCell>{r.student?.rollNo}</TableCell>
-                          <TableCell className="font-medium">{r.student?.name}</TableCell>
-                          {results.tests?.map((t) => <TableCell key={t._id}>{r.testMarks?.[t._id]?.marksObtained ?? '-'}</TableCell>)}
-                        </>
-                      ) : (
-                        <>
-                          <TableCell>{r.rank || '-'}</TableCell>
-                          <TableCell>{r.student?.rollNo}</TableCell>
-                          <TableCell>{r.student?.name}</TableCell>
-                          <TableCell>{r.marksObtained}/{r.maxMarks}</TableCell>
-                          <TableCell>{r.percentage}%</TableCell>
-                        </>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+        <ErpSection title="Results Data" icon={FileBarChart} tone="green">
+          <div className="mb-4 relative max-w-xs">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
+          </div>
+          
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                {isDailyTest ? (
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-slate-50 border-r w-24">Total</TableHead>
+                    <TableHead>Avg</TableHead><TableHead>Roll</TableHead><TableHead>Student</TableHead>
+                    {(results.tests || []).map((t, i) => <TableHead key={t._id} className="text-center font-bold">T{i + 1}</TableHead>)}
+                  </TableRow>
+                ) : (
+                  <TableRow>
+                    <TableHead className="w-20">Rank</TableHead><TableHead>Roll</TableHead><TableHead>Name</TableHead><TableHead>Marks</TableHead><TableHead>%</TableHead>
+                  </TableRow>
+                )}
+              </TableHeader>
+              <TableBody>
+                {filteredResults.map((r, i) => (
+                  <TableRow key={i} className="hover:bg-slate-50">
+                    {isDailyTest ? (
+                      <>
+                        <TableCell className="sticky left-0 bg-white border-r font-bold text-indigo-700">{r.totalObtained ?? 0}</TableCell>
+                        <TableCell className="font-medium">{r.average ?? 0}</TableCell>
+                        <TableCell>{r.student?.rollNo}</TableCell>
+                        <TableCell className="font-semibold">{r.student?.name}</TableCell>
+                        {(results.tests || []).map((t) => <TableCell key={t._id} className="text-center text-slate-600">{r.testMarks?.[t._id]?.marksObtained ?? '-'}</TableCell>)}
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="font-bold text-amber-600">#{r.rank ?? '-'}</TableCell>
+                        <TableCell>{r.student?.rollNo}</TableCell>
+                        <TableCell className="font-semibold">{r.student?.name}</TableCell>
+                        <TableCell className="font-medium text-slate-700">{r.marksObtained ?? 0}<span className="text-slate-400 font-normal">/{r.maxMarks ?? 0}</span></TableCell>
+                        <TableCell><span className="text-emerald-600 font-bold">{r.percentage ?? 0}%</span></TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </ErpSection>
       )}
 
-      <SubscriptionExpiredDialog
-        open={expiredDialogOpen}
-        onOpenChange={setExpiredDialogOpen}
-      />
+      <SubscriptionExpiredDialog open={expiredDialogOpen} onOpenChange={setExpiredDialogOpen} />
     </PageStack>
   );
 }

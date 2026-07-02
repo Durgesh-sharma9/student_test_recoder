@@ -87,7 +87,7 @@ export default function TeacherSettings() {
   };
 
   return (
-    <PageStack>
+    <PageStack className="max-w-5xl mx-auto">
       <PageHeader
         title="Settings"
         description="Manage your profile and security settings"
@@ -95,16 +95,14 @@ export default function TeacherSettings() {
 
       {/* 
       <ErpSection title="Profile" icon={User} tone="blue">
-        <div className="mb-6 rounded-lg bg-slate-50 p-4">
-          <div className="flex items-center gap-3">
+        <div className="mb-4 rounded-lg bg-slate-50 p-4">
+          <div className="flex items-center gap-4">
             <ShieldCheck className="h-5 w-5 text-slate-600" />
             <div>
               <p className="text-sm font-semibold text-slate-900">Authentication Method</p>
-              <p className="text-xs text-slate-600">
+              <p className="text-sm text-slate-600">
                 {user?.authProvider === 'google' ? (
-                  <span className="inline-flex items-center gap-1.5 text-green-600">
-                    Google Account Connected
-                  </span>
+                  <span className="inline-flex items-center gap-2 text-green-600">Google Account Connected</span>
                 ) : (
                   <span className="text-slate-600">Email & Password Account</span>
                 )}
@@ -113,12 +111,12 @@ export default function TeacherSettings() {
           </div>
         </div>
 
-        <form onSubmit={handleProfileUpdate} className="space-y-4">
+        <form onSubmit={handleProfileUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <FormField label="Name">
             <div className="relative">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10"
                 value={profile.name}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 placeholder="Enter your name"
@@ -129,21 +127,20 @@ export default function TeacherSettings() {
 
           <FormField label="Email">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10 bg-slate-50"
                 value={profile.email}
                 disabled
-                placeholder="Email cannot be changed"
               />
             </div>
           </FormField>
 
           <FormField label="Mobile (Optional)">
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10"
                 value={profile.mobile}
                 onChange={(e) => setProfile({ ...profile, mobile: e.target.value })}
                 placeholder="Enter mobile number"
@@ -151,20 +148,22 @@ export default function TeacherSettings() {
             </div>
           </FormField>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Profile'}
-          </Button>
+          <div className="flex items-end">
+            <Button type="submit" className="w-full h-10" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Profile'}
+            </Button>
+          </div>
         </form>
       </ErpSection>
       */}
 
       <ErpSection title="Security" icon={ShieldCheck} tone="green">
-        <form onSubmit={handlePasswordChange} className="space-y-4">
+        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 items-end">
           <FormField label="Current Password">
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10"
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
@@ -176,13 +175,13 @@ export default function TeacherSettings() {
 
           <FormField label="New Password">
             <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10"
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                placeholder="Enter new password (min 6 characters)"
+                placeholder="New password (min 6 chars)"
                 required
               />
             </div>
@@ -190,9 +189,9 @@ export default function TeacherSettings() {
 
           <FormField label="Confirm New Password">
             <div className="relative">
-              <ShieldCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <ShieldCheck className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
-                className="pl-10"
+                className="pl-10 h-10"
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
@@ -202,9 +201,11 @@ export default function TeacherSettings() {
             </div>
           </FormField>
 
-          <Button type="submit" className="w-full" disabled={passwordLoading}>
-            {passwordLoading ? 'Changing...' : 'Change Password'}
-          </Button>
+          <div className="md:col-span-3">
+            <Button type="submit" className="w-full md:w-auto px-8 h-10" disabled={passwordLoading}>
+              {passwordLoading ? 'Changing...' : 'Change Password'}
+            </Button>
+          </div>
         </form>
       </ErpSection>
     </PageStack>
