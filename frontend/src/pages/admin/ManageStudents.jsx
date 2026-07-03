@@ -30,6 +30,7 @@ export default function ManageStudents() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+  const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState(null);
@@ -43,6 +44,7 @@ export default function ManageStudents() {
     failed: 0,
     currentStudent: '',
   });
+  const [importOptionsDialog, setImportOptionsDialog] = useState({ open: false, conflicts: [], onConfirm: null });
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -76,10 +78,98 @@ export default function ManageStudents() {
 
   const submit = async (e) => {
     e.preventDefault();
+    
+    // For edit with roll number change, check for conflicts
+    if (edit && form.rollNo !== edit.rollNo) {
+      try {
+        const conflictRes = await api.post('/students/check-roll-conflicts', {
+          classId: selectedClass,
+          rollNumbers: [form.rollNo]
+        });
+        
+        if (conflictRes.data.hasConflicts && conflictRes.data.conflicts.length > 0) {
+          const conflict = conflictRes.data.conflicts[0];
+          setRollConflictDialog({
+            open: true,
+            conflict: conflict,
+            onConfirm: async (shiftOption) => {
+              try {
+                const payload = { ...form, class: selectedClass, shiftOption };
+                await api.put(`/students/${edit._id}`, payload);
+                toast.success('Student updated');
+                setOpen(false);
+                setEdit(null);
+                setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+                loadStudents(selectedClass);
+                setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed to update student');
+              }
+            }
+          });
+          return;
+        }
+      } catch (err) {
+        // If conflict check fails, proceed normally
+      }
+    }
+    
+    // For add student, check for conflicts
+    if (!edit) {
+      try {
+        const conflictRes = await api.post('/students/check-roll-conflicts', {
+          classId: selectedClass,
+          rollNumbers: [form.rollNo]
+        });
+        
+        if (conflictRes.data.hasConflicts && conflictRes.data.conflicts.length > 0) {
+          const conflict = conflictRes.data.conflicts[0];
+          setRollConflictDialog({
+            open: true,
+            conflict: conflict,
+            onConfirm: async (shiftOption) => {
+              try {
+                const payload = { ...form, class: selectedClass, shiftOption };
+                const response = await api.post('/students', payload);
+                
+                if (response.data.parentData && response.data.parentData.isNew && response.data.parentData.parent.email) {
+                  try {
+                    await api.post('/parents/send-credentials', {
+                      parentId: response.data.parentData.parent._id,
+                      schoolName: 'Your School',
+                      loginUrl: window.location.origin
+                    });
+                    toast.success('Student added and parent credentials sent');
+                  } catch (emailErr) {
+                    toast.success('Student added (parent email failed)');
+                  }
+                } else {
+                  toast.success('Student added');
+                }
+                
+                setOpen(false);
+                setEdit(null);
+                setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+                loadStudents(selectedClass);
+                setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Failed to add student');
+              }
+            }
+          });
+          return;
+        }
+      } catch (err) {
+        // If conflict check fails, proceed normally
+      }
+    }
+    
+    // No conflicts or conflict check failed, proceed normally
     try {
       const payload = { ...form, class: selectedClass };
       if (edit) {
         await api.put(`/students/${edit._id}`, payload);
+        toast.success('Student updated');
       } else {
         const response = await api.post('/students', payload);
         
@@ -137,7 +227,7 @@ export default function ManageStudents() {
     }
   };
 
-  const handleBulkImport = async () => {
+  const handleBulkImport = async (shiftOption = null) => {
     if (!file) {
       toast.error('Please select a file to upload');
       return;
@@ -160,6 +250,9 @@ export default function ManageStudents() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('classId', uploadClassId);
+    if (shiftOption) {
+      formData.append('shiftOption', shiftOption);
+    }
 
     let simulatedProgress = 0;
     const progressInterval = setInterval(() => {
@@ -196,6 +289,7 @@ export default function ManageStudents() {
       toast.success(`Import completed: ${response.data.studentsCreated} students imported, ${response.data.failed} failed`);
       loadStudents(uploadClassId);
       setFile(null);
+      setImportOptionsDialog({ open: false, conflicts: [], onConfirm: null });
     } catch (err) {
       clearInterval(progressInterval);
       toast.error(err.response?.data?.message || 'Import failed');
@@ -206,6 +300,58 @@ export default function ManageStudents() {
       }));
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleBulkImportWithConflictCheck = async () => {
+    if (!file) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+    if (!uploadClassId) {
+      toast.error('Please select a class first');
+      return;
+    }
+
+    try {
+      // Parse the file to extract roll numbers
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const buffer = e.target.result;
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        
+        if (rows.length < 2) {
+          toast.error('Invalid file format');
+          return;
+        }
+
+        const rollNumbers = rows.slice(1).map(row => String(row[0] || '').trim()).filter(r => r);
+        
+        // Check for conflicts
+        const conflictRes = await api.post('/students/check-roll-conflicts', {
+          classId: uploadClassId,
+          rollNumbers
+        });
+
+        if (conflictRes.data.hasConflicts && conflictRes.data.conflicts.length > 0) {
+          setImportOptionsDialog({
+            open: true,
+            conflicts: conflictRes.data.conflicts,
+            onConfirm: (shiftOption) => {
+              handleBulkImport(shiftOption);
+            }
+          });
+        } else {
+          handleBulkImport();
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (err) {
+      toast.error('Failed to check for conflicts');
     }
   };
 
@@ -472,6 +618,132 @@ export default function ManageStudents() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={rollConflictDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md rounded-xl p-5 shadow-lg border-0">
+          <DialogHeader className="mb-3">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Roll Number Conflict
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                Roll Number <span className="font-semibold text-slate-800">{rollConflictDialog.conflict?.rollNo}</span> is already assigned to <span className="font-semibold text-slate-800">{rollConflictDialog.conflict?.existingStudent}</span>.
+              </p>
+              <p className="text-sm font-medium text-slate-700">Choose what you want to do:</p>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => rollConflictDialog.onConfirm?.('insert')}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Insert at Roll No {rollConflictDialog.conflict?.rollNo}</span>
+                    <span className="text-xs text-slate-500">Shift all students from Roll No {rollConflictDialog.conflict?.rollNo} onward by +1</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => rollConflictDialog.onConfirm?.('last')}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Insert at Last</span>
+                    <span className="text-xs text-slate-500">Automatically assign the next available Roll Number</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-slate-200 text-slate-700 hover:bg-slate-50"
+                  onClick={() => setRollConflictDialog({ open: false, conflict: null, onConfirm: null })}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={importOptionsDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setImportOptionsDialog({ open: false, conflicts: [], onConfirm: null });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md rounded-xl p-5 shadow-lg border-0">
+          <DialogHeader className="mb-3">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Duplicate Roll Numbers Detected
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">
+                {importOptionsDialog.conflicts.length} duplicate Roll Number{importOptionsDialog.conflicts.length > 1 ? 's' : ''} found in the import file.
+              </p>
+              <div className="max-h-32 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2">
+                {importOptionsDialog.conflicts.slice(0, 5).map((conflict, idx) => (
+                  <div key={idx} className="text-xs text-slate-600 border-b border-slate-200 pb-1 last:border-0">
+                    Row {conflict.row}: Roll No {conflict.rollNo} (assigned to {conflict.existingStudent})
+                  </div>
+                ))}
+                {importOptionsDialog.conflicts.length > 5 && (
+                  <div className="text-xs text-slate-500 pt-1">
+                    ...and {importOptionsDialog.conflicts.length - 5} more
+                  </div>
+                )}
+              </div>
+              <p className="text-sm font-medium text-slate-700">Choose how you want to continue:</p>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => importOptionsDialog.onConfirm?.('insert')}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Preserve Excel Roll Numbers</span>
+                    <span className="text-xs text-slate-500">Shift existing students automatically</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => importOptionsDialog.onConfirm?.('last')}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Insert Duplicate Students at Last</span>
+                    <span className="text-xs text-slate-500">Assign next available Roll Numbers</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-amber-200 text-amber-700 hover:bg-amber-50"
+                  onClick={() => importOptionsDialog.onConfirm?.('skip')}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Skip Duplicate Roll Numbers</span>
+                    <span className="text-xs text-slate-500">Continue importing remaining students</span>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 justify-start text-sm border-slate-200 text-slate-700 hover:bg-slate-50"
+                  onClick={() => setImportOptionsDialog({ open: false, conflicts: [], onConfirm: null })}
+                >
+                  Cancel Import
+                </Button>
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={uploadOpen} onOpenChange={(open) => {
         if (!importing) setUploadOpen(open);
       }}>
@@ -545,7 +817,7 @@ export default function ManageStudents() {
                   </FormField>
                   <Button
                     className="h-9 w-full rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={handleBulkImport}
+                    onClick={handleBulkImportWithConflictCheck}
                     disabled={!file}
                   >
                     Import Students
@@ -574,15 +846,30 @@ export default function ManageStudents() {
 
               {importResults && !importing && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="grid grid-cols-5 gap-2 text-center">
                     <div className="rounded-md bg-slate-50 p-2 border border-slate-200">
                       <p className="text-[10px] font-semibold text-slate-500 uppercase">Rows</p>
                       <p className="text-lg font-bold text-slate-700">{importResults.totalRows}</p>
                     </div>
                     <div className="rounded-md bg-emerald-50 p-2 border border-emerald-100">
-                      <p className="text-[10px] font-semibold text-emerald-600 uppercase">Students</p>
-                      <p className="text-lg font-bold text-emerald-700">{importResults.studentsCreated}</p>
+                      <p className="text-[10px] font-semibold text-emerald-600 uppercase">Imported</p>
+                      <p className="text-lg font-bold text-emerald-700">{importResults.imported}</p>
                     </div>
+                    <div className="rounded-md bg-blue-50 p-2 border border-blue-100">
+                      <p className="text-[10px] font-semibold text-blue-600 uppercase">Shifted</p>
+                      <p className="text-lg font-bold text-blue-700">{importResults.shifted}</p>
+                    </div>
+                    <div className="rounded-md bg-purple-50 p-2 border border-purple-100">
+                      <p className="text-[10px] font-semibold text-purple-600 uppercase">At Last</p>
+                      <p className="text-lg font-bold text-purple-700">{importResults.addedAtLast}</p>
+                    </div>
+                    <div className="rounded-md bg-amber-50 p-2 border border-amber-100">
+                      <p className="text-[10px] font-semibold text-amber-600 uppercase">Skipped</p>
+                      <p className="text-lg font-bold text-amber-700">{importResults.skipped}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-center">
                     <div className="rounded-md bg-blue-50 p-2 border border-blue-100">
                       <p className="text-[10px] font-semibold text-blue-600 uppercase">Parents</p>
                       <p className="text-lg font-bold text-blue-700">{importResults.parentsCreated}</p>

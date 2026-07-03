@@ -38,6 +38,29 @@ const getActiveSession = async (schoolId) => {
   return activeSession;
 };
 
+// Helper function to shift roll numbers
+const shiftRollNumbers = async (schoolId, classId, academicSessionId, fromRollNo) => {
+  const studentsToShift = await Student.find({
+    school: schoolId,
+    class: classId,
+    academicSession: academicSessionId,
+    isActive: true,
+  });
+
+  const fromRollNum = Number(fromRollNo);
+  
+  // Sort numerically in descending order to avoid conflicts
+  studentsToShift.sort((a, b) => Number(b.rollNo) - Number(a.rollNo));
+  
+  for (const student of studentsToShift) {
+    const currentRoll = Number(student.rollNo);
+    if (currentRoll >= fromRollNum) {
+      student.rollNo = String(currentRoll + 1);
+      await student.save();
+    }
+  }
+};
+
 export const getStudents = asyncHandler(async (req, res) => {
   const filter = withSchool(req, { isActive: true });
 
@@ -109,7 +132,24 @@ export const createStudent = asyncHandler(async (req, res) => {
     rollNo: payload.rollNo,
     isActive: true,
   });
-  if (existing) throw new ApiError(400, `Roll No ${payload.rollNo} already exists in this class.`);
+
+  // Handle roll number shift if requested
+  if (existing && req.body.shiftOption === 'insert') {
+    await shiftRollNumbers(schoolId, payload.class, academicSessionId, payload.rollNo);
+  } else if (existing && req.body.shiftOption === 'last') {
+    // Find highest roll number and assign next
+    const highestRoll = await Student.findOne({
+      school: payload.school,
+      class: payload.class,
+      academicSession: academicSessionId,
+      isActive: true,
+    }).sort({ rollNo: -1 });
+    
+    const nextRoll = highestRoll ? Number(highestRoll.rollNo) + 1 : 1;
+    payload.rollNo = String(nextRoll);
+  } else if (existing) {
+    throw new ApiError(400, `Roll No ${payload.rollNo} already exists in this class.`);
+  }
 
   // Handle parent linking if parent data is provided
   let parentData = null;
@@ -163,15 +203,37 @@ export const updateStudent = asyncHandler(async (req, res) => {
 
   const targetClass = updates.class || current.class;
   const targetRoll = updates.rollNo || current.rollNo;
+  const currentRoll = current.rollNo;
 
-  const duplicate = await Student.findOne({
-    _id: { $ne: req.params.id },
-    school: current.school,
-    class: targetClass,
-    rollNo: targetRoll,
-    isActive: true,
-  });
-  if (duplicate) throw new ApiError(400, `Roll No ${targetRoll} already exists in this class.`);
+  // Only check for duplicates if rollNo is being changed
+  if (updates.rollNo && updates.rollNo !== currentRoll) {
+    const duplicate = await Student.findOne({
+      _id: { $ne: req.params.id },
+      school: current.school,
+      class: targetClass,
+      rollNo: targetRoll,
+      isActive: true,
+    });
+
+    if (duplicate) {
+      if (req.body.shiftOption === 'insert') {
+        // Shift students from targetRoll onward
+        await shiftRollNumbers(current.school, targetClass, current.academicSession, targetRoll);
+      } else if (req.body.shiftOption === 'last') {
+        // Assign highest + 1
+        const highestRoll = await Student.findOne({
+          school: current.school,
+          class: targetClass,
+          academicSession: current.academicSession,
+          isActive: true,
+        }).sort({ rollNo: -1 });
+        
+        updates.rollNo = String(highestRoll ? Number(highestRoll.rollNo) + 1 : 1);
+      } else {
+        throw new ApiError(400, `Roll No ${targetRoll} already exists in this class.`);
+      }
+    }
+  }
 
   const student = await Student.findByIdAndUpdate(req.params.id, updates, {
     new: true,
@@ -191,8 +253,48 @@ export const deleteStudent = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Student deactivated.' });
 });
 
+export const checkRollConflicts = asyncHandler(async (req, res) => {
+  const { classId, rollNumbers } = req.body;
+  const schoolId = req.user.school?._id ?? req.user.school;
+
+  if (!classId || !rollNumbers || !Array.isArray(rollNumbers)) {
+    throw new ApiError(400, 'classId and rollNumbers array are required');
+  }
+
+  // Get active session
+  const activeSession = await getActiveSession(schoolId);
+
+  const conflicts = [];
+  const existingStudents = await Student.find({
+    school: schoolId,
+    class: classId,
+    academicSession: activeSession._id,
+    isActive: true,
+  });
+
+  const existingRolls = new Set(existingStudents.map(s => s.rollNo));
+
+  rollNumbers.forEach((rollNo, index) => {
+    if (existingRolls.has(String(rollNo))) {
+      const existing = existingStudents.find(s => s.rollNo === String(rollNo));
+      conflicts.push({
+        row: index + 1,
+        rollNo: String(rollNo),
+        existingStudent: existing ? existing.name : 'Unknown'
+      });
+    }
+  });
+
+  res.json({
+    success: true,
+    hasConflicts: conflicts.length > 0,
+    conflicts,
+    totalConflicts: conflicts.length
+  });
+});
+
 export const bulkImportStudents = asyncHandler(async (req, res) => {
-  const { classId } = req.body;
+  const { classId, shiftOption } = req.body;
   const schoolId = req.user.school?._id ?? req.user.school;
   
   if (!req.file) {
@@ -216,7 +318,10 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
   
   const results = {
     totalRows: parsedData.length,
-    studentsCreated: 0,
+    imported: 0,
+    shifted: 0,
+    addedAtLast: 0,
+    skipped: 0,
     parentsCreated: 0,
     existingParentsLinked: 0,
     failed: 0,
@@ -245,6 +350,18 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         results.errors.push({ row: rowNumber, error: `Duplicate Roll No ${rollNo} in uploaded file` });
       }
     }
+  }
+
+  // Get highest roll number for "last" option
+  let highestRoll = 0;
+  if (shiftOption === 'last') {
+    const highestRollDoc = await Student.findOne({
+      school: schoolId,
+      class: classId,
+      academicSession: activeSession._id,
+      isActive: true,
+    }).sort({ rollNo: -1 });
+    highestRoll = highestRollDoc ? Number(highestRollDoc.rollNo) : 0;
   }
 
   for (const row of parsedData) {
@@ -297,10 +414,30 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         isActive: true,
       });
 
+      let finalRollNo = row.rollNo;
+
       if (existing) {
-        results.failed++;
-        results.errors.push({ row: row.rowNumber, error: `Roll No ${row.rollNo} already exists in this class` });
-        continue;
+        if (shiftOption === 'skip') {
+          results.skipped++;
+          results.errors.push({ row: row.rowNumber, error: `Skipped: Roll No ${row.rollNo} already exists` });
+          continue;
+        } else if (shiftOption === 'last') {
+          highestRoll++;
+          finalRollNo = String(highestRoll);
+          results.addedAtLast++;
+        } else if (shiftOption === 'insert') {
+          // Shift students from this roll number onward
+          await shiftRollNumbers(schoolId, classId, activeSession._id, row.rollNo);
+          results.shifted++;
+          results.imported++;
+        } else {
+          // No shift option provided, fail
+          results.failed++;
+          results.errors.push({ row: row.rowNumber, error: `Roll No ${row.rollNo} already exists in this class` });
+          continue;
+        }
+      } else {
+        results.imported++;
       }
 
       // Handle parent creation/linking if parent data is provided
@@ -342,7 +479,7 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         school: schoolId,
         academicSession: activeSession._id,
         class: classId,
-        rollNo: row.rollNo,
+        rollNo: finalRollNo,
         name: row.name,
         gender: row.gender,
         parent: parentId,
@@ -356,8 +493,6 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
           await parent.save();
         }
       }
-
-      results.studentsCreated++;
     } catch (error) {
       results.failed++;
       results.errors.push({ row: row.rowNumber, error: error.message });
