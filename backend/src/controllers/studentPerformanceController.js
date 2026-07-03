@@ -2,6 +2,7 @@ import Student from '../models/Student.js';
 import MarkEntry from '../models/MarkEntry.js';
 import NotebookCheck from '../models/NotebookCheck.js';
 import AcademicSession from '../models/AcademicSession.js';
+import ResultSession from '../models/ResultSession.js';
 import mongoose from 'mongoose';
 
 // Helper function to get active session
@@ -31,9 +32,46 @@ const getActiveSession = async (schoolId) => {
   return activeSession;
 };
 
+const round2 = (v) => Math.round(v * 100) / 100;
+
+const computeCompetitionRanks = (items, valueKey) => {
+  const sorted = [...items].sort((a, b) => b[valueKey] - a[valueKey]);
+  let prev = null;
+  let rank = 0;
+  return sorted.map((item, idx) => {
+    if (prev !== item[valueKey]) rank = idx + 1;
+    prev = item[valueKey];
+    return { ...item, rank };
+  });
+};
+
+export const getExamTypes = async (req, res, next) => {
+  try {
+    const { classId } = req.query;
+    const schoolId = req.user.school?._id ?? req.user.school;
+
+    const filter = { 
+      school: schoolId, 
+      category: 'main' 
+    };
+    
+    if (classId) {
+      filter.class = classId;
+    }
+
+    const sessions = await ResultSession.find(filter).select('examType').lean();
+    const examTypes = [...new Set(sessions.map(s => s.examType).filter(Boolean))].sort();
+
+    res.json({ success: true, examTypes });
+  } catch (error) {
+    console.error('Error fetching exam types:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch exam types', error: error.message });
+  }
+};
+
 export const getStudentPerformanceAnalytics = async (req, res, next) => {
   try {
-    const { classId, studentId, assessments, examType, dateRange, specificDate, dateFrom, dateTo, academicSession } = req.query;
+    const { classId, assessmentType, examType, dateRange, specificDate, dateFrom, dateTo, academicSession } = req.query;
     const schoolId = req.user.school?._id ?? req.user.school;
 
     if (!classId) {
@@ -49,35 +87,110 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No active academic session found.' });
     }
 
-    // 1. Fetch Students
-    const studentQuery = { 
+    // Fetch all students in the class
+    const students = await Student.find({ 
       class: classId, 
-      academicSession: activeSession._id, 
       school: schoolId,
       isActive: true 
-    };
-    if (studentId && studentId !== 'all') {
-      studentQuery._id = studentId;
-    }
-    const students = await Student.find(studentQuery).sort({ rollNo: 1 }).lean();
+    }).sort({ rollNo: 1 }).lean();
     
     if (!students.length) {
       return res.json({ success: true, data: [] });
     }
     
     const studentIds = students.map(s => s._id);
-    const assessmentArray = assessments ? assessments.split(',') : [];
 
-    // 2. Fetch Marks (Daily Tests & Main Exams)
+    // Build date filter
+    let dateFilter = {};
+    if (dateRange && dateRange !== 'All Time') {
+      const now = new Date();
+      let startDate = new Date();
+      let endDate = new Date();
+      
+      if (dateRange === 'Today') {
+        startDate.setHours(0,0,0,0);
+        endDate.setHours(23,59,59,999);
+      } else if (dateRange === 'This Week') {
+        const day = now.getDay();
+        const diff = day === 0 ? 6 : day - 1;
+        startDate.setDate(now.getDate() - diff);
+        startDate.setHours(0,0,0,0);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23,59,59,999);
+      } else if (dateRange === 'This Month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate.setHours(23,59,59,999);
+      } else if (dateRange === 'This Year') {
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31);
+        endDate.setHours(23,59,59,999);
+      } else if (dateRange === 'Specific Date' && specificDate) {
+        startDate = new Date(specificDate);
+        startDate.setHours(0,0,0,0);
+        endDate = new Date(specificDate);
+        endDate.setHours(23,59,59,999);
+      } else if (dateRange === 'Date Range' && dateFrom && dateTo) {
+        startDate = new Date(dateFrom);
+        startDate.setHours(0,0,0,0);
+        endDate = new Date(dateTo);
+        endDate.setHours(23,59,59,999);
+      }
+      
+      dateFilter = { $gte: startDate, $lte: endDate };
+    }
+
+    // Fetch ResultSessions based on assessment type
+    let sessionFilter = { 
+      school: schoolId, 
+      class: classId,
+      academicSession: activeSession._id 
+    };
+
+    if (dateRange && dateRange !== 'All Time') {
+      sessionFilter.$or = [
+        { testDate: dateFilter },
+        { examDate: dateFilter }
+      ];
+    }
+
+    let sessions = [];
+    if (assessmentType === 'All Assessments' || !assessmentType) {
+      // Fetch all sessions
+      sessions = await ResultSession.find(sessionFilter).lean();
+    } else if (assessmentType === 'Daily Test') {
+      sessions = await ResultSession.find({ ...sessionFilter, category: 'daily' }).lean();
+    } else if (assessmentType === 'Main Exam') {
+      if (examType && examType !== 'All Exams') {
+        sessions = await ResultSession.find({ ...sessionFilter, category: 'main', examType }).lean();
+      } else {
+        sessions = await ResultSession.find({ ...sessionFilter, category: 'main' }).lean();
+      }
+    } else if (assessmentType === 'Notebook Checking') {
+      // Notebook doesn't use ResultSession, handle separately
+      sessions = [];
+    }
+
+    const sessionIds = sessions.map(s => s._id);
+
+    // Fetch MarkEntries for the sessions
     let marks = [];
-    if (assessmentArray.includes('Daily Test') || assessmentArray.includes('Main Exam') || assessmentArray.includes('All Assessments') || assessmentArray.length === 0) {
-      // Fetch MarkEntries and populate session to determine exam type/dates
-      marks = await MarkEntry.find({
+    if (sessionIds.length > 0) {
+      marks = await MarkEntry.find({ 
+        session: { $in: sessionIds },
+        student: { $in: studentIds }
+      }).populate('session').lean();
+    }
+
+    // Fetch Notebook Checks
+    let notebooks = [];
+    if (assessmentType === 'All Assessments' || assessmentType === 'Notebook Checking' || !assessmentType) {
+      notebooks = await NotebookCheck.find({
         student: { $in: studentIds },
         academicSession: activeSession._id
-      }).populate('session').lean();
+      }).lean();
 
-      // Apply Date Filters
+      // Apply date filter to notebooks if needed
       if (dateRange && dateRange !== 'All Time') {
         const now = new Date();
         let startDate = new Date();
@@ -97,6 +210,10 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
           endDate.setHours(23,59,59,999);
+        } else if (dateRange === 'This Year') {
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear(), 11, 31);
+          endDate.setHours(23,59,59,999);
         } else if (dateRange === 'Specific Date' && specificDate) {
           startDate = new Date(specificDate);
           startDate.setHours(0,0,0,0);
@@ -109,39 +226,33 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
           endDate.setHours(23,59,59,999);
         }
         
-        marks = marks.filter(m => {
-          const examDate = m.session?.date || m.session?.testDate || m.session?.examDate || m.createdAt;
-          return new Date(examDate) >= startDate && new Date(examDate) <= endDate;
+        notebooks = notebooks.filter(nb => {
+          const checkDate = nb.checkedAt || nb.createdAt;
+          return new Date(checkDate) >= startDate && new Date(checkDate) <= endDate;
         });
       }
-
-      // Filter by Exam Type if Main Exam is specifically selected
-      if (examType && examType !== 'All Exams') {
-        marks = marks.filter(m => m.session?.title === examType || m.session?.examType === examType);
-      }
     }
 
-    // 3. Fetch Notebook Checks
-    let notebooks = [];
-    if (assessmentArray.includes('Notebook Checking') || assessmentArray.includes('All Assessments') || assessmentArray.length === 0) {
-      notebooks = await NotebookCheck.find({
-        student: { $in: studentIds },
-        academicSession: activeSession._id
-      }).lean();
-    }
-
-    // 4. Aggregate Data Per Student
+    // Aggregate data per student using marks-based calculation
     const analyticsData = students.map(student => {
       const studentMarks = marks.filter(m => m.student.toString() === student._id.toString());
       const studentNotebooks = notebooks.filter(n => n.student.toString() === student._id.toString());
 
+      // Calculate Notebook percentage
+      let totalNotebookChapters = 0;
+      let totalCheckedChapters = 0;
+      let notebookPercentage = 0;
       let subjectsMap = {};
 
-      // Process Notebooks
-      let totalNotebooks = 0;
-      let totalCheckedNotebooks = 0;
       studentNotebooks.forEach(nb => {
-        if (!subjectsMap[nb.subject]) subjectsMap[nb.subject] = { notebook: 0, daily: [], main: [] };
+        if (!subjectsMap[nb.subject]) {
+          subjectsMap[nb.subject] = { 
+            notebook: 0, 
+            notebookData: { checked: 0, total: 0 },
+            daily: { totalObtained: 0, totalMax: 0, count: 0 },
+            main: { totalObtained: 0, totalMax: 0, count: 0 }
+          };
+        }
         const checked = nb.chapters.filter(ch => ch.status === 'Checked').length;
         const total = nb.chapters.length;
         const percent = total > 0 ? (checked / total) * 100 : 0;
@@ -149,47 +260,75 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
         subjectsMap[nb.subject].notebook = percent;
         subjectsMap[nb.subject].notebookData = { checked, total, percent };
         
-        totalNotebooks += total;
-        totalCheckedNotebooks += checked;
+        totalNotebookChapters += total;
+        totalCheckedChapters += checked;
       });
 
-      const notebookPercentage = totalNotebooks > 0 ? (totalCheckedNotebooks / totalNotebooks) * 100 : 0;
+      notebookPercentage = totalNotebookChapters > 0 ? (totalCheckedChapters / totalNotebookChapters) * 100 : 0;
 
-      // Process Marks (Separate Daily vs Main based on session fields. Assuming session title/type identifies it)
-      let dailyTotal = 0, dailyCount = 0;
-      let mainTotal = 0, mainCount = 0;
+      // Calculate Daily Test percentage using marks-based calculation
+      let dailyTotalObtained = 0;
+      let dailyTotalMax = 0;
       let dailyScores = [];
 
       studentMarks.forEach(m => {
-        const isMain = m.session?.type === 'Main Exam' || m.session?.examType === 'Main Exam' || (m.session?.title && !m.session.title.toLowerCase().includes('daily'));
-        
-        // Use subject from session if available, else generic
-        const subject = m.session?.subject || 'General';
-        if (!subjectsMap[subject]) subjectsMap[subject] = { notebook: 0, daily: [], main: [] };
+        const session = m.session;
+        const subject = session?.subject || 'General';
+        if (!subjectsMap[subject]) {
+          subjectsMap[subject] = { 
+            notebook: 0, 
+            notebookData: { checked: 0, total: 0 },
+            daily: { totalObtained: 0, totalMax: 0, count: 0 },
+            main: { totalObtained: 0, totalMax: 0, count: 0 }
+          };
+        }
 
-        if (isMain) {
-          subjectsMap[subject].main.push(m.percentage);
-          mainTotal += m.percentage;
-          mainCount++;
-        } else {
-          subjectsMap[subject].daily.push(m.percentage);
-          dailyTotal += m.percentage;
-          dailyCount++;
-          dailyScores.push(m.percentage);
+        if (session?.category === 'daily') {
+          const marksObtained = m.status === 'absent' ? 0 : m.marksObtained;
+          dailyTotalObtained += marksObtained;
+          dailyTotalMax += session.maxMarks;
+          
+          subjectsMap[subject].daily.totalObtained += marksObtained;
+          subjectsMap[subject].daily.totalMax += session.maxMarks;
+          subjectsMap[subject].daily.count++;
+          
+          if (m.status !== 'absent') {
+            dailyScores.push(m.percentage);
+          }
+        } else if (session?.category === 'main') {
+          const marksObtained = m.status === 'absent' ? 0 : m.marksObtained;
+          subjectsMap[subject].main.totalObtained += marksObtained;
+          subjectsMap[subject].main.totalMax += session.maxMarks;
+          subjectsMap[subject].main.count++;
         }
       });
 
-      const dailyPercentage = dailyCount > 0 ? dailyTotal / dailyCount : 0;
-      const mainPercentage = mainCount > 0 ? mainTotal / mainCount : 0;
+      const dailyPercentage = dailyTotalMax > 0 ? (dailyTotalObtained / dailyTotalMax) * 100 : 0;
 
-      // Calculate Subject Averages
+      // Calculate Main Exam percentage using marks-based calculation
+      let mainTotalObtained = 0;
+      let mainTotalMax = 0;
+
+      studentMarks.forEach(m => {
+        const session = m.session;
+        if (session?.category === 'main') {
+          const marksObtained = m.status === 'absent' ? 0 : m.marksObtained;
+          mainTotalObtained += marksObtained;
+          mainTotalMax += session.maxMarks;
+        }
+      });
+
+      const mainPercentage = mainTotalMax > 0 ? (mainTotalObtained / mainTotalMax) * 100 : 0;
+
+      // Calculate subject analytics
       let strongestSubject = { name: '-', score: 0 };
       let weakestSubject = { name: '-', score: 100 };
       
       const subjectAnalytics = Object.keys(subjectsMap).map(subj => {
         const data = subjectsMap[subj];
-        const dailyAvg = data.daily.length ? data.daily.reduce((a,b) => a+b, 0) / data.daily.length : 0;
-        const mainAvg = data.main.length ? data.main.reduce((a,b) => a+b, 0) / data.main.length : 0;
+        
+        const dailyAvg = data.daily.totalMax > 0 ? (data.daily.totalObtained / data.daily.totalMax) * 100 : 0;
+        const mainAvg = data.main.totalMax > 0 ? (data.main.totalObtained / data.main.totalMax) * 100 : 0;
         
         let components = 0;
         let totalScore = 0;
@@ -214,16 +353,33 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
 
       if (weakestSubject.name === '-') weakestSubject.score = 0;
 
-      // Calculate Overall Percentage (Simple Average of active components)
-      let activeComponents = 0;
-      let overallSum = 0;
-      if (notebookPercentage > 0) { overallSum += notebookPercentage; activeComponents++; }
-      if (dailyPercentage > 0) { overallSum += dailyPercentage; activeComponents++; }
-      if (mainPercentage > 0) { overallSum += mainPercentage; activeComponents++; }
-      
-      const overallPercentage = activeComponents > 0 ? overallSum / activeComponents : 0;
+      // Calculate Overall Percentage using marks-based calculation
+      let overallTotalObtained = 0;
+      let overallTotalMax = 0;
 
-      // Smart Insights (Highest/Lowest Assessment Type)
+      if (assessmentType === 'All Assessments' || !assessmentType) {
+        overallTotalObtained = dailyTotalObtained + mainTotalObtained;
+        overallTotalMax = dailyTotalMax + mainTotalMax;
+        // For notebook, we need to convert percentage to marks equivalent
+        // Assuming notebook contributes equally, we add notebook percentage as if it were marks
+        if (notebookPercentage > 0) {
+          overallTotalObtained += notebookPercentage;
+          overallTotalMax += 100;
+        }
+      } else if (assessmentType === 'Daily Test') {
+        overallTotalObtained = dailyTotalObtained;
+        overallTotalMax = dailyTotalMax;
+      } else if (assessmentType === 'Main Exam') {
+        overallTotalObtained = mainTotalObtained;
+        overallTotalMax = mainTotalMax;
+      } else if (assessmentType === 'Notebook Checking') {
+        overallTotalObtained = notebookPercentage;
+        overallTotalMax = 100;
+      }
+
+      const overallPercentage = overallTotalMax > 0 ? (overallTotalObtained / overallTotalMax) * 100 : 0;
+
+      // Smart Insights
       const assessTypes = [
         { name: 'Notebook', score: notebookPercentage },
         { name: 'Daily Test', score: dailyPercentage },
@@ -237,16 +393,16 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
         rollNo: student.rollNo,
         name: student.name,
         parentName: student.parent?.name || 'N/A',
-        overallPercentage,
-        notebookPercentage,
-        dailyPercentage,
-        mainPercentage,
+        overallPercentage: round2(overallPercentage),
+        notebookPercentage: round2(notebookPercentage),
+        dailyPercentage: round2(dailyPercentage),
+        mainPercentage: round2(mainPercentage),
         subjectAnalytics,
         dailyStats: {
-          average: dailyPercentage,
+          average: round2(dailyPercentage),
           highest: dailyScores.length ? Math.max(...dailyScores) : 0,
           lowest: dailyScores.length ? Math.min(...dailyScores) : 0,
-          attempted: dailyCount
+          attempted: studentMarks.filter(m => m.session?.category === 'daily').length
         },
         insights: {
           strongestSubject: strongestSubject.name,
@@ -257,27 +413,10 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       };
     });
 
-    // 5. Calculate Ranks
-    analyticsData.sort((a, b) => b.overallPercentage - a.overallPercentage);
-    let currentRank = 1;
-    analyticsData.forEach((student, index) => {
-      // Handle ties
-      if (index > 0 && student.overallPercentage === analyticsData[index - 1].overallPercentage) {
-        student.rank = analyticsData[index - 1].rank;
-      } else {
-        student.rank = currentRank;
-      }
-      currentRank++;
-    });
+    // Calculate ranks based on overall percentage
+    const rankedData = computeCompetitionRanks(analyticsData, 'overallPercentage');
 
-    // Re-sort by Roll No as requested
-    analyticsData.sort((a, b) => {
-      const numA = parseInt(a.rollNo.replace(/\D/g, '')) || 0;
-      const numB = parseInt(b.rollNo.replace(/\D/g, '')) || 0;
-      return numA - numB;
-    });
-
-    res.json({ success: true, data: analyticsData });
+    res.json({ success: true, data: rankedData });
   } catch (error) {
     console.error('Error generating student performance analytics:', error);
     res.status(500).json({ success: false, message: 'Failed to generate analytics', error: error.message });
