@@ -6,6 +6,7 @@ import {
   updateStudent,
   deleteStudent,
   bulkImportStudents,
+  checkRollConflicts,
 } from '../controllers/studentController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { requireSchoolActive } from '../middleware/tenant.js';
@@ -33,6 +34,7 @@ router.get('/:id', getStudent);
 
 router.post('/', authorize('school_admin'), createStudent);
 router.post('/bulk-import', authorize('school_admin'), upload.single('file'), bulkImportStudents);
+router.post('/check-roll-conflicts', authorize('school_admin'), checkRollConflicts);
 router.put('/:id', authorize('school_admin'), updateStudent);
 router.delete('/:id', authorize('school_admin'), deleteStudent);
 
