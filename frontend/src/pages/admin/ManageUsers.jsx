@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Users, UserPlus, Search, Download, Upload, Bell, MessageCircle, Copy, X, CheckCircle, XCircle, AlertCircle, Download as DownloadIcon } from 'lucide-react';
+import { Users, UserPlus, Search, Download, Upload, Bell, MessageCircle, Copy, CheckCircle, AlertCircle, Download as DownloadIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { useSession } from '@/context/SessionContext';
 import { useSubscription } from '@/context/SubscriptionContext';
@@ -59,7 +59,9 @@ export default function ManageUsers() {
     const statusFiltered = teachers.filter((t) => t.status === (activeTab === 'active' ? 'Active' : 'Inactive'));
     return statusFiltered.filter((t) => `${t.teacherName || t.name} ${t.email}`.toLowerCase().includes(query.toLowerCase()));
   }, [teachers, query, activeTab]);
-  const perPage = 8;
+  
+  // Changed items per page to 10
+  const perPage = 10;
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
   const pages = Math.max(1, Math.ceil(filtered.length / perPage));
   const activeCount = teachers.filter((t) => t.status === 'Active').length;
@@ -179,7 +181,6 @@ export default function ManageUsers() {
         setForm({ teacherName: '', email: '', phoneNo: '' });
         refresh();
       } else {
-        // Check if teacher with same email exists and is inactive
         const inactiveTeacher = teachers.find(t => t.email === form.email && t.status === 'Inactive');
         if (inactiveTeacher) {
           setReactivateDialog({ open: true, teacher: inactiveTeacher });
@@ -190,7 +191,6 @@ export default function ManageUsers() {
           setForm({ teacherName: '', email: '', phoneNo: '' });
           refresh();
           
-          // Show credentials modal if tempPassword is returned
           if (res.data.user?.tempPassword) {
             setCredentialsModal({
               open: true,
@@ -233,17 +233,12 @@ export default function ManageUsers() {
         return;
       }
 
-      console.log('[handleSendNotification] selectedTeacher._id:', selectedTeacher._id);
-      console.log('[handleSendNotification] selectedTeacher:', selectedTeacher);
-
       const payload = {
         title: notificationForm.title,
         message: notificationForm.message,
         priority: notificationForm.priority,
         recipientIds: [selectedTeacher._id],
       };
-
-      console.log('[handleSendNotification] payload:', payload);
 
       if (attachmentFile) {
         const formData = new FormData();
@@ -268,7 +263,6 @@ export default function ManageUsers() {
       setNotificationForm({ title: '', message: '', priority: 'normal' });
       setAttachmentFile(null);
     } catch (err) {
-      console.error('[handleSendNotification] Error:', err);
       toast.error(err.response?.data?.message || 'Failed to send notification');
     }
   };
@@ -297,11 +291,11 @@ export default function ManageUsers() {
         description="Register teachers, manage credentials, and maintain your school teaching staff."
       >
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={downloadTemplate}>
-            <Download className="mr-2 h-4 w-4" />
+          <Button size="sm" variant="outline" onClick={downloadTemplate} className="h-9 bg-white shadow-sm">
+            <Download className="mr-1.5 h-4 w-4" />
             Download Template
           </Button>
-          <Button variant="outline" onClick={() => {
+          <Button size="sm" variant="outline" className="h-9 bg-white shadow-sm" onClick={() => {
             if (!checkAndBlock(() => {
               if (!canAddTeacher) {
                 setLimitDialogOpen(true);
@@ -310,10 +304,10 @@ export default function ManageUsers() {
               setUploadOpen(true);
             })) return;
           }}>
-            <Upload className="mr-2 h-4 w-4" />
+            <Upload className="mr-1.5 h-4 w-4" />
             Upload Teachers
           </Button>
-          <Button onClick={() => {
+          <Button size="sm" className="h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm border-0" onClick={() => {
             if (!checkAndBlock(() => {
               if (!canAddTeacher) {
                 setLimitDialogOpen(true);
@@ -322,349 +316,365 @@ export default function ManageUsers() {
               setOpen(true);
             })) return;
           }}>
-            <UserPlus className="mr-2 h-4 w-4" />
+            <UserPlus className="mr-1.5 h-4 w-4" />
             Add Teacher
           </Button>
         </div>
       </PageHeader>
 
-      <ErpSection title="Search Teachers" icon={Search} tone="blue">
-        <FormField label="Search by name or email">
-          <Input
-            placeholder="Search teacher"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(1);
-            }}
-          />
-        </FormField>
-      </ErpSection>
-
       <ErpSection title="Teachers List" icon={Users} tone="green">
-        <div className="flex gap-4 mb-4 border-b border-slate-200">
-          <button
-            onClick={() => { setActiveTab('active'); setPage(1); }}
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === 'active'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Active Teachers ({activeCount})
-          </button>
-          <button
-            onClick={() => { setActiveTab('inactive'); setPage(1); }}
-            className={`px-4 py-2 font-medium transition-colors ${
-              activeTab === 'inactive'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Inactive Teachers ({inactiveCount})
-          </button>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Password Status</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paged.map((t) => (
-                <TableRow key={t._id} className="hover:bg-slate-50 transition-colors">
-                  <TableCell className="font-medium">{t.teacherName || t.name}</TableCell>
-                  <TableCell>{t.email}</TableCell>
-                  <TableCell>{t.phoneNo || '-'}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                      t.mustChangePassword ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      {t.mustChangePassword ? 'Temporary Password' : 'Password Changed'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                      t.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      <span className={`h-2 w-2 rounded-full ${t.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {t.status || 'Active'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      {activeTab === 'active' ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                            disabled={isArchived}
-                            onClick={() => {
-                              setEdit(t);
-                              setForm({
-                                teacherName: t.teacherName || t.name,
-                                email: t.email,
-                                phoneNo: t.phoneNo || '',
-                              });
-                              setOpen(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-gradient-to-r from-purple-600 to-blue-500 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200"
-                            disabled={isArchived}
-                            onClick={() => {
-                              setSelectedTeacher(t);
-                              setNotifyModalOpen(true);
-                            }}
-                            title={`Send Notification to ${t.teacherName || t.name}`}
-                          >
-                            <Bell className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                            disabled={isArchived}
-                            onClick={async () => {
-                              if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
-                                try {
-                                  await api.post(`/auth/reset-teacher-password/${t._id}`);
-                                  toast.success('Password reset successfully. New password sent to teacher.');
-                                } catch (err) {
-                                  toast.error(err.response?.data?.message || 'Failed to reset password');
-                                }
-                              }
-                            }}
-                          >
-                            Reset Password
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                            disabled={isArchived}
-                            onClick={async () => {
-                              if (confirm('Deactivate Teacher?\n\nThis teacher will no longer be able to log in but historical data will remain.')) {
-                                await api.put(`/users/${t._id}`, { status: 'Inactive' });
-                                toast.success('Teacher deactivated');
-                                refresh();
-                              }
-                            }}
-                          >
-                            Deactivate
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                            disabled={isArchived}
-                            onClick={() => {
-                              setEdit(t);
-                              setForm({
-                                teacherName: t.teacherName || t.name,
-                                email: t.email,
-                                phoneNo: t.phoneNo || '',
-                              });
-                              setOpen(true);
-                            }}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-200 hover:bg-green-50"
-                            disabled={isArchived}
-                            onClick={async () => {
-                              await api.put(`/users/${t._id}`, { status: 'Active' });
-                              toast.success('Teacher reactivated');
-                              refresh();
-                            }}
-                          >
-                            Reactivate
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+        {/* Green tone soft gradient background */}
+        <div className="p-4 rounded-xl border border-emerald-50 bg-gradient-to-br from-emerald-50/70 via-transparent to-transparent">
+          
+          {/* Integrated Search and Tabs Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 border-b border-slate-200 pb-3">
+            <div className="flex gap-4">
+              <button
+                onClick={() => { setActiveTab('active'); setPage(1); }}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  activeTab === 'active'
+                    ? 'text-emerald-700 border-b-2 border-emerald-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Active Teachers ({activeCount})
+              </button>
+              <button
+                onClick={() => { setActiveTab('inactive'); setPage(1); }}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  activeTab === 'inactive'
+                    ? 'text-emerald-700 border-b-2 border-emerald-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Inactive Teachers ({inactiveCount})
+              </button>
+            </div>
+            
+            {/* Search Input moved here */}
+            <div className="w-full sm:w-72 relative">
+              <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by name or email..."
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-8 h-8 text-sm bg-white border-slate-200 shadow-sm w-full"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600">Name</TableHead>
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600">Email</TableHead>
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600">Phone</TableHead>
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600">Password Status</TableHead>
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600">Status</TableHead>
+                  <TableHead className="h-10 py-2 text-xs font-semibold text-slate-600 text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <Button size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-            Prev
-          </Button>
-          <span className="text-sm text-slate-600">
-            {page}/{pages}
-          </span>
-          <Button size="sm" variant="outline" disabled={page === pages} onClick={() => setPage((p) => p + 1)}>
-            Next
-          </Button>
+              </TableHeader>
+              <TableBody>
+                {paged.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-sm text-slate-500">
+                      No teachers found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paged.map((t) => (
+                    <TableRow key={t._id} className="hover:bg-slate-50/80 transition-colors">
+                      <TableCell className="py-2 text-sm font-medium">{t.teacherName || t.name}</TableCell>
+                      <TableCell className="py-2 text-sm text-slate-600">{t.email}</TableCell>
+                      <TableCell className="py-2 text-sm text-slate-600">{t.phoneNo || '-'}</TableCell>
+                      <TableCell className="py-2">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                          t.mustChangePassword ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {t.mustChangePassword ? 'Temporary Password' : 'Password Changed'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                          t.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${t.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                          {t.status || 'Active'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {activeTab === 'active' ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[10px] px-2 text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100/80 shadow-sm"
+                                disabled={isArchived}
+                                onClick={() => {
+                                  setEdit(t);
+                                  setForm({
+                                    teacherName: t.teacherName || t.name,
+                                    email: t.email,
+                                    phoneNo: t.phoneNo || '',
+                                  });
+                                  setOpen(true);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-7 w-7 p-0 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 border-0"
+                                disabled={isArchived}
+                                onClick={() => {
+                                  setSelectedTeacher(t);
+                                  setNotifyModalOpen(true);
+                                }}
+                                title={`Send Notification to ${t.teacherName || t.name}`}
+                              >
+                                <Bell className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[10px] px-2 text-orange-600 border-orange-200 bg-orange-50/50 hover:bg-orange-100/80 shadow-sm"
+                                disabled={isArchived}
+                                onClick={async () => {
+                                  if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
+                                    try {
+                                      await api.post(`/auth/reset-teacher-password/${t._id}`);
+                                      toast.success('Password reset successfully. New password sent to teacher.');
+                                    } catch (err) {
+                                      toast.error(err.response?.data?.message || 'Failed to reset password');
+                                    }
+                                  }
+                                }}
+                              >
+                                Reset Pass
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[10px] px-2 text-red-600 border-red-200 bg-red-50/50 hover:bg-red-100/80 shadow-sm"
+                                disabled={isArchived}
+                                onClick={async () => {
+                                  if (confirm('Deactivate Teacher?\n\nThis teacher will no longer be able to log in but historical data will remain.')) {
+                                    await api.put(`/users/${t._id}`, { status: 'Inactive' });
+                                    toast.success('Teacher deactivated');
+                                    refresh();
+                                  }
+                                }}
+                              >
+                                Disable
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[10px] px-2 text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100/80 shadow-sm"
+                                disabled={isArchived}
+                                onClick={() => {
+                                  setEdit(t);
+                                  setForm({
+                                    teacherName: t.teacherName || t.name,
+                                    email: t.email,
+                                    phoneNo: t.phoneNo || '',
+                                  });
+                                  setOpen(true);
+                                }}
+                              >
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[10px] px-2 text-emerald-600 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80 shadow-sm"
+                                disabled={isArchived}
+                                onClick={async () => {
+                                  await api.put(`/users/${t._id}`, { status: 'Active' });
+                                  toast.success('Teacher reactivated');
+                                  refresh();
+                                }}
+                              >
+                                Reactivate
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs bg-white" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              Prev
+            </Button>
+            <span className="text-xs font-medium text-slate-600">
+              {page}/{pages}
+            </span>
+            <Button size="sm" variant="outline" className="h-8 text-xs bg-white" disabled={page === pages} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
+          </div>
         </div>
       </ErpSection>
 
+      {/* Add/Edit Teacher Modal */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-4xl rounded-3xl p-8">
-          <DialogHeader>
-            <DialogTitle>{edit ? 'Edit Teacher' : 'Add Teacher'}</DialogTitle>
+        <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-white to-slate-50 border-slate-200 shadow-xl">
+          <DialogHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 px-6 py-4 border-b border-slate-100">
+            <DialogTitle className="text-lg font-bold text-slate-800">
+              {edit ? 'Edit Teacher' : 'Add Teacher'}
+            </DialogTitle>
           </DialogHeader>
 
-          <DialogBody>
-          <form className="space-y-8" onSubmit={submit}>
-  <div className="grid gap-8 md:grid-cols-2">
-    <FormField label="Teacher Name">
-      <Input
-        placeholder="Teacher Name"
-        value={form.teacherName}
-        onChange={(e) =>
-          setForm({ ...form, teacherName: e.target.value })
-        }
-        className="h-14 rounded-2xl"
-        required
-      />
-    </FormField>
+          <DialogBody className="p-6">
+            <form className="space-y-6" onSubmit={submit}>
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField label="Teacher Name">
+                  <Input
+                    placeholder="e.g. John Doe"
+                    value={form.teacherName}
+                    onChange={(e) => setForm({ ...form, teacherName: e.target.value })}
+                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
+                    required
+                  />
+                </FormField>
 
-    <FormField label="Email">
-      <Input
-        type="email"
-        placeholder="Email"
-        value={form.email}
-        onChange={(e) =>
-          setForm({ ...form, email: e.target.value })
-        }
-        className="h-14 rounded-2xl"
-        required
-      />
-    </FormField>
+                <FormField label="Email">
+                  <Input
+                    type="email"
+                    placeholder="teacher@school.com"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
+                    required
+                  />
+                </FormField>
 
-    <FormField label="Phone No">
-      <Input
-        placeholder="Phone No"
-        value={form.phoneNo}
-        onChange={(e) =>
-          setForm({ ...form, phoneNo: e.target.value })
-        }
-        className="h-14 rounded-2xl"
-        required
-      />
-    </FormField>
-  </div>
+                <FormField label="Phone No">
+                  <Input
+                    placeholder="e.g. 9876543210"
+                    value={form.phoneNo}
+                    onChange={(e) => setForm({ ...form, phoneNo: e.target.value })}
+                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
+                    required
+                  />
+                </FormField>
+              </div>
 
-  <Button
-    className="h-12 w-full rounded-xl text-base font-semibold"
-    variant={edit ? "default" : "success"}
-  >
-    {edit ? "Save Teacher" : "Create Teacher"}
-  </Button>
-</form>
-</DialogBody>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button type="button" variant="outline" size="sm" className="h-9 text-sm" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" className="h-9 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-sm">
+                  {edit ? "Save Changes" : "Create Teacher"}
+                </Button>
+              </div>
+            </form>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Upload Modal */}
       <Dialog open={uploadOpen} onOpenChange={(open) => {
         if (!importing) setUploadOpen(open);
       }}>
-        <DialogContent className="sm:max-w-2xl rounded-2xl border-0 p-0">
-          <DialogHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
-            <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
+        <DialogContent className="sm:max-w-xl rounded-2xl border-0 p-0 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
+          <DialogHeader className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50/50 px-6 py-4">
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-slate-800">
               {importing ? (
                 <>
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
                   Importing Teachers...
                 </>
               ) : importResults ? (
                 <>
-                  <CheckCircle className="h-6 w-6 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
                   Import Complete
                 </>
               ) : (
                 <>
-                  <Upload className="h-6 w-6 text-blue-600" />
+                  <Upload className="h-5 w-5 text-blue-600" />
                   Bulk Upload Teachers
                 </>
               )}
             </DialogTitle>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {importing ? 'Please wait while teachers are being imported...' : importResults ? 'Import summary' : 'Upload teacher records using CSV or XLSX files'}
             </p>
           </DialogHeader>
 
           <DialogBody>
-          <div className="space-y-6 p-6">
-            {!importing && !importResults && (
-              <>
-                <div className="rounded-xl border bg-slate-50 p-4">
-                  <h4 className="mb-2 text-sm font-semibold text-slate-800">
-                    Required File Format
-                  </h4>
-                  <ul className="space-y-1 text-xs text-slate-600 grid grid-cols-2 gap-2">
-                    <li>• Teacher Name (required)</li>
-                    <li>• Email (required)</li>
-                    <li>• Phone No (optional)</li>
-                    <li>• Password will be auto-generated</li>
-                  </ul>
-                </div>
-
-                <FormField label="Upload File">
-                  <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-all hover:border-blue-400 hover:bg-blue-50">
-                    <Upload className="mx-auto mb-3 h-10 w-10 text-blue-500" />
-                    <h3 className="text-sm font-semibold text-slate-700">
-                      Upload CSV or XLSX File
-                    </h3>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Drag & drop or click below to browse
-                    </p>
-                    <Input
-                      type="file"
-                      accept=".csv,.xlsx"
-                      onChange={handleFileChange}
-                      className="mt-3 max-w-xs mx-auto text-xs h-9"
-                    />
-                    {file && (
-                      <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-2 max-w-sm mx-auto">
-                        <p className="text-xs font-medium text-green-700 truncate">
-                          ✓ {file.name}
-                        </p>
-                      </div>
-                    )}
+            <div className="space-y-4 p-6">
+              {!importing && !importResults && (
+                <>
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
+                    <h4 className="mb-1.5 text-xs font-semibold text-blue-800">
+                      Required File Format
+                    </h4>
+                    <ul className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-blue-700/80">
+                      <li>• Teacher Name (required)</li>
+                      <li>• Email (required)</li>
+                      <li>• Phone No (optional)</li>
+                      <li>• Password auto-generated</li>
+                    </ul>
                   </div>
-                </FormField>
-              </>
-            )}
 
-            {importing && (
-              <div className="space-y-6">
-                <div className="rounded-xl border bg-slate-50 p-6">
+                  <FormField label="Upload File">
+                    <div className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-5 text-center transition-all hover:border-blue-400 hover:bg-blue-50/50">
+                      <Upload className="mx-auto mb-2 h-8 w-8 text-blue-500/80" />
+                      <h3 className="text-xs font-semibold text-slate-700">
+                        Upload CSV or XLSX File
+                      </h3>
+                      <p className="mt-0.5 text-[10px] text-slate-500">
+                        Drag & drop or click below to browse
+                      </p>
+                      <Input
+                        type="file"
+                        accept=".csv,.xlsx"
+                        onChange={handleFileChange}
+                        className="mt-3 max-w-[200px] mx-auto text-xs h-8 bg-white cursor-pointer"
+                      />
+                      {file && (
+                        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 max-w-[200px] mx-auto flex items-center justify-center gap-1.5 shadow-sm">
+                          <CheckCircle className="h-3 w-3 text-emerald-600 flex-shrink-0" />
+                          <p className="text-[10px] font-medium text-emerald-700 truncate">
+                            {file.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </FormField>
+                </>
+              )}
+
+              {importing && (
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="space-y-4">
                     {importProgress.currentTeacher && (
-                      <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
-                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Current Teacher</p>
-                        <p className="text-sm font-medium text-blue-900">{importProgress.currentTeacher}</p>
+                      <div className="rounded-lg bg-blue-50 p-3 border border-blue-100">
+                        <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mb-0.5">Current Teacher</p>
+                        <p className="text-xs font-medium text-blue-900 truncate">{importProgress.currentTeacher}</p>
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
                         <span className="text-slate-600">Processed: {importProgress.processed} / {importProgress.total}</span>
                         <span className="font-semibold text-blue-600">{Math.round((importProgress.processed / importProgress.total) * 100)}%</span>
                       </div>
-
-                      <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
                           className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out"
                           style={{ width: `${(importProgress.processed / importProgress.total) * 100}%` }}
@@ -672,59 +682,57 @@ export default function ManageUsers() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
-                        <p className="text-[11px] text-green-600 uppercase tracking-wider">Success</p>
-                        <p className="text-2xl font-bold text-green-700 mt-0.5">{importProgress.success}</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-lg bg-emerald-50 p-2 text-center border border-emerald-100">
+                        <p className="text-[10px] text-emerald-600 uppercase tracking-wider">Success</p>
+                        <p className="text-lg font-bold text-emerald-700">{importProgress.success}</p>
                       </div>
-                      <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
-                        <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>
-                        <p className="text-2xl font-bold text-red-700 mt-0.5">{importProgress.failed}</p>
+                      <div className="rounded-lg bg-red-50 p-2 text-center border border-red-100">
+                        <p className="text-[10px] text-red-600 uppercase tracking-wider">Failed</p>
+                        <p className="text-lg font-bold text-red-700">{importProgress.failed}</p>
                       </div>
-                      <div className="rounded-lg bg-slate-100 p-3 text-center border border-slate-200">
-                        <p className="text-[11px] text-slate-600 uppercase tracking-wider">Remaining</p>
-                        <p className="text-2xl font-bold text-slate-700 mt-0.5">{importProgress.total - importProgress.processed}</p>
+                      <div className="rounded-lg bg-slate-50 p-2 text-center border border-slate-200">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider">Remaining</p>
+                        <p className="text-lg font-bold text-slate-700">{importProgress.total - importProgress.processed}</p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {importResults && !importing && (
-              <div className="space-y-6">
-                <div className="rounded-xl border bg-slate-50 p-6">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="rounded-lg bg-white p-3 text-center shadow-sm border">
-                      <p className="text-[11px] text-slate-500 uppercase tracking-wider">Total Teachers</p>
-                      <p className="text-2xl font-bold mt-0.5">{importResults.totalRows}</p>
+              {importResults && !importing && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-lg bg-white p-2 text-center shadow-sm border border-slate-200">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wider">Total Teachers</p>
+                      <p className="text-lg font-bold text-slate-800">{importResults.totalRows}</p>
                     </div>
-                    <div className="rounded-lg bg-green-50 p-3 text-center border border-green-100">
-                      <p className="text-[11px] text-green-600 uppercase tracking-wider">Imported</p>
-                      <p className="text-2xl font-bold text-green-700 mt-0.5">{importResults.imported}</p>
+                    <div className="rounded-lg bg-emerald-50 p-2 text-center border border-emerald-100 shadow-sm">
+                      <p className="text-[10px] text-emerald-600 uppercase tracking-wider">Imported</p>
+                      <p className="text-lg font-bold text-emerald-700">{importResults.imported}</p>
                     </div>
-                    <div className="rounded-lg bg-red-50 p-3 text-center border border-red-100">
-                      <p className="text-[11px] text-red-600 uppercase tracking-wider">Failed</p>
-                      <p className="text-2xl font-bold text-red-700 mt-0.5">{importResults.failed}</p>
+                    <div className="rounded-lg bg-red-50 p-2 text-center border border-red-100 shadow-sm">
+                      <p className="text-[10px] text-red-600 uppercase tracking-wider">Failed</p>
+                      <p className="text-lg font-bold text-red-700">{importResults.failed}</p>
                     </div>
                   </div>
 
                   {importResults.errors?.length > 0 && (
-                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-amber-800 mb-2">
+                          <p className="text-xs font-semibold text-amber-800 mb-1.5">
                             {importResults.errors.length} Error{importResults.errors.length > 1 ? 's' : ''} Found
                           </p>
-                          <div className="max-h-32 overflow-y-auto space-y-1 text-xs text-amber-700">
+                          <div className="max-h-24 overflow-y-auto space-y-1 text-[10px] text-amber-700 bg-white/50 p-2 rounded border border-amber-100">
                             {importResults.errors.slice(0, 5).map((err, idx) => (
-                              <div key={idx} className="border-b border-amber-100/50 pb-1 last:border-0">
+                              <div key={idx} className="border-b border-amber-200/50 pb-1 last:border-0 last:pb-0">
                                 Row {err.row}: {err.error}
                               </div>
                             ))}
                             {importResults.errors.length > 5 && (
-                              <p className="text-amber-600 italic">
+                              <p className="text-amber-600/80 italic pt-1">
                                 ...and {importResults.errors.length - 5} more errors
                               </p>
                             )}
@@ -746,9 +754,9 @@ export default function ManageUsers() {
                             }}
                             variant="outline"
                             size="sm"
-                            className="mt-3"
+                            className="mt-2 h-7 text-[10px] px-2 border-amber-300 text-amber-700 hover:bg-amber-100"
                           >
-                            <DownloadIcon className="mr-2 h-4 w-4" />
+                            <DownloadIcon className="mr-1.5 h-3 w-3" />
                             Download Error Report
                           </Button>
                         </div>
@@ -756,183 +764,191 @@ export default function ManageUsers() {
                     </div>
                   )}
                 </div>
+              )}
+
+              <div className="flex justify-end pt-2 border-t border-slate-100">
+                {!importing && !importResults && (
+                  <Button
+                    size="sm"
+                    className="h-9 px-6 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm border-0"
+                    onClick={handleBulkImport}
+                    disabled={!file}
+                  >
+                    Import Teachers
+                  </Button>
+                )}
+
+                {importResults && !importing && (
+                  <Button
+                    size="sm"
+                    className="h-9 px-6 text-sm bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50"
+                    onClick={() => {
+                      setImportResults(null);
+                      setUploadOpen(false);
+                    }}
+                  >
+                    Done
+                  </Button>
+                )}
               </div>
-            )}
-
-            {!importing && !importResults && (
-              <Button
-                className="h-11 w-full rounded-xl text-base font-semibold shadow-sm"
-                onClick={handleBulkImport}
-                disabled={!file}
-              >
-                Import Teachers
-              </Button>
-            )}
-
-            {importResults && !importing && (
-              <Button
-                className="h-11 w-full rounded-xl text-base font-semibold shadow-sm"
-                onClick={() => {
-                  setImportResults(null);
-                  setUploadOpen(false);
-                }}
-              >
-                Done
-              </Button>
-            )}
-          </div>
+            </div>
           </DialogBody>
         </DialogContent>
       </Dialog>
 
+      {/* Reactivate Modal */}
       <Dialog open={reactivateDialog.open} onOpenChange={(open) => setReactivateDialog({ open, teacher: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reactivate Teacher</DialogTitle>
+        <DialogContent className="sm:max-w-md rounded-xl p-0 overflow-hidden shadow-lg bg-gradient-to-br from-white to-slate-50">
+          <DialogHeader className="bg-amber-50 border-b border-amber-100 px-5 py-4">
+            <DialogTitle className="text-base font-bold text-amber-800 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Reactivate Teacher
+            </DialogTitle>
           </DialogHeader>
-          <DialogBody>
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600">
-              Teacher already exists and is inactive.
+          <DialogBody className="p-5 space-y-4">
+            <p className="text-xs text-slate-600">
+              A teacher with this email already exists but is marked as inactive. Do you want to reactivate their account?
             </p>
-            <div className="rounded-lg bg-slate-50 p-4">
-              <p className="font-medium text-slate-800">{reactivateDialog.teacher?.teacherName || reactivateDialog.teacher?.name}</p>
-              <p className="text-sm text-slate-600">{reactivateDialog.teacher?.email}</p>
+            <div className="rounded-lg bg-white border border-slate-200 p-3 shadow-sm">
+              <p className="text-sm font-semibold text-slate-800">{reactivateDialog.teacher?.teacherName || reactivateDialog.teacher?.name}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{reactivateDialog.teacher?.email}</p>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setReactivateDialog({ open: false, teacher: null })}>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" className="h-8 text-xs bg-white" onClick={() => setReactivateDialog({ open: false, teacher: null })}>
                 Cancel
               </Button>
-              <Button onClick={handleReactivate}>
-                Reactivate Teacher
+              <Button size="sm" className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-sm border-0" onClick={handleReactivate}>
+                Reactivate
               </Button>
             </div>
-          </div>
           </DialogBody>
         </DialogContent>
       </Dialog>
 
+      {/* Notify Modal */}
       <Dialog open={notifyModalOpen} onOpenChange={setNotifyModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Send Notification</DialogTitle>
-            <DialogDescription>
-              Send a notification to {selectedTeacher?.teacherName || selectedTeacher?.name}
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden shadow-xl bg-gradient-to-br from-white to-slate-50">
+          <DialogHeader className="bg-gradient-to-r from-purple-50 to-indigo-50/80 border-b border-purple-100/50 px-5 py-4">
+            <DialogTitle className="text-base font-bold text-slate-800">Send Notification</DialogTitle>
+            <DialogDescription className="text-xs mt-0.5">
+              To: <span className="font-medium text-slate-700">{selectedTeacher?.teacherName || selectedTeacher?.name}</span>
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-          <div className="space-y-4 py-4">
+          <DialogBody className="p-5 space-y-4">
             <FormField label="Title">
               <Input
-                placeholder="Enter notification title"
+                placeholder="Subject of notification"
                 value={notificationForm.title}
                 onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
+                className="h-9 text-sm bg-white shadow-sm"
               />
             </FormField>
             <FormField label="Message">
               <Textarea
-                placeholder="Enter notification message"
+                placeholder="Type your message here..."
                 value={notificationForm.message}
                 onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
-                rows={4}
+                rows={3}
+                className="text-sm bg-white shadow-sm resize-none"
               />
             </FormField>
-            <FormField label="Priority">
-              <Select value={notificationForm.priority} onValueChange={(value) => setNotificationForm({ ...notificationForm, priority: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="important">Important</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-            <FormField label="Attachment (Optional)">
-              <Input
-                type="file"
-                accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const maxSize = 10 * 1024 * 1024; // 10MB
-                    if (file.size > maxSize) {
-                      toast.error('File size exceeds 10MB limit');
-                      return;
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Priority">
+                <Select value={notificationForm.priority} onValueChange={(value) => setNotificationForm({ ...notificationForm, priority: value })}>
+                  <SelectTrigger className="h-9 text-sm bg-white shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="important">Important</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="Attachment (Optional)">
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
+                  className="h-9 text-[10px] bg-white shadow-sm cursor-pointer pt-2"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const maxSize = 10 * 1024 * 1024;
+                      if (file.size > maxSize) {
+                        toast.error('File size exceeds 10MB limit');
+                        return;
+                      }
+                      setAttachmentFile(file);
                     }
-                    setAttachmentFile(file);
-                  }
-                }}
-              />
-              {attachmentFile && (
-                <p className="mt-1 text-xs text-slate-600">
-                  Selected: {attachmentFile.name}
-                </p>
-              )}
-            </FormField>
-          </div>
+                  }}
+                />
+              </FormField>
+            </div>
+            {attachmentFile && (
+              <p className="text-[10px] text-slate-500 italic truncate">
+                Selected: {attachmentFile.name}
+              </p>
+            )}
           </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
+          <DialogFooter className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+            <Button size="sm" variant="outline" className="h-8 text-xs bg-white" onClick={() => {
               setNotifyModalOpen(false);
               setAttachmentFile(null);
             }}>
               Cancel
             </Button>
-            <Button onClick={handleSendNotification}>
-              <Bell className="mr-2 h-4 w-4" />
-              Send Notification
+            <Button size="sm" className="h-8 text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm border-0" onClick={handleSendNotification}>
+              <Bell className="mr-1.5 h-3 w-3" />
+              Send
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Credentials Modal */}
       <Dialog open={credentialsModal.open} onOpenChange={(open) => setCredentialsModal({ ...credentialsModal, open })}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Account Created Successfully</DialogTitle>
-            <DialogDescription>
-              Share these credentials with the teacher
+        <DialogContent className="sm:max-w-sm rounded-xl p-0 overflow-hidden shadow-lg bg-white border border-slate-200">
+          <DialogHeader className="bg-emerald-50 border-b border-emerald-100 px-5 py-4">
+            <DialogTitle className="text-base font-bold text-emerald-800 flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Account Created
+            </DialogTitle>
+            <DialogDescription className="text-xs text-emerald-700/80 mt-1">
+              Please share these credentials securely.
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-          {credentialsModal.data && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-slate-700">Name:</span>
-                  <span className="text-sm text-slate-900">{credentialsModal.data.name}</span>
+          <DialogBody className="p-5">
+            {credentialsModal.data && (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-2">
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
+                    <span className="text-[11px] font-medium text-slate-500 uppercase">Name</span>
+                    <span className="text-xs font-semibold text-slate-800">{credentialsModal.data.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
+                    <span className="text-[11px] font-medium text-slate-500 uppercase">Email</span>
+                    <span className="text-xs font-semibold text-slate-800">{credentialsModal.data.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-0.5">
+                    <span className="text-[11px] font-medium text-slate-500 uppercase">Temp Password</span>
+                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{credentialsModal.data.password}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-slate-700">Email:</span>
-                  <span className="text-sm text-slate-900">{credentialsModal.data.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-slate-700">Password:</span>
-                  <span className="text-sm text-slate-900 font-semibold">{credentialsModal.data.password}</span>
-                </div>
-              </div>
-              <div className="flex gap-2 pt-2">
-                {credentialsModal.data.phone && (
-                  <Button onClick={handleWhatsAppShare} className="flex-1 bg-green-600 hover:bg-green-700">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Send WhatsApp
+                <div className="flex gap-2">
+                  {credentialsModal.data.phone && (
+                    <Button size="sm" onClick={handleWhatsAppShare} className="flex-1 h-8 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                      <MessageCircle className="mr-1.5 h-3 w-3" />
+                      WhatsApp
+                    </Button>
+                  )}
+                  <Button size="sm" onClick={handleCopyCredentials} variant="outline" className="flex-1 h-8 text-[10px] bg-white shadow-sm">
+                    <Copy className="mr-1.5 h-3 w-3" />
+                    Copy
                   </Button>
-                )}
-                <Button onClick={handleCopyCredentials} variant="outline" className="flex-1">
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy Credentials
-                </Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </DialogBody>
-          <DialogFooter>
-            <Button onClick={() => setCredentialsModal({ open: false, data: null })}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

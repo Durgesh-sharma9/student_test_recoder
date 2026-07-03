@@ -19,7 +19,7 @@ export default function CheckingProgress() {
   return (
     <PageStack>
       <PageHeader
-        title="Checking Progress"
+        title="Notebook Checking - Progress"
         description="Track your notebook checking progress across classes and subjects."
       />
 
