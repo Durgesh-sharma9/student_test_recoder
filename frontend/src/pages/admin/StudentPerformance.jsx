@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  BarChart3, Search, Calendar, Filter, Download, Printer, User, X, 
+  BarChart3, Search, Calendar, Filter, Download, Printer, X, 
   TrendingUp, Award, BookOpen, Target, BrainCircuit, XCircle, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import AssessmentTypeMultiSelect from '@/components/AssessmentTypeMultiSelect';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend
@@ -18,12 +17,11 @@ import autoTable from 'jspdf-autotable';
 export default function StudentPerformance() {
   // State for Filters
   const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [assessmentTypes, setAssessmentTypes] = useState(['All Assessments']);
-  const [mainExamType, setMainExamType] = useState('All Exams');
+  const [assessmentType, setAssessmentType] = useState('All Assessments');
+  const [examType, setExamType] = useState('All Exams');
+  const [availableExamTypes, setAvailableExamTypes] = useState([]);
   const [dateRange, setDateRange] = useState('All Time');
   const [specificDate, setSpecificDate] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -44,10 +42,10 @@ export default function StudentPerformance() {
     fetchClasses();
   }, []);
 
-  // Fetch Students when Class changes
+  // Fetch Exam Types when Class changes
   useEffect(() => {
-    if (selectedClass) fetchStudents(selectedClass);
-    else setStudents([]);
+    if (selectedClass) fetchExamTypes(selectedClass);
+    else setAvailableExamTypes([]);
   }, [selectedClass]);
 
   const fetchClasses = async () => {
@@ -60,14 +58,12 @@ export default function StudentPerformance() {
     }
   };
 
-  const fetchStudents = async (classId) => {
+  const fetchExamTypes = async (classId) => {
     try {
-      const { data } = await api.get(`/students?class=${classId}`);
-      setStudents(data.students || []);
-      setSelectedStudent('all');
+      const { data } = await api.get(`/student-performance/exam-types?classId=${classId}`);
+      setAvailableExamTypes(data.examTypes || []);
     } catch (error) {
-      console.error('Failed to fetch students:', error);
-      toast.error('Failed to fetch students');
+      console.error('Failed to fetch exam types:', error);
     }
   };
 
@@ -80,9 +76,8 @@ export default function StudentPerformance() {
     try {
       const params = {
         classId: selectedClass,
-        studentId: selectedStudent,
-        assessments: assessmentTypes.join(','),
-        examType: mainExamType,
+        assessmentType: assessmentType,
+        examType: examType,
         dateRange: dateRange
       };
       
@@ -189,10 +184,14 @@ export default function StudentPerformance() {
         const numB = parseInt(b.rollNo.replace(/\D/g, '')) || 0;
         return numA - numB;
       });
-    } else if (sortBy === 'performance_desc') {
+    } else if (sortBy === 'rank') {
+      data = [...data].sort((a, b) => a.rank - b.rank);
+    } else if (sortBy === 'overall_desc') {
       data = [...data].sort((a, b) => b.overallPercentage - a.overallPercentage);
-    } else if (sortBy === 'performance_asc') {
+    } else if (sortBy === 'overall_asc') {
       data = [...data].sort((a, b) => a.overallPercentage - b.overallPercentage);
+    } else if (sortBy === 'name') {
+      data = [...data].sort((a, b) => a.name.localeCompare(b.name));
     }
     
     return data;
@@ -246,32 +245,37 @@ export default function StudentPerformance() {
             </select>
           </div>
 
-          {/* Student Dropdown */}
+          {/* Assessment Type */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">Select Student</label>
+            <label className="text-xs font-semibold text-slate-600">Assessment Type</label>
             <select
-              className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
-              value={selectedStudent}
-              onChange={(e) => setSelectedStudent(e.target.value)}
-              disabled={!selectedClass}
+              className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={assessmentType}
+              onChange={(e) => { setAssessmentType(e.target.value); setExamType('All Exams'); }}
             >
-              <option value="all">All Students</option>
-              {students.map(s => (
-                <option key={s._id} value={s._id}>{s.rollNo} - {s.name}</option>
-              ))}
+              <option value="All Assessments">All Assessments</option>
+              <option value="Daily Test">Daily Test</option>
+              <option value="Main Exam">Main Exam</option>
+              <option value="Notebook Checking">Notebook Checking</option>
             </select>
           </div>
 
-          {/* Assessment Multi Select */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">Assessment Type</label>
-            <AssessmentTypeMultiSelect
-              options={['Daily Test', 'Main Exam', 'Notebook Checking']}
-              value={assessmentTypes}
-              onChange={setAssessmentTypes}
-              className="h-10"
-            />
-          </div>
+          {/* Exam Type (only shown when Main Exam is selected) */}
+          {assessmentType === 'Main Exam' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-600">Exam</label>
+              <select
+                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                value={examType}
+                onChange={(e) => setExamType(e.target.value)}
+              >
+                <option value="All Exams">All Exams</option>
+                {availableExamTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Date Range */}
           <div className="space-y-1.5">
@@ -282,6 +286,10 @@ export default function StudentPerformance() {
               onChange={(e) => setDateRange(e.target.value)}
             >
               <option value="All Time">All Time</option>
+              <option value="Today">Today</option>
+              <option value="This Week">This Week</option>
+              <option value="This Month">This Month</option>
+              <option value="This Year">This Year</option>
               <option value="Specific Date">Specific Date</option>
               <option value="Date Range">Date Range</option>
             </select>
@@ -331,28 +339,12 @@ export default function StudentPerformance() {
               onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="rollNo">Roll Number</option>
-              <option value="performance_desc">Performance High → Low</option>
-              <option value="performance_asc">Performance Low → High</option>
+              <option value="rank">Rank</option>
+              <option value="overall_desc">Overall % (High → Low)</option>
+              <option value="overall_asc">Overall % (Low → High)</option>
+              <option value="name">Name</option>
             </select>
           </div>
-
-          {/* Main Exam specific filter (conditionally rendered) */}
-          {assessmentTypes.includes('Main Exam') && !assessmentTypes.includes('All Assessments') && (
-            <div className="space-y-1.5 lg:col-span-2">
-              <label className="text-xs font-semibold text-slate-600">Main Exam Filter</label>
-              <select
-                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                value={mainExamType}
-                onChange={(e) => setMainExamType(e.target.value)}
-              >
-                <option value="All Exams">All Exams</option>
-                <option value="PA-1">PA-1</option>
-                <option value="PA-2">PA-2</option>
-                <option value="Half Yearly">Half Yearly</option>
-                <option value="Annual">Annual</option>
-              </select>
-            </div>
-          )}
         </div>
 
         <div className="flex justify-end pt-2">
@@ -389,9 +381,9 @@ export default function StudentPerformance() {
                   <th className="px-6 py-4 font-semibold">Roll No</th>
                   <th className="px-6 py-4 font-semibold">Student Name</th>
                   <th className="px-6 py-4 font-semibold">Overall %</th>
-                  {assessmentTypes.includes('Notebook Checking') || assessmentTypes.includes('All Assessments') ? <th className="px-6 py-4 font-semibold text-center">Notebook %</th> : null}
-                  {assessmentTypes.includes('Daily Test') || assessmentTypes.includes('All Assessments') ? <th className="px-6 py-4 font-semibold text-center">Daily Test %</th> : null}
-                  {assessmentTypes.includes('Main Exam') || assessmentTypes.includes('All Assessments') ? <th className="px-6 py-4 font-semibold text-center">Main Exam %</th> : null}
+                  {assessmentType === 'All Assessments' || assessmentType === 'Notebook Checking' ? <th className="px-6 py-4 font-semibold text-center">Notebook %</th> : null}
+                  {assessmentType === 'All Assessments' || assessmentType === 'Daily Test' ? <th className="px-6 py-4 font-semibold text-center">Daily Test %</th> : null}
+                  {assessmentType === 'All Assessments' || assessmentType === 'Main Exam' ? <th className="px-6 py-4 font-semibold text-center">Main Exam %</th> : null}
                   <th className="px-6 py-4 font-semibold text-center">Rank</th>
                   <th className="px-6 py-4 font-semibold text-right">Action</th>
                 </tr>
@@ -403,13 +395,13 @@ export default function StudentPerformance() {
                     <td className="px-6 py-3 font-medium text-slate-700">{student.name}</td>
                     <td className="px-6 py-3 font-bold text-indigo-600">{student.overallPercentage.toFixed(1)}%</td>
                     
-                    {assessmentTypes.includes('Notebook Checking') || assessmentTypes.includes('All Assessments') ? 
+                    {assessmentType === 'All Assessments' || assessmentType === 'Notebook Checking' ? 
                       <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.notebookPercentage.toFixed(1)}%</td> : null}
                     
-                    {assessmentTypes.includes('Daily Test') || assessmentTypes.includes('All Assessments') ? 
+                    {assessmentType === 'All Assessments' || assessmentType === 'Daily Test' ? 
                       <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.dailyPercentage.toFixed(1)}%</td> : null}
                     
-                    {assessmentTypes.includes('Main Exam') || assessmentTypes.includes('All Assessments') ? 
+                    {assessmentType === 'All Assessments' || assessmentType === 'Main Exam' ? 
                       <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.mainPercentage.toFixed(1)}%</td> : null}
                     
                     <td className="px-6 py-3 text-center">
@@ -437,10 +429,10 @@ export default function StudentPerformance() {
         </div>
       )}
 
-      {/* Right Drawer for Student Details */}
+      {/* Centered Modal for Student Details */}
       {drawerOpen && activeStudent && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/30 backdrop-blur-[2px] transition-all">
-          <div className="w-full max-w-[50%] lg:max-w-[45%] xl:max-w-[50%] md:max-w-[55%] sm:max-w-[70%] bg-white h-full overflow-y-auto shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-[2px] transition-all p-4">
+          <div className="w-full max-w-[80%] max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
             
             {/* Compact Student Header */}
             <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between shadow-sm">
