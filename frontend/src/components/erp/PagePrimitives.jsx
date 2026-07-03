@@ -41,7 +41,7 @@ export function ErpSection({ title, icon: Icon, tone = 'green', children, action
   const styles = TONE_STYLES[tone] || TONE_STYLES.green;
 
   return (
-    <section className={cn('rounded-xl border border-slate-200 bg-white shadow-sm', className)}>
+    <section className={cn('rounded-xl border border-slate-200 shadow-sm', (!className?.includes?.('bg-')) && 'bg-white', className)}>
       <div className={cn('flex items-center justify-between gap-3 border-b px-4 py-3', styles.header)}>
         <div className="flex items-center gap-2">
           {Icon ? <Icon className={cn('h-4 w-4 shrink-0', styles.icon)} /> : null}

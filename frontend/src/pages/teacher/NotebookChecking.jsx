@@ -57,14 +57,14 @@ export default function NotebookChecking() {
     <PageStack>
       <PageHeader title="Notebook Checking" description="Mark chapter submissions for students" />
       
-      <ErpSection title="Selection Filters" icon={Filter} tone="fuchsia">
-        <div className="grid gap-4 sm:grid-cols-2 p-5 bg-gradient-to-br from-fuchsia-50/50 to-purple-50/30 rounded-xl border border-fuchsia-100 shadow-sm">
+      <ErpSection className="bg-gradient-to-br from-green-50/80 to-emerald-50/30" title="Selection Filters" icon={Filter} tone="green">
+        <div className="grid gap-4 sm:grid-cols-2 p-5 bg-gradient-to-br from-green-50/50 to-white rounded-xl border border-green-100 shadow-sm">
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-fuchsia-800 uppercase tracking-wider flex items-center gap-1.5">
+            <label className="text-[11px] font-bold text-green-800 uppercase tracking-wider flex items-center gap-1.5">
               <Layers size={14} /> Class
             </label>
             <Select onValueChange={(v) => setSelected({ ...selected, classId: v })}>
-              <SelectTrigger className="h-10 bg-white border-fuchsia-200 hover:border-fuchsia-300 transition-colors shadow-sm">
+              <SelectTrigger className="h-10 bg-white border-green-200 hover:border-green-300 transition-colors shadow-sm">
                 <SelectValue placeholder="Choose a class" />
               </SelectTrigger>
               <SelectContent>
@@ -76,11 +76,11 @@ export default function NotebookChecking() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-fuchsia-800 uppercase tracking-wider flex items-center gap-1.5">
+            <label className="text-[11px] font-bold text-green-800 uppercase tracking-wider flex items-center gap-1.5">
               <BookOpen size={14} /> Subject
             </label>
             <Select onValueChange={(v) => setSelected({ ...selected, subject: v })}>
-              <SelectTrigger className="h-10 bg-white border-fuchsia-200 hover:border-fuchsia-300 transition-colors shadow-sm">
+              <SelectTrigger className="h-10 bg-white border-green-200 hover:border-green-300 transition-colors shadow-sm">
                 <SelectValue placeholder="Choose a subject" />
               </SelectTrigger>
               <SelectContent>
@@ -108,11 +108,11 @@ export default function NotebookChecking() {
           />
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-          <div className="bg-fuchsia-100 p-4 rounded-full mb-4">
-            <FileCheck className="w-8 h-8 text-fuchsia-600" />
+        <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-green-200 rounded-2xl bg-gradient-to-br from-green-50/50 to-white">
+          <div className="bg-green-100 p-4 rounded-full mb-4">
+            <FileCheck className="w-8 h-8 text-green-600" />
           </div>
-          <p className="text-sm font-semibold text-slate-500">Please select class and subject to view the grid</p>
+          <p className="text-sm font-semibold text-green-800/70">Please select class and subject to view the grid</p>
         </div>
       )}
     </PageStack>

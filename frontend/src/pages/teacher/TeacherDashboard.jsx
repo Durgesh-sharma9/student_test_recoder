@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Activity, AlertTriangle, Lock, AlertCircle, FileCheck } from 'lucide-react';
+import { BookOpen, Activity, AlertTriangle, Lock, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { formatDisplayDate } from '@/lib/dateFormatter';
@@ -29,12 +29,6 @@ export default function TeacherDashboard() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [topCount, setTopCount] = useState('5');
-
-  // Notebook Analytics State
-  const [nbClass, setNbClass] = useState('');
-  const [nbSubject, setNbSubject] = useState('');
-  const [notebookStats, setNotebookStats] = useState(null);
-  const [loadingNotebook, setLoadingNotebook] = useState(false);
 
   useEffect(() => { api.get('/results/dashboard').then((r) => setData(r.data)); }, []);
   const s = data.stats || {};
@@ -89,25 +83,6 @@ export default function TeacherDashboard() {
     setWeakStudentsData([]);
   };
 
-  const fetchNotebookStats = async () => {
-    if (!nbClass || !nbSubject) return;
-    setLoadingNotebook(true);
-    try {
-      const res = await api.get(`/notebook/grid?classId=${nbClass}&subject=${nbSubject}`);
-      setNotebookStats(res.data.progress || null);
-    } catch (err) {
-      console.error('Failed to fetch notebook stats', err);
-    } finally {
-      setLoadingNotebook(false);
-    }
-  };
-
-  useEffect(() => {
-    if (nbClass && nbSubject) {
-      fetchNotebookStats();
-    }
-  }, [nbClass, nbSubject]);
-
   return (
     <PageStack>
       <PageHeader
@@ -116,7 +91,7 @@ export default function TeacherDashboard() {
       />
 
       {user?.mustChangePassword && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-2.5 shadow-sm">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
             <p className="text-sm font-medium text-amber-900">
@@ -134,69 +109,15 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* Responsive Stats Grid */}
+      {/* Responsive Stats Grid - Fixed inline gradients */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Assigned Classes" value={s.assignedClasses || 0} />
-        <StatsCard title="Assigned Subjects" value={s.assignedSubjects || 0} />
-        <StatsCard title="Total Students" value={s.students || 0} />
-        <StatsCard title="Tests Conducted" value={s.testsConducted || 0} />
+        <StatsCard className="bg-gradient-to-br from-yellow-50 to-orange-50/60 border-yellow-100" title="Assigned Classes" value={s.assignedClasses || 0} />
+        <StatsCard className="bg-gradient-to-br from-blue-50 to-indigo-50/60 border-blue-100" title="Assigned Subjects" value={s.assignedSubjects || 0} />
+        <StatsCard className="bg-gradient-to-br from-emerald-50 to-teal-50/60 border-emerald-100" title="Total Students" value={s.students || 0} />
+        <StatsCard className="bg-gradient-to-br from-orange-50 to-red-50/60 border-orange-100" title="Tests Conducted" value={s.testsConducted || 0} />
       </div>
 
-      <ErpSection title="Notebook Checking Progress" icon={FileCheck} tone="fuchsia">
-        <div className="grid gap-3 sm:grid-cols-2 mb-5">
-          <FormField label="Class">
-            <Select value={nbClass} onValueChange={(v) => { setNbClass(v); setNbSubject(''); setNotebookStats(null); }}>
-              <SelectTrigger className="rounded-md h-9"><SelectValue placeholder="Select Class" /></SelectTrigger>
-              <SelectContent>
-                {[...new Map(assignments.map(a => [a.classId, a])).values()].map((a) => (
-                  <SelectItem key={a.classId} value={a.classId}>{formatClassName(a.className)} {a.section}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="Subject">
-            <Select value={nbSubject} onValueChange={setNbSubject}>
-              <SelectTrigger className="rounded-md h-9"><SelectValue placeholder="Select Subject" /></SelectTrigger>
-              <SelectContent>
-                {[...new Set(assignments.filter(a => nbClass ? a.classId === nbClass : true).map(a => a.subject))].map((subj) => (
-                  <SelectItem key={subj} value={subj}>{subj}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-        </div>
-
-        {!nbClass || !nbSubject ? (
-          <div className="py-4 text-center text-slate-500 text-sm bg-slate-50 rounded-lg border border-slate-100">Select a class and subject to view notebook checking progress.</div>
-        ) : loadingNotebook ? (
-          <div className="py-4 text-center text-slate-500 text-sm bg-slate-50 rounded-lg border border-slate-100">Loading notebook stats...</div>
-        ) : notebookStats ? (
-          <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-center shadow-sm">
-              <div className="text-xs font-medium text-slate-500 mb-1">Unlocked Chapters</div>
-              <div className="text-xl font-semibold text-fuchsia-600">{notebookStats.unlockedChapterProgress || `${notebookStats.unlockedCount}/${notebookStats.totalChapters}`}</div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-center shadow-sm">
-              <div className="text-xs font-medium text-slate-500 mb-1">Checked Copies</div>
-              <div className="text-xl font-semibold text-emerald-600">{notebookStats.totalChecked}</div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-3 text-center shadow-sm">
-              <div className="text-xs font-medium text-slate-500 mb-1">Pending Copies</div>
-              <div className="text-xl font-semibold text-amber-500">{notebookStats.totalPending}</div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-fuchsia-50 to-purple-50 p-3 text-center shadow-sm">
-              <div className="text-xs font-medium text-slate-600 mb-1">Chapter Performance</div>
-              <div className="text-xl font-semibold text-fuchsia-700">{notebookStats.unlockedChapterPerformance || notebookStats.progressPercentage}%</div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-3 text-center shadow-sm">
-              <div className="text-xs font-medium text-slate-600 mb-1">Overall Progress</div>
-              <div className="text-xl font-semibold text-blue-700">{notebookStats.overallProgress || 0}%</div>
-            </div>
-          </div>
-        ) : null}
-      </ErpSection>
-
-      <ErpSection title="Assigned Subjects" icon={BookOpen} tone="blue">
+      <ErpSection className="bg-gradient-to-br from-blue-50/80 to-indigo-50/30" title="Assigned Subjects" icon={BookOpen} tone="blue">
         {assignments.length === 0 ? (
           <p className="text-sm text-slate-500 py-2">No subjects assigned yet.</p>
         ) : (
@@ -204,7 +125,7 @@ export default function TeacherDashboard() {
             {assignments.map((a, i) => (
               <div
                 key={`${a.classId}-${a.subject}-${i}`}
-                className="group flex flex-col justify-center rounded-lg border border-slate-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-3.5 shadow-sm transition-all hover:border-blue-200 hover:shadow"
+                className="group flex flex-col justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-3.5 shadow-sm transition-all hover:border-blue-300 hover:shadow"
               >
                 <div className="text-sm font-semibold text-slate-900">{formatClassName(a.className)} {a.section}</div>
                 <div className="text-xs font-medium text-indigo-600 mt-0.5">{a.subject}</div>
@@ -215,13 +136,13 @@ export default function TeacherDashboard() {
       </ErpSection>
 
       <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
-        <ErpSection title="Recent Activities" icon={Activity} tone="green">
+        <ErpSection className="bg-gradient-to-br from-emerald-50/80 to-teal-50/30" title="Recent Activities" icon={Activity} tone="green">
           {(data.recentActivities || []).length === 0 ? (
             <p className="text-sm text-slate-500 py-2">No recent activities.</p>
           ) : (
             <div className="flex flex-col gap-1 -mx-2">
               {data.recentActivities.map((a) => (
-                <div className="flex flex-col gap-0.5 px-3 py-2 rounded-md hover:bg-slate-50 transition-colors" key={a._id}>
+                <div className="flex flex-col gap-0.5 px-3 py-2 rounded-md hover:bg-emerald-50 transition-colors" key={a._id}>
                   <p className="text-sm font-medium text-slate-800">{a.action}</p>
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
                     <span className="font-medium text-slate-600">{a.actor?.name}</span>
@@ -234,9 +155,9 @@ export default function TeacherDashboard() {
           )}
         </ErpSection>
 
-        <ErpSection title="Low Academic Performance Analysis" icon={AlertTriangle} tone="yellow">
+        <ErpSection className="bg-gradient-to-br from-amber-50/80 to-yellow-50/30" title="Low Academic Performance Analysis" icon={AlertTriangle} tone="yellow">
           <div className="space-y-4">
-            <div className="flex flex-col gap-3 bg-slate-50 border border-slate-100 p-3.5 rounded-lg">
+            <div className="flex flex-col gap-3 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 border border-amber-100 p-3.5 rounded-lg">
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
                 <FormField label="Class">
                   <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setSelectedSubject(''); }}>
@@ -310,10 +231,10 @@ export default function TeacherDashboard() {
             </div>
 
             {weakStudentsData.length > 0 && (
-              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm">
-                <div className="divide-y divide-slate-100">
+              <div className="rounded-lg border border-amber-200 bg-gradient-to-b from-amber-50 to-white overflow-hidden shadow-sm">
+                <div className="divide-y divide-amber-100">
                   {weakStudentsData.map((w, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 hover:bg-slate-50 transition-colors">
+                    <div key={i} className="flex items-center justify-between p-2.5 hover:bg-amber-100/50 transition-colors">
                       <div className="flex items-center gap-3 overflow-hidden">
                         <span className="text-xs font-semibold text-slate-400 w-5">#{w.rank}</span>
                         <span className="text-sm font-medium text-slate-800 truncate">{w.studentName}</span>
