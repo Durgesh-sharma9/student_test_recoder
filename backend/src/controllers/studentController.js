@@ -56,7 +56,8 @@ export const getStudents = asyncHandler(async (req, res) => {
 
   const students = await Student.find(filter)
     .populate('class', 'className section')
-    .populate('academicSession', 'sessionName');
+    .populate('academicSession', 'sessionName')
+    .populate('parent', 'parentName email phone');
 
   students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
 

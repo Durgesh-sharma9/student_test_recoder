@@ -55,7 +55,7 @@ export default function NotebookChecking() {
 
   return (
     <PageStack>
-      <PageHeader title="Notebook Checking" description="Mark chapter submissions for students" />
+      <PageHeader title="Notebook Checking - Entry" description="Mark chapter submissions for students" />
       
       <ErpSection className="bg-gradient-to-br from-green-50/80 to-emerald-50/30" title="Selection Filters" icon={Filter} tone="green">
         <div className="grid gap-4 sm:grid-cols-2 p-5 bg-gradient-to-br from-green-50/50 to-white rounded-xl border border-green-100 shadow-sm">

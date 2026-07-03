@@ -88,8 +88,8 @@ const navByRole = {
       iconColor: 'text-indigo-600',
       boxBg: 'bg-indigo-50 group-hover:bg-indigo-100',
       children: [
-        { to: '/teacher/notebook-checking', label: 'Notebook Entry', featureKey: 'teacher_portal' },
-        { to: '/teacher/checking-progress', label: 'Checking Progress', featureKey: 'teacher_portal' },
+        { to: '/teacher/notebook-checking', label: 'Entry', featureKey: 'teacher_portal' },
+        { to: '/teacher/checking-progress', label: 'Progress', featureKey: 'teacher_portal' },
       ]
     },
     { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },

@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
-import { FileText, Search, Download, Check, ChevronDown } from 'lucide-react';
+import { FileText, Search, Download, Check, ChevronDown, Filter, BarChart3 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
 import { formatDisplayDate, formatDisplayDateShort } from '@/lib/dateFormatter';
 import AbsentBadge from '@/components/AbsentBadge';
-import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
+import { PageHeader, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,12 +27,11 @@ export default function ClassResults() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('rollNo_asc');
-  const [dateFilterType, setDateFilterType] = useState('specific'); // 'specific' or 'range'
+  const [dateFilterType, setDateFilterType] = useState('specific');
   const [specificDate, setSpecificDate] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  // Dropdown toggler aur reference node tracker
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -99,20 +98,13 @@ export default function ClassResults() {
 
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case 'rollNo_asc':
-          return Number(a.rollNo) - Number(b.rollNo);
-        case 'rollNo_desc':
-          return Number(b.rollNo) - Number(a.rollNo);
-        case 'name_asc':
-          return a.name.localeCompare(b.name);
-        case 'name_desc':
-          return b.name.localeCompare(a.name);
-        case 'marks_desc':
-          return b.totalObtained - a.totalObtained;
-        case 'marks_asc':
-          return a.totalObtained - b.totalObtained;
-        default:
-          return Number(a.rollNo) - Number(b.rollNo);
+        case 'rollNo_asc': return Number(a.rollNo) - Number(b.rollNo);
+        case 'rollNo_desc': return Number(b.rollNo) - Number(a.rollNo);
+        case 'name_asc': return a.name.localeCompare(b.name);
+        case 'name_desc': return b.name.localeCompare(a.name);
+        case 'marks_desc': return b.totalObtained - a.totalObtained;
+        case 'marks_asc': return a.totalObtained - b.totalObtained;
+        default: return Number(a.rollNo) - Number(b.rollNo);
       }
     });
 
@@ -121,7 +113,6 @@ export default function ClassResults() {
 
   const isCombinedResults = results?.assessments && !results?.dailyTests && !results?.subjects;
 
-  // Calculate max total marks for display in TOTAL header
   const maxTotalMarks = useMemo(() => {
     if (isCombinedResults && results?.assessments) {
       return results.assessments.reduce((sum, a) => sum + (a.maxMarks || 0), 0);
@@ -280,69 +271,39 @@ export default function ClassResults() {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '2563EB' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '1E40AF' } },
-          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
-          left: { style: 'thin', color: { rgb: '1E40AF' } },
-          right: { style: 'thin', color: { rgb: '1E40AF' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: '1E40AF' } }, bottom: { style: 'thin', color: { rgb: '1E40AF' } }, left: { style: 'thin', color: { rgb: '1E40AF' } }, right: { style: 'thin', color: { rgb: '1E40AF' } } }
       };
 
       const redHeaderStyle = {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: 'DC2626' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '991B1B' } },
-          bottom: { style: 'thin', color: { rgb: '991B1B' } },
-          left: { style: 'thin', color: { rgb: '991B1B' } },
-          right: { style: 'thin', color: { rgb: '991B1B' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: '991B1B' } }, bottom: { style: 'thin', color: { rgb: '991B1B' } }, left: { style: 'thin', color: { rgb: '991B1B' } }, right: { style: 'thin', color: { rgb: '991B1B' } } }
       };
 
       const subHeaderStyle = {
         font: { bold: true, color: { rgb: '312E81' } },
         fill: { fgColor: { rgb: 'E0E7FF' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          bottom: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          left: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          right: { style: 'thin', color: { rgb: 'C7D2FE' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'C7D2FE' } }, bottom: { style: 'thin', color: { rgb: 'C7D2FE' } }, left: { style: 'thin', color: { rgb: 'C7D2FE' } }, right: { style: 'thin', color: { rgb: 'C7D2FE' } } }
       };
 
       const keyColumnStyle = {
         font: { bold: true, color: { rgb: '1D4ED8' } },
         fill: { fgColor: { rgb: 'DBEAFE' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          bottom: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          left: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          right: { style: 'thin', color: { rgb: 'BFDBFE' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'BFDBFE' } }, bottom: { style: 'thin', color: { rgb: 'BFDBFE' } }, left: { style: 'thin', color: { rgb: 'BFDBFE' } }, right: { style: 'thin', color: { rgb: 'BFDBFE' } } }
       };
 
       const dataCellStyle = {
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } } }
       };
 
       const marksObtainedStyle = {
         font: { bold: true, color: { rgb: '4338CA' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } } }
       };
 
       for (let R = 0; R <= 2; R++) {
@@ -450,69 +411,39 @@ export default function ClassResults() {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '2563EB' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '1E40AF' } },
-          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
-          left: { style: 'thin', color: { rgb: '1E40AF' } },
-          right: { style: 'thin', color: { rgb: '1E40AF' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: '1E40AF' } }, bottom: { style: 'thin', color: { rgb: '1E40AF' } }, left: { style: 'thin', color: { rgb: '1E40AF' } }, right: { style: 'thin', color: { rgb: '1E40AF' } } }
       };
 
       const indigoHeaderStyle = {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '4F46E5' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '3730A3' } },
-          bottom: { style: 'thin', color: { rgb: '3730A3' } },
-          left: { style: 'thin', color: { rgb: '3730A3' } },
-          right: { style: 'thin', color: { rgb: '3730A3' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: '3730A3' } }, bottom: { style: 'thin', color: { rgb: '3730A3' } }, left: { style: 'thin', color: { rgb: '3730A3' } }, right: { style: 'thin', color: { rgb: '3730A3' } } }
       };
 
       const subHeaderStyle = {
         font: { bold: true, color: { rgb: '312E81' } },
         fill: { fgColor: { rgb: 'E0E7FF' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          bottom: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          left: { style: 'thin', color: { rgb: 'C7D2FE' } },
-          right: { style: 'thin', color: { rgb: 'C7D2FE' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'C7D2FE' } }, bottom: { style: 'thin', color: { rgb: 'C7D2FE' } }, left: { style: 'thin', color: { rgb: 'C7D2FE' } }, right: { style: 'thin', color: { rgb: 'C7D2FE' } } }
       };
 
       const keyColumnStyle = {
         font: { bold: true, color: { rgb: '1D4ED8' } },
         fill: { fgColor: { rgb: 'DBEAFE' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          bottom: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          left: { style: 'thin', color: { rgb: 'BFDBFE' } },
-          right: { style: 'thin', color: { rgb: 'BFDBFE' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'BFDBFE' } }, bottom: { style: 'thin', color: { rgb: 'BFDBFE' } }, left: { style: 'thin', color: { rgb: 'BFDBFE' } }, right: { style: 'thin', color: { rgb: 'BFDBFE' } } }
       };
 
       const dataCellStyle = {
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } } }
       };
 
       const marksObtainedStyle = {
         font: { bold: true, color: { rgb: '4338CA' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } } }
       };
 
       for (let R = 0; R <= 2; R++) {
@@ -597,22 +528,12 @@ export default function ClassResults() {
         font: { bold: true, color: { rgb: 'FFFFFF' } },
         fill: { fgColor: { rgb: '2563EB' } },
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: '1E40AF' } },
-          bottom: { style: 'thin', color: { rgb: '1E40AF' } },
-          left: { style: 'thin', color: { rgb: '1E40AF' } },
-          right: { style: 'thin', color: { rgb: '1E40AF' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: '1E40AF' } }, bottom: { style: 'thin', color: { rgb: '1E40AF' } }, left: { style: 'thin', color: { rgb: '1E40AF' } }, right: { style: 'thin', color: { rgb: '1E40AF' } } }
       };
 
       const dataStyle = {
         alignment: { horizontal: 'center', vertical: 'center' },
-        border: {
-          top: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          left: { style: 'thin', color: { rgb: 'E2E8F0' } },
-          right: { style: 'thin', color: { rgb: 'E2E8F0' } }
-        }
+        border: { top: { style: 'thin', color: { rgb: 'E2E8F0' } }, bottom: { style: 'thin', color: { rgb: 'E2E8F0' } }, left: { style: 'thin', color: { rgb: 'E2E8F0' } }, right: { style: 'thin', color: { rgb: 'E2E8F0' } } }
       };
 
       for (let C = 0; C <= range.e.c; C++) {
@@ -658,7 +579,6 @@ export default function ClassResults() {
     try {
       const params = { classId: selectedClass, examTypes: selectedExamTypes.join(',') };
       
-      // Add date filters for Daily Test
       if (selectedExamTypes.includes('Daily Test')) {
         params.reportType = 'daily';
         if (dateFilterType === 'specific') {
@@ -687,389 +607,414 @@ export default function ClassResults() {
   };
 
   return (
-    <PageStack>
+    <PageStack className="min-h-screen bg-[#FAFAFA] dark:bg-slate-950">
       <PageHeader
         title="Class Results"
         description="View complete class-wise exam results with dynamic subject columns."
       />
 
-      <ErpSection title="Filters" icon={FileText} tone="blue">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <FormField label="Class">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>
-                    {formatClassName(c.className)}-{c.section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          {/* --- ULTIMATE BUG FIX: NATIVE INLINE SCROLLABLE MULTI-SELECT PANEL --- */}
-          <FormField label="Show Results (Select Multiple)">
-            {/* 
-               Humne is box ko floating se hata kar static inline scroll block bana diya hai.
-               Yeh direct box layout ke andar embed ho chuka hai aur matches standard height limits.
-               Ab yeh na toh upar se katega aur na hi neechay se overflow hide hoga!
-            */}
-            <div className="w-full rounded-md border border-slate-200 bg-white p-2 h-28 overflow-y-auto space-y-1 shadow-sm custom-scrollbar">
-              {EXAM_TYPES.map((type) => {
-                const isChecked = selectedExamTypes.includes(type);
-                return (
-                  <label
-                    key={type}
-                    className="flex items-center space-x-3 rounded px-2 py-1 hover:bg-slate-50 cursor-pointer select-none text-sm font-normal text-slate-700 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedExamTypes([...selectedExamTypes, type]);
-                        } else {
-                          setSelectedExamTypes(selectedExamTypes.filter((t) => t !== type));
-                        }
-                      }}
-                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    />
-                    <span className={isChecked ? 'font-semibold text-blue-600' : ''}>
-                      {type}
-                    </span>
-                  </label>
-                );
-              })}
+      {/* COMPACT & GRADIENT FILTERS SECTION - Fixed Overflow for DatePicker */}
+      <div className="rounded-xl border border-indigo-100 bg-white shadow-sm mb-6 dark:border-slate-800 dark:bg-slate-900 relative z-20">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 dark:from-indigo-950/30 dark:to-slate-900 px-4 py-3 border-b border-indigo-100 dark:border-slate-800 rounded-t-xl">
+          <div className="flex items-center gap-2 font-bold text-indigo-700 dark:text-indigo-400 text-sm">
+            <Filter className="h-4 w-4" /> Filters
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Class</label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="h-9 text-sm shadow-sm rounded-lg">
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {formatClassName(c.className)}-{c.section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </FormField>
 
-          {selectedExamTypes.includes('Daily Test') && (
-            <>
-              <FormField label="Date Filter">
-                <Select value={dateFilterType} onValueChange={setDateFilterType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="specific">Specific Date</SelectItem>
-                    <SelectItem value="range">Date Range</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-              {dateFilterType === 'specific' ? (
-                <FormField label="Test Date">
-                  <DatePicker value={specificDate} onChange={(date) => setSpecificDate(date)} />
-                </FormField>
-              ) : (
-                <>
-                  <FormField label="From">
-                    <DatePicker value={dateFrom} onChange={(date) => setDateFrom(date)} />
-                  </FormField>
-                  <FormField label="To">
-                    <DatePicker value={dateTo} onChange={(date) => setDateTo(date)} />
-                  </FormField>
-                </>
-              )}
-            </>
-          )}
-
-          <FormField label="Sort By">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rollNo_asc">Roll No (Ascending)</SelectItem>
-                <SelectItem value="rollNo_desc">Roll No (Descending)</SelectItem>
-                <SelectItem value="name_asc">Student Name (A-Z)</SelectItem>
-                <SelectItem value="name_desc">Student Name (Z-A)</SelectItem>
-                <SelectItem value="marks_desc">Marks (High to Low)</SelectItem>
-                <SelectItem value="marks_asc">Marks (Low to High)</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
-        </div>
-
-        <div className="mt-4 flex gap-2">
-          <Button onClick={() => {
-            if (!checkAndBlock(() => fetchResults())) return;
-          }} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
-            {loading ? 'Loading...' : 'View Results'}
-          </Button>
-          {results && (
-            <>
-              <Button variant="outline" onClick={() => {
-                if (!checkAndBlock(() => exportCSV())) return;
-              }}>
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-              <Button variant="outline" onClick={() => {
-                if (!checkAndBlock(() => exportXLSX())) return;
-              }}>
-                <Download className="mr-2 h-4 w-4" />
-                Export XLSX
-              </Button>
-              {!selectedExamTypes.includes('Daily Test') && (
-                <Button variant="outline" onClick={() => {
-                  if (!checkAndBlock(() => exportPDF())) return;
-                }}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export PDF
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-      </ErpSection>
-
-      {results && (
-        <>
-          <ErpSection title="Search" icon={Search} tone="blue">
-            <FormField label="Search by Student Name or Roll No">
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </FormField>
-          </ErpSection>
-
-          <ErpSection title="Results" icon={FileText} tone="green">
-            <div className="mb-4 rounded-lg bg-slate-50 p-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-slate-700">School:</span>{' '}
-                  <span className="text-slate-600">{results.schoolName}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-slate-700">Class:</span>{' '}
-                  <span className="text-slate-600">{formatClassName(results.className)}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-slate-700">Exam Type:</span>{' '}
-                  <span className="text-slate-600">{results.examType}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-slate-700">Generated:</span>{' '}
-                  <span className="text-slate-600">
-                    {formatDisplayDate(results.generatedDate)}
-                  </span>
-                </div>
+            {/* --- ULTIMATE BUG FIX: NATIVE INLINE SCROLLABLE MULTI-SELECT PANEL --- */}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Show Results (Select Multiple)</label>
+              <div className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2 h-24 overflow-y-auto space-y-1 shadow-inner custom-scrollbar">
+                {EXAM_TYPES.map((type) => {
+                  const isChecked = selectedExamTypes.includes(type);
+                  return (
+                    <label
+                      key={type}
+                      className="flex items-center space-x-3 rounded px-2 py-1 hover:bg-white cursor-pointer select-none text-[13px] font-medium text-slate-700 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedExamTypes([...selectedExamTypes, type]);
+                          } else {
+                            setSelectedExamTypes(selectedExamTypes.filter((t) => t !== type));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      />
+                      <span className={isChecked ? 'font-bold text-indigo-700' : ''}>
+                        {type}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
-            {filteredResults.length === 0 ? (
-              <div className="py-8 text-center text-slate-500">No results found</div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200" style={{ minWidth: '100%' }}>
-                <Table style={{ minWidth: 'max-content' }}>
-                  <TableHeader>
-                    {isCombinedResults ? (
-                      <>
-                        <TableRow>
-                          <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>
-                            Total
-                            {maxTotalMarks > 0 && <span className="block text-xs font-normal opacity-80">({maxTotalMarks})</span>}
-                          </TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '90px' }}>
-                            Average
-                          </TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '180px' }}>%</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '80px', left: '270px' }}>Rank</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '350px' }}>Roll No</TableHead>
-                          <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '220px', left: '440px' }}>Student Name</TableHead>
-                          {results.assessments?.map((assessment) => (
-                            <TableHead
-                              key={assessment._id}
-                              colSpan={2}
-                              className={`text-center border-r ${
-                                assessment.category === 'daily'
-                                  ? 'bg-blue-100 border-blue-200'
-                                  : 'bg-red-100 border-red-200'
-                              }`}
-                              style={{ minWidth: '260px' }}
-                            >
-                              <div className={`rounded-lg px-3 py-2 text-white shadow-sm ${
-                                assessment.category === 'daily'
-                                  ? 'bg-blue-600'
-                                  : 'bg-red-600'
-                              }`}>
-                                <div className="text-sm font-bold">{assessment.examType}</div>
-                                <div className="text-xs opacity-90">{formatDisplayDateShort(assessment.date)}</div>
-                                <div className="text-xs opacity-80">{assessment.subject}</div>
-                              </div>
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                        <TableRow>
-                          {results.assessments?.map((assessment) => (
-                            <React.Fragment key={`${assessment._id}-headers`}>
-                              <TableHead
-                                className={`text-center border-r font-semibold ${
-                                  assessment.category === 'daily'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : 'bg-red-50 text-red-700 border-red-200'
-                                }`}
-                                style={{ minWidth: results.assessments?.length > 5 ? '100px' : '120px' }}
-                              >
-                                Max Marks
-                              </TableHead>
-                              <TableHead
-                                className={`text-center border-r font-semibold ${
-                                  assessment.category === 'daily'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : 'bg-red-50 text-red-700 border-red-200'
-                                }`}
-                                style={{ minWidth: results.assessments?.length > 5 ? '100px' : '140px' }}
-                              >
-                                Marks Obtained
-                              </TableHead>
-                            </React.Fragment>
-                          ))}
-                        </TableRow>
-                      </>
-                    ) : (
-                      <>
-                        {selectedExamTypes.includes('Daily Test') && (
+            {selectedExamTypes.includes('Daily Test') && (
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date Filter</label>
+                  <Select value={dateFilterType} onValueChange={setDateFilterType}>
+                    <SelectTrigger className="h-9 text-sm shadow-sm rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Specific Date</SelectItem>
+                      <SelectItem value="range">Date Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {dateFilterType === 'specific' ? (
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Test Date</label>
+                    <DatePicker value={specificDate} onChange={(date) => setSpecificDate(date)} className="h-9 text-sm relative z-30" />
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">From</label>
+                      <DatePicker value={dateFrom} onChange={(date) => setDateFrom(date)} className="h-9 text-sm relative z-30" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">To</label>
+                      <DatePicker value={dateTo} onChange={(date) => setDateTo(date)} className="h-9 text-sm relative z-30" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-9 text-sm shadow-sm rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rollNo_asc">Roll No (Ascending)</SelectItem>
+                  <SelectItem value="rollNo_desc">Roll No (Descending)</SelectItem>
+                  <SelectItem value="name_asc">Student Name (A-Z)</SelectItem>
+                  <SelectItem value="name_desc">Student Name (Z-A)</SelectItem>
+                  <SelectItem value="marks_desc">Marks (High to Low)</SelectItem>
+                  <SelectItem value="marks_asc">Marks (Low to High)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2 relative z-0">
+            <Button size="sm" className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-medium" onClick={() => {
+              if (!checkAndBlock(() => fetchResults())) return;
+            }} disabled={!selectedClass || selectedExamTypes.length === 0 || loading}>
+              {loading ? 'Loading...' : 'View Results'}
+            </Button>
+            {results && (
+              <>
+                <Button size="sm" variant="outline" className="h-9 px-3 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm" onClick={() => {
+                  if (!checkAndBlock(() => exportCSV())) return;
+                }}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  Export CSV
+                </Button>
+                <Button size="sm" variant="outline" className="h-9 px-3 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm" onClick={() => {
+                  if (!checkAndBlock(() => exportXLSX())) return;
+                }}>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  Export XLSX
+                </Button>
+                {!selectedExamTypes.includes('Daily Test') && (
+                  <Button size="sm" variant="outline" className="h-9 px-3 rounded-lg border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm" onClick={() => {
+                    if (!checkAndBlock(() => exportPDF())) return;
+                  }}>
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Export PDF
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {results && (
+        <div className="relative z-10">
+          {/* COMPACT SEARCH SECTION */}
+          <div className="rounded-xl border border-indigo-100 bg-white shadow-sm overflow-hidden mb-6">
+            <div className="p-4 flex flex-col sm:flex-row items-center gap-3">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Search Student:</label>
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  placeholder="Type name or roll no..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-sm shadow-sm rounded-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* COMPACT & GRADIENT RESULTS SECTION */}
+          <div className="rounded-xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50/50 px-4 py-3 border-b border-emerald-100 flex justify-between items-center rounded-t-xl">
+              <div className="flex items-center gap-2 font-bold text-emerald-700 text-sm">
+                <BarChart3 className="h-4 w-4" /> Result Data
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[13px]">
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider block">School</span>
+                    <span className="font-medium text-slate-800">{results.schoolName}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider block">Class</span>
+                    <span className="font-medium text-slate-800">{formatClassName(results.className)}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider block">Exam Type</span>
+                    <span className="font-medium text-slate-800">{results.examType}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider block">Generated</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDisplayDate(results.generatedDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {filteredResults.length === 0 ? (
+                <div className="py-10 text-center text-sm font-medium text-slate-500">No results found</div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-slate-200" style={{ minWidth: '100%' }}>
+                  <Table style={{ minWidth: 'max-content' }}>
+                    <TableHeader>
+                      {isCombinedResults ? (
+                        <>
                           <TableRow>
-                            <TableHead rowSpan={2} className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500" style={{ minWidth: '90px' }}>
+                            <TableHead rowSpan={2} className="sticky left-0 bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px' }}>
                               Total
-                              {maxTotalMarks > 0 && <span className="block text-xs font-normal opacity-80">({maxTotalMarks})</span>}
+                              {maxTotalMarks > 0 && <span className="block text-[10px] font-normal opacity-80 mt-0.5">({maxTotalMarks})</span>}
                             </TableHead>
-                            <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '90px' }}>
+                            <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '90px' }}>
                               Average
                             </TableHead>
-                            <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '180px' }}>%</TableHead>
-                            <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '80px', left: '270px' }}>Rank</TableHead>
-                            <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '90px', left: '350px' }}>Roll No</TableHead>
-                            <TableHead rowSpan={2} className={`sticky bg-blue-600 text-white z-10 border-r border-blue-500`} style={{ minWidth: '220px', left: '440px' }}>Student Name</TableHead>
-                            {results.dailyTests?.map((dt, idx) => (
-                              <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200" style={{ minWidth: '260px' }}>
-                                <div className="rounded-lg bg-indigo-600 px-3 py-2 text-white shadow-sm">
-                                  <div className="text-sm font-bold">Daily Test {idx + 1}</div>
-                                  <div className="text-xs text-indigo-100">{formatDisplayDateShort(dt.testDate)}</div>
-                                  <div className="text-xs text-indigo-200">{dt.subject}</div>
+                            <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '180px' }}>%</TableHead>
+                            <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '80px', left: '270px' }}>Rank</TableHead>
+                            <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '350px' }}>Roll No</TableHead>
+                            <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '220px', left: '440px' }}>Student Name</TableHead>
+                            {results.assessments?.map((assessment) => (
+                              <TableHead
+                                key={assessment._id}
+                                colSpan={2}
+                                className={`text-center border-r p-0 ${
+                                  assessment.category === 'daily'
+                                    ? 'bg-blue-100 border-blue-200'
+                                    : 'bg-rose-100 border-rose-200'
+                                }`}
+                                style={{ minWidth: '260px' }}
+                              >
+                                <div className={`px-3 py-1.5 text-white ${
+                                  assessment.category === 'daily' ? 'bg-blue-600' : 'bg-rose-600'
+                                }`}>
+                                  <div className="text-[12px] font-bold">{assessment.examType}</div>
+                                  <div className="text-[10px] opacity-90">{formatDisplayDateShort(assessment.date)}</div>
+                                  <div className="text-[10px] opacity-80">{assessment.subject}</div>
                                 </div>
                               </TableHead>
                             ))}
                           </TableRow>
-                        )}
-                        <TableRow>
-                          {selectedExamTypes.includes('Daily Test') ? (
-                            <>
-                              {results.dailyTests?.map((dt) => (
-                                <React.Fragment key={`${dt._id}-subheaders`}>
-                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.dailyTests?.length > 5 ? '100px' : '120px' }}>Max Marks</TableHead>
-                                  <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-semibold text-indigo-700" style={{ minWidth: results.dailyTests?.length > 5 ? '100px' : '140px' }}>Marks Obtained</TableHead>
-                                </React.Fragment>
+                          <TableRow>
+                            {results.assessments?.map((assessment) => (
+                              <React.Fragment key={`${assessment._id}-headers`}>
+                                <TableHead
+                                  className={`text-center border-r font-bold py-2 px-3 text-[11px] uppercase tracking-wider ${
+                                    assessment.category === 'daily'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                                  }`}
+                                  style={{ minWidth: results.assessments?.length > 5 ? '100px' : '120px' }}
+                                >
+                                  Max Marks
+                                </TableHead>
+                                <TableHead
+                                  className={`text-center border-r font-bold py-2 px-3 text-[11px] uppercase tracking-wider ${
+                                    assessment.category === 'daily'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                                  }`}
+                                  style={{ minWidth: results.assessments?.length > 5 ? '100px' : '140px' }}
+                                >
+                                  Marks Obtained
+                                </TableHead>
+                              </React.Fragment>
+                            ))}
+                          </TableRow>
+                        </>
+                      ) : (
+                        <>
+                          {selectedExamTypes.includes('Daily Test') && (
+                            <TableRow>
+                              <TableHead rowSpan={2} className="sticky left-0 bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px' }}>
+                                Total
+                                {maxTotalMarks > 0 && <span className="block text-[10px] font-normal opacity-80 mt-0.5">({maxTotalMarks})</span>}
+                              </TableHead>
+                              <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '90px' }}>
+                                Average
+                              </TableHead>
+                              <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '180px' }}>%</TableHead>
+                              <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '80px', left: '270px' }}>Rank</TableHead>
+                              <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '90px', left: '350px' }}>Roll No</TableHead>
+                              <TableHead rowSpan={2} className="sticky bg-indigo-600 text-white z-10 border-r border-indigo-500 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: '220px', left: '440px' }}>Student Name</TableHead>
+                              {results.dailyTests?.map((dt, idx) => (
+                                <TableHead key={`${dt._id}-info`} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200 p-0" style={{ minWidth: '260px' }}>
+                                  <div className="bg-indigo-600 px-3 py-1.5 text-white">
+                                    <div className="text-[12px] font-bold">Daily Test {idx + 1}</div>
+                                    <div className="text-[10px] text-indigo-100">{formatDisplayDateShort(dt.testDate)}</div>
+                                    <div className="text-[10px] text-indigo-200">{dt.subject}</div>
+                                  </div>
+                                </TableHead>
                               ))}
+                            </TableRow>
+                          )}
+                          <TableRow>
+                            {selectedExamTypes.includes('Daily Test') ? (
+                              <>
+                                {results.dailyTests?.map((dt) => (
+                                  <React.Fragment key={`${dt._id}-subheaders`}>
+                                    <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-bold text-indigo-700 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: results.dailyTests?.length > 5 ? '100px' : '120px' }}>Max Marks</TableHead>
+                                    <TableHead className="text-center bg-indigo-50 border-r border-indigo-200 font-bold text-indigo-700 py-2 px-3 text-[11px] uppercase tracking-wider" style={{ minWidth: results.dailyTests?.length > 5 ? '100px' : '140px' }}>Marks Obtained</TableHead>
+                                  </React.Fragment>
+                                ))}
+                              </>
+                            ) : (
+                              <>
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Rank</TableHead>
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Roll No</TableHead>
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Student Name</TableHead>
+                                {results.subjects.map((subject) => (
+                                  <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold" key={subject}>{subject}</TableHead>
+                                ))}
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Total</TableHead>
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Average</TableHead>
+                                <TableHead className="py-2 px-3 text-[11px] uppercase tracking-wider font-bold">Percentage</TableHead>
+                              </>
+                            )}
+                          </TableRow>
+                        </>
+                      )}
+                    </TableHeader>
+                    <TableBody>
+                      {filteredResults.map((student, index) => (
+                        <TableRow key={student.studentId} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100 transition-colors`}>
+                          {isCombinedResults ? (
+                            <>
+                              <TableCell className="sticky left-0 bg-indigo-50 z-10 font-bold text-indigo-700 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
+                              <TableCell className="sticky bg-indigo-50 z-10 font-semibold text-indigo-600 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '90px' }}>{student.average}</TableCell>
+                              <TableCell className="sticky bg-indigo-50 z-10 font-semibold text-indigo-600 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '180px' }}>{student.percentage}%</TableCell>
+                              <TableCell className="sticky bg-indigo-50 z-10 font-bold text-indigo-700 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '80px', left: '270px' }}>{student.rank}</TableCell>
+                              <TableCell className="sticky bg-white z-10 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '350px' }}>{student.rollNo}</TableCell>
+                              <TableCell className="sticky bg-white z-10 font-medium border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '220px', left: '440px' }}>{student.name}</TableCell>
+                              {results.assessments?.map((assessment) => {
+                                const key = `${assessment.examType}_${assessment._id}`;
+                                const mark = student.assessments?.[key];
+                                return (
+                                  <React.Fragment key={`${assessment._id}-student-marks`}>
+                                    <TableCell
+                                      className={`text-center border-r py-2 px-3 text-[13px] ${
+                                        assessment.category === 'daily'
+                                          ? 'bg-blue-50/50 text-blue-700 border-blue-100'
+                                          : 'bg-rose-50/50 text-rose-700 border-rose-100'
+                                      }`}
+                                      style={{ minWidth: '120px' }}
+                                    >
+                                      {assessment.maxMarks}
+                                    </TableCell>
+                                    <TableCell
+                                      className={`text-center border-r font-semibold py-2 px-3 text-[13px] ${
+                                        assessment.category === 'daily'
+                                          ? 'bg-blue-50/50 text-blue-700 border-blue-100'
+                                          : 'bg-rose-50/50 text-rose-700 border-rose-100'
+                                      }`}
+                                      style={{ minWidth: '140px' }}
+                                    >
+                                      {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '-')}
+                                    </TableCell>
+                                  </React.Fragment>
+                                );
+                              })}
                             </>
                           ) : (
                             <>
-                              <TableHead>Rank</TableHead>
-                              <TableHead>Roll No</TableHead>
-                              <TableHead>Student Name</TableHead>
-                              {results.subjects.map((subject) => (
-                                <TableHead key={subject}>{subject}</TableHead>
-                              ))}
-                              <TableHead>Total</TableHead>
-                              <TableHead>Average</TableHead>
-                              <TableHead>Percentage</TableHead>
+                              {selectedExamTypes.includes('Daily Test') ? (
+                                <>
+                                  <TableCell className="sticky left-0 bg-indigo-50 z-10 font-bold text-indigo-700 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
+                                  <TableCell className="sticky bg-indigo-50 z-10 font-semibold text-indigo-600 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '90px' }}>{student.average}</TableCell>
+                                  <TableCell className="sticky bg-indigo-50 z-10 font-semibold text-indigo-600 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '180px' }}>{student.percentage}%</TableCell>
+                                  <TableCell className="sticky bg-indigo-50 z-10 font-bold text-indigo-700 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '80px', left: '270px' }}>{student.rank}</TableCell>
+                                  <TableCell className="sticky bg-white z-10 border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '90px', left: '350px' }}>{student.rollNo}</TableCell>
+                                  <TableCell className="sticky bg-white z-10 font-medium border-r border-slate-200 py-2 px-3 text-[13px]" style={{ minWidth: '220px', left: '440px' }}>{student.name}</TableCell>
+                                  {results.dailyTests?.map((dt) => {
+                                    const mark = student.dailyTests[dt._id];
+                                    return (
+                                      <React.Fragment key={`${dt._id}-student-dt`}>
+                                        <TableCell className="text-center border-r border-slate-200 text-slate-600 py-2 px-3 text-[13px]" style={{ minWidth: '120px' }}>{dt.maxMarks}</TableCell>
+                                        <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700 py-2 px-3 text-[13px]" style={{ minWidth: '140px' }}>{mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}</TableCell>
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </>
+                              ) : (
+                                <>
+                                  <TableCell className="font-medium py-2 px-3 text-[13px]">{student.rank}</TableCell>
+                                  <TableCell className="py-2 px-3 text-[13px]">{student.rollNo}</TableCell>
+                                  <TableCell className="font-medium py-2 px-3 text-[13px]">{student.name}</TableCell>
+                                  {results.subjects.map((subject) => (
+                                    <TableCell className="py-2 px-3 text-[13px]" key={subject}>
+                                      {student.subjects[subject]?.marksObtained || '-'}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell className="font-medium py-2 px-3 text-[13px]">{student.totalObtained}</TableCell>
+                                  <TableCell className="py-2 px-3 text-[13px]">{student.average}</TableCell>
+                                  <TableCell className="py-2 px-3 text-[13px]">{student.percentage}%</TableCell>
+                                </>
+                              )}
                             </>
                           )}
                         </TableRow>
-                      </>
-                    )}
-                  </TableHeader>
-                  <TableBody>
-                    {filteredResults.map((student, index) => (
-                      <TableRow key={student.studentId} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100 transition-colors`}>
-                        {isCombinedResults ? (
-                          <>
-                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '90px' }}>{student.average}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '180px' }}>{student.percentage}%</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200`} style={{ minWidth: '80px', left: '270px' }}>{student.rank}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 border-r border-slate-200`} style={{ minWidth: '90px', left: '350px' }}>{student.rollNo}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 font-medium border-r border-slate-200`} style={{ minWidth: '220px', left: '440px' }}>{student.name}</TableCell>
-                            {results.assessments?.map((assessment) => {
-                              const key = `${assessment.examType}_${assessment._id}`;
-                              const mark = student.assessments?.[key];
-                              return (
-                                <React.Fragment key={`${assessment._id}-student-marks`}>
-                                  <TableCell
-                                    className={`text-center border-r ${
-                                      assessment.category === 'daily'
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                        : 'bg-red-50 text-red-700 border-red-200'
-                                    }`}
-                                    style={{ minWidth: '120px' }}
-                                  >
-                                    {assessment.maxMarks}
-                                  </TableCell>
-                                  <TableCell
-                                    className={`text-center border-r font-semibold ${
-                                      assessment.category === 'daily'
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                        : 'bg-red-50 text-red-700 border-red-200'
-                                    }`}
-                                    style={{ minWidth: '140px' }}
-                                  >
-                                    {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '-')}
-                                  </TableCell>
-                                </React.Fragment>
-                              );
-                            })}
-                          </>
-                        ) : (
-                          <>
-                        {selectedExamTypes.includes('Daily Test') ? (
-                          <>
-                            <TableCell className="sticky left-0 bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200" style={{ minWidth: '90px' }}>{student.totalObtained}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '90px' }}>{student.average}</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-semibold text-blue-600 border-r border-slate-200`} style={{ minWidth: '90px', left: '180px' }}>{student.percentage}%</TableCell>
-                            <TableCell className={`sticky bg-blue-50 z-10 font-bold text-blue-700 border-r border-slate-200`} style={{ minWidth: '80px', left: '270px' }}>{student.rank}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 border-r border-slate-200`} style={{ minWidth: '90px', left: '350px' }}>{student.rollNo}</TableCell>
-                            <TableCell className={`sticky bg-white z-10 font-medium border-r border-slate-200`} style={{ minWidth: '220px', left: '440px' }}>{student.name}</TableCell>
-                            {results.dailyTests?.map((dt) => {
-                              const mark = student.dailyTests[dt._id];
-                              return (
-                                <React.Fragment key={`${dt._id}-student-dt`}>
-                                  <TableCell className="text-center border-r border-slate-200 text-slate-600" style={{ minWidth: '120px' }}>{dt.maxMarks}</TableCell>
-                                  <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700" style={{ minWidth: '140px' }}>{mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}</TableCell>
-                                </React.Fragment>
-                              );
-                            })}
-                          </>
-                        ) : (
-                              <>
-                                <TableCell className="font-medium">{student.rank}</TableCell>
-                                <TableCell>{student.rollNo}</TableCell>
-                                <TableCell className="font-medium">{student.name}</TableCell>
-                                {results.subjects.map((subject) => (
-                                  <TableCell key={subject}>
-                                    {student.subjects[subject]?.marksObtained || '-'}
-                                  </TableCell>
-                                ))}
-                                <TableCell className="font-medium">{student.totalObtained}</TableCell>
-                                <TableCell>{student.average}</TableCell>
-                                <TableCell>{student.percentage}%</TableCell>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </ErpSection>
-        </>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
       
       <SubscriptionExpiredDialog

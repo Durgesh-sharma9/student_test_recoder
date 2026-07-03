@@ -243,65 +243,73 @@ export default function TeacherAssignments() {
       />
 
       <ErpSection title="Select Teacher" icon={Users} tone="blue">
-        <FormField label="Teacher">
-          <SearchableTeacherSelect
-            value={teacherId}
-            onChange={setTeacherId}
-            teachers={teachers}
-            placeholder="Search or select teacher"
-            emptyMessage="No teachers available"
-          />
-        </FormField>
+        {/* Blue tone soft gradient background matching heading */}
+        <div className="p-4 rounded-xl border border-blue-50 bg-gradient-to-br from-blue-50/70 via-transparent to-transparent">
+          <FormField label="Teacher">
+            <SearchableTeacherSelect
+              value={teacherId}
+              onChange={setTeacherId}
+              teachers={teachers}
+              placeholder="Search or select teacher"
+              emptyMessage="No teachers available"
+            />
+          </FormField>
+        </div>
       </ErpSection>
 
       <ErpSection title="Add New Assignment" icon={Plus} tone="orange">
-        <div className="grid gap-4 lg:grid-cols-4">
-          <FormField label="Class">
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Class" />
-              </SelectTrigger>
-              <SelectContent>
-                {classes.map((cls) => (
-                  <SelectItem key={cls._id} value={cls._id}>
-                    {formatClassName(cls.className)}-{cls.section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
+        {/* Orange tone soft gradient background matching heading */}
+        <div className="p-4 rounded-xl border border-orange-50 bg-gradient-to-br from-orange-50/70 via-transparent to-transparent">
+          <div className="grid gap-4 lg:grid-cols-4 items-end">
+            <FormField label="Class">
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="h-9 text-sm bg-white shadow-sm border-slate-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100">
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls._id} value={cls._id}>
+                      {formatClassName(cls.className)}-{cls.section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
 
-          <FormField label="Subject">
-            <>
+            <FormField label="Subject">
+              <>
+                <Input
+                  list="subjects"
+                  placeholder="Enter Subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm transition-all duration-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
+                />
+                <datalist id="subjects">
+                  {COMMON_SUBJECTS.map((sub) => (
+                    <option key={sub} value={sub} />
+                  ))}
+                </datalist>
+              </>
+            </FormField>
+
+            <FormField label="Total Chapters">
               <Input
-                list="subjects"
-                placeholder="Enter Subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="h-10 rounded-md border-slate-200 bg-white shadow-sm transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                type="number"
+                min="0"
+                placeholder="e.g. 12"
+                value={totalChapters}
+                onChange={(e) => setTotalChapters(e.target.value)}
+                className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
               />
-              <datalist id="subjects">
-                {COMMON_SUBJECTS.map((sub) => (
-                  <option key={sub} value={sub} />
-                ))}
-              </datalist>
-            </>
-          </FormField>
+            </FormField>
 
-          <FormField label="Total Chapters">
-            <Input
-              type="number"
-              min="0"
-              placeholder="e.g. 12"
-              value={totalChapters}
-              onChange={(e) => setTotalChapters(e.target.value)}
-              className="h-10 rounded-md border-slate-200 bg-white shadow-sm"
-            />
-          </FormField>
-
-          <div className="flex items-end">
-            <Button onClick={addItem} className="w-full h-10" variant="success" disabled={isArchived}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button 
+              onClick={addItem} 
+              className="w-full h-9 text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-sm border-0 transition-all duration-200" 
+              disabled={isArchived}
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
               Add Assignment
             </Button>
           </div>
@@ -309,118 +317,130 @@ export default function TeacherAssignments() {
       </ErpSection>
 
       <ErpSection title="Current Assignments" icon={ClipboardList} tone="green">
-        {items.length === 0 ? (
-          <div className="py-8 text-center text-slate-500">
-            No assignments added yet
-          </div>
-        ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 w-full">
-            {items.map((item, index) => {
-              const classInfo = classes.find((c) => c._id === item.class);
+        {/* Green tone soft gradient background matching heading */}
+        <div className="p-4 rounded-xl border border-emerald-50 bg-gradient-to-br from-emerald-50/70 via-transparent to-transparent">
+          {items.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center border-2 border-dashed border-emerald-200/60 rounded-xl bg-gradient-to-b from-emerald-50/50 to-white">
+              <div className="h-12 w-12 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3 shadow-sm border border-emerald-100">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <h4 className="text-sm font-semibold text-slate-700">Ready to assign subjects?</h4>
+              <p className="text-xs text-slate-500 mt-1">Select the class, subject, and total chapters above, then click "Add Assignment" to begin.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 w-full">
+              {items.map((item, index) => {
+                const classInfo = classes.find((c) => c._id === item.class);
 
-              return (
-                <div
-                  key={`${item.class}-${item.subject}-${index}`}
-                  className="relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm overflow-hidden min-h-[200px]"
-                >
-                  {/* Top Color Accent Bar */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+                return (
+                  <div
+                    key={`${item.class}-${item.subject}-${index}`}
+                    className="relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm overflow-hidden min-h-[130px] hover:shadow-md transition-shadow"
+                  >
+                    {/* Top Color Accent Bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
 
-                  {/* Top Layer: Class Info and Icon */}
-                  <div className="flex items-start justify-between mt-1">
-                    <div className="space-y-0.5">
-                      <h4 className="text-lg font-bold text-slate-900 tracking-tight">
-                        {classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : "Class N/A"}
-                      </h4>
-                      <p className="text-xs font-medium text-slate-400">Assigned Class</p>
+                    {/* Top Layer: Class Info and Icon */}
+                    <div className="flex items-start justify-between mt-1">
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                          {classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : "Class N/A"}
+                        </h4>
+                        <p className="text-[10px] font-medium text-slate-400">Assigned Class</p>
+                      </div>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 border border-emerald-100/60 shadow-sm">
+                        <BookOpen className="h-3.5 w-3.5" />
+                      </div>
                     </div>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-500 border border-blue-100/60">
-                      <BookOpen className="h-4 w-4" />
+
+                    {/* Middle Block: Subject with Color/Gradient Fill */}
+                    <div className="my-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-100/70 p-2 shadow-inner">
+                      <div className="text-[9px] font-bold text-teal-600 uppercase tracking-wider flex justify-between">
+                        <span>Subject</span>
+                        <span>Chapters: {item.totalChapters || 0}</span>
+                      </div>
+                      <div className="text-sm font-extrabold text-emerald-800 tracking-wide uppercase truncate mt-0.5">
+                        {item.subject}
+                      </div>
+                    </div>
+
+                    {/* Bottom Footer: Teacher Name, Status & Action Buttons */}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] font-semibold text-slate-600 truncate max-w-[80px]">
+                          {teachers.find(t => t._id === teacherId)?.name || 'Teacher'}
+                        </span>
+                        <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full w-fit">
+                          Active
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          disabled={isArchived}
+                          onClick={() => handleEditItem(index)}
+                          className="text-[10px] font-bold text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100/80 hover:to-blue-200/80 active:from-blue-100 active:to-blue-200 border border-blue-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
+                        >
+                          <Edit className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isArchived}
+                          onClick={() => handleRemoveItem(index, classInfo?.className, item.subject)}
+                          className="text-[10px] font-bold text-red-600 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100/80 hover:to-red-200/80 active:from-red-100 active:to-red-200 border border-red-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Middle Block: Subject with Color/Gradient Fill */}
-                  <div className="my-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/60 border border-blue-100/70 p-3.5 shadow-inner">
-                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex justify-between">
-                      <span>Subject</span>
-                      <span>Chapters: {item.totalChapters || 0}</span>
-                    </div>
-                    <div className="text-base font-extrabold text-blue-700 tracking-wide uppercase truncate mt-0.5">
-                      {item.subject}
-                    </div>
-                  </div>
-
-                  {/* Bottom Footer: Teacher Name, Status & Action Buttons */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] font-semibold text-slate-600">
-                        {teachers.find(t => t._id === teacherId)?.name || 'Teacher'}
-                      </span>
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        Active
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={isArchived}
-                        onClick={() => handleEditItem(index)}
-                        className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100/80 active:bg-blue-100 border border-blue-100/70 rounded-lg px-3 py-1.5 transition-all flex items-center gap-1 shadow-sm"
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isArchived}
-                        onClick={() => handleRemoveItem(index, classInfo?.className, item.subject)}
-                        className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100/80 active:bg-red-100 border border-red-100/70 rounded-lg px-3 py-1.5 transition-all flex items-center gap-1 shadow-sm"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </ErpSection>
 
-      <div className="flex justify-end">
-        <Button size="lg" onClick={save} className="px-8 shadow-md" disabled={isArchived}>
-          <Save className="mr-2 h-4 w-4" />
+      <div className="flex justify-end mt-2">
+        <Button 
+          size="sm" 
+          onClick={save} 
+          className="px-6 h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0" 
+          disabled={isArchived}
+        >
+          <Save className="mr-1.5 h-4 w-4" />
           Save Assignments
         </Button>
       </div>
 
       {/* Edit Assignment Dialog */}
       {editDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-black/50 to-black/70 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-white to-slate-50 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white">Edit Assignment</h3>
+                <h3 className="text-base font-bold text-white">Edit Assignment</h3>
                 <button
                   onClick={handleCancelEdit}
                   className="text-white/80 hover:text-white transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             {/* Form */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-3 bg-gradient-to-b from-blue-50/30 to-transparent">
               <FormField label="Teacher">
                 <Select
                   value={editForm.teacherId}
                   onValueChange={(v) => setEditForm({ ...editForm, teacherId: v })}
                   disabled
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm bg-slate-50">
                     <SelectValue placeholder="Select Teacher" />
                   </SelectTrigger>
                   <SelectContent>
@@ -438,7 +458,7 @@ export default function TeacherAssignments() {
                   value={editForm.classId}
                   onValueChange={(v) => setEditForm({ ...editForm, classId: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
                   <SelectContent>
@@ -457,7 +477,7 @@ export default function TeacherAssignments() {
                   placeholder="Enter Subject"
                   value={editForm.subject}
                   onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })}
-                  className="h-10 rounded-md border-slate-200"
+                  className="h-9 text-sm rounded-md bg-white border-slate-200"
                 />
                 <datalist id="subjects">
                   {COMMON_SUBJECTS.map((sub) => (
@@ -474,9 +494,9 @@ export default function TeacherAssignments() {
                   placeholder="e.g. 12"
                   value={editForm.totalChapters}
                   onChange={(e) => setEditForm({ ...editForm, totalChapters: e.target.value })}
-                  className="h-10 rounded-md border-slate-200"
+                  className="h-9 text-sm rounded-md bg-white border-slate-200"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Must be between 1 and 100</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Must be between 1 and 100</p>
               </FormField>
 
               <FormField label="Status">
@@ -485,7 +505,7 @@ export default function TeacherAssignments() {
                   onValueChange={(v) => setEditForm({ ...editForm, status: v })}
                   disabled
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm bg-slate-50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -497,19 +517,21 @@ export default function TeacherAssignments() {
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-50 px-6 py-4 flex gap-3 justify-end border-t border-slate-200">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 flex gap-2 justify-end border-t border-slate-200">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleCancelEdit}
-                className="rounded-xl"
+                className="rounded-lg h-9 text-sm bg-white"
               >
                 Cancel
               </Button>
               <Button
+                size="sm"
                 onClick={handleSaveEdit}
-                className="rounded-xl bg-blue-600 hover:bg-blue-700"
+                className="rounded-lg h-9 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-sm"
               >
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="mr-1.5 h-3.5 w-3.5" />
                 Save Changes
               </Button>
             </div>
