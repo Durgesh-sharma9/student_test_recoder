@@ -78,12 +78,22 @@ const navByRole = {
 
   teacher: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
-    { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
     { to: '/teacher/classes', label: 'My Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', featureKey: 'teacher_portal' },
     { to: '/teacher/daily-test', label: 'Create Daily Test', icon: Calendar, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'daily_test' },
     { to: '/teacher/main-exam', label: 'Main Exam', icon: FileText, iconColor: 'text-rose-600', boxBg: 'bg-rose-50 group-hover:bg-rose-100', featureKey: 'main_exam' },
-    { to: '/teacher/notebook-checking', label: 'Notebook Checking', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100', featureKey: 'teacher_portal' },
+    // { to: '/teacher/notebook-checking', label: 'Notebook Checking', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100', featureKey: 'teacher_portal' },
+     {
+      label: 'Notebook Checking',
+      icon: BarChart3,
+      iconColor: 'text-indigo-600',
+      boxBg: 'bg-indigo-50 group-hover:bg-indigo-100',
+      children: [
+        { to: '/teacher/notebook-checking', label: 'Notebook Entry', featureKey: 'teacher_portal' },
+        { to: '/teacher/checking-progress', label: 'Checking Progress', featureKey: 'teacher_portal' },
+      ]
+    },
     { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
+    { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
     { to: '/teacher/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 

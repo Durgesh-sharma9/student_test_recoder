@@ -88,13 +88,18 @@ export default function TeacherSettings() {
 
   return (
     <PageStack className="max-w-5xl mx-auto">
+      {/* Balanced Gradients (Na zyada light, na zyada dark) */}
+      <style>{`
+        .override-blue-grad { background: linear-gradient(to bottom right, #e5effa, #ffffff) !important; }
+        .override-green-grad { background: linear-gradient(to bottom right, #def8ed, #ffffff) !important; }
+      `}</style>
+
       <PageHeader
         title="Settings"
         description="Manage your profile and security settings"
       />
 
-      {/* 
-      <ErpSection title="Profile" icon={User} tone="blue">
+      {/* <ErpSection className="override-blue-grad" title="Profile" icon={User} tone="blue">
         <div className="mb-4 rounded-lg bg-slate-50 p-4">
           <div className="flex items-center gap-4">
             <ShieldCheck className="h-5 w-5 text-slate-600" />
@@ -157,7 +162,7 @@ export default function TeacherSettings() {
       </ErpSection>
       */}
 
-      <ErpSection title="Security" icon={ShieldCheck} tone="green">
+      <ErpSection className="override-green-grad" title="Security" icon={ShieldCheck} tone="green">
         <form onSubmit={handlePasswordChange} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 items-end">
           <FormField label="Current Password">
             <div className="relative">
@@ -202,7 +207,7 @@ export default function TeacherSettings() {
           </FormField>
 
           <div className="md:col-span-3">
-            <Button type="submit" className="w-full md:w-auto px-8 h-10" disabled={passwordLoading}>
+            <Button type="submit" className="w-full md:w-auto px-8 h-10 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={passwordLoading}>
               {passwordLoading ? 'Changing...' : 'Change Password'}
             </Button>
           </div>

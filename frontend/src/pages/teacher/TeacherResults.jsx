@@ -70,10 +70,16 @@ export default function TeacherResults() {
 
   return (
     <PageStack>
+      {/* Thoda Dark Gradients (Level 100 to White) */}
+      <style>{`
+        .override-blue-grad { background: linear-gradient(to bottom right, #dbeafe, #ffffff) !important; }
+        .override-green-grad { background: linear-gradient(to bottom right, #d1fae5, #ffffff) !important; }
+      `}</style>
+
       <PageHeader title="Results" description="View and export student performance data." />
 
-      <ErpSection title="Filters" icon={Filter} tone="blue">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+      <ErpSection className="override-blue-grad" title="Filters" icon={Filter} tone="blue">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 p-4 bg-white/60 rounded-lg border border-slate-200">
           <FormField label="Exam Type"><Select value={examType} onValueChange={setExamType}><SelectTrigger className="h-9 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Daily Test</SelectItem><SelectItem value="main">Main Exam</SelectItem></SelectContent></Select></FormField>
           <FormField label="Class"><Select value={filters.classId || undefined} onValueChange={(v) => setFilters({ ...filters, classId: v, subject: '' })}><SelectTrigger className="h-9 bg-white"><SelectValue placeholder="Class" /></SelectTrigger><SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)} {c.section}</SelectItem>)}</SelectContent></Select></FormField>
           <FormField label="Subject"><div className="h-9"><SubjectSelect value={filters.subject} onChange={(subject) => setFilters({ ...filters, subject })} subjects={subjects} loading={subjectsLoading} allowCustom={allowCustom} canAddSubjects={canAddSubjects} onRegisterSubject={registerSubject} emptyMessage={emptyMessage} /></div></FormField>
@@ -88,28 +94,23 @@ export default function TeacherResults() {
           
           <div className="flex items-end gap-2">
             <Button size="sm" onClick={() => checkAndBlock(load)} disabled={loading} className="h-9 px-6 bg-blue-600 hover:bg-blue-700">{loading ? 'Loading...' : 'Apply'}</Button>
-            {/* 
-            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('csv'))}>CSV</Button>
-            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('pdf'))}>PDF</Button>
-            <Button size="sm" variant="outline" className="h-9" onClick={() => checkAndBlock(() => download('xlsx'))}>Excel</Button> 
-            */}
           </div>
         </div>
       </ErpSection>
 
       {results && (
-        <ErpSection title="Results Data" icon={FileBarChart} tone="green">
+        <ErpSection className="override-green-grad" title="Results Data" icon={FileBarChart} tone="green">
           <div className="mb-4 relative max-w-xs">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm" />
+            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9 text-sm bg-white" />
           </div>
           
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white/80">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-slate-50/50">
                 {isDailyTest ? (
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-slate-50 border-r w-24">Total</TableHead>
+                    <TableHead className="sticky left-0 bg-slate-50/50 border-r w-24">Total</TableHead>
                     <TableHead>Avg</TableHead><TableHead>Roll</TableHead><TableHead>Student</TableHead>
                     {(results.tests || []).map((t, i) => <TableHead key={t._id} className="text-center font-bold">T{i + 1}</TableHead>)}
                   </TableRow>
@@ -121,10 +122,10 @@ export default function TeacherResults() {
               </TableHeader>
               <TableBody>
                 {filteredResults.map((r, i) => (
-                  <TableRow key={i} className="hover:bg-slate-50">
+                  <TableRow key={i} className="hover:bg-slate-50/80">
                     {isDailyTest ? (
                       <>
-                        <TableCell className="sticky left-0 bg-white border-r font-bold text-indigo-700">{r.totalObtained ?? 0}</TableCell>
+                        <TableCell className="sticky left-0 bg-white/80 border-r font-bold text-indigo-700">{r.totalObtained ?? 0}</TableCell>
                         <TableCell className="font-medium">{r.average ?? 0}</TableCell>
                         <TableCell>{r.student?.rollNo}</TableCell>
                         <TableCell className="font-semibold">{r.student?.name}</TableCell>

@@ -55,6 +55,7 @@ import RequireFeature from '@/components/subscription/RequireFeature';
 import SuperNotifications from '@/pages/super/SuperNotifications';
 
 import NotebookChecking from '@/pages/teacher/NotebookChecking';
+import CheckingProgress from '@/pages/teacher/CheckingProgress';
 import NotebookAnalytics from '@/pages/admin/NotebookAnalytics';
 import NotebookProgress from '@/pages/parent/NotebookProgress';
 
@@ -144,6 +145,7 @@ export default function App() {
               <Route path="/teacher/settings" element={<ProtectedRoute roles={['teacher']}><TeacherSettings /></ProtectedRoute>} />
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
               <Route path="/teacher/notebook-checking" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><NotebookChecking /></RequireFeature></ProtectedRoute>} />
+              <Route path="/teacher/checking-progress" element={<ProtectedRoute roles={['teacher']}><CheckingProgress /></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/notebook-progress" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><NotebookProgress /></RequireFeature></ProtectedRoute>} />
