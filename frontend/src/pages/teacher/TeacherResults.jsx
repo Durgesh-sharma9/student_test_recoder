@@ -129,7 +129,13 @@ export default function TeacherResults() {
                         <TableCell className="font-medium">{r.average ?? 0}</TableCell>
                         <TableCell>{r.student?.rollNo}</TableCell>
                         <TableCell className="font-semibold">{r.student?.name}</TableCell>
-                        {(results.tests || []).map((t) => <TableCell key={t._id} className="text-center text-slate-600">{r.testMarks?.[t._id]?.marksObtained ?? '-'}</TableCell>)}
+                        {(results.tests || []).map((t) => {
+                          const mark = r.testMarks?.[t._id];
+                          if (mark?.status === 'not_admitted_yet') {
+                            return <TableCell key={t._id} className="text-center text-slate-400 text-xs">Not Admitted Yet</TableCell>;
+                          }
+                          return <TableCell key={t._id} className="text-center text-slate-600">{mark?.marksObtained ?? '-'}</TableCell>;
+                        })}
                       </>
                     ) : (
                       <>

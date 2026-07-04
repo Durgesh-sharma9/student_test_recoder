@@ -29,7 +29,7 @@ export default function ManageStudents() {
   
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+  const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
   const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -99,7 +99,7 @@ export default function ManageStudents() {
                 toast.success('Student updated');
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -149,7 +149,7 @@ export default function ManageStudents() {
                 
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -190,7 +190,7 @@ export default function ManageStudents() {
       }
       setOpen(false); 
       setEdit(null); 
-      setForm({ rollNo: '', name: '', gender: 'male', parentName: '', parentPhone: '', parentEmail: '' });
+      setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
       loadStudents(selectedClass);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -493,7 +493,15 @@ export default function ManageStudents() {
                           disabled={isArchived}
                           onClick={() => {
                             setEdit(s);
-                            setForm({ rollNo: s.rollNo, name: s.name, gender: s.gender, parentName: s.parentName||'', parentPhone: s.parentPhone||'', parentEmail: s.parentEmail||'' });
+                            setForm({ 
+                              rollNo: s.rollNo, 
+                              name: s.name, 
+                              gender: s.gender, 
+                              admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                              parentName: s.parentName||'', 
+                              parentPhone: s.parentPhone||'', 
+                              parentEmail: s.parentEmail||'' 
+                            });
                             setOpen(true);
                           }}
                           className="h-7 px-2.5 text-[10px] font-medium border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-md"
@@ -573,6 +581,15 @@ export default function ManageStudents() {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </FormField>
+              <FormField label="Admission Date">
+                <Input
+                  type="date"
+                  value={form.admissionDate}
+                  onChange={(e) => setForm({ ...form, admissionDate: e.target.value })}
+                  required
+                  className="h-9 rounded-md text-sm"
+                />
               </FormField>
               
               <div className="border-t border-slate-100 pt-3 mt-3">
