@@ -4,6 +4,7 @@ import NotebookCheck from '../models/NotebookCheck.js';
 import AcademicSession from '../models/AcademicSession.js';
 import ResultSession from '../models/ResultSession.js';
 import mongoose from 'mongoose';
+import { MAIN_EXAM_TYPES } from '../utils/constants.js';
 
 // Helper function to get active session
 const getActiveSession = async (schoolId) => {
@@ -150,6 +151,13 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       academicSession: activeSession._id 
     };
 
+    console.log('=== STUDENT PERFORMANCE QUERY DEBUG ===');
+    console.log('Base Session Filter:', JSON.stringify(baseSessionFilter, null, 2));
+    console.log('Selected Exam Types:', selectedExamTypes);
+    console.log('Assessment Type:', assessmentType);
+    console.log('Date Range:', dateRange);
+    console.log('====================================');
+
     // Fetch Daily Test sessions (with date filter if applicable)
     let dailyTestSessions = [];
     if (assessmentType === 'All Assessments' || !assessmentType || assessmentType === 'Daily Test') {
@@ -157,31 +165,106 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       if (dateRange && dateRange !== 'All Time') {
         dailyFilter.testDate = dateFilter;
       }
+      console.log('Daily Test Filter:', JSON.stringify(dailyFilter, null, 2));
       dailyTestSessions = await ResultSession.find(dailyFilter).lean();
+      console.log('Daily Test Sessions Found:', dailyTestSessions.length);
+      if (dailyTestSessions.length > 0) {
+        console.log('Sample Daily Test Session:', dailyTestSessions[0]);
+      }
     }
 
     // Fetch Main Exam sessions (NO date filter - always show all main exams in session)
     let mainExamSessions = [];
     if (assessmentType === 'All Assessments' || !assessmentType || assessmentType === 'Main Exam') {
-      const mainFilter = { ...baseSessionFilter, category: 'main' };
-      if (selectedExamTypes.length > 0) {
-        mainFilter.examType = { $in: selectedExamTypes };
+      // Match Class Results logic: loop through each exam type separately
+      const mainExamTypesToFetch = selectedExamTypes.length > 0 
+        ? selectedExamTypes.filter(t => MAIN_EXAM_TYPES.includes(t))
+        : MAIN_EXAM_TYPES;
+
+      console.log('Main Exam Types to Fetch:', mainExamTypesToFetch);
+
+      for (const mainExamType of mainExamTypesToFetch) {
+        const mainFilter = {
+          school: schoolId,
+          class: classId,
+          category: 'main',
+          examType: mainExamType,
+          academicSession: activeSession._id
+        };
+        console.log(`=== STEP 1: RESULTSESSION QUERY FOR ${mainExamType} ===`);
+        console.log('Query Object:', JSON.stringify(mainFilter, null, 2));
+        
+        let typeSessions = await ResultSession.find(mainFilter).lean();
+        console.log('Documents Returned:', typeSessions.length);
+        if (typeSessions.length > 0) {
+          typeSessions.forEach((s, idx) => {
+            console.log(`Document ${idx + 1}:`, {
+              _id: s._id,
+              examType: s.examType,
+              category: s.category,
+              academicSession: s.academicSession,
+              examDate: s.examDate,
+              testDate: s.testDate
+            });
+          });
+        }
+
+        // Fallback for old records without academicSession (same as Class Results)
+        if (typeSessions.length === 0) {
+          console.log(`No ${mainExamType} sessions found with academicSession, trying fallback without academicSession...`);
+          const fallbackFilter = {
+            school: schoolId,
+            class: classId,
+            category: 'main',
+            examType: mainExamType
+          };
+          console.log('Fallback Query Object:', JSON.stringify(fallbackFilter, null, 2));
+          typeSessions = await ResultSession.find(fallbackFilter).lean();
+          console.log('Fallback Documents Returned:', typeSessions.length);
+          if (typeSessions.length > 0) {
+            typeSessions.forEach((s, idx) => {
+              console.log(`Fallback Document ${idx + 1}:`, {
+                _id: s._id,
+                examType: s.examType,
+                category: s.category,
+                academicSession: s.academicSession,
+                examDate: s.examDate,
+                testDate: s.testDate
+              });
+            });
+          }
+        }
+
+        typeSessions.forEach(s => {
+          mainExamSessions.push({ ...s, assessmentDate: s.examDate, examType: mainExamType });
+        });
+        console.log(`=== END STEP 1 FOR ${mainExamType} ===\n`);
       }
-      mainExamSessions = await ResultSession.find(mainFilter).lean();
+
+      console.log('Total Main Exam Sessions After Loop:', mainExamSessions.length);
+      if (mainExamSessions.length > 0) {
+        console.log('Sample Main Exam Session:', mainExamSessions[0]);
+      }
     }
 
     // Combine sessions
     let sessions = [...dailyTestSessions, ...mainExamSessions];
 
-    console.log('=== STUDENT PERFORMANCE DEBUG ===');
-    console.log('Assessment Type:', assessmentType);
-    console.log('Date Range:', dateRange);
+    console.log('=== STUDENT PERFORMANCE SESSIONS DEBUG ===');
     console.log('Daily Test Sessions:', dailyTestSessions.length);
     console.log('Main Exam Sessions:', mainExamSessions.length);
     console.log('Total Sessions:', sessions.length);
-    console.log('===================================');
+    console.log('=========================================');
 
     const sessionIds = sessions.map(s => s._id);
+
+    console.log('=== STEP 2: MARKENTRY QUERY ===');
+    console.log('Session IDs:', sessionIds);
+    console.log('Student IDs:', studentIds);
+    console.log('Query Filter:', JSON.stringify({
+      session: { $in: sessionIds },
+      student: { $in: studentIds }
+    }, null, 2));
 
     // Fetch MarkEntries for the sessions
     let marks = [];
@@ -192,11 +275,31 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       }).populate('session').lean();
     }
 
-    console.log('=== STUDENT PERFORMANCE MARKS DEBUG ===');
-    console.log('Total Marks:', marks.length);
-    console.log('Daily Test Marks:', marks.filter(m => m.session?.category === 'daily').length);
-    console.log('Main Exam Marks:', marks.filter(m => m.session?.category === 'main').length);
-    console.log('========================================');
+    console.log('Total MarkEntries Returned:', marks.length);
+    console.log('Daily Test MarkEntries:', marks.filter(m => m.session?.category === 'daily').length);
+    console.log('Main Exam MarkEntries:', marks.filter(m => m.session?.category === 'main').length);
+    
+    if (marks.length > 0) {
+      console.log('Sample MarkEntry Details:');
+      marks.slice(0, 3).forEach((m, idx) => {
+        console.log(`MarkEntry ${idx + 1}:`, {
+          _id: m._id,
+          session: m.session?._id,
+          student: m.student,
+          marksObtained: m.marksObtained,
+          status: m.status,
+          percentage: m.percentage,
+          populatedSession: m.session ? {
+            _id: m.session._id,
+            examType: m.session.examType,
+            category: m.session.category,
+            subject: m.session.subject,
+            maxMarks: m.session.maxMarks
+          } : null
+        });
+      });
+    }
+    console.log('=== END STEP 2 ===\n');
 
     // Fetch Notebook Checks (no date filter for Notebook Checking)
     let notebooks = [];
@@ -211,6 +314,13 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
     const analyticsData = students.map(student => {
       const studentMarks = marks.filter(m => m.student.toString() === student._id.toString());
       const studentNotebooks = notebooks.filter(n => n.student.toString() === student._id.toString());
+
+      console.log(`=== STEP 3: STUDENT AGGREGATION FOR ${student.name} ===`);
+      console.log('Student ID:', student._id);
+      console.log('Daily Test MarkEntries:', studentMarks.filter(m => m.session?.category === 'daily').length);
+      console.log('Main Exam MarkEntries:', studentMarks.filter(m => m.session?.category === 'main').length);
+      console.log('Notebook Checks:', studentNotebooks.length);
+      console.log('=== END STEP 3 ===\n');
 
       // Calculate Notebook percentage and detailed stats
       let totalNotebookChapters = 0;
@@ -346,7 +456,7 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       console.log('Main Total Obtained:', mainTotalObtained);
       console.log('Main Total Max:', mainTotalMax);
       console.log('Main Percentage:', mainPercentage);
-      console.log('Main By Exam Type:', mainByExamType);
+      console.log('Main By Exam Type:', JSON.stringify(mainByExamType, null, 2));
       console.log('==============================');
 
       // Calculate grade based on percentage
@@ -391,6 +501,17 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
           average: overallAvg
         };
       });
+
+      console.log(`=== STEP 4: SUBJECT AGGREGATION FOR ${student.name} ===`);
+      subjectAnalytics.forEach(s => {
+        console.log(`Subject: ${s.subject}`, {
+          'Daily %': s.dailyTestAvg.toFixed(2),
+          'Main %': s.mainExamAvg.toFixed(2),
+          'Notebook %': s.notebookPercent.toFixed(2),
+          'Main By Exam Type': s.mainByExamType
+        });
+      });
+      console.log('=== END STEP 4 ===\n');
 
       if (weakestSubject.name === '-') weakestSubject.score = 0;
 
@@ -484,7 +605,14 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
     // Calculate ranks based on overall percentage
     const rankedData = computeCompetitionRanks(analyticsData, 'overallPercentage');
 
-    res.json({ success: true, data: rankedData });
+    const finalResponse = { success: true, data: rankedData };
+
+    console.log('=== STEP 5: FINAL API RESPONSE ===');
+    console.log('Total Students in Response:', rankedData.length);
+    console.log('Complete Response:', JSON.stringify(finalResponse, null, 2));
+    console.log('=== END STEP 5 ===\n');
+
+    res.json(finalResponse);
   } catch (error) {
     console.error('Error generating student performance analytics:', error);
     res.status(500).json({ success: false, message: 'Failed to generate analytics', error: error.message });
