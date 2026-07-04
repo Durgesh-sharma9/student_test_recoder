@@ -43,7 +43,7 @@ export const findMainSession = async (schoolId, classId, subject, examType, exam
   return ResultSession.findOne(filter);
 };
 
-export const buildMarksRows = async (session, classId, schoolId) => {
+export const buildMarksRows = async (session, classId, schoolId, testDateOverride = null) => {
   const students = await Student.find({
     class: classId,
     school: schoolId,
@@ -57,8 +57,8 @@ export const buildMarksRows = async (session, classId, schoolId) => {
     marks.forEach((m) => marksMap.set(m.student.toString(), m));
   }
 
-  // Get test date for admission comparison
-  const testDate = session?.testDate || session?.examDate;
+  // Get test date for admission comparison - use override if provided, otherwise from session
+  const testDate = testDateOverride || session?.testDate || session?.examDate;
   const testDateObj = testDate ? new Date(testDate) : null;
 
   return students.map((s) => {
