@@ -105,7 +105,7 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
 
     // Build date filter (only for Daily Test)
     let dateFilter = {};
-    if (dateRange && dateRange !== 'All Time' && assessmentType === 'Daily Test') {
+    if (dateRange && dateRange !== 'All Time') {
       const now = new Date();
       let startDate = new Date();
       let endDate = new Date();
@@ -143,45 +143,43 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       dateFilter = { $gte: startDate, $lte: endDate };
     }
 
-    // Fetch ResultSessions based on assessment type
-    let sessionFilter = { 
+    // Fetch ResultSessions - Daily Test with date filter, Main Exam without date filter
+    const baseSessionFilter = { 
       school: schoolId, 
       class: classId,
       academicSession: activeSession._id 
     };
 
-    // Apply date filter only for Daily Test
-    if (dateRange && dateRange !== 'All Time' && assessmentType === 'Daily Test') {
-      sessionFilter.testDate = dateFilter;
+    // Fetch Daily Test sessions (with date filter if applicable)
+    let dailyTestSessions = [];
+    if (assessmentType === 'All Assessments' || !assessmentType || assessmentType === 'Daily Test') {
+      const dailyFilter = { ...baseSessionFilter, category: 'daily' };
+      if (dateRange && dateRange !== 'All Time') {
+        dailyFilter.testDate = dateFilter;
+      }
+      dailyTestSessions = await ResultSession.find(dailyFilter).lean();
     }
 
-    let sessions = [];
-    if (assessmentType === 'All Assessments' || !assessmentType) {
-      // Fetch all sessions (Daily + Main)
-      sessions = await ResultSession.find(sessionFilter).lean();
-      // If examTypes selected, filter Main Exam sessions
+    // Fetch Main Exam sessions (NO date filter - always show all main exams in session)
+    let mainExamSessions = [];
+    if (assessmentType === 'All Assessments' || !assessmentType || assessmentType === 'Main Exam') {
+      const mainFilter = { ...baseSessionFilter, category: 'main' };
       if (selectedExamTypes.length > 0) {
-        sessions = sessions.filter(s => 
-          s.category !== 'main' || selectedExamTypes.includes(s.examType)
-        );
+        mainFilter.examType = { $in: selectedExamTypes };
       }
-    } else if (assessmentType === 'Daily Test') {
-      sessions = await ResultSession.find({ ...sessionFilter, category: 'daily' }).lean();
-    } else if (assessmentType === 'Main Exam') {
-      if (selectedExamTypes.length > 0) {
-        sessions = await ResultSession.find({ 
-          ...sessionFilter, 
-          category: 'main', 
-          examType: { $in: selectedExamTypes } 
-        }).lean();
-      } else {
-        // If no exam selected, fetch all main exams
-        sessions = await ResultSession.find({ ...sessionFilter, category: 'main' }).lean();
-      }
-    } else if (assessmentType === 'Notebook Checking') {
-      // Notebook doesn't use ResultSession, handle separately
-      sessions = [];
+      mainExamSessions = await ResultSession.find(mainFilter).lean();
     }
+
+    // Combine sessions
+    let sessions = [...dailyTestSessions, ...mainExamSessions];
+
+    console.log('=== STUDENT PERFORMANCE DEBUG ===');
+    console.log('Assessment Type:', assessmentType);
+    console.log('Date Range:', dateRange);
+    console.log('Daily Test Sessions:', dailyTestSessions.length);
+    console.log('Main Exam Sessions:', mainExamSessions.length);
+    console.log('Total Sessions:', sessions.length);
+    console.log('===================================');
 
     const sessionIds = sessions.map(s => s._id);
 
@@ -193,6 +191,12 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
         student: { $in: studentIds }
       }).populate('session').lean();
     }
+
+    console.log('=== STUDENT PERFORMANCE MARKS DEBUG ===');
+    console.log('Total Marks:', marks.length);
+    console.log('Daily Test Marks:', marks.filter(m => m.session?.category === 'daily').length);
+    console.log('Main Exam Marks:', marks.filter(m => m.session?.category === 'main').length);
+    console.log('========================================');
 
     // Fetch Notebook Checks (no date filter for Notebook Checking)
     let notebooks = [];
@@ -336,6 +340,14 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       });
 
       const mainPercentage = mainTotalMax > 0 ? (mainTotalObtained / mainTotalMax) * 100 : 0;
+
+      console.log('=== STUDENT MAIN EXAM DEBUG ===');
+      console.log('Student:', student.name);
+      console.log('Main Total Obtained:', mainTotalObtained);
+      console.log('Main Total Max:', mainTotalMax);
+      console.log('Main Percentage:', mainPercentage);
+      console.log('Main By Exam Type:', mainByExamType);
+      console.log('==============================');
 
       // Calculate grade based on percentage
       const calculateGrade = (percentage) => {
