@@ -1,8 +1,10 @@
 import Student from '../models/Student.js';
 import MarkEntry from '../models/MarkEntry.js';
 import NotebookCheck from '../models/NotebookCheck.js';
+import NotebookChapterUnlock from '../models/NotebookChapterUnlock.js';
 import AcademicSession from '../models/AcademicSession.js';
 import ResultSession from '../models/ResultSession.js';
+import User from '../models/User.js';
 import mongoose from 'mongoose';
 import { MAIN_EXAM_TYPES } from '../utils/constants.js';
 
@@ -229,6 +231,40 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       }).lean();
     }
 
+    const chapterUnlocks = await NotebookChapterUnlock.find({
+      school: schoolId,
+      academicSession: activeSession._id,
+      class: classId,
+    }).lean();
+
+    const unlockMap = new Map();
+    chapterUnlocks.forEach((unlock) => {
+      const subject = String(unlock.subject).toUpperCase().trim();
+      unlockMap.set(subject, unlock.unlockedChapters || []);
+    });
+
+    const teacherAssignments = await User.find({
+      school: schoolId,
+      role: 'teacher',
+      isActive: true,
+      'assignments.class': classId,
+      'assignments.academicSession': activeSession._id,
+    }).select('assignments').lean();
+
+    const totalChaptersBySubject = new Map();
+    teacherAssignments.forEach((teacher) => {
+      (teacher.assignments || []).forEach((assignment) => {
+        if (
+          String(assignment.class) === String(classId) &&
+          String(assignment.academicSession) === String(activeSession._id)
+        ) {
+          const subject = String(assignment.subject).toUpperCase().trim();
+          const existing = totalChaptersBySubject.get(subject) || 0;
+          totalChaptersBySubject.set(subject, Math.max(existing, assignment.totalChapters || 0));
+        }
+      });
+    });
+
     const sessionMap = new Map(sessions.map(session => [session._id.toString(), session]));
     const dailySessionIds = new Set(dailyTestSessions.map(session => session._id.toString()));
     const mainSessionIds = new Set(mainExamSessions.map(session => session._id.toString()));
@@ -263,31 +299,71 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
       let notebookPercentage = 0;
       const subjectsMap = {};
 
+      // Initialize every subject assigned in this class and session.
+      totalChaptersBySubject.forEach((total, subject) => {
+        const unlocked = unlockMap.get(subject)?.length || 0;
+        const checked = 0;
+        const pending = Math.max(unlocked - checked, 0);
+        const percent = unlocked > 0 ? 0 : 0;
+
+        subjectsMap[subject] = {
+          notebook: percent,
+          notebookData: { checked, total, unlocked, pending, percent },
+          daily: { totalObtained: 0, totalMax: 0, count: 0 },
+          main: { totalObtained: 0, totalMax: 0, count: 0, byExamType: {} }
+        };
+      });
+
+      // Ensure subjects with unlock records but no assignment still exist.
+      unlockMap.forEach((unlockedChapters, subject) => {
+        if (!subjectsMap[subject]) {
+          const total = totalChaptersBySubject.get(subject) || 0;
+          const unlocked = unlockedChapters.length;
+          const checked = 0;
+          const pending = Math.max(unlocked - checked, 0);
+          const percent = unlocked > 0 ? 0 : 0;
+
+          subjectsMap[subject] = {
+            notebook: percent,
+            notebookData: { checked, total, unlocked, pending, percent },
+            daily: { totalObtained: 0, totalMax: 0, count: 0 },
+            main: { totalObtained: 0, totalMax: 0, count: 0, byExamType: {} }
+          };
+        }
+      });
+
       studentNotebooks.forEach(nb => {
-        if (!subjectsMap[nb.subject]) {
-          subjectsMap[nb.subject] = {
-            notebook: 0,
-            notebookData: { checked: 0, total: 0, unlocked: 0, pending: 0 },
+        const subject = String(nb.subject).toUpperCase().trim();
+        if (!subjectsMap[subject]) {
+          const total = totalChaptersBySubject.get(subject) || 0;
+          const unlocked = unlockMap.get(subject)?.length || 0;
+          const checked = 0;
+          const pending = Math.max(unlocked - checked, 0);
+          const percent = unlocked > 0 ? 0 : 0;
+
+          subjectsMap[subject] = {
+            notebook: percent,
+            notebookData: { checked, total, unlocked, pending, percent },
             daily: { totalObtained: 0, totalMax: 0, count: 0 },
             main: { totalObtained: 0, totalMax: 0, count: 0, byExamType: {} }
           };
         }
 
+        const total = totalChaptersBySubject.get(subject) || 0;
+        const unlocked = unlockMap.get(subject)?.length || 0;
         const checked = nb.chapters.filter(ch => ch.status === 'Checked').length;
-        const unlocked = nb.chapters.filter(ch => ch.status === 'Unlocked').length;
-        const total = nb.chapters.length;
-        const pending = Math.max(total - checked, 0);
-        const percent = total > 0 ? (checked / total) * 100 : 0;
+        const pending = Math.max(unlocked - checked, 0);
+        const percent = unlocked > 0 ? (checked / unlocked) * 100 : 0;
 
-        subjectsMap[nb.subject].notebook = percent;
-        subjectsMap[nb.subject].notebookData = { checked, total, unlocked, pending, percent };
+        subjectsMap[subject].notebook = percent;
+        subjectsMap[subject].notebookData = { checked, total, unlocked, pending, percent };
 
         totalNotebookChapters += total;
         totalCheckedChapters += checked;
         totalUnlockedChapters += unlocked;
       });
 
-      notebookPercentage = totalNotebookChapters > 0 ? (totalCheckedChapters / totalNotebookChapters) * 100 : 0;
+      notebookPercentage = totalUnlockedChapters > 0 ? (totalCheckedChapters / totalUnlockedChapters) * 100 : 0;
 
       let dailyTotalObtained = 0;
       let dailyTotalMax = 0;
@@ -472,7 +548,7 @@ export const getStudentPerformanceAnalytics = async (req, res, next) => {
           totalChapters: totalNotebookChapters,
           checkedChapters: totalCheckedChapters,
           unlockedChapters: totalUnlockedChapters,
-          pendingChapters: totalNotebookChapters - totalCheckedChapters,
+          pendingChapters: Math.max(totalUnlockedChapters - totalCheckedChapters, 0),
           completionPercentage: round2(notebookPercentage)
         },
         mainExamStats: {
