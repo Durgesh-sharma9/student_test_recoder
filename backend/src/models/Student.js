@@ -9,6 +9,7 @@ const studentSchema = new mongoose.Schema(
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
     parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent' },
+    admissionDate: { type: Date, required: true },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

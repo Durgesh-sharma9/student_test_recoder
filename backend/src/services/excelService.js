@@ -15,7 +15,7 @@ export const generateStudentImportTemplate = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Students');
 
-  const headers = ['Roll No', 'Student Name', 'Gender', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
+  const headers = ['Roll No', 'Student Name', 'Gender', 'Admission Date', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
   sheet.addRow(headers);
 
   const headerRow = sheet.getRow(1);
@@ -116,15 +116,17 @@ export const parseStudentImportFile = (buffer, filename) => {
     const rollNo = String(row[0] || '').trim();
     const name = String(row[1] || '').trim();
     const gender = String(row[2] || '').trim().toLowerCase();
-    const parentName = String(row[3] || '').trim();
-    const parentPhone = String(row[4] || '').trim();
-    const parentEmail = String(row[5] || '').trim();
+    const admissionDate = String(row[3] || '').trim();
+    const parentName = String(row[4] || '').trim();
+    const parentPhone = String(row[5] || '').trim();
+    const parentEmail = String(row[6] || '').trim();
 
     return {
       rowNumber: index + 2,
       rollNo,
       name,
       gender,
+      admissionDate,
       parentName,
       parentPhone,
       parentEmail,

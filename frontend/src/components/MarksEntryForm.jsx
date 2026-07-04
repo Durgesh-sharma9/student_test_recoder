@@ -131,10 +131,10 @@ export default function MarksEntryForm({ category, title }) {
     // Clear any existing errors before validation
     setErrorFields([]);
 
-    // Check for empty marks (skip absent students)
+    // Check for empty marks (skip absent and not admitted yet students)
     const emptyFields = [];
     rows.forEach((r, idx) => {
-      if (r.status !== 'absent' && (r.marksObtained === '' || r.marksObtained == null)) {
+      if (r.status !== 'absent' && !r.isNotAdmittedYet && (r.marksObtained === '' || r.marksObtained == null)) {
         emptyFields.push(idx);
       }
     });
@@ -180,8 +180,8 @@ export default function MarksEntryForm({ category, title }) {
 
     const entries = rows.map((r) => ({
       studentId: r.studentId,
-      marksObtained: r.marksObtained === '' || r.marksObtained == null ? 0 : Number(r.marksObtained),
-      status: r.status || 'present',
+      marksObtained: r.isNotAdmittedYet ? 0 : (r.marksObtained === '' || r.marksObtained == null ? 0 : Number(r.marksObtained)),
+      status: r.isNotAdmittedYet ? 'present' : (r.status || 'present'),
     }));
 
     setSaving(true);
@@ -387,47 +387,60 @@ export default function MarksEntryForm({ category, title }) {
                     filteredRows.map((r, idx) => {
                       const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
                       const isAbsent = r.status === 'absent';
+                      const isNotAdmittedYet = r.isNotAdmittedYet;
                       return (
                         <TableRow 
                           key={r.studentId}
-                          className={`transition-colors ${isAbsent ? 'bg-rose-50/30 hover:bg-rose-50/50' : 'hover:bg-blue-50/30'}`}
+                          className={`transition-colors ${
+                            isNotAdmittedYet 
+                              ? 'bg-slate-100/50 hover:bg-slate-100' 
+                              : isAbsent 
+                                ? 'bg-rose-50/30 hover:bg-rose-50/50' 
+                                : 'hover:bg-blue-50/30'
+                          }`}
                         >
-                          <TableCell className={`py-2 text-sm ${isAbsent ? 'text-slate-400' : 'text-slate-600'}`}>
+                          <TableCell className={`py-2 text-sm ${isNotAdmittedYet || isAbsent ? 'text-slate-400' : 'text-slate-600'}`}>
                             {r.rollNo}
                           </TableCell>
-                          <TableCell className={`py-2 text-sm ${isAbsent ? 'font-normal text-slate-400' : 'font-semibold text-slate-800'}`}>
+                          <TableCell className={`py-2 text-sm ${isNotAdmittedYet || isAbsent ? 'font-normal text-slate-400' : 'font-semibold text-slate-800'}`}>
                             {r.name}
                           </TableCell>
                           <TableCell className="py-2">
-                            <Select
-                              value={r.status || 'present'}
-                              onValueChange={(value) => {
-                                setRows((prev) =>
-                                  prev.map((x, i) => {
-                                    if (i === originalIdx) {
-                                      const newStatus = value;
-                                      const newMarks = newStatus === 'absent' ? '' : x.marksObtained;
-                                      return { ...x, status: newStatus, marksObtained: newMarks };
-                                    }
-                                    return x;
-                                  })
-                                );
-                              }}
-                            >
-                              <SelectTrigger 
-                                className={`h-8 w-28 text-xs font-medium rounded-md border shadow-sm transition-colors ${
-                                  isAbsent 
-                                    ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' 
-                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                                }`}
+                            {isNotAdmittedYet ? (
+                              <div className="h-8 w-28 flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
+                                Not Admitted Yet
+                              </div>
+                            ) : (
+                              <Select
+                                value={r.status || 'present'}
+                                onValueChange={(value) => {
+                                  setRows((prev) =>
+                                    prev.map((x, i) => {
+                                      if (i === originalIdx) {
+                                        const newStatus = value;
+                                        const newMarks = newStatus === 'absent' ? '' : x.marksObtained;
+                                        return { ...x, status: newStatus, marksObtained: newMarks };
+                                      }
+                                      return x;
+                                    })
+                                  );
+                                }}
                               >
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="present" className="text-xs font-medium text-emerald-700">Present</SelectItem>
-                                <SelectItem value="absent" className="text-xs font-medium text-rose-700">Absent</SelectItem>
-                              </SelectContent>
-                            </Select>
+                                <SelectTrigger 
+                                  className={`h-8 w-28 text-xs font-medium rounded-md border shadow-sm transition-colors ${
+                                    isAbsent 
+                                      ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100' 
+                                      : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="present" className="text-xs font-medium text-emerald-700">Present</SelectItem>
+                                  <SelectItem value="absent" className="text-xs font-medium text-rose-700">Absent</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </TableCell>
                           <TableCell className="py-2">
                             <Input
@@ -436,8 +449,8 @@ export default function MarksEntryForm({ category, title }) {
                               min="0"
                               max={form.maxMarks}
                               value={r.marksObtained}
-                              disabled={isAbsent}
-                              placeholder={isAbsent ? 'AB' : '0'}
+                              disabled={isAbsent || isNotAdmittedYet}
+                              placeholder={isAbsent ? 'AB' : isNotAdmittedYet ? 'NA' : '0'}
                               onChange={(e) => {
                                 setRows((prev) =>
                                   prev.map((x, i) => (i === originalIdx ? { ...x, marksObtained: e.target.value } : x))
@@ -458,9 +471,11 @@ export default function MarksEntryForm({ category, title }) {
                               className={`h-8 w-20 text-center text-sm font-bold rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
                                 errorFields.includes(originalIdx) 
                                   ? 'border-red-500 ring-2 ring-red-500/20 focus-visible:ring-red-500 bg-red-50 text-red-700' 
-                                  : isAbsent 
-                                    ? 'bg-transparent border-transparent text-rose-400 font-medium'
-                                    : 'bg-white border-slate-200 text-indigo-700 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 shadow-sm'
+                                  : isNotAdmittedYet 
+                                    ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                                    : isAbsent 
+                                      ? 'bg-transparent border-transparent text-rose-400 font-medium'
+                                      : 'bg-white border-slate-200 text-indigo-700 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 shadow-sm'
                               }`}
                             />
                           </TableCell>

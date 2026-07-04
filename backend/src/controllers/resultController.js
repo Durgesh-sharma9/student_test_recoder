@@ -603,24 +603,39 @@ export const getResults = asyncHandler(async (req, res) => {
       const testMarks = {};
       let totalObtained = 0;
       let totalMax = 0;
+      let eligibleTestsCount = 0;
 
       sessions.forEach(session => {
         const entry = entries.find(e => 
           e.session.toString() === session._id.toString() && 
           e.student.toString() === student._id.toString()
         );
-        testMarks[session._id.toString()] = entry ? {
-          marksObtained: entry.marksObtained,
-          status: entry.status || 'present'
-        } : null;
         
-        if (entry) {
-          totalObtained += entry.marksObtained;
-          totalMax += session.maxMarks;
+        // Check if student was admitted on or before test date
+        const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+        const testDate = session.testDate ? new Date(session.testDate) : null;
+        const isNotAdmittedYet = testDate && admissionDate && admissionDate > testDate;
+        
+        if (isNotAdmittedYet) {
+          testMarks[session._id.toString()] = {
+            marksObtained: null,
+            status: 'not_admitted_yet'
+          };
+        } else {
+          testMarks[session._id.toString()] = entry ? {
+            marksObtained: entry.marksObtained,
+            status: entry.status || 'present'
+          } : null;
+          
+          if (entry) {
+            totalObtained += entry.marksObtained;
+            totalMax += session.maxMarks;
+            eligibleTestsCount++;
+          }
         }
       });
 
-      const average = sessions.length > 0 ? round2(totalObtained / sessions.length) : 0;
+      const average = eligibleTestsCount > 0 ? round2(totalObtained / eligibleTestsCount) : 0;
       const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
 
       return {
@@ -748,24 +763,39 @@ export const downloadResults = asyncHandler(async (req, res) => {
       const testMarks = {};
       let totalObtained = 0;
       let totalMax = 0;
+      let eligibleTestsCount = 0;
 
       sessions.forEach(session => {
         const entry = entries.find(e => 
           e.session.toString() === session._id.toString() && 
           e.student.toString() === student._id.toString()
         );
-        testMarks[session._id.toString()] = entry ? {
-          marksObtained: entry.marksObtained,
-          status: entry.status || 'present'
-        } : null;
         
-        if (entry) {
-          totalObtained += entry.marksObtained;
-          totalMax += session.maxMarks;
+        // Check if student was admitted on or before test date
+        const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+        const testDate = session.testDate ? new Date(session.testDate) : null;
+        const isNotAdmittedYet = testDate && admissionDate && admissionDate > testDate;
+        
+        if (isNotAdmittedYet) {
+          testMarks[session._id.toString()] = {
+            marksObtained: null,
+            status: 'not_admitted_yet'
+          };
+        } else {
+          testMarks[session._id.toString()] = entry ? {
+            marksObtained: entry.marksObtained,
+            status: entry.status || 'present'
+          } : null;
+          
+          if (entry) {
+            totalObtained += entry.marksObtained;
+            totalMax += session.maxMarks;
+            eligibleTestsCount++;
+          }
         }
       });
 
-      const average = sessions.length > 0 ? round2(totalObtained / sessions.length) : 0;
+      const average = eligibleTestsCount > 0 ? round2(totalObtained / eligibleTestsCount) : 0;
       const percentage = totalMax > 0 ? round2((totalObtained / totalMax) * 100) : 0;
 
       return {

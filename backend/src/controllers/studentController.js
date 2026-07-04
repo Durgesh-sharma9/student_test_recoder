@@ -55,8 +55,11 @@ const shiftRollNumbers = async (schoolId, classId, academicSessionId, fromRollNo
   for (const student of studentsToShift) {
     const currentRoll = Number(student.rollNo);
     if (currentRoll >= fromRollNum) {
-      student.rollNo = String(currentRoll + 1);
-      await student.save();
+      // Use updateOne to only modify rollNo without triggering full document validation
+      await Student.updateOne(
+        { _id: student._id },
+        { rollNo: String(currentRoll + 1) }
+      );
     }
   }
 };
@@ -121,6 +124,7 @@ export const createStudent = asyncHandler(async (req, res) => {
     academicSession: academicSessionId,
     rollNo: String(req.body.rollNo || '').trim(),
     name: String(req.body.name || '').trim(),
+    admissionDate: req.body.admissionDate ? new Date(req.body.admissionDate) : new Date(),
   };
 
   const classDoc = await Class.findOne(withSchool(req, { _id: payload.class }));
@@ -196,6 +200,7 @@ export const updateStudent = asyncHandler(async (req, res) => {
     ...req.body,
     ...(req.body.rollNo !== undefined ? { rollNo: String(req.body.rollNo).trim() } : {}),
     ...(req.body.name !== undefined ? { name: String(req.body.name).trim() } : {}),
+    ...(req.body.admissionDate !== undefined ? { admissionDate: new Date(req.body.admissionDate) } : {}),
   };
 
   const current = await Student.findOne(withSchool(req, { _id: req.params.id }));
@@ -483,6 +488,7 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         name: row.name,
         gender: row.gender,
         parent: parentId,
+        admissionDate: row.admissionDate ? new Date(row.admissionDate) : new Date(),
       });
 
       // Link student to parent after student is created

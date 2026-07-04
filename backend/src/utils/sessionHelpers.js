@@ -57,16 +57,28 @@ export const buildMarksRows = async (session, classId, schoolId) => {
     marks.forEach((m) => marksMap.set(m.student.toString(), m));
   }
 
+  // Get test date for admission comparison
+  const testDate = session?.testDate || session?.examDate;
+  const testDateObj = testDate ? new Date(testDate) : null;
+
   return students.map((s) => {
     const m = marksMap.get(s._id.toString());
+    
+    // Check if student was admitted on or before test date
+    const admissionDate = s.admissionDate ? new Date(s.admissionDate) : null;
+    const isNotAdmittedYet = testDateObj && admissionDate && admissionDate > testDateObj;
+
     return {
       studentId: s._id,
       rollNo: s.rollNo,
       name: s.name,
       gender: s.gender,
+      admissionDate: s.admissionDate,
       marksObtained: m?.marksObtained ?? '',
       rankSubject: m?.rankSubject ?? null,
       percentage: m?.percentage ?? null,
+      status: m?.status ?? 'present',
+      isNotAdmittedYet,
     };
   });
 };

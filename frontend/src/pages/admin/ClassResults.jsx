@@ -148,7 +148,11 @@ export default function ClassResults() {
         results.assessments.forEach((assessment) => {
           const key = `${assessment.examType}_${assessment._id}`;
           const mark = r.assessments?.[key];
-          row.push(assessment.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          if (mark?.status === 'not_admitted_yet') {
+            row.push(assessment.maxMarks, 'Not Admitted Yet');
+          } else {
+            row.push(assessment.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          }
         });
         return row;
       });
@@ -179,7 +183,11 @@ export default function ClassResults() {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
           const mark = r.dailyTests[dt._id];
-          row.push(dt.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          if (mark?.status === 'not_admitted_yet') {
+            row.push(dt.maxMarks, 'Not Admitted Yet');
+          } else {
+            row.push(dt.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          }
         });
         return row;
       });
@@ -251,7 +259,11 @@ export default function ClassResults() {
         results.assessments.forEach((assessment) => {
           const key = `${assessment.examType}_${assessment._id}`;
           const mark = r.assessments?.[key];
-          row.push(assessment.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          if (mark?.status === 'not_admitted_yet') {
+            row.push(assessment.maxMarks, 'Not Admitted Yet');
+          } else {
+            row.push(assessment.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          }
         });
         data.push(row);
       });
@@ -391,7 +403,11 @@ export default function ClassResults() {
         const row = [r.totalObtained, r.average, r.percentage, r.rank, r.rollNo, r.name];
         results.dailyTests.forEach((dt) => {
           const mark = r.dailyTests[dt._id];
-          row.push(dt.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          if (mark?.status === 'not_admitted_yet') {
+            row.push(dt.maxMarks, 'Not Admitted Yet');
+          } else {
+            row.push(dt.maxMarks, mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? ''));
+          }
         });
         data.push(row);
       });
@@ -507,6 +523,9 @@ export default function ClassResults() {
       filteredResults.forEach((r) => {
         const subjectMarks = results.subjects.map((s) => {
           const mark = r.subjects[s];
+          if (mark?.status === 'not_admitted_yet') {
+            return 'Not Admitted Yet';
+          }
           return mark?.status === 'absent' ? 'A' : (mark?.marksObtained ?? '-');
         });
         data.push([
@@ -963,7 +982,13 @@ export default function ClassResults() {
                                       }`}
                                       style={{ minWidth: '140px' }}
                                     >
-                                      {mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '-')}
+                                      {mark?.status === 'not_admitted_yet' ? (
+                                        <span className="text-slate-400 text-xs">Not Admitted Yet</span>
+                                      ) : mark?.status === 'absent' ? (
+                                        <AbsentBadge />
+                                      ) : (
+                                        mark?.marksObtained ?? '-'
+                                      )}
                                     </TableCell>
                                   </React.Fragment>
                                 );
@@ -984,7 +1009,15 @@ export default function ClassResults() {
                                     return (
                                       <React.Fragment key={`${dt._id}-student-dt`}>
                                         <TableCell className="text-center border-r border-slate-200 text-slate-600 py-2 px-3 text-[13px]" style={{ minWidth: '120px' }}>{dt.maxMarks}</TableCell>
-                                        <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700 py-2 px-3 text-[13px]" style={{ minWidth: '140px' }}>{mark?.status === 'absent' ? <AbsentBadge /> : (mark?.marksObtained ?? '')}</TableCell>
+                                        <TableCell className="text-center border-r border-slate-200 font-semibold text-indigo-700 py-2 px-3 text-[13px]" style={{ minWidth: '140px' }}>
+                                          {mark?.status === 'not_admitted_yet' ? (
+                                            <span className="text-slate-400 text-xs">Not Admitted Yet</span>
+                                          ) : mark?.status === 'absent' ? (
+                                            <AbsentBadge />
+                                          ) : (
+                                            mark?.marksObtained ?? ''
+                                          )}
+                                        </TableCell>
                                       </React.Fragment>
                                     );
                                   })}
@@ -994,11 +1027,18 @@ export default function ClassResults() {
                                   <TableCell className="font-medium py-2 px-3 text-[13px]">{student.rank}</TableCell>
                                   <TableCell className="py-2 px-3 text-[13px]">{student.rollNo}</TableCell>
                                   <TableCell className="font-medium py-2 px-3 text-[13px]">{student.name}</TableCell>
-                                  {results.subjects.map((subject) => (
-                                    <TableCell className="py-2 px-3 text-[13px]" key={subject}>
-                                      {student.subjects[subject]?.marksObtained || '-'}
-                                    </TableCell>
-                                  ))}
+                                  {results.subjects.map((subject) => {
+                                    const mark = student.subjects[subject];
+                                    return (
+                                      <TableCell className="py-2 px-3 text-[13px]" key={subject}>
+                                        {mark?.status === 'not_admitted_yet' ? (
+                                          <span className="text-slate-400 text-xs">Not Admitted Yet</span>
+                                        ) : (
+                                          mark?.marksObtained || '-'
+                                        )}
+                                      </TableCell>
+                                    );
+                                  })}
                                   <TableCell className="font-medium py-2 px-3 text-[13px]">{student.totalObtained}</TableCell>
                                   <TableCell className="py-2 px-3 text-[13px]">{student.average}</TableCell>
                                   <TableCell className="py-2 px-3 text-[13px]">{student.percentage}%</TableCell>
