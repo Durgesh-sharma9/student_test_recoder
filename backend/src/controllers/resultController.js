@@ -96,7 +96,9 @@ export const previewMarksEntry = asyncHandler(async (req, res) => {
       ? await findDailySession(schoolId, classId, subject, testDate)
       : await findMainSession(schoolId, classId, subject, examType, examDate);
 
-  const rows = await buildMarksRows(session, classId, schoolId);
+  // Pass test date override for new sessions to enable admission date validation
+  const testDateOverride = !session ? (cat === 'daily' ? testDate : examDate) : null;
+  const rows = await buildMarksRows(session, classId, schoolId, testDateOverride);
 
   res.json({
     success: true,

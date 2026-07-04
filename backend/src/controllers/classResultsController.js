@@ -129,46 +129,82 @@ export const getClassResults = asyncHandler(async (req, res) => {
       .populate('student', 'name rollNo')
       .lean();
 
-    // Build student results with date-wise columns
+    // Get all students in the class as the base dataset
+    const students = await Student.find({
+      school: req.user.school,
+      class: classId,
+      isActive: true,
+    }).sort('rollNo');
+    students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
+
+    // Build student results with date-wise columns - base from Student collection
     const studentMap = new Map();
+    students.forEach(student => {
+      studentMap.set(student._id.toString(), {
+        studentId: student._id,
+        name: student.name,
+        rollNo: student.rollNo,
+        admissionDate: student.admissionDate,
+        assessments: {},
+        totalObtained: 0,
+        totalMax: 0,
+      });
+    });
+
+    // Merge marks from entries into student rows
     entries.forEach(entry => {
       const studentId = entry.student._id.toString();
-      if (!studentMap.has(studentId)) {
-        studentMap.set(studentId, {
-          studentId: entry.student._id,
-          name: entry.student.name,
-          rollNo: entry.student.rollNo,
-          assessments: {},
-          totalObtained: 0,
-          totalMax: 0,
-        });
-      }
       const student = studentMap.get(studentId);
-      const session = allSessions.find(s => s._id.toString() === entry.session.toString());
-      if (session) {
-        const key = `${session.examType}_${session._id}`;
-        student.assessments[key] = {
-          examType: session.examType,
-          subject: session.subject,
-          maxMarks: session.maxMarks,
-          marksObtained: entry.marksObtained,
-          percentage: entry.percentage,
-          date: session.assessmentDate,
-          category: session.category,
-          status: entry.status || 'present'
-        };
-        student.totalObtained += entry.marksObtained || 0;
-        student.totalMax += session.maxMarks || 0;
-        // DEBUG LOG for absent students
-        if (entry.status === 'absent') {
-          console.log(`=== CLASS RESULTS ASSESSMENTS DEBUG ===`);
-          console.log(`Student Name: ${entry.student.name}`);
-          console.log(`Marks: ${entry.marksObtained}`);
-          console.log(`Status: ${entry.status}`);
-          console.log(`Session: ${session.subject} - ${session.assessmentDate}`);
-          console.log(`======================================`);
+      if (student) {
+        const session = allSessions.find(s => s._id.toString() === entry.session.toString());
+        if (session) {
+          const key = `${session.examType}_${session._id}`;
+          student.assessments[key] = {
+            examType: session.examType,
+            subject: session.subject,
+            maxMarks: session.maxMarks,
+            marksObtained: entry.marksObtained,
+            percentage: entry.percentage,
+            date: session.assessmentDate,
+            category: session.category,
+            status: entry.status || 'present'
+          };
+          student.totalObtained += entry.marksObtained || 0;
+          student.totalMax += session.maxMarks || 0;
+          // DEBUG LOG for absent students
+          if (entry.status === 'absent') {
+            console.log(`=== CLASS RESULTS ASSESSMENTS DEBUG ===`);
+            console.log(`Student Name: ${entry.student.name}`);
+            console.log(`Marks: ${entry.marksObtained}`);
+            console.log(`Status: ${entry.status}`);
+            console.log(`Session: ${session.subject} - ${session.assessmentDate}`);
+            console.log(`======================================`);
+          }
         }
       }
+    });
+
+    // Apply admission date logic for each assessment
+    studentMap.forEach((student, studentId) => {
+      const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+      allSessions.forEach(session => {
+        const key = `${session.examType}_${session._id}`;
+        const assessmentDate = session.assessmentDate ? new Date(session.assessmentDate) : null;
+        
+        // If student has no marks for this assessment, check admission date
+        if (!student.assessments[key] && admissionDate && assessmentDate && admissionDate > assessmentDate) {
+          student.assessments[key] = {
+            examType: session.examType,
+            subject: session.subject,
+            maxMarks: session.maxMarks,
+            marksObtained: null,
+            percentage: null,
+            date: session.assessmentDate,
+            category: session.category,
+            status: 'not_admitted_yet'
+          };
+        }
+      });
     });
 
     const results = Array.from(studentMap.values()).map(s => ({
