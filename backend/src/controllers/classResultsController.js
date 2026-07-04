@@ -321,6 +321,7 @@ export const getClassResults = asyncHandler(async (req, res) => {
         studentId: student._id,
         rollNo: student.rollNo,
         name: student.name,
+        admissionDate: student.admissionDate,
         dailyTests: {},
       });
     });
@@ -333,7 +334,7 @@ export const getClassResults = asyncHandler(async (req, res) => {
         const student = studentMap.get(studentId);
         student.dailyTests[session._id.toString()] = {
           marksObtained: entry.marksObtained,
-          maxMarks: session.maxMarks,
+          maxMarks:(session.maxMarks),
           percentage: entry.percentage,
           status: entry.status || 'present'
         };
@@ -347,6 +348,25 @@ export const getClassResults = asyncHandler(async (req, res) => {
           console.log(`=======================================`);
         }
       }
+    });
+
+    // Apply admission date logic for daily tests
+    studentMap.forEach((student) => {
+      const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+      sessions.forEach(session => {
+        const sessionId = session._id.toString();
+        const testDate = session.testDate ? new Date(session.testDate) : null;
+        
+        // If student has no marks for this daily test, check admission date
+        if (!student.dailyTests[sessionId] && admissionDate && testDate && admissionDate > testDate) {
+          student.dailyTests[sessionId] = {
+            marksObtained: null,
+            maxMarks: session.maxMarks,
+            percentage: null,
+            status: 'not_admitted_yet'
+          };
+        }
+      });
     });
 
     // Calculate totals, averages, percentages
@@ -438,6 +458,7 @@ export const getClassResults = asyncHandler(async (req, res) => {
         studentId: student._id,
         rollNo: student.rollNo,
         name: student.name,
+        admissionDate: student.admissionDate,
         subjects: {},
       });
     });
@@ -464,6 +485,25 @@ export const getClassResults = asyncHandler(async (req, res) => {
           console.log(`======================================`);
         }
       }
+    });
+
+    // Apply admission date logic for main exams
+    studentMap.forEach((student) => {
+      const admissionDate = student.admissionDate ? new Date(student.admissionDate) : null;
+      sessions.forEach(session => {
+        const subject = session.subject;
+        const examDate = session.examDate ? new Date(session.examDate) : null;
+        
+        // If student has no marks for this subject, check admission date
+        if (!student.subjects[subject] && admissionDate && examDate && admissionDate > examDate) {
+          student.subjects[subject] = {
+            marksObtained: null,
+            maxMarks: session.maxMarks,
+            percentage: null,
+            status: 'not_admitted_yet'
+          };
+        }
+      });
     });
 
     // Calculate totals, averages, percentages
