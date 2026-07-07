@@ -16,6 +16,13 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Reusable color palette for dynamically generated subject lines
+const SUBJECT_COLORS = [
+  '#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#ef4444', 
+  '#06b6d4', '#eab308', '#ec4899', '#14b8a6', '#f43f5e',
+  '#6366f1', '#84cc16', '#d946ef', '#f59e0b', '#0ea5e9'
+];
+
 export default function StudentPerformance() {
   // State for Filters
   const [classes, setClasses] = useState([]);
@@ -41,6 +48,9 @@ export default function StudentPerformance() {
   const [activeStudent, setActiveStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('daily');
   const [timelineOpen, setTimelineOpen] = useState(false);
+  
+  // State for Interactive Legend in Main Exam Trend
+  const [hiddenSubjects, setHiddenSubjects] = useState([]);
 
   // Fetch Classes on Mount
   useEffect(() => {
@@ -105,6 +115,7 @@ export default function StudentPerformance() {
     setActiveStudent(student);
     setDrawerOpen(true);
     setTimelineOpen(false); 
+    setHiddenSubjects([]); // Reset hidden subjects when opening a new student
   };
 
   // Pre-calculate Section-Wise Ranks & Exam-Wise Ranks
@@ -250,6 +261,79 @@ export default function StudentPerformance() {
     doc.save('student_performance.pdf');
   };
 
+  // Helper functions to generate Main Exam Subject Trend Graph
+  const getGradeFormTrend = (percentage) => {
+    if (percentage >= 90) return 'A+';
+    if (percentage >= 80) return 'A';
+    if (percentage >= 70) return 'B+';
+    if (percentage >= 60) return 'B';
+    if (percentage >= 50) return 'C';
+    if (percentage >= 40) return 'D';
+    return 'F';
+  };
+
+  // Memoized Data prep for the Trend Graph to keep render optimized
+  const mainExamTrendData = useMemo(() => {
+    if (!activeStudent || !activeStudent.mainByExamType) return { trendData: [], allSubjectsList: [] };
+    
+    const mainExamsList = Object.keys(activeStudent.mainByExamType);
+    const allSubjectsList = Array.from(new Set(activeStudent.subjectAnalytics?.map(s => s.subject) || []));
+
+    const trendData = mainExamsList.map(exam => {
+      const dataPoint = { name: exam };
+      activeStudent.subjectAnalytics?.forEach(subj => {
+        const examData = subj.mainByExamType?.[exam];
+        if (examData) {
+          const percentage = examData.totalMax > 0 ? (examData.totalObtained / examData.totalMax) * 100 : 0;
+          dataPoint[subj.subject] = percentage;
+          dataPoint[`${subj.subject}_details`] = {
+            obtained: examData.totalObtained,
+            max: examData.totalMax,
+            percentage: percentage,
+            grade: getGradeFormTrend(percentage),
+            rank: examData.rank || 'N/A'
+          };
+        }
+      });
+      return dataPoint;
+    });
+
+    return { trendData, allSubjectsList };
+  }, [activeStudent]);
+
+  // Custom Tooltip component for the new Trend Graph
+  const SubjectTrendTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3.5 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-slate-100 text-xs min-w-[200px]">
+          <p className="font-extrabold text-slate-800 border-b border-slate-100 pb-2 mb-3 uppercase tracking-wider">{label}</p>
+          <div className="space-y-3">
+            {payload.map((entry, index) => {
+              const details = entry.payload[`${entry.dataKey}_details`];
+              return (
+                <div key={index} className="flex flex-col gap-1.5" style={{ color: entry.color }}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <p className="font-bold">{entry.dataKey}</p>
+                  </div>
+                  {details && (
+                    <div className="text-slate-600 grid grid-cols-2 gap-x-3 gap-y-1 ml-4 border-l-2 pl-2" style={{ borderColor: `${entry.color}40` }}>
+                      <p>Marks: <span className="font-semibold text-slate-800">{details.obtained} / {details.max}</span></p>
+                      <p>Percent: <span className="font-semibold text-slate-800">{details.percentage.toFixed(1)}%</span></p>
+                      <p>Grade: <span className="font-semibold text-slate-800">{details.grade}</span></p>
+                      {details.rank !== 'N/A' && <p>Rank: <span className="font-semibold text-slate-800">{details.rank}</span></p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       
@@ -285,7 +369,7 @@ export default function StudentPerformance() {
           {/* 1. Class Dropdown */}
           <div>
             <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">
-              Select Class <span className="text-rose-500">*</span>
+              Select Class <span className="text-rose-50">*</span>
             </label>
             <div className="relative">
               <select
@@ -607,120 +691,200 @@ export default function StudentPerformance() {
                   {activeTab === 'main' && (
                     <div className="space-y-6">
                       {Object.keys(activeStudent.mainByExamType || {}).length > 0 ? (
-                        <div className="flex flex-nowrap gap-5 overflow-x-auto pb-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
-                          {Object.entries(activeStudent.mainByExamType).map(([examType, data]) => {
-                            // Extract subject marks for this specific exam
-                            const subjectMarks = activeStudent.subjectAnalytics
-                              .filter(s => s.mainByExamType && s.mainByExamType[examType])
-                              .map(s => ({
-                                subject: s.subject,
-                                obtained: s.mainByExamType[examType].totalObtained,
-                                max: s.mainByExamType[examType].totalMax,
-                                percentage: s.mainByExamType[examType].totalMax > 0 
-                                  ? (s.mainByExamType[examType].totalObtained / s.mainByExamType[examType].totalMax) * 100 
-                                  : 0
-                              }));
+                        <>
+                          <div className="flex flex-nowrap gap-5 overflow-x-auto pb-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
+                            {Object.entries(activeStudent.mainByExamType).map(([examType, data]) => {
+                              // Extract subject marks for this specific exam
+                              const subjectMarks = activeStudent.subjectAnalytics
+                                .filter(s => s.mainByExamType && s.mainByExamType[examType])
+                                .map(s => ({
+                                  subject: s.subject,
+                                  obtained: s.mainByExamType[examType].totalObtained,
+                                  max: s.mainByExamType[examType].totalMax,
+                                  percentage: s.mainByExamType[examType].totalMax > 0 
+                                    ? (s.mainByExamType[examType].totalObtained / s.mainByExamType[examType].totalMax) * 100 
+                                    : 0
+                                }));
 
-                            const getCardGrade = (percentage) => {
-                              if (percentage >= 90) return 'A+';
-                              if (percentage >= 80) return 'A';
-                              if (percentage >= 70) return 'B+';
-                              if (percentage >= 60) return 'B';
-                              if (percentage >= 50) return 'C';
-                              if (percentage >= 40) return 'D';
-                              return 'F';
-                            };
+                              const getCardGrade = (percentage) => {
+                                if (percentage >= 90) return 'A+';
+                                if (percentage >= 80) return 'A';
+                                if (percentage >= 70) return 'B+';
+                                if (percentage >= 60) return 'B';
+                                if (percentage >= 50) return 'C';
+                                if (percentage >= 40) return 'D';
+                                return 'F';
+                              };
 
-                            const getGradeColor = (grade) => {
-                              if (grade === 'A+' || grade === 'A') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                              if (grade === 'B+' || grade === 'B') return 'bg-sky-100 text-sky-700 border-sky-200';
-                              if (grade === 'C') return 'bg-amber-100 text-amber-700 border-amber-200';
-                              if (grade === 'D') return 'bg-orange-100 text-orange-700 border-orange-200';
-                              return 'bg-rose-100 text-rose-700 border-rose-200';
-                            };
+                              const getGradeColor = (grade) => {
+                                if (grade === 'A+' || grade === 'A') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                if (grade === 'B+' || grade === 'B') return 'bg-sky-100 text-sky-700 border-sky-200';
+                                if (grade === 'C') return 'bg-amber-100 text-amber-700 border-amber-200';
+                                if (grade === 'D') return 'bg-orange-100 text-orange-700 border-orange-200';
+                                return 'bg-rose-100 text-rose-700 border-rose-200';
+                              };
 
-                            // Dynamic colors for Cards based on total score percentage
-                            const getCardTheme = (pct) => {
-                              if (pct >= 85) return { header: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white', bar: 'bg-emerald-500', text: 'text-emerald-600', border: 'border-emerald-200' };
-                              if (pct >= 70) return { header: 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white', bar: 'bg-sky-500', text: 'text-sky-600', border: 'border-sky-200' };
-                              if (pct >= 55) return { header: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-600', border: 'border-indigo-200' };
-                              if (pct >= 40) return { header: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white', bar: 'bg-amber-500', text: 'text-amber-600', border: 'border-amber-200' };
-                              return { header: 'bg-gradient-to-r from-rose-500 to-red-600 text-white', bar: 'bg-rose-500', text: 'text-rose-600', border: 'border-rose-200' };
-                            };
+                              // Dynamic colors for Cards based on total score percentage
+                              const getCardTheme = (pct) => {
+                                if (pct >= 85) return { header: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white', bar: 'bg-emerald-500', text: 'text-emerald-600', border: 'border-emerald-200' };
+                                if (pct >= 70) return { header: 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white', bar: 'bg-sky-500', text: 'text-sky-600', border: 'border-sky-200' };
+                                if (pct >= 55) return { header: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-600', border: 'border-indigo-200' };
+                                if (pct >= 40) return { header: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white', bar: 'bg-amber-500', text: 'text-amber-600', border: 'border-amber-200' };
+                                return { header: 'bg-gradient-to-r from-rose-500 to-red-600 text-white', bar: 'bg-rose-500', text: 'text-rose-600', border: 'border-rose-200' };
+                              };
 
-                            const theme = getCardTheme(data.percentage);
+                              const theme = getCardTheme(data.percentage);
 
-                            return (
-                              <div key={examType} className={`w-[300px] sm:w-[320px] flex-shrink-0 snap-start bg-white rounded-2xl border ${theme.border} shadow-md hover:shadow-xl transition-all flex flex-col h-full overflow-hidden`}>
-                                {/* Top: Exam Name & Date (Dynamic Gradient Background) */}
-                                <div className={`${theme.header} px-4 py-3.5 flex justify-between items-center shadow-sm`}>
-                                  <h3 className="font-extrabold text-sm tracking-wide uppercase">{examType}</h3>
-                                  {data.date && <span className="text-[10px] font-medium opacity-90">{new Date(data.date).toLocaleDateString()}</span>}
-                                </div>
-
-                                <div className="p-4 flex-1 flex flex-col gap-4">
-                                  {/* Overall Summary (Top part) */}
-                                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                    <div className="flex justify-between items-end mb-1.5">
-                                      <div>
-                                        <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">Obtained / Max</p>
-                                        <p className="text-xs font-bold text-slate-700">{data.totalObtained} / {data.totalMax}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className={`text-xl font-black ${theme.text} leading-none`}>{data.percentage.toFixed(1)}%</p>
-                                      </div>
-                                    </div>
-                                    <div className="w-full bg-slate-200 rounded-full h-2">
-                                      <div className={`${theme.bar} h-2 rounded-full transition-all shadow-inner`} style={{ width: `${data.percentage}%` }} />
-                                    </div>
+                              return (
+                                <div key={examType} className={`w-[300px] sm:w-[320px] flex-shrink-0 snap-start bg-white rounded-2xl border ${theme.border} shadow-md hover:shadow-xl transition-all flex flex-col h-full overflow-hidden`}>
+                                  {/* Top: Exam Name & Date (Dynamic Gradient Background) */}
+                                  <div className={`${theme.header} px-4 py-3.5 flex justify-between items-center shadow-sm`}>
+                                    <h3 className="font-extrabold text-sm tracking-wide uppercase">{examType}</h3>
+                                    {data.date && <span className="text-[10px] font-medium opacity-90">{new Date(data.date).toLocaleDateString()}</span>}
                                   </div>
 
-                                  {/* Compact Subject-wise Performance (Scrollable) */}
-                                  {subjectMarks.length > 0 && (
-                                    <div className="border border-slate-100 rounded-xl overflow-hidden flex flex-col shadow-sm">
-                                      <div className="bg-slate-50/80 px-3 py-2 border-b border-slate-100">
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Subject-wise Performance</p>
+                                  <div className="p-4 flex-1 flex flex-col gap-4">
+                                    {/* Overall Summary (Top part) */}
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                      <div className="flex justify-between items-end mb-1.5">
+                                        <div>
+                                          <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">Obtained / Max</p>
+                                          <p className="text-xs font-bold text-slate-700">{data.totalObtained} / {data.totalMax}</p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className={`text-xl font-black ${theme.text} leading-none`}>{data.percentage.toFixed(1)}%</p>
+                                        </div>
                                       </div>
-                                      <div className="divide-y divide-slate-100 max-h-[220px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-                                        {subjectMarks.map((sm, idx) => {
-                                          const subjGrade = getCardGrade(sm.percentage);
-                                          return (
-                                            <div key={sm.subject} className={`px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-slate-50/60 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}>
-                                              <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-800">{sm.subject}</span>
-                                                <span className="text-[10px] font-bold text-slate-400 mt-0.5">{sm.obtained} / {sm.max}</span>
+                                      <div className="w-full bg-slate-200 rounded-full h-2">
+                                        <div className={`${theme.bar} h-2 rounded-full transition-all shadow-inner`} style={{ width: `${data.percentage}%` }} />
+                                      </div>
+                                    </div>
+
+                                    {/* Compact Subject-wise Performance (Scrollable) */}
+                                    {subjectMarks.length > 0 && (
+                                      <div className="border border-slate-100 rounded-xl overflow-hidden flex flex-col shadow-sm">
+                                        <div className="bg-slate-50/80 px-3 py-2 border-b border-slate-100">
+                                          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Subject-wise Performance</p>
+                                        </div>
+                                        <div className="divide-y divide-slate-100 max-h-[220px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                                          {subjectMarks.map((sm, idx) => {
+                                            const subjGrade = getCardGrade(sm.percentage);
+                                            return (
+                                              <div key={sm.subject} className={`px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-slate-50/60 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}>
+                                                <div className="flex flex-col">
+                                                  <span className="text-xs font-bold text-slate-800">{sm.subject}</span>
+                                                  <span className="text-[10px] font-bold text-slate-400 mt-0.5">{sm.obtained} / {sm.max}</span>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                  <span className="text-xs font-black text-slate-800">{sm.percentage.toFixed(0)}%</span>
+                                                  <span className={`text-[9px] font-bold px-2 py-0.5 border rounded mt-1 shadow-sm ${getGradeColor(subjGrade)}`}>
+                                                    Grade: {subjGrade}
+                                                  </span>
+                                                </div>
                                               </div>
-                                              <div className="flex flex-col items-end">
-                                                <span className="text-xs font-black text-slate-800">{sm.percentage.toFixed(0)}%</span>
-                                                <span className={`text-[9px] font-bold px-2 py-0.5 border rounded mt-1 shadow-sm ${getGradeColor(subjGrade)}`}>
-                                                  Grade: {subjGrade}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
+                                            );
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
+                                    )}
+                                  </div>
 
-                                {/* Footer Overall Summary - FIXED: Rank Column Completely Removed */}
-                                <div className="bg-slate-50/90 px-4 py-3 border-t border-slate-100 grid grid-cols-2 divide-x divide-slate-200 mt-auto shadow-inner">
-                                  <div className="flex flex-col items-center justify-center gap-1 px-1">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall Grade</span>
-                                    <span className={`text-xs font-extrabold px-3 py-1 border rounded-md shadow-sm ${getGradeColor(data.grade)}`}>
-                                      {data.grade}
-                                    </span>
-                                  </div>
-                                  <div className="flex flex-col items-center justify-center gap-1 px-1">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall %</span>
-                                    <span className={`text-sm font-black ${theme.text}`}>{data.percentage.toFixed(1)}%</span>
+                                  {/* Footer Overall Summary - FIXED: Rank Column Completely Removed */}
+                                  <div className="bg-slate-50/90 px-4 py-3 border-t border-slate-100 grid grid-cols-2 divide-x divide-slate-200 mt-auto shadow-inner">
+                                    <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall Grade</span>
+                                      <span className={`text-xs font-extrabold px-3 py-1 border rounded-md shadow-sm ${getGradeColor(data.grade)}`}>
+                                        {data.grade}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall %</span>
+                                      <span className={`text-sm font-black ${theme.text}`}>{data.percentage.toFixed(1)}%</span>
+                                    </div>
                                   </div>
                                 </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* ==================================================== */}
+                          {/* NEW SECTION: Main Exam Subject Trend                 */}
+                          {/* ==================================================== */}
+                          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-2">
+                            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                              <TrendingUp className="h-5 w-5 text-indigo-500" />
+                              <div>
+                                <h3 className="font-semibold text-slate-800 text-sm">Main Exam Subject Trend</h3>
+                                <p className="text-[11px] text-slate-500 font-medium">Compare subject performance across all main exams.</p>
                               </div>
-                            );
-                          })}
-                        </div>
+                            </div>
+                            
+                            <div className="p-5">
+                              {/* Interactive Legend */}
+                              <div className="flex flex-wrap gap-2 mb-6 justify-center">
+                                {mainExamTrendData.allSubjectsList.map((subject, idx) => {
+                                  const color = SUBJECT_COLORS[idx % SUBJECT_COLORS.length];
+                                  const isHidden = hiddenSubjects.includes(subject);
+                                  return (
+                                    <button 
+                                      key={subject}
+                                      onClick={() => {
+                                        setHiddenSubjects(prev => 
+                                          prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
+                                        );
+                                      }}
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all ${
+                                        isHidden ? 'bg-slate-50 text-slate-400 border border-slate-200' : 'bg-slate-50 text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-100'
+                                      }`}
+                                    >
+                                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isHidden ? '#e2e8f0' : color }}></span>
+                                      {subject}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Multi-Line Trend Chart */}
+                              <div className="h-64 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={mainExamTrendData.trendData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis 
+                                      dataKey="name" 
+                                      tick={{fontSize: 11, fill: '#64748b', fontWeight: 600}} 
+                                      axisLine={false} 
+                                      tickLine={false} 
+                                    />
+                                    <YAxis 
+                                      tick={{fontSize: 11, fill: '#64748b'}} 
+                                      axisLine={false} 
+                                      tickLine={false} 
+                                      domain={[0, 100]} 
+                                    />
+                                    <RechartsTooltip content={<SubjectTrendTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                    
+                                    {mainExamTrendData.allSubjectsList.map((subject, idx) => (
+                                      !hiddenSubjects.includes(subject) && (
+                                        <Line 
+                                          key={subject}
+                                          type="monotone" 
+                                          dataKey={subject} 
+                                          stroke={SUBJECT_COLORS[idx % SUBJECT_COLORS.length]} 
+                                          strokeWidth={2.5}
+                                          dot={{ fill: SUBJECT_COLORS[idx % SUBJECT_COLORS.length], r: 4.5, strokeWidth: 0 }}
+                                          activeDot={{ r: 6.5, stroke: '#ffffff', strokeWidth: 2 }}
+                                          connectNulls={true} // Continues the line even if a subject missed an exam in between
+                                        />
+                                      )
+                                    ))}
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          </div>
+                          {/* ==================================================== */}
+
+                        </>
                       ) : (
                         <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
                           <p className="text-sm font-medium text-slate-500">No Main Exam data available</p>
@@ -835,8 +999,7 @@ export default function StudentPerformance() {
                 </div>
               )}
               
-              {/* 
-                COMMENTED OUT DAILY AND MAIN PERFORMANCE TABLES:
+              {/* COMMENTED OUT DAILY AND MAIN PERFORMANCE TABLES:
                 {(activeTab === 'daily' || activeTab === 'main') && (
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-4">
                     ...
