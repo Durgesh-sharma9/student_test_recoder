@@ -107,7 +107,7 @@ export default function StudentPerformance() {
     setTimelineOpen(false); 
   };
 
-  // Pre-calculate Section-Wise Ranks (Backend now handles all filtering and calculations)
+  // Pre-calculate Section-Wise Ranks & Exam-Wise Ranks
   const enrichedData = useMemo(() => {
     if (!analyticsData.length) return [];
     
@@ -117,12 +117,12 @@ export default function StudentPerformance() {
       return s;
     });
     
-    // Helper to calculate dense ranking for a specific metric
+    // Helper to calculate standard ranking for a specific metric
     const assignRank = (key, rankKey) => {
       processed.sort((a, b) => (b[key] || 0) - (a[key] || 0));
       let currentRank = 1;
       for (let i = 0; i < processed.length; i++) {
-        if (i > 0 && processed[i][key] < processed[i - 1][key]) {
+        if (i > 0 && (processed[i][key] || 0) < (processed[i - 1][key] || 0)) {
           currentRank = i + 1;
         }
         processed[i][rankKey] = currentRank;
@@ -132,6 +132,36 @@ export default function StudentPerformance() {
     assignRank('dailyPercentage', 'dailyRank');
     assignRank('mainPercentage', 'mainRank');
     assignRank('notebookPercentage', 'notebookRank');
+    
+    // Dynamically calculate rank for each specific Main Exam Type
+    const allExamTypes = new Set();
+    processed.forEach(s => {
+      if (s.mainByExamType) {
+        Object.keys(s.mainByExamType).forEach(et => allExamTypes.add(et));
+      }
+    });
+
+    allExamTypes.forEach(et => {
+      processed.sort((a, b) => {
+        const valA = a.mainByExamType?.[et]?.percentage || 0;
+        const valB = b.mainByExamType?.[et]?.percentage || 0;
+        return valB - valA;
+      });
+
+      let currentRank = 1;
+      for (let i = 0; i < processed.length; i++) {
+        const currentVal = processed[i].mainByExamType?.[et]?.percentage || 0;
+        if (i > 0) {
+          const prevVal = processed[i - 1].mainByExamType?.[et]?.percentage || 0;
+          if (currentVal < prevVal) {
+            currentRank = i + 1;
+          }
+        }
+        if (processed[i].mainByExamType && processed[i].mainByExamType[et]) {
+          processed[i].mainByExamType[et].rank = currentRank;
+        }
+      }
+    });
     
     return processed;
   }, [analyticsData]);
@@ -306,38 +336,6 @@ export default function StudentPerformance() {
             </Button>
           </div>
 
-          {/* COMMENTED OUT: Assessment Type Dropdown */}
-          {/*
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">Assessment Type</label>
-            <select
-              className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-              value={assessmentType}
-              onChange={(e) => { setAssessmentType(e.target.value); setExamTypes(['All Exams']); }}
-            >
-              <option value="All Assessments">All Assessments</option>
-              <option value="Daily Test">Daily Test</option>
-              <option value="Main Exam">Main Exam</option>
-              <option value="Notebook Checking">Notebook Checking</option>
-            </select>
-          </div>
-          */}
-
-          {/* COMMENTED OUT: Sort By Dropdown */}
-          {/*
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">Sort By</label>
-            <select
-              className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="rollNo">Roll Number</option>
-              <option value="rank">Rank</option>
-            </select>
-          </div>
-          */}
-
         </div>
 
         {/* Extended Date Filters */}
@@ -477,17 +475,6 @@ export default function StudentPerformance() {
               {/* Performance Summary Cards (Section-Wise Ranks Included) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 
-                {/* COMMENTED OUT: Overall Rank Card */}
-                {/*
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-xl border border-indigo-200 shadow-sm flex flex-col justify-center items-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="h-5 w-5 text-indigo-600" />
-                    <p className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Rank</p>
-                  </div>
-                  <p className="text-4xl font-bold text-indigo-900">#{activeStudent.rank}</p>
-                </div>
-                */}
-
                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 rounded-xl border border-emerald-200 shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="h-4 w-4 text-emerald-600" />
@@ -522,49 +509,6 @@ export default function StudentPerformance() {
                   <div className="w-full bg-sky-200 rounded-full h-2 mt-2">
                     <div className="bg-sky-600 h-2 rounded-full transition-all" style={{ width: `${activeStudent.notebookPercentage || 0}%` }} />
                   </div>
-                </div>
-              </div>
-
-              {/* Subject Performance Overview */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-slate-500" />
-                  <h3 className="font-semibold text-slate-800 text-sm">Subject Performance Overview</h3>
-                </div>
-                <div className="p-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-72 overflow-y-auto pr-2">
-                    {activeStudent.subjectAnalytics.map(subj => (
-                      <div key={subj.subject} className="bg-slate-50 rounded-xl p-3 border border-slate-200 hover:border-indigo-300 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-slate-700">{subj.subject}</span>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            subj.average >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                            subj.average >= 60 ? 'bg-sky-100 text-sky-700' :
-                            subj.average >= 40 ? 'bg-amber-100 text-amber-700' :
-                            'bg-rose-100 text-rose-700'
-                          }`}>{subj.average.toFixed(0)}%</span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[10px] text-slate-500">
-                            <span>Daily</span>
-                            <span className="font-medium">{subj.dailyTestAvg.toFixed(0)}%</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] text-slate-500">
-                            <span>Main</span>
-                            <span className="font-medium">{subj.mainExamAvg.toFixed(0)}%</span>
-                          </div>
-                          <div className="flex justify-between text-[10px] text-slate-500">
-                            <span>Notebook</span>
-                            <span className="font-medium">{subj.notebookPercent.toFixed(0)}%</span>
-                          </div>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1.5 mt-2">
-                          <div className="bg-indigo-600 h-1.5 rounded-full transition-all" style={{ width: `${subj.average}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
                 </div>
               </div>
 
@@ -659,74 +603,133 @@ export default function StudentPerformance() {
                     </div>
                   )}
 
-                  {/* Main Exam Tab Content */}
+                  {/* REDESIGNED & COLORFUL Main Exam Tab Content */}
                   {activeTab === 'main' && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {Object.keys(activeStudent.mainByExamType || {}).length > 0 ? (
-                        <div className="grid grid-cols-2 gap-4">
-                          {Object.entries(activeStudent.mainByExamType).map(([examType, data]) => (
-                            <div key={examType} className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="text-sm font-bold text-slate-800">{examType}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                                    data.grade === 'A+' ? 'bg-emerald-100 text-emerald-700' :
-                                    data.grade === 'A' ? 'bg-sky-100 text-sky-700' :
-                                    data.grade === 'B+' ? 'bg-indigo-100 text-indigo-700' :
-                                    data.grade === 'B' ? 'bg-purple-100 text-purple-700' :
-                                    data.grade === 'C' ? 'bg-amber-100 text-amber-700' :
-                                    data.grade === 'D' ? 'bg-orange-100 text-orange-700' :
-                                    'bg-rose-100 text-rose-700'
-                                  }`}>{data.grade}</span>
-                                  <span className="text-lg font-bold text-rose-600">{data.percentage.toFixed(1)}%</span>
+                        <div className="flex flex-nowrap gap-5 overflow-x-auto pb-4 snap-x" style={{ scrollbarWidth: 'thin' }}>
+                          {Object.entries(activeStudent.mainByExamType).map(([examType, data]) => {
+                            // Extract subject marks for this specific exam
+                            const subjectMarks = activeStudent.subjectAnalytics
+                              .filter(s => s.mainByExamType && s.mainByExamType[examType])
+                              .map(s => ({
+                                subject: s.subject,
+                                obtained: s.mainByExamType[examType].totalObtained,
+                                max: s.mainByExamType[examType].totalMax,
+                                percentage: s.mainByExamType[examType].totalMax > 0 
+                                  ? (s.mainByExamType[examType].totalObtained / s.mainByExamType[examType].totalMax) * 100 
+                                  : 0
+                              }));
+
+                            const getCardGrade = (percentage) => {
+                              if (percentage >= 90) return 'A+';
+                              if (percentage >= 80) return 'A';
+                              if (percentage >= 70) return 'B+';
+                              if (percentage >= 60) return 'B';
+                              if (percentage >= 50) return 'C';
+                              if (percentage >= 40) return 'D';
+                              return 'F';
+                            };
+
+                            const getGradeColor = (grade) => {
+                              if (grade === 'A+' || grade === 'A') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                              if (grade === 'B+' || grade === 'B') return 'bg-sky-100 text-sky-700 border-sky-200';
+                              if (grade === 'C') return 'bg-amber-100 text-amber-700 border-amber-200';
+                              if (grade === 'D') return 'bg-orange-100 text-orange-700 border-orange-200';
+                              return 'bg-rose-100 text-rose-700 border-rose-200';
+                            };
+
+                            // Dynamic colors for Cards based on total score percentage
+                            const getCardTheme = (pct) => {
+                              if (pct >= 85) return { header: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white', bar: 'bg-emerald-500', text: 'text-emerald-600', border: 'border-emerald-200' };
+                              if (pct >= 70) return { header: 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white', bar: 'bg-sky-500', text: 'text-sky-600', border: 'border-sky-200' };
+                              if (pct >= 55) return { header: 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white', bar: 'bg-indigo-500', text: 'text-indigo-600', border: 'border-indigo-200' };
+                              if (pct >= 40) return { header: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white', bar: 'bg-amber-500', text: 'text-amber-600', border: 'border-amber-200' };
+                              return { header: 'bg-gradient-to-r from-rose-500 to-red-600 text-white', bar: 'bg-rose-500', text: 'text-rose-600', border: 'border-rose-200' };
+                            };
+
+                            const theme = getCardTheme(data.percentage);
+
+                            return (
+                              <div key={examType} className={`w-[300px] sm:w-[320px] flex-shrink-0 snap-start bg-white rounded-2xl border ${theme.border} shadow-md hover:shadow-xl transition-all flex flex-col h-full overflow-hidden`}>
+                                {/* Top: Exam Name & Date (Dynamic Gradient Background) */}
+                                <div className={`${theme.header} px-4 py-3.5 flex justify-between items-center shadow-sm`}>
+                                  <h3 className="font-extrabold text-sm tracking-wide uppercase">{examType}</h3>
+                                  {data.date && <span className="text-[10px] font-medium opacity-90">{new Date(data.date).toLocaleDateString()}</span>}
+                                </div>
+
+                                <div className="p-4 flex-1 flex flex-col gap-4">
+                                  {/* Overall Summary (Top part) */}
+                                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                    <div className="flex justify-between items-end mb-1.5">
+                                      <div>
+                                        <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase">Obtained / Max</p>
+                                        <p className="text-xs font-bold text-slate-700">{data.totalObtained} / {data.totalMax}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className={`text-xl font-black ${theme.text} leading-none`}>{data.percentage.toFixed(1)}%</p>
+                                      </div>
+                                    </div>
+                                    <div className="w-full bg-slate-200 rounded-full h-2">
+                                      <div className={`${theme.bar} h-2 rounded-full transition-all shadow-inner`} style={{ width: `${data.percentage}%` }} />
+                                    </div>
+                                  </div>
+
+                                  {/* Compact Subject-wise Performance (Scrollable) */}
+                                  {subjectMarks.length > 0 && (
+                                    <div className="border border-slate-100 rounded-xl overflow-hidden flex flex-col shadow-sm">
+                                      <div className="bg-slate-50/80 px-3 py-2 border-b border-slate-100">
+                                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Subject-wise Performance</p>
+                                      </div>
+                                      <div className="divide-y divide-slate-100 max-h-[220px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                                        {subjectMarks.map((sm, idx) => {
+                                          const subjGrade = getCardGrade(sm.percentage);
+                                          return (
+                                            <div key={sm.subject} className={`px-3 py-2.5 flex items-center justify-between transition-colors hover:bg-slate-50/60 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'}`}>
+                                              <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-slate-800">{sm.subject}</span>
+                                                <span className="text-[10px] font-bold text-slate-400 mt-0.5">{sm.obtained} / {sm.max}</span>
+                                              </div>
+                                              <div className="flex flex-col items-end">
+                                                <span className="text-xs font-black text-slate-800">{sm.percentage.toFixed(0)}%</span>
+                                                <span className={`text-[9px] font-bold px-2 py-0.5 border rounded mt-1 shadow-sm ${getGradeColor(subjGrade)}`}>
+                                                  Grade: {subjGrade}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Footer Overall Summary - FIXED: Rank Column Completely Removed */}
+                                <div className="bg-slate-50/90 px-4 py-3 border-t border-slate-100 grid grid-cols-2 divide-x divide-slate-200 mt-auto shadow-inner">
+                                  <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall Grade</span>
+                                    <span className={`text-xs font-extrabold px-3 py-1 border rounded-md shadow-sm ${getGradeColor(data.grade)}`}>
+                                      {data.grade}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col items-center justify-center gap-1 px-1">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overall %</span>
+                                    <span className={`text-sm font-black ${theme.text}`}>{data.percentage.toFixed(1)}%</span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center text-xs text-slate-500 mb-3">
-                                <span>Obtained: {data.totalObtained} / {data.totalMax}</span>
-                                <span>Subjects: {data.count}</span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2 mb-3">
-                                <div className="bg-rose-600 h-2 rounded-full transition-all" style={{ width: `${data.percentage}%` }} />
-                              </div>
-                              
-                              {(() => {
-                                const subjectMarks = activeStudent.subjectAnalytics
-                                  .filter(s => s.mainByExamType && s.mainByExamType[examType])
-                                  .map(s => ({
-                                    subject: s.subject,
-                                    obtained: s.mainByExamType[examType].totalObtained,
-                                    max: s.mainByExamType[examType].totalMax,
-                                    percentage: s.mainByExamType[examType].totalMax > 0 
-                                      ? (s.mainByExamType[examType].totalObtained / s.mainByExamType[examType].totalMax) * 100 
-                                      : 0
-                                  }));
-                                return subjectMarks.length > 0 ? (
-                                  <div className="space-y-2">
-                                    <p className="text-[10px] font-semibold text-slate-600 uppercase">Subject-wise Marks</p>
-                                    {subjectMarks.map(sm => (
-                                      <div key={sm.subject} className="flex items-center justify-between text-xs">
-                                        <span className="text-slate-600">{sm.subject}</span>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-slate-500">{sm.obtained}/{sm.max}</span>
-                                          <span className="font-bold text-slate-700">{sm.percentage.toFixed(0)}%</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : null;
-                              })()}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
-                        <div className="text-center py-8">
+                        <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
                           <p className="text-sm font-medium text-slate-500">No Main Exam data available</p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* REDESIGNED Notebook Tab Content */}
+                  {/* Notebook Tab Content */}
                   {activeTab === 'notebook' && (
                     <div className="space-y-5">
                       <div className="grid grid-cols-5 gap-3">
@@ -799,78 +802,89 @@ export default function StudentPerformance() {
                 </div>
               </div>
 
-              {/* Subject-Wise Performance Table */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-4">
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
-                  <Target className="h-4 w-4 text-slate-500" />
-                  <h3 className="font-semibold text-slate-800 text-sm">
-                    {activeTab === 'daily' && 'Daily Test Performance'}
-                    {activeTab === 'main' && 'Main Exam Performance'}
-                    {activeTab === 'notebook' && 'Notebook Completion'}
-                  </h3>
+              {/* Subject-Wise Performance Table - Only showing for Notebook as requested */}
+              {activeTab === 'notebook' && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-4">
+                  <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+                    <Target className="h-4 w-4 text-slate-500" />
+                    <h3 className="font-semibold text-slate-800 text-sm">Notebook Completion</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="text-[10px] text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold">Subject</th>
+                          <th className="px-4 py-3 font-semibold text-center">Notebook %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const sortedSubjects = [...activeStudent.subjectAnalytics].sort((a, b) => b.notebookPercent - a.notebookPercent);
+                          return sortedSubjects.map(subj => {
+                            return (
+                              <tr key={subj.subject} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                <td className="px-4 py-3 font-medium text-slate-700">{subj.subject}</td>
+                                <td className="px-4 py-3 text-center font-bold text-sky-600">{subj.notebookPercent.toFixed(1)}%</td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="text-[10px] text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Subject</th>
-                        {activeTab === 'daily' && <th className="px-4 py-3 font-semibold text-center">Daily %</th>}
-                        {activeTab === 'main' && <th className="px-4 py-3 font-semibold text-center">Main %</th>}
-                        {activeTab === 'notebook' && <th className="px-4 py-3 font-semibold text-center">Notebook %</th>}
-                        {activeTab !== 'notebook' && <th className="px-4 py-3 font-semibold text-center">Grade</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const sortedSubjects = [...activeStudent.subjectAnalytics].sort((a, b) => {
-                          if (activeTab === 'daily') return b.dailyTestAvg - a.dailyTestAvg;
-                          if (activeTab === 'main') return b.mainExamAvg - a.mainExamAvg;
-                          return b.notebookPercent - a.notebookPercent;
-                        });
-                        
-                        const getGrade = (percentage) => {
-                          if (percentage >= 90) return 'A+';
-                          if (percentage >= 80) return 'A';
-                          if (percentage >= 70) return 'B+';
-                          if (percentage >= 60) return 'B';
-                          if (percentage >= 50) return 'C';
-                          if (percentage >= 40) return 'D';
-                          return 'F';
-                        };
-                        
-                        return sortedSubjects.map(subj => {
-                          const val = activeTab === 'daily' ? subj.dailyTestAvg : activeTab === 'main' ? subj.mainExamAvg : subj.notebookPercent;
-                          return (
-                            <tr key={subj.subject} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-3 font-medium text-slate-700">{subj.subject}</td>
-                              
-                              {activeTab === 'daily' && <td className="px-4 py-3 text-center text-slate-600">{subj.dailyTestAvg.toFixed(1)}%</td>}
-                              {activeTab === 'main' && <td className="px-4 py-3 text-center text-slate-600">{subj.mainExamAvg.toFixed(1)}%</td>}
-                              {activeTab === 'notebook' && <td className="px-4 py-3 text-center font-bold text-sky-600">{subj.notebookPercent.toFixed(1)}%</td>}
-                              
-                              {activeTab !== 'notebook' && (
-                                <td className="px-4 py-3 text-center">
-                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                    getGrade(val) === 'A+' ? 'bg-emerald-100 text-emerald-700' :
-                                    getGrade(val) === 'A' ? 'bg-sky-100 text-sky-700' :
-                                    getGrade(val) === 'B+' ? 'bg-indigo-100 text-indigo-700' :
-                                    getGrade(val) === 'B' ? 'bg-purple-100 text-purple-700' :
-                                    getGrade(val) === 'C' ? 'bg-amber-100 text-amber-700' :
-                                    getGrade(val) === 'D' ? 'bg-orange-100 text-orange-700' :
-                                    'bg-rose-100 text-rose-700'
-                                  }`}>{getGrade(val)}</span>
-                                </td>
-                              )}
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
+              )}
+              
+              {/* 
+                COMMENTED OUT DAILY AND MAIN PERFORMANCE TABLES:
+                {(activeTab === 'daily' || activeTab === 'main') && (
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-4">
+                    ...
+                  </div>
+                )}
+              */}
+
+              {/* Recent Daily Test Performance Trend */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-slate-500" />
+                  <h3 className="font-semibold text-slate-800 text-sm">Recent Daily Test Performance Trend</h3>
+                </div>
+                <div className="p-4">
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={(() => {
+                        const allActivities = [];
+                        if (activeStudent.dailyStats?.history) {
+                          activeStudent.dailyStats.history.forEach(item => {
+                            allActivities.push({
+                              date: item.date,
+                              percentage: item.percentage,
+                              type: 'Daily Test'
+                            });
+                          });
+                        }
+                        allActivities.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        return allActivities;
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} />
+                        <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} domain={[0, 100]} />
+                        <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgb(0 0 0 / 0.1)', fontSize: '11px'}} formatter={(value) => [`${value.toFixed(1)}%`, 'Daily Test']} />
+                        <Line type="monotone" dataKey="percentage" stroke="#0ea5e9" strokeWidth={2} dot={{fill: '#0ea5e9', r: 3, stroke: '#0ea5e9', strokeWidth: 2}} activeDot={{r: 5}} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center mt-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-sky-500" />
+                      <span className="text-xs text-slate-600 font-medium">Daily Test</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Academic Activity Timeline */}
+              {/* Academic Activity Timeline - Moved to the very bottom */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
                 <div 
                   className="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
@@ -955,46 +969,6 @@ export default function StudentPerformance() {
                     })()}
                   </div>
                 )}
-              </div>
-
-              {/* Recent Daily Test Performance Trend */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-slate-500" />
-                  <h3 className="font-semibold text-slate-800 text-sm">Recent Daily Test Performance Trend</h3>
-                </div>
-                <div className="p-4">
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={(() => {
-                        const allActivities = [];
-                        if (activeStudent.dailyStats?.history) {
-                          activeStudent.dailyStats.history.forEach(item => {
-                            allActivities.push({
-                              date: item.date,
-                              percentage: item.percentage,
-                              type: 'Daily Test'
-                            });
-                          });
-                        }
-                        allActivities.sort((a, b) => new Date(a.date) - new Date(b.date));
-                        return allActivities;
-                      })()}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} />
-                        <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} domain={[0, 100]} />
-                        <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgb(0 0 0 / 0.1)', fontSize: '11px'}} formatter={(value) => [`${value.toFixed(1)}%`, 'Daily Test']} />
-                        <Line type="monotone" dataKey="percentage" stroke="#0ea5e9" strokeWidth={2} dot={{fill: '#0ea5e9', r: 3, stroke: '#0ea5e9', strokeWidth: 2}} activeDot={{r: 5}} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex justify-center mt-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-sky-500" />
-                      <span className="text-xs text-slate-600 font-medium">Daily Test</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
             </div>
