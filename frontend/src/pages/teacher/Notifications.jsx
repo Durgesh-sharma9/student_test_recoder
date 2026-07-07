@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import PollModal from '@/components/PollModal';
+import FeedbackPanel from '@/components/FeedbackPanel';
 
 export default function TeacherNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -18,6 +19,9 @@ export default function TeacherNotifications() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedPollId, setSelectedPollId] = useState(null);
   const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [searchParams] = useSearchParams();
 
   const fetchNotifications = async () => {
@@ -76,6 +80,24 @@ export default function TeacherNotifications() {
     setDetailsModalOpen(true);
   };
 
+  const openPollAnalytics = async () => {
+    const pollNotification = notifications.find((notification) => notification.type === 'poll' && notification.pollId);
+    if (!pollNotification?.pollId) {
+      return;
+    }
+
+    try {
+      setAnalyticsLoading(true);
+      const res = await api.get(`/polls/${pollNotification.pollId}/analytics`);
+      setAnalyticsData(res.data.analytics);
+      setAnalyticsOpen(true);
+    } catch (error) {
+      console.error('Failed to load poll analytics:', error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
   return (
     <PageStack>
       <style>{`
@@ -84,6 +106,31 @@ export default function TeacherNotifications() {
       `}</style>
 
       <PageHeader title="Notifications" description="View notifications from School Admin." />
+
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" onClick={openPollAnalytics} className="rounded-lg">
+          Poll Analytics
+        </Button>
+      </div>
+
+      {analyticsOpen && analyticsData && (
+        <ErpSection title="Poll Analytics" icon={Bell} tone="red">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Responses</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.responsesReceived || 0}</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Pending</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.pendingResponses || 0}</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Completion</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.completionPercent || 0}%</div>
+            </div>
+          </div>
+        </ErpSection>
+      )}
 
       <ErpSection className="soft-red-grad" title="Received Notifications" icon={Bell} tone="red">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
@@ -152,6 +199,10 @@ export default function TeacherNotifications() {
         </div>
         {/* Mobile cards same as before... */}
       </ErpSection>
+      <div className="mt-6">
+        <FeedbackPanel role="teacher" />
+      </div>
+
       <PollModal open={pollModalOpen} onOpenChange={setPollModalOpen} pollId={selectedPollId} />
     </PageStack>
   );
