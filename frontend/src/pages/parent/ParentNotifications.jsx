@@ -5,14 +5,18 @@ import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
-import { Bell, FileText, ExternalLink, Check } from 'lucide-react';
+import { Bell, FileText, ExternalLink, Check, BarChart3 } from 'lucide-react';
 import PollModal from '@/components/PollModal';
+import FeedbackPanel from '@/components/FeedbackPanel';
 
 export default function ParentNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPollId, setSelectedPollId] = useState(null);
   const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -67,6 +71,25 @@ export default function ParentNotifications() {
     }
   };
 
+  const openPollAnalytics = async () => {
+    const pollNotification = notifications.find((notification) => notification.type === 'poll' && notification.pollId);
+    if (!pollNotification?.pollId) {
+      toast.error('No poll notifications available yet');
+      return;
+    }
+
+    try {
+      setAnalyticsLoading(true);
+      const res = await api.get(`/polls/${pollNotification.pollId}/analytics`);
+      setAnalyticsData(res.data.analytics);
+      setAnalyticsOpen(true);
+    } catch (error) {
+      toast.error('Failed to load poll analytics');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
   return (
     <PageStack>
       <PageHeader
@@ -74,12 +97,12 @@ export default function ParentNotifications() {
         description="View announcements and important updates"
       />
 
-      <div className="flex justify-end mb-4">
-        <Button
-          onClick={markAllAsRead}
-          variant="outline"
-          className="rounded-xl w-full sm:w-auto"
-        >
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button onClick={openPollAnalytics} variant="outline" className="rounded-xl w-full sm:w-auto">
+          <BarChart3 className="mr-2 h-4 w-4 shrink-0" />
+          Poll Analytics
+        </Button>
+        <Button onClick={markAllAsRead} variant="outline" className="rounded-xl w-full sm:w-auto">
           <Check className="mr-2 h-4 w-4 shrink-0" />
           Mark All as Read
         </Button>
@@ -149,6 +172,31 @@ export default function ParentNotifications() {
           ))}
         </div>
       )}
+      {analyticsOpen && analyticsData && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900">Poll Analytics</h3>
+          <p className="mt-1 text-sm text-slate-600">{analyticsData.poll?.title}</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Responses</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.responsesReceived || 0}</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Pending</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.pendingResponses || 0}</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3">
+              <div className="text-xs uppercase text-slate-500">Completion</div>
+              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.completionPercent || 0}%</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <FeedbackPanel role="parent" />
+      </div>
+
       <PollModal open={pollModalOpen} onOpenChange={setPollModalOpen} pollId={selectedPollId} />
     </PageStack>
   );
