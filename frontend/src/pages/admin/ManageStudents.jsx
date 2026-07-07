@@ -76,6 +76,13 @@ export default function ManageStudents() {
 
   const filtered = useMemo(() => students.filter((s) => `${s.rollNo} ${s.name}`.toLowerCase().includes(query.toLowerCase())), [students, query]);
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     
@@ -471,9 +478,10 @@ export default function ManageStudents() {
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Roll No</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Name</TableHead>
-                  {/* Added Parent Name Header */}
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Parent Name</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2 text-center">Admission Date</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Gender</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Status</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2 text-right pr-4">Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -482,9 +490,20 @@ export default function ManageStudents() {
                   <TableRow key={s._id} className="hover:bg-emerald-50/30 transition-colors border-b-slate-100">
                     <TableCell className="font-medium text-slate-700 text-xs py-2">{s.rollNo}</TableCell>
                     <TableCell className="text-slate-800 text-xs py-2">{s.name}</TableCell>
-                    {/* Added Parent Name Cell */}
                     <TableCell className="text-slate-600 text-xs py-2">{s.parent?.parentName || 'N/A'}</TableCell>
+                    <TableCell className="text-slate-600 text-xs py-2 text-center">{formatDate(s.admissionDate)}</TableCell>
                     <TableCell className="capitalize text-slate-600 text-xs py-2">{s.gender}</TableCell>
+                    <TableCell className="text-slate-600 text-xs py-2">
+                      {s.isActive ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700">
+                          🟢 Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
+                          🔴 Inactive
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right py-2 pr-4">
                       <div className="flex flex-wrap gap-1.5 justify-end">
                         <Button
@@ -527,7 +546,7 @@ export default function ManageStudents() {
                 ))}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-slate-400 text-xs">
+                    <TableCell colSpan={7} className="text-center py-6 text-slate-400 text-xs">
                       No students found matching your search.
                     </TableCell>
                   </TableRow>
