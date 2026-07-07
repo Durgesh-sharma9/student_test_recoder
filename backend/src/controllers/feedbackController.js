@@ -54,7 +54,7 @@ export const getFeedback = asyncHandler(async (req, res) => {
   if (user.role === 'school_admin') {
     filter = { school: schoolId };
   } else if (user.role === 'teacher') {
-    filter = { school: schoolId, teacherIds: user._id };
+    filter = { school: schoolId, $or: [{ teacherIds: user._id }, { taggedTeacherId: user._id }] };
   } else if (user.role === 'parent') {
     filter = { $or: [{ parent: user._id }, { createdBy: user._id }] };
   } else {
@@ -84,27 +84,30 @@ export const createFeedback = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Only parents can create feedback tickets.');
   }
 
-  const { title, description, studentId, teacherIds } = req.body;
+  const { title, description, studentId, teacherId, taggedSubject } = req.body;
   if (!title || !description) {
     throw new ApiError(400, 'Title and description are required.');
   }
 
-  let parsedTeacherIds = [];
-  if (teacherIds) {
-    try {
-      parsedTeacherIds = typeof teacherIds === 'string' ? JSON.parse(teacherIds) : teacherIds;
-    } catch {
-      parsedTeacherIds = [];
+  const attachments = await buildAttachmentData(req.files || []);
+
+  // Fetch teacher name if teacher is tagged
+  let taggedTeacherName = null;
+  if (teacherId) {
+    const teacher = await User.findById(teacherId).select('teacherName name');
+    if (teacher) {
+      taggedTeacherName = teacher.teacherName || teacher.name;
     }
   }
-
-  const attachments = await buildAttachmentData(req.files || []);
 
   const feedback = await Feedback.create({
     school: user.school,
     parent: user._id,
     student: studentId || undefined,
-    teacherIds: parsedTeacherIds,
+    teacherIds: teacherId ? [teacherId] : [],
+    taggedTeacherId: teacherId || null,
+    taggedTeacherName: taggedTeacherName,
+    taggedSubject: taggedSubject || null,
     createdBy: user._id,
     title,
     description,
@@ -141,15 +144,15 @@ export const createFeedback = asyncHandler(async (req, res) => {
     });
   }
 
-  // Send notification to tagged teachers
-  if (parsedTeacherIds.length > 0) {
+  // Send notification to tagged teacher
+  if (teacherId) {
     await Notification.create({
       title: `New Feedback: ${title}`,
       message: `Parent tagged you in feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
       priority: 'important',
       senderId: user._id,
       senderRole: 'parent',
-      recipientIds: parsedTeacherIds,
+      recipientIds: [teacherId],
       schoolId: user.school,
       targetRole: 'teacher',
       isBroadcast: true,

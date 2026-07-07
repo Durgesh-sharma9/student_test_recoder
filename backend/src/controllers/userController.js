@@ -56,11 +56,32 @@ export const getUsers = asyncHandler(async (req, res) => {
   }
 
   const schoolFilter = req.user.role === 'super_admin' ? {} : { school: req.user.school };
+  
+  console.log('=== GET USERS START ===');
+  console.log('Role filter:', role);
+  console.log('School filter:', schoolFilter);
+  
   const users = await User.find({ ...filter, ...schoolFilter, isActive: true })
     .select('-password')
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section')
     .sort('-createdAt');
+
+  console.log('Total users found:', users.length);
+  
+  if (role === 'teacher') {
+    users.forEach((user, idx) => {
+      console.log(`Teacher ${idx}:`, {
+        _id: user._id,
+        name: user.teacherName || user.name,
+        hasAssignments: !!user.assignments,
+        assignmentsCount: user.assignments?.length || 0,
+        assignments: user.assignments
+      });
+    });
+  }
+  
+  console.log('=== GET USERS END ===');
 
   res.json({
     success: true,

@@ -350,6 +350,12 @@ export default function AdminNotifications() {
                     {ticket.student?.class && (
                       <span>Class: {ticket.student.class.className} {ticket.student.class.section}</span>
                     )}
+                    {ticket.taggedTeacherName && (
+                      <span>Tagged: {ticket.taggedSubject} • {ticket.taggedTeacherName}</span>
+                    )}
+                    {!ticket.taggedTeacherName && (
+                      <span>Admin Only</span>
+                    )}
                   </div>
                   {ticket.attachments && ticket.attachments.length > 0 && (
                     <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
@@ -836,17 +842,16 @@ export default function AdminNotifications() {
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Tagged Teachers</p>
-                        {selectedFeedback.teacherIds && selectedFeedback.teacherIds.length > 0 ? (
-                          <div className="space-y-1">
-                            {selectedFeedback.teacherIds.map((teacher, idx) => (
-                              <p key={idx} className="text-sm text-slate-700">
-                                {teacher.teacherName || teacher.name || 'Teacher'}
-                              </p>
-                            ))}
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Tagged Teacher</p>
+                        {selectedFeedback.taggedTeacherName ? (
+                          <div>
+                            <p className="text-sm text-slate-700">{selectedFeedback.taggedTeacherName}</p>
+                            {selectedFeedback.taggedSubject && (
+                              <p className="text-xs text-slate-500">{selectedFeedback.taggedSubject}</p>
+                            )}
                           </div>
                         ) : (
-                          <p className="text-sm text-slate-500">None</p>
+                          <p className="text-sm text-slate-500">Admin Only</p>
                         )}
                       </div>
                       <div>
