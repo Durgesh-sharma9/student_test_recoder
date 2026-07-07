@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, BarChart3, Vote, Clock3, Users, ChevronDown, ChevronUp, ChevronLeft, Search, Download, FileText } from 'lucide-react';
+import { Bell, Check, BarChart3, Vote, Clock3, Users, ChevronDown, ChevronUp, ChevronLeft, Search, Download, FileText, MessageSquare, Paperclip, X, Send, User, GraduationCap, Upload, FileText as FileIcon } from 'lucide-react';
 import api from '@/lib/api';
 import FeedbackPanel from '@/components/FeedbackPanel';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -14,6 +16,7 @@ const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 export default function AdminNotifications() {
   const [activeTab, setActiveTab] = useState('notifications');
   const [notifications, setNotifications] = useState([]);
+  const [feedback, setFeedback] = useState([]);
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPoll, setSelectedPoll] = useState(null);
@@ -24,6 +27,14 @@ export default function AdminNotifications() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Feedback conversation modal state
+  const [conversationOpen, setConversationOpen] = useState(false);
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const [sendingReply, setSendingReply] = useState(false);
 
   const fetchNotifications = async () => {
     try {
@@ -32,6 +43,18 @@ export default function AdminNotifications() {
       setNotifications(res.data.notifications || []);
     } catch (error) {
       toast.error('Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFeedback = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/feedback');
+      setFeedback(res.data.feedback || []);
+    } catch (error) {
+      toast.error('Failed to load feedback');
     } finally {
       setLoading(false);
     }
@@ -52,6 +75,8 @@ export default function AdminNotifications() {
   useEffect(() => {
     if (activeTab === 'notifications') {
       fetchNotifications();
+    } else if (activeTab === 'feedback') {
+      fetchFeedback();
     } else {
       fetchPolls();
     }
@@ -77,6 +102,81 @@ export default function AdminNotifications() {
     setPendingResponsesOpen(false);
     setCurrentPage(1);
     setSearchQuery('');
+  };
+
+  const openConversation = async (feedbackId) => {
+    try {
+      setConversationLoading(true);
+      setConversationOpen(true);
+      setSelectedFeedback(null);
+      
+      // Fetch full feedback details including messages
+      const res = await api.get(`/feedback`);
+      const allFeedback = res.data.feedback || [];
+      const feedbackDetail = allFeedback.find(f => f._id === feedbackId);
+      
+      if (feedbackDetail) {
+        setSelectedFeedback(feedbackDetail);
+      } else {
+        toast.error('Feedback not found');
+        setConversationOpen(false);
+      }
+    } catch (error) {
+      toast.error('Failed to load feedback conversation');
+      setConversationOpen(false);
+    } finally {
+      setConversationLoading(false);
+    }
+  };
+
+  const closeConversation = () => {
+    setConversationOpen(false);
+    setSelectedFeedback(null);
+    setReplyContent('');
+    setReplyAttachments([]);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyContent.trim() && replyAttachments.length === 0) {
+      toast.error('Please enter a reply or attach a file');
+      return;
+    }
+
+    try {
+      setSendingReply(true);
+      const formData = new FormData();
+      formData.append('content', replyContent);
+      replyAttachments.forEach((file) => formData.append('attachments', file));
+
+      await api.post(`/feedback/${selectedFeedback._id}/reply`, formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      setReplyContent('');
+      setReplyAttachments([]);
+      toast.success('Reply sent');
+      
+      // Refresh feedback data
+      await openConversation(selectedFeedback._id);
+      fetchFeedback();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send reply');
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await api.put(`/feedback/${selectedFeedback._id}/status`, { status: newStatus });
+      toast.success('Status updated');
+      
+      // Refresh feedback data
+      await openConversation(selectedFeedback._id);
+      fetchFeedback();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update status');
+    }
   };
 
   const formatDate = (dateString) => {
@@ -176,6 +276,17 @@ export default function AdminNotifications() {
             Notifications
           </button>
           <button
+            onClick={() => setActiveTab('feedback')}
+            className={cn(
+              'pb-3 text-sm font-semibold border-b-2 transition-colors',
+              activeTab === 'feedback' 
+                ? 'border-indigo-600 text-indigo-600' 
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            )}
+          >
+            Parent Feedback
+          </button>
+          <button
             onClick={() => setActiveTab('polls')}
             className={cn(
               'pb-3 text-sm font-semibold border-b-2 transition-colors',
@@ -202,6 +313,58 @@ export default function AdminNotifications() {
                 <div key={n._id} className="border border-slate-200 p-4 rounded-lg bg-white">
                   <h4 className="font-semibold text-slate-900">{n.title}</h4>
                   <p className="text-sm text-slate-600 mt-1">{n.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </ErpSection>
+      )}
+
+      {/* Feedback Tab */}
+      {activeTab === 'feedback' && (
+        <ErpSection title="Parent Feedback" icon={MessageSquare} tone="blue">
+          {loading ? (
+            <p className="text-slate-500">Loading feedback...</p>
+          ) : feedback.length === 0 ? (
+            <p className="text-slate-500">No feedback tickets yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {feedback.map((ticket) => (
+                <div key={ticket._id} className="border border-slate-200 p-4 rounded-lg bg-white">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{ticket.ticketId}</span>
+                        <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', getStatusBadge(ticket.status))}>
+                          {ticket.status}
+                        </span>
+                      </div>
+                      <h4 className="font-semibold text-slate-900">{ticket.title}</h4>
+                    </div>
+                    <div className="text-xs text-slate-500">{formatDate(ticket.createdAt)}</div>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3 line-clamp-2">{ticket.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
+                    <span>Parent: {ticket.parent?.parentName || 'N/A'}</span>
+                    <span>Student: {ticket.student?.name || 'N/A'}</span>
+                    {ticket.student?.class && (
+                      <span>Class: {ticket.student.class.className} {ticket.student.class.section}</span>
+                    )}
+                  </div>
+                  {ticket.attachments && ticket.attachments.length > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+                      <Paperclip className="h-3 w-3" />
+                      <span>{ticket.attachments.length} attachment(s)</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-slate-500">
+                      {ticket.messages?.length > 1 && `${ticket.messages.length - 1} reply(ies)`}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => openConversation(ticket._id)}>
+                      Open Conversation
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -615,6 +778,218 @@ export default function AdminNotifications() {
             </div>
           </ErpSection>
         </>
+      )}
+
+      {/* Feedback Conversation Modal */}
+      {conversationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white p-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Feedback Conversation</h3>
+                <p className="text-sm text-slate-500">{selectedFeedback?.ticketId}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={closeConversation}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4">
+              {conversationLoading ? (
+                <p className="text-center text-slate-500">Loading conversation...</p>
+              ) : selectedFeedback ? (
+                <div className="space-y-4">
+                  {/* Ticket Info */}
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Title</p>
+                        <p className="font-medium text-slate-900">{selectedFeedback.title}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Status</p>
+                        <Select value={selectedFeedback.status} onValueChange={handleStatusChange}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Open">Open</SelectItem>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Resolved">Resolved</SelectItem>
+                            <SelectItem value="Closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Parent</p>
+                        <p className="text-sm text-slate-700">{selectedFeedback.parent?.parentName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Student</p>
+                        <p className="text-sm text-slate-700">{selectedFeedback.student?.name || 'N/A'}</p>
+                        {selectedFeedback.student?.class && (
+                          <p className="text-xs text-slate-500">
+                            {selectedFeedback.student.class.className} {selectedFeedback.student.class.section}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Tagged Teachers</p>
+                        {selectedFeedback.teacherIds && selectedFeedback.teacherIds.length > 0 ? (
+                          <div className="space-y-1">
+                            {selectedFeedback.teacherIds.map((teacher, idx) => (
+                              <p key={idx} className="text-sm text-slate-700">
+                                {teacher.teacherName || teacher.name || 'Teacher'}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-500">None</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Created</p>
+                        <p className="text-sm text-slate-700">{formatDate(selectedFeedback.createdAt)}</p>
+                      </div>
+                    </div>
+                    {selectedFeedback.description && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Description</p>
+                        <p className="mt-1 text-sm text-slate-700">{selectedFeedback.description}</p>
+                      </div>
+                    )}
+                    {selectedFeedback.attachments && selectedFeedback.attachments.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-slate-500 uppercase">Attachments</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {selectedFeedback.attachments.map((att, idx) => (
+                            <a
+                              key={idx}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded bg-white border border-slate-200 px-3 py-1.5 text-sm text-violet-600 hover:bg-violet-50"
+                            >
+                              <FileIcon className="h-4 w-4" />
+                              {att.name || 'Attachment'}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Conversation Messages */}
+                  <div>
+                    <h4 className="mb-3 text-sm font-semibold text-slate-700">Conversation</h4>
+                    {!selectedFeedback.messages || selectedFeedback.messages.length === 0 ? (
+                      <p className="text-sm text-slate-500">No conversation yet.</p>
+                    ) : (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {selectedFeedback.messages.map((message, index) => (
+                          <div
+                            key={index}
+                            className={cn(
+                              'rounded-lg p-3',
+                              message.senderRole === 'parent'
+                                ? 'bg-violet-50 border border-violet-100'
+                                : 'bg-slate-50 border border-slate-200'
+                            )}
+                          >
+                            <div className="mb-2 flex items-center gap-2">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                                {message.senderRole === 'parent' ? (
+                                  <User className="h-4 w-4 text-violet-600" />
+                                ) : (
+                                  <GraduationCap className="h-4 w-4 text-slate-600" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-slate-900">{message.senderName || 'User'}</p>
+                                <p className="text-xs text-slate-500">
+                                  {message.senderRole === 'parent' ? 'Parent' : message.senderRole === 'teacher' ? 'Teacher' : 'Admin'}
+                                  {message.createdAt && ` • ${formatDateTime(message.createdAt)}`}
+                                </p>
+                              </div>
+                            </div>
+                            {message.content && (
+                              <p className="text-sm text-slate-700">{message.content}</p>
+                            )}
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {message.attachments.map((att, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded bg-white border border-slate-200 px-2 py-1 text-xs text-violet-600 hover:bg-violet-50"
+                                  >
+                                    <FileIcon className="h-3 w-3" />
+                                    {att.name || 'Attachment'}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reply Box */}
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-slate-700">Reply</h4>
+                    <Textarea
+                      rows={3}
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      placeholder="Write your reply..."
+                      className="mb-3"
+                    />
+                    <div className="mb-3">
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-700">
+                        <Upload className="h-4 w-4" />
+                        <span>Attach files</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          multiple
+                          onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])}
+                        />
+                      </label>
+                      {replyAttachments.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {replyAttachments.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between rounded border border-slate-200 bg-white p-2 text-xs">
+                              <span className="text-slate-700">{file.name}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== index))}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button onClick={handleSendReply} disabled={sendingReply}>
+                        {sendingReply ? 'Sending...' : 'Send Reply'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-slate-500">Feedback not found</p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </PageStack>
   );

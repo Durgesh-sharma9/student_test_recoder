@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import Feedback from '../models/Feedback.js';
+import Notification from '../models/Notification.js';
+import User from '../models/User.js';
+import Parent from '../models/Parent.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { uploadFile } from '../utils/imagekit.js';
@@ -58,7 +61,18 @@ export const getFeedback = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'You do not have permission to view feedback.');
   }
 
-  const tickets = await Feedback.find(filter).sort({ createdAt: -1 });
+  const tickets = await Feedback.find(filter)
+    .populate('parent', 'parentName email phone')
+    .populate('student', 'name rollNo class')
+    .populate({
+      path: 'student',
+      populate: {
+        path: 'class',
+        select: 'className section'
+      }
+    })
+    .populate('teacherIds', 'teacherName name email')
+    .sort({ createdAt: -1 });
 
   res.json({ success: true, feedback: tickets });
 });
@@ -107,6 +121,43 @@ export const createFeedback = asyncHandler(async (req, res) => {
     ],
   });
 
+  // Send notification to school admin
+  const adminUsers = await User.find({ role: 'school_admin', school: user.school, isActive: true }).select('_id');
+  const adminIds = adminUsers.map(admin => admin._id);
+
+  if (adminIds.length > 0) {
+    await Notification.create({
+      title: `New Feedback: ${title}`,
+      message: `Parent submitted feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+      priority: 'important',
+      senderId: user._id,
+      senderRole: 'parent',
+      recipientIds: adminIds,
+      schoolId: user.school,
+      targetRole: 'school_admin',
+      isBroadcast: true,
+      type: 'feedback',
+      feedbackId: feedback._id,
+    });
+  }
+
+  // Send notification to tagged teachers
+  if (parsedTeacherIds.length > 0) {
+    await Notification.create({
+      title: `New Feedback: ${title}`,
+      message: `Parent tagged you in feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+      priority: 'important',
+      senderId: user._id,
+      senderRole: 'parent',
+      recipientIds: parsedTeacherIds,
+      schoolId: user.school,
+      targetRole: 'teacher',
+      isBroadcast: true,
+      type: 'feedback',
+      feedbackId: feedback._id,
+    });
+  }
+
   res.status(201).json({ success: true, feedback });
 });
 
@@ -143,6 +194,65 @@ export const replyToFeedback = asyncHandler(async (req, res) => {
   });
   feedback.lastReplyAt = new Date();
   await feedback.save();
+
+  // Send notification to parent when admin or teacher replies
+  if (user.role !== 'parent') {
+    const parentDoc = await Parent.findById(feedback.parent).select('_id');
+    if (parentDoc) {
+      await Notification.create({
+        title: `Feedback Reply: ${feedback.title}`,
+        message: `${user.name || user.teacherName || 'Admin'} replied to your feedback: ${content?.substring(0, 100) || 'Attachment'}${content?.length > 100 ? '...' : ''}`,
+        priority: 'info',
+        senderId: user._id,
+        senderRole: user.role === 'teacher' ? 'teacher' : 'school_admin',
+        recipientIds: [parentDoc._id],
+        schoolId: feedback.school,
+        targetRole: 'parent',
+        isBroadcast: false,
+        type: 'feedback',
+        feedbackId: feedback._id,
+      });
+    }
+  }
+
+  // Send notification to admin when parent replies
+  if (user.role === 'parent') {
+    const adminUsers = await User.find({ role: 'school_admin', school: feedback.school, isActive: true }).select('_id');
+    const adminIds = adminUsers.map(admin => admin._id);
+
+    if (adminIds.length > 0) {
+      await Notification.create({
+        title: `Feedback Reply: ${feedback.title}`,
+        message: `Parent replied to feedback: ${content?.substring(0, 100) || 'Attachment'}${content?.length > 100 ? '...' : ''}`,
+        priority: 'info',
+        senderId: user._id,
+        senderRole: 'parent',
+        recipientIds: adminIds,
+        schoolId: feedback.school,
+        targetRole: 'school_admin',
+        isBroadcast: true,
+        type: 'feedback',
+        feedbackId: feedback._id,
+      });
+    }
+  }
+
+  // Send notification to tagged teachers when parent replies
+  if (user.role === 'parent' && feedback.teacherIds && feedback.teacherIds.length > 0) {
+    await Notification.create({
+      title: `Feedback Reply: ${feedback.title}`,
+      message: `Parent replied to feedback: ${content?.substring(0, 100) || 'Attachment'}${content?.length > 100 ? '...' : ''}`,
+      priority: 'info',
+      senderId: user._id,
+      senderRole: 'parent',
+      recipientIds: feedback.teacherIds,
+      schoolId: feedback.school,
+      targetRole: 'teacher',
+      isBroadcast: true,
+      type: 'feedback',
+      feedbackId: feedback._id,
+    });
+  }
 
   res.json({ success: true, feedback });
 });
