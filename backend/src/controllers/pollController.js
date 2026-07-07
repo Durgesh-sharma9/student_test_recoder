@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Parent from '../models/Parent.js';
 import Student from '../models/Student.js';
+import Class from '../models/Class.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { uploadFile } from '../utils/imagekit.js';
@@ -124,6 +125,138 @@ export const getPollById = asyncHandler(async (req, res) => {
       totalResponses,
       optionCounts,
       existingResponse,
+    },
+  });
+});
+
+export const getPollAnalytics = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const user = req.user;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid poll ID');
+  }
+
+  if (user.role !== 'school_admin') {
+    throw new ApiError(403, 'Only school admins can view poll analytics.');
+  }
+
+  const poll = await Poll.findById(id)
+    .populate('createdBy', 'name teacherName role')
+    .populate('selectedClassIds', 'className section');
+
+  if (!poll) {
+    throw new ApiError(404, 'Poll not found.');
+  }
+
+  if (String(poll.school) !== String(user.school)) {
+    throw new ApiError(403, 'You do not have permission to view this poll analytics.');
+  }
+
+  const responses = await PollResponse.find({ poll: poll._id }).lean();
+  const responseCount = responses.length;
+  const totalAudience = poll.recipientCount || 0;
+  const pendingResponses = Math.max(0, totalAudience - responseCount);
+  const completionPercent = totalAudience ? Math.round((responseCount / totalAudience) * 100) : 0;
+
+  const optionSummary = poll.options.map((option, index) => {
+    const count = responses.reduce((total, response) => total + (response.selectedOptionIndexes.includes(index) ? 1 : 0), 0);
+    const percent = responseCount ? Math.round((count / responseCount) * 100) : 0;
+    return { option: option.text, count, percent };
+  });
+
+  let parentBreakdown = [];
+  if (poll.audience === 'parents' && poll.audienceScope === 'selected_classes') {
+    parentBreakdown = await Promise.all(
+      (poll.selectedClassIds || []).map(async (classDoc) => {
+        const students = await Student.find({ school: user.school, class: classDoc._id, isActive: true }).select('parent');
+        const parentIds = [...new Set(students.map((student) => student.parent).filter(Boolean))];
+        const responded = responses.filter((response) => response.userModel === 'Parent' && parentIds.some((parentId) => String(parentId) === String(response.user))).length;
+        const pending = Math.max(0, parentIds.length - responded);
+        const completion = parentIds.length ? Math.round((responded / parentIds.length) * 100) : 0;
+
+        return {
+          className: `${classDoc.className || ''} ${classDoc.section || ''}`.trim(),
+          totalParents: parentIds.length,
+          responded,
+          pending,
+          completion,
+        };
+      })
+    );
+  }
+
+  let teacherBreakdown = null;
+  if (poll.audience === 'teachers') {
+    const teacherUsers = await User.find({ role: 'teacher', school: user.school, isActive: true }).select('_id name teacherName');
+    const teacherIds = teacherUsers.map((teacher) => String(teacher._id));
+    const responded = responses.filter((response) => response.userModel === 'User' && teacherIds.includes(String(response.user))).length;
+
+    teacherBreakdown = {
+      totalTeachers: teacherUsers.length,
+      responded,
+      pending: Math.max(0, teacherUsers.length - responded),
+      completion: teacherUsers.length ? Math.round((responded / teacherUsers.length) * 100) : 0,
+    };
+  }
+
+  const responseDetails = await Promise.all(
+    responses.map(async (response) => {
+      let userDoc = null;
+      if (response.userModel === 'Parent') {
+        userDoc = await Parent.findById(response.user).select('parentName');
+      } else {
+        userDoc = await User.findById(response.user).select('name teacherName role');
+      }
+
+      let studentName = '';
+      let className = '';
+      if (response.userModel === 'Parent') {
+        const linkedStudents = await Student.find({ school: user.school, parent: response.user, isActive: true })
+          .populate('class', 'className section')
+          .limit(5);
+        studentName = linkedStudents.map((student) => student.name).join(', ');
+        className = linkedStudents
+          .map((student) => (student.class ? `${student.class.className} ${student.class.section}` : ''))
+          .filter(Boolean)
+          .join(', ');
+      }
+
+      const selectedLabels = (response.selectedOptionIndexes || [])
+        .map((index) => poll.options[index]?.text)
+        .filter(Boolean);
+
+      return {
+        name: userDoc?.teacherName || userDoc?.name || userDoc?.parentName || 'Unknown',
+        role: response.userModel === 'Parent' ? 'Parent' : 'Teacher',
+        studentName,
+        className,
+        selectedOption: selectedLabels.join(', '),
+        submittedAt: response.submittedAt || response.createdAt,
+      };
+    })
+  );
+
+  responseDetails.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+  res.json({
+    success: true,
+    analytics: {
+      poll: {
+        ...poll.toObject(),
+        status: determineStatus(poll),
+        createdByName: poll.createdBy?.teacherName || poll.createdBy?.name || 'Unknown',
+      },
+      summary: {
+        totalAudience,
+        responsesReceived: responseCount,
+        pendingResponses,
+        completionPercent,
+      },
+      optionSummary,
+      parentBreakdown,
+      teacherBreakdown,
+      responses: responseDetails,
     },
   });
 });
