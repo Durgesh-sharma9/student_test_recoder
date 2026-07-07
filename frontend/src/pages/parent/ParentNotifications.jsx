@@ -1,18 +1,31 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Bell, FileText, ExternalLink, Check } from 'lucide-react';
+import PollModal from '@/components/PollModal';
 
 export default function ParentNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPollId, setSelectedPollId] = useState(null);
+  const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  useEffect(() => {
+    const pollId = searchParams.get('pollId');
+    if (pollId && notifications.some((notification) => notification.pollId === pollId)) {
+      setSelectedPollId(pollId);
+      setPollModalOpen(true);
+    }
+  }, [searchParams, notifications]);
 
   const fetchNotifications = async () => {
     try {
@@ -46,6 +59,14 @@ export default function ParentNotifications() {
     }
   };
 
+  const openNotification = (notification) => {
+    if (notification.type === 'poll' && notification.pollId) {
+      setSelectedPollId(notification.pollId);
+      setPollModalOpen(true);
+      return;
+    }
+  };
+
   return (
     <PageStack>
       <PageHeader
@@ -75,7 +96,8 @@ export default function ParentNotifications() {
           {notifications.map((notification) => (
             <div
               key={notification._id}
-              className={`rounded-xl border bg-white p-4 shadow-sm transition-all ${
+              onClick={() => openNotification(notification)}
+              className={`rounded-xl border bg-white p-4 shadow-sm transition-all cursor-pointer ${
                 !notification.read ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200'
               }`}
             >
@@ -127,6 +149,7 @@ export default function ParentNotifications() {
           ))}
         </div>
       )}
+      <PollModal open={pollModalOpen} onOpenChange={setPollModalOpen} pollId={selectedPollId} />
     </PageStack>
   );
 }

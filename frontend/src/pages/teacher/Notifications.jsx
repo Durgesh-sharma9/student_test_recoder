@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Bell, Check, CheckCheck, Paperclip, Download, ExternalLink, X } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import PollModal from '@/components/PollModal';
 
 export default function TeacherNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -14,6 +16,9 @@ export default function TeacherNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedPollId, setSelectedPollId] = useState(null);
+  const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const fetchNotifications = async () => {
     try {
@@ -26,6 +31,14 @@ export default function TeacherNotifications() {
   };
 
   useEffect(() => { fetchNotifications(); }, []);
+
+  useEffect(() => {
+    const pollId = searchParams.get('pollId');
+    if (pollId && notifications.some((notification) => notification.pollId === pollId)) {
+      setSelectedPollId(pollId);
+      setPollModalOpen(true);
+    }
+  }, [searchParams, notifications]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -52,6 +65,16 @@ export default function TeacherNotifications() {
   const userId = localStorage.getItem('userId');
   const isUnread = (notification) => !notification.readBy?.includes(userId);
   const getAttachmentUrl = (url) => url.startsWith('http') ? url : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${url}`;
+
+  const openNotification = (notification) => {
+    setSelectedNotification(notification);
+    if (notification.type === 'poll' && notification.pollId) {
+      setSelectedPollId(notification.pollId);
+      setPollModalOpen(true);
+      return;
+    }
+    setDetailsModalOpen(true);
+  };
 
   return (
     <PageStack>
@@ -102,7 +125,7 @@ export default function TeacherNotifications() {
                         {n.priority}
                       </span>
                     </TableCell>
-                    <TableCell className={cn("py-2.5 cursor-pointer hover:text-red-700 transition-colors", isUnread(n) ? "font-semibold text-slate-900" : "font-medium")} onClick={() => { setSelectedNotification(n); setDetailsModalOpen(true); }}>
+                    <TableCell className={cn("py-2.5 cursor-pointer hover:text-red-700 transition-colors", isUnread(n) ? "font-semibold text-slate-900" : "font-medium")} onClick={() => openNotification(n)}>
                       {n.title}
                     </TableCell>
                     <TableCell className="py-2.5 max-w-[250px] truncate text-sm">{n.message}</TableCell>
@@ -129,6 +152,7 @@ export default function TeacherNotifications() {
         </div>
         {/* Mobile cards same as before... */}
       </ErpSection>
+      <PollModal open={pollModalOpen} onOpenChange={setPollModalOpen} pollId={selectedPollId} />
     </PageStack>
   );
 }
