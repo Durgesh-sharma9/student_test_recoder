@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, X, Paperclip, Download, ExternalLink } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Bell, Check, CheckCheck, X, Paperclip, Download, ExternalLink, BarChart3, Vote } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ export default function NotificationPanel() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchNotifications = async () => {
     try {
@@ -121,10 +122,25 @@ export default function NotificationPanel() {
     if (isUnread(notification)) {
       markAsRead(notification._id);
     }
-    
+
     if (notification.subscriptionRequestId) {
       setIsOpen(false);
       navigate(`/super-admin/subscription-requests?requestId=${notification.subscriptionRequestId}`);
+      return;
+    }
+
+    if (notification.type === 'poll' && notification.pollId) {
+      setIsOpen(false);
+      const path = location.pathname;
+      if (path.includes('/super-admin')) {
+        navigate(`/super-admin/notifications?pollId=${notification.pollId}`);
+      } else if (path.includes('/teacher')) {
+        navigate(`/teacher/notifications?pollId=${notification.pollId}`);
+      } else if (path.includes('/parent')) {
+        navigate(`/parent/notifications?pollId=${notification.pollId}`);
+      } else {
+        navigate(`/admin/notifications?pollId=${notification.pollId}`);
+      }
     }
   };
 
@@ -194,13 +210,18 @@ export default function NotificationPanel() {
                           getPriorityColor(notification.priority)
                         )}
                       >
-                        <Bell className="h-4 w-4" />
+                        {notification.type === 'poll' ? <BarChart3 className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-slate-900 truncate">{notification.title}</p>
                             <p className="mt-1 text-sm text-slate-600 line-clamp-2">{notification.message}</p>
+                            {notification.type === 'poll' && (
+                              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-violet-700">
+                                <Vote className="h-3 w-3" /> Poll
+                              </div>
+                            )}
                           </div>
                           <span
                             className={cn(

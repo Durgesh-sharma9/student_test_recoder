@@ -26,6 +26,8 @@ const notificationSchema = new mongoose.Schema(
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
     subscriptionRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionRequest' },
+    type: { type: String, enum: ['announcement', 'poll'], default: 'announcement' },
+    pollId: { type: mongoose.Schema.Types.ObjectId, ref: 'Poll' },
     // Attachment fields
     attachmentUrl: { type: String, trim: true },
     attachmentName: { type: String, trim: true },
