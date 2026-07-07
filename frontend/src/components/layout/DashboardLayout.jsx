@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
   CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
-  Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown,
+  Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -94,6 +94,7 @@ const navByRole = {
     },
     { to: '/teacher/results', label: 'View Results', icon: BarChart3, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', featureKey: 'reports' },
     { to: '/teacher/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
+    { to: '/teacher/feedback', label: 'Feedback', icon: MessageSquare, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100', featureKey: 'teacher_portal' },
     { to: '/teacher/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 
@@ -102,6 +103,7 @@ const navByRole = {
     { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true, featureKey: 'parent_portal' },
     { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-100', featureKey: 'reports', lockLabel: 'Results' },
     { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
+    { to: '/parent/feedback', label: 'Feedback', icon: MessageSquare, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100', featureKey: 'parent_portal' },
     { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 };

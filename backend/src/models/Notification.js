@@ -12,7 +12,7 @@ const notificationSchema = new mongoose.Schema(
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     senderRole: {
       type: String,
-      enum: ['super_admin', 'school_admin', 'teacher'],
+      enum: ['super_admin', 'school_admin', 'teacher', 'parent'],
       required: true,
     },
     recipientIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
@@ -26,8 +26,9 @@ const notificationSchema = new mongoose.Schema(
     readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class' },
     subscriptionRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SubscriptionRequest' },
-    type: { type: String, enum: ['announcement', 'poll'], default: 'announcement' },
+    type: { type: String, enum: ['announcement', 'poll', 'feedback'], default: 'announcement' },
     pollId: { type: mongoose.Schema.Types.ObjectId, ref: 'Poll' },
+    feedbackId: { type: mongoose.Schema.Types.ObjectId, ref: 'Feedback' },
     // Attachment fields
     attachmentUrl: { type: String, trim: true },
     attachmentName: { type: String, trim: true },
