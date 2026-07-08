@@ -309,7 +309,7 @@ export default function DashboardLayout() {
               </button>
             )}
             {(isSuperAdmin || isAdmin || role === 'teacher' || role === 'parent') && <NotificationPanel />}
-            <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>
+            {(isSuperAdmin || isAdmin) && <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>}
             <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
           </div>
         </header>

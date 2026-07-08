@@ -49,6 +49,10 @@ export const getFeedback = asyncHandler(async (req, res) => {
   const user = req.user;
   const schoolId = user.school;
 
+  console.log('=== GET FEEDBACK START ===');
+  console.log('User role:', user.role);
+  console.log('School ID:', schoolId);
+
   let filter = {};
 
   if (user.role === 'school_admin') {
@@ -74,6 +78,18 @@ export const getFeedback = asyncHandler(async (req, res) => {
     .populate('teacherIds', 'teacherName name email')
     .sort({ createdAt: -1 });
 
+  console.log('Total tickets found:', tickets.length);
+  tickets.forEach((ticket, idx) => {
+    console.log(`Ticket ${idx} (${ticket.ticketId}):`, {
+      hasAttachments: !!ticket.attachments,
+      attachmentsCount: ticket.attachments?.length || 0,
+      attachments: ticket.attachments,
+      messagesCount: ticket.messages?.length || 0,
+      firstMessageAttachments: ticket.messages[0]?.attachments
+    });
+  });
+  console.log('=== GET FEEDBACK END ===');
+
   res.json({ success: true, feedback: tickets });
 });
 
@@ -89,7 +105,14 @@ export const createFeedback = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Title and description are required.');
   }
 
+  console.log('=== CREATE FEEDBACK START ===');
+  console.log('req.files:', req.files);
+  console.log('Number of files:', req.files?.length || 0);
+
   const attachments = await buildAttachmentData(req.files || []);
+
+  console.log('Uploaded attachments:', attachments);
+  console.log('Number of uploaded attachments:', attachments.length);
 
   // Fetch teacher name if teacher is tagged
   let taggedTeacherName = null;
@@ -123,6 +146,10 @@ export const createFeedback = asyncHandler(async (req, res) => {
       },
     ],
   });
+
+  console.log('Feedback created with attachments:', feedback.attachments);
+  console.log('Feedback messages attachments:', feedback.messages[0].attachments);
+  console.log('=== CREATE FEEDBACK END ===');
 
   // Send notification to school admin
   const adminUsers = await User.find({ role: 'school_admin', school: user.school, isActive: true }).select('_id');

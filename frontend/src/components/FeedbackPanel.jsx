@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   MessageSquare, Send, Plus, CircleCheckBig, MessageCircleMore, 
-  Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2
+  Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2, ChevronDown, ChevronUp, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -28,6 +28,9 @@ export default function FeedbackPanel({ role = 'parent' }) {
   const [attachments, setAttachments] = useState([]);
   const [replyAttachments, setReplyAttachments] = useState([]);
   const [dragActive, setDragActive] = useState(false);
+  
+  const [expandedTickets, setExpandedTickets] = useState({});
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const fetchTickets = async () => {
     try {
@@ -44,16 +47,11 @@ export default function FeedbackPanel({ role = 'parent' }) {
   const fetchChildren = async () => {
     try {
       const res = await api.get('/parents/students');
-      console.log('=== FETCH CHILDREN START ===');
-      console.log('API Response:', res.data);
-      console.log('Students:', res.data.students);
       setChildren(res.data.students || []);
       
       if (res.data.students && res.data.students.length === 1) {
-        console.log('Auto-selecting child:', res.data.students[0]);
         setSelectedChild(res.data.students[0]);
       }
-      console.log('=== FETCH CHILDREN END ===');
     } catch (error) {
       toast.error('Failed to load children');
     }
@@ -61,20 +59,10 @@ export default function FeedbackPanel({ role = 'parent' }) {
 
   const fetchTeachers = async (classId, child = selectedChild) => {
     try {
-      console.log('=== FETCH TEACHERS START ===');
-      console.log('classId passed:', classId, 'type:', typeof classId);
-      console.log('child passed:', child);
-      console.log('selectedChild.class._id:', selectedChild?.class?._id);
-      console.log('selectedChild.class:', selectedChild?.class);
-      
       const response = await api.get('/users?role=teacher');
       const allTeachers = response.data.users || [];
       
-      console.log('Teacher API Response', response.data);
-      console.log('Teacher List Before Filter', allTeachers);
-      
       if (allTeachers.length === 0) {
-        console.log('ERROR: No teachers returned from API');
         setTeachers([]);
         return;
       }
@@ -95,35 +83,16 @@ export default function FeedbackPanel({ role = 'parent' }) {
       });
       
       const childClassId = child?.class?._id || child?.class;
-      console.log('Selected Child', child);
-      console.log('Selected Class ID', childClassId);
       
       const filteredTeachers = normalizedTeachers.filter((teacher) => {
         const effectiveAssignments = teacher.assignments || [];
-
-        if (effectiveAssignments.length === 0) {
-          console.log('Filtering out teacher (no assignments):', teacher.teacherName || teacher.name);
-          return false;
-        }
+        if (effectiveAssignments.length === 0) return false;
         
-        const hasMatch = effectiveAssignments.some((assignment) => {
+        return effectiveAssignments.some((assignment) => {
           const assignmentClassId = assignment.class?._id || assignment.class;
-          const matches = String(assignmentClassId) === String(classId);
-          console.log('Assignment check:', {
-            teacher: teacher.teacherName || teacher.name,
-            assignmentClassId,
-            targetClassId: classId,
-            matches,
-            subject: assignment.subject,
-          });
-          return matches;
+          return String(assignmentClassId) === String(classId);
         });
-        
-        return hasMatch;
       });
-      
-      console.log('Teacher List After Filter', filteredTeachers);
-      console.log('=== FETCH TEACHERS END ===');
       
       setTeachers(filteredTeachers);
     } catch (error) {
@@ -142,7 +111,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
   useEffect(() => {
     if (selectedChild && selectedChild.classId) {
       fetchTeachers(selectedChild.classId, selectedChild);
-      setSelectedTeacher(null); // Reset teacher selection when child changes
+      setSelectedTeacher(null);
     }
   }, [selectedChild]);
 
@@ -176,6 +145,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
       setDescription('');
       setSelectedTeacher(null);
       setAttachments([]);
+      setIsFormOpen(false);
       toast.success(`Feedback submitted successfully. Ticket ID: ${res.data.feedback.ticketId}`);
       fetchTickets();
     } catch (error) {
@@ -201,6 +171,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
       await api.post(`/feedback/${ticketId}/reply`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setReplyDrafts((prev) => ({ ...prev, [ticketId]: '' }));
       setReplyAttachments([]);
+      setExpandedTickets(prev => ({ ...prev, [ticketId]: true }));
       toast.success('Reply sent');
       fetchTickets();
     } catch (error) {
@@ -220,17 +191,24 @@ export default function FeedbackPanel({ role = 'parent' }) {
     }
   };
 
+  const toggleTicket = (ticketId) => {
+    setExpandedTickets(prev => ({
+      ...prev,
+      [ticketId]: !prev[ticketId]
+    }));
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Resolved':
       case 'Closed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-600/20';
+        return 'bg-gradient-to-r from-emerald-50 to-teal-100 text-emerald-700 border-emerald-200 shadow-sm';
       case 'In Progress':
-        return 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-600/20';
+        return 'bg-gradient-to-r from-amber-50 to-orange-100 text-amber-700 border-amber-200 shadow-sm';
       case 'Open':
-        return 'bg-blue-50 text-blue-700 border-blue-200 ring-blue-600/20';
+        return 'bg-gradient-to-r from-blue-50 to-cyan-100 text-blue-700 border-blue-200 shadow-sm';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200 ring-slate-600/20';
+        return 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-600 border-slate-200 shadow-sm';
     }
   };
 
@@ -263,425 +241,484 @@ export default function FeedbackPanel({ role = 'parent' }) {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+  
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const primaryColor = role === 'parent' ? 'blue' : 'violet';
+  const isParent = role === 'parent';
+  
+  const bgGradientBase = isParent 
+    ? 'bg-gradient-to-br from-blue-50/90 via-white to-indigo-50/90' 
+    : 'bg-gradient-to-br from-violet-50/90 via-white to-fuchsia-50/90';
+    
+  const buttonGradient = isParent
+    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20'
+    : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 shadow-violet-500/20';
+
+  const chatBubbleGradient = isParent
+    ? 'bg-gradient-to-br from-blue-600 to-indigo-600'
+    : 'bg-gradient-to-br from-violet-600 to-fuchsia-600';
+
+  const activeBorderColor = isParent ? 'border-blue-500' : 'border-violet-500';
+  const hoverBorderColor = isParent ? 'hover:border-blue-400' : 'hover:border-violet-400';
+  const textGradient = isParent 
+    ? 'bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700' 
+    : 'bg-clip-text text-transparent bg-gradient-to-r from-violet-700 to-fuchsia-700';
+
   return (
-    <ErpSection title={role === 'parent' ? 'Parent Feedback' : 'Feedback Inbox'} icon={MessageSquare} tone={role === 'parent' ? 'blue' : 'violet'}>
-      {role === 'parent' && (
-        <form onSubmit={handleCreateTicket} className="mb-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md">
-          <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <Plus className="h-4 w-4 text-blue-600" /> New Feedback Ticket
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Submit a query, suggestion, or issue directly to the administration or teachers.</p>
-          </div>
-
-          <div className="p-5 space-y-6">
-            {/* Child Selection */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Child <span className="text-red-500">*</span></label>
-              {children.length === 0 ? (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
-                  <p className="text-sm text-slate-500">No children linked to your account.</p>
-                </div>
-              ) : children.length === 1 ? (
-                <div className="inline-flex w-full md:w-auto items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10">
-                    <User className="h-5 w-5" />
-                  </div>
-                  <div className="pr-4">
-                    <p className="text-sm font-semibold text-slate-900">{children[0].name}</p>
-                    <p className="text-xs text-slate-500">
-                      {children[0].className} {children[0].section} • Roll No {children[0].rollNo}
-                    </p>
-                  </div>
-                  <CheckCircle2 className="ml-auto h-5 w-5 text-blue-500 md:hidden" />
-                </div>
-              ) : (
-                <Select value={selectedChild?._id || ''} onValueChange={(value) => {
-                  const child = children.find(c => c._id === value);
-                  setSelectedChild(child);
-                }}>
-                  <SelectTrigger className="w-full md:w-80 transition-shadow focus:ring-2 focus:ring-blue-500/20">
-                    <SelectValue placeholder="Select Child" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {children.map(child => (
-                      <SelectItem key={child._id} value={child._id}>
-                        {child.name} - {child.className} {child.section}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Teacher Tag */}
-            {selectedChild && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Teacher <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <div className="space-y-2">
-                  {/* Admin Only Option */}
-                  <label 
-                    onClick={() => setSelectedTeacher(null)}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all',
-                      !selectedTeacher 
-                        ? 'border-violet-500 bg-violet-50' 
-                        : 'border-slate-200 bg-white hover:border-violet-300'
-                    )}
-                  >
-                    <div className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                      !selectedTeacher 
-                        ? "border-violet-500 bg-violet-500" 
-                        : "border-slate-300 bg-white"
-                    )}>
-                      {!selectedTeacher && (
-                        <div className="h-2 w-2 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-slate-900">Admin Only</span>
-                  </label>
-
-                  {/* Teacher Options */}
-                  {(() => {
-                    console.log('=== TEACHER RENDERING START ===');
-                    console.log('teachers array length:', teachers.length);
-                    console.log('teachers array:', teachers);
-                    console.log('selectedChild:', selectedChild);
-                    console.log('selectedChild.classId:', selectedChild?.classId);
-                    console.log('=== TEACHER RENDERING END ===');
-                    
-                    if (teachers.length === 0) {
-                      return (
-                        <p className="text-sm text-slate-500 italic">No teachers found for this student.</p>
-                      );
-                    }
-                    
-                    return teachers.map(teacher => {
-                      const assignments = teacher.assignments || [];
-                      const isSelected = selectedTeacher?._id === teacher._id;
-                    
-                      return (
-                        <label
-                          key={teacher._id}
-                          onClick={() => setSelectedTeacher({ _id: teacher._id, subject: assignments[0]?.subject, name: teacher.teacherName || teacher.name })}
-                          className={cn(
-                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all',
-                            isSelected 
-                              ? 'border-violet-500 bg-violet-50' 
-                              : 'border-slate-200 bg-white hover:border-violet-300'
-                          )}
-                        >
-                          <div className={cn(
-                            "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                            isSelected 
-                              ? "border-violet-500 bg-violet-500" 
-                              : "border-slate-300 bg-white"
-                          )}>
-                            {isSelected && (
-                              <div className="h-2 w-2 rounded-full bg-white" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-slate-900">{teacher.teacherName || teacher.name}</p>
-                            <p className="text-xs text-slate-500">
-                              {assignments.map(a => a.subject).join(', ') || 'Staff'}
-                            </p>
-                          </div>
-                        </label>
-                      );
-                    });
-                  })()}
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  If no teacher selected, feedback goes only to Admin.
-                </p>
-              </div>
-            )}
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700">Subject <span className="text-red-500">*</span></label>
-                <Input 
-                  placeholder="E.g., Query regarding upcoming examinations" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
-                  className="transition-shadow focus-visible:ring-2 focus-visible:ring-blue-500/20"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700">Details <span className="text-red-500">*</span></label>
-                <Textarea 
-                  rows={4} 
-                  placeholder="Provide all relevant details here..." 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  className="resize-none transition-shadow focus-visible:ring-2 focus-visible:ring-blue-500/20"
-                />
-              </div>
-            </div>
-
-            {/* Attachments */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Attachments <span className="text-slate-400 font-normal">(Max 5 files)</span></label>
-              <div
-                className={cn(
-                  'relative rounded-xl border-2 border-dashed p-6 text-center transition-all',
-                  dragActive 
-                    ? 'border-blue-500 bg-blue-50/50' 
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                )}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 mb-3">
-                  <Upload className="h-5 w-5 text-slate-500" />
-                </div>
-                <p className="text-sm font-medium text-slate-700">
-                  Drag & drop files here or{' '}
-                  <label className="relative cursor-pointer rounded-md font-semibold text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-600 focus-within:ring-offset-2 hover:text-blue-500">
-                    <span>browse</span>
-                    <input
-                      type="file"
-                      className="sr-only"
-                      multiple
-                      onChange={(e) => setAttachments(prev => [...prev, ...Array.from(e.target.files || [])])}
-                    />
-                  </label>
-                </p>
-                <p className="mt-1 text-xs text-slate-500">PNG, JPG, PDF up to 10MB</p>
-              </div>
-              
-              {attachments.length > 0 && (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-500">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-700">{file.name}</p>
-                          <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-red-500 shrink-0"
-                        onClick={() => removeAttachment(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-4 flex justify-end">
-            <Button type="submit" disabled={creating} className={cn(role === 'parent' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-violet-600 hover:bg-violet-700')}>
-              {creating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
-                </>
-              ) : (
-                'Submit Feedback'
-              )}
-            </Button>
-          </div>
-        </form>
-      )}
-
-      {/* Feedback History */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Recent Tickets</h3>
+    <ErpSection title={role === 'parent' ? 'Support Tickets' : 'Inbox'} icon={MessageSquare} tone={primaryColor}>
+      <div className={cn("rounded-xl border border-white/60 shadow-sm p-3 sm:p-4 transition-all duration-300", bgGradientBase)}>
         
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="animate-pulse rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-6 w-20 rounded-full bg-slate-200"></div>
-                  <div className="h-6 w-24 rounded-full bg-slate-200"></div>
-                </div>
-                <div className="h-5 w-1/3 rounded bg-slate-200 mb-3"></div>
-                <div className="h-4 w-full rounded bg-slate-100 mb-2"></div>
-                <div className="h-4 w-2/3 rounded bg-slate-100"></div>
-              </div>
-            ))}
-          </div>
-        ) : tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-16 px-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-4">
-              <Inbox className="h-6 w-6 text-slate-400" />
+        {/* Header Actions */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm border border-white/80 backdrop-blur-sm">
+            <div className={cn("p-1 rounded-full", isParent ? "bg-blue-100 text-blue-600" : "bg-violet-100 text-violet-600")}>
+              <Inbox className="h-3.5 w-3.5" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900">No tickets found</h3>
-            <p className="mt-1 text-sm text-slate-500">You haven't submitted any feedback tickets yet.</p>
+            <span className="text-xs font-bold text-slate-700">Total: {tickets.length}</span>
           </div>
-        ) : (
-          <div className="space-y-5">
-            {tickets.map((ticket) => (
-              <div key={ticket._id} className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md overflow-hidden flex flex-col">
-                <div className="p-5 flex-1">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2.5 mb-3">
-                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 uppercase tracking-wider font-mono">
-                          {ticket.ticketId}
-                        </span>
-                        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset', getStatusBadge(ticket.status))}>
-                          {ticket.status}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">{formatDate(ticket.createdAt)}</span>
+          
+          {role === 'parent' && !isFormOpen && (
+            <Button 
+              onClick={() => setIsFormOpen(true)} 
+              className={cn("h-8 text-[11px] text-white rounded-full shadow-md transition-all transform hover:-translate-y-0.5 px-4", buttonGradient)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> New Feedback
+            </Button>
+          )}
+        </div>
+
+        {/* Compact & Detailed Create Form */}
+        {role === 'parent' && isFormOpen && (
+          <form onSubmit={handleCreateTicket} className="mb-5 rounded-xl border border-white/80 bg-white/85 backdrop-blur-md shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4">
+            <div className={cn("flex items-center justify-between border-b px-4 py-2", isParent ? "bg-blue-50/50 border-blue-100" : "bg-violet-50/50 border-violet-100")}>
+              <h3 className="text-[13px] font-bold flex items-center gap-2">
+                <div className={cn("p-1 rounded-md", isParent ? "bg-blue-600" : "bg-violet-600")}>
+                  <Plus className="h-3 w-3 text-white" />
+                </div>
+                <span className={textGradient}>Create Support Ticket</span>
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsFormOpen(false)}
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-200/80 hover:text-slate-700 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Child Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Student Profile <span className="text-red-500">*</span></label>
+                  {children.length === 0 ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-2 text-center text-xs text-slate-500">
+                      No linked students found.
+                    </div>
+                  ) : children.length === 1 ? (
+                    <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white/70 p-2 shadow-sm">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 shadow-inner">
+                        <User className="h-3.5 w-3.5" />
                       </div>
-                      
-                      <h4 className="text-base font-semibold text-slate-900 break-words">{ticket.title}</h4>
-                      <p className="mt-1.5 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">{ticket.description}</p>
-                      
-                      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3.5 w-3.5 text-slate-400" />
-                          <span className="font-medium text-slate-700">{ticket.student?.name || 'N/A'}</span>
-                        </div>
-                        {ticket.taggedTeacherName ? (
-                          <div className="flex items-center gap-1.5">
-                            <GraduationCap className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="font-medium text-slate-700">
-                              {ticket.taggedSubject} • {ticket.taggedTeacherName}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <GraduationCap className="h-3.5 w-3.5 text-slate-400" />
-                            <span className="text-slate-500">Admin Only</span>
-                          </div>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">{children[0].name}</p>
+                        <p className="text-[10px] font-medium text-slate-500 truncate">Class: {children[0].className} {children[0].section}</p>
                       </div>
                     </div>
-
-                    {role !== 'parent' && (
-                      <div className="shrink-0 w-full md:w-48">
-                        <Select value={ticket.status || ''} onValueChange={(value) => handleStatusChange(ticket._id, value)}>
-                          <SelectTrigger className="w-full h-9 transition-shadow focus:ring-2 focus:ring-violet-500/20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Open">Open</SelectItem>
-                            <SelectItem value="In Progress">In Progress</SelectItem>
-                            <SelectItem value="Resolved">Resolved</SelectItem>
-                            <SelectItem value="Closed">Closed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Messages Thread */}
-                  {ticket.messages && ticket.messages.length > 0 && (
-                    <div className="mt-6 ml-1 space-y-4 border-l-2 border-slate-100 pl-4">
-                      {ticket.messages.map((message, index) => (
-                        <div key={`${ticket._id}-${index}`} className="relative rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-colors hover:bg-slate-50">
-                          <div className="absolute -left-[21px] top-4 h-2 w-2 rounded-full border-2 border-white bg-slate-300 ring-2 ring-white"></div>
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-slate-900">{message.senderName || 'User'}</span>
-                              <span className="inline-flex rounded bg-white px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500 shadow-sm border border-slate-100">
-                                {message.senderRole}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <p className="text-sm text-slate-700 whitespace-pre-wrap">{message.content || 'Attachment only'}</p>
-                          
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {message.attachments.map((att, idx) => (
-                                <a
-                                  key={idx}
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="group flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                  <FileText className="h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500" />
-                                  <span className="truncate max-w-[150px]">{att.name || 'Attachment'}</span>
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  ) : (
+                    <Select value={selectedChild?._id || ''} onValueChange={(value) => {
+                      const child = children.find(c => c._id === value);
+                      setSelectedChild(child);
+                    }}>
+                      <SelectTrigger className="w-full h-8 rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm hover:border-blue-300 focus:ring-blue-500/20">
+                        <SelectValue placeholder="Select Student" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg border-slate-200 shadow-lg">
+                        {children.map(child => (
+                          <SelectItem key={child._id} value={child._id} className="text-xs cursor-pointer rounded-md hover:bg-blue-50">
+                            <span className="font-bold text-slate-800">{child.name}</span> <span className="text-slate-400">| {child.className} {child.section}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
 
-                {/* Reply Section */}
-                <div className="border-t border-slate-100 bg-slate-50 p-4">
-                  <div className="rounded-xl border border-slate-200 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-transparent transition-all shadow-sm">
-                    <Textarea
-                      className="min-h-[80px] w-full resize-none border-0 bg-transparent p-3 text-sm focus-visible:ring-0 shadow-none placeholder:text-slate-400"
-                      value={replyDrafts[ticket._id] || ''}
-                      onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
-                      placeholder="Write a reply..."
-                    />
-                    
-                    {replyAttachments.length > 0 && (
-                      <div className="px-3 pb-2 flex flex-wrap gap-2">
-                        {replyAttachments.map((file, index) => (
-                          <div key={index} className="flex items-center gap-2 rounded-md bg-slate-100 px-2 py-1 text-xs border border-slate-200">
-                            <FileText className="h-3 w-3 text-slate-500" />
-                            <span className="max-w-[120px] truncate text-slate-700">{file.name}</span>
-                            <button
-                              type="button"
-                              className="text-slate-400 hover:text-red-500 ml-1 rounded-full p-0.5 hover:bg-slate-200 transition-colors"
-                              onClick={() => removeReplyAttachment(index)}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-3 py-2">
-                      <label className="group inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900">
-                        <Paperclip className="h-4 w-4" />
-                        <span className="hidden sm:inline">Attach</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          multiple
-                          onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])}
-                        />
-                      </label>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleReply(ticket._id)} 
-                        disabled={replying}
-                        className={cn(
-                          "h-8 gap-1.5 px-3",
-                          role === 'parent' ? "bg-blue-600 hover:bg-blue-700" : "bg-violet-600 hover:bg-violet-700"
-                        )}
-                      >
-                        {replying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                        <span>Send</span>
-                      </Button>
-                    </div>
-                  </div>
+                {/* Subject Input */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Subject <span className="text-red-500">*</span></label>
+                  <Input 
+                    placeholder="Short summary of your query..." 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)} 
+                    className="h-8 rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm hover:border-blue-300 focus-visible:ring-blue-500/20"
+                  />
                 </div>
               </div>
+
+              {/* Teacher Selection (Pills) */}
+              {selectedChild && (
+                <div className="space-y-2 rounded-lg bg-white/50 p-3 border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Direct Query To <span className="text-[9px] text-slate-400 normal-case tracking-normal">(Optional)</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeacher(null)}
+                      className={cn(
+                        "flex items-center gap-1 rounded-md border px-3 py-1.5 text-[11px] font-semibold transition-all duration-200 shadow-sm",
+                        !selectedTeacher 
+                          ? "border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" 
+                          : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50/50"
+                      )}
+                    >
+                      Management / Admin
+                    </button>
+                    {teachers.map(teacher => {
+                      const assignments = teacher.assignments || [];
+                      const isSelected = selectedTeacher?._id === teacher._id;
+                      return (
+                        <button
+                          type="button"
+                          key={teacher._id}
+                          onClick={() => setSelectedTeacher({ _id: teacher._id, subject: assignments[0]?.subject, name: teacher.teacherName || teacher.name })}
+                          className={cn(
+                            "flex items-center gap-1 rounded-md border px-3 py-1.5 text-[11px] font-semibold transition-all duration-200 shadow-sm max-w-full truncate",
+                            isSelected 
+                              ? "border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" 
+                              : "border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50/50"
+                          )}
+                        >
+                          <span className="truncate">{teacher.teacherName || teacher.name}</span>
+                          <span className={cn("text-[9px] shrink-0", isSelected ? "text-blue-500" : "text-slate-400")}>
+                            ({assignments.map(a => a.subject).join(', ') || 'Staff'})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Detailed Description <span className="text-red-500">*</span></label>
+                <Textarea 
+                  rows={3} 
+                  placeholder="Elaborate your concern or feedback here..." 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="resize-none rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm p-3 hover:border-blue-300 focus-visible:ring-blue-500/20"
+                />
+              </div>
+
+              {/* Compact Attachments Area */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Attachments</label>
+                <div
+                  className={cn(
+                    'flex flex-col sm:flex-row items-center justify-center gap-2 rounded-lg border-2 border-dashed p-4 transition-all duration-200 text-[11px]',
+                    dragActive 
+                      ? 'border-blue-500 bg-blue-50/80' 
+                      : 'border-slate-300 bg-white/60 hover:bg-blue-50/40 hover:border-blue-400'
+                  )}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <div className={cn("p-2 rounded-full shrink-0", dragActive ? "bg-blue-100" : "bg-slate-100")}>
+                    <Upload className={cn("h-4 w-4", dragActive ? "text-blue-600" : "text-slate-400")} />
+                  </div>
+                  <div className="text-slate-600 text-center sm:text-left flex-1">
+                    <span className="font-semibold">Drag files</span> or{' '}
+                    <label className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                      browse computer
+                      <input type="file" className="sr-only" multiple onChange={(e) => setAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                    </label>
+                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max file size: 2MB</div>
+                  </div>
+                </div>
+                
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {attachments.map((file, index) => (
+                      <div key={index} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] shadow-sm group hover:border-blue-200">
+                        <FileText className="h-3 w-3 text-blue-500 shrink-0" />
+                        <span className="truncate max-w-[100px] font-semibold text-slate-700">{file.name}</span>
+                        <button type="button" onClick={() => removeAttachment(index)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-0.5 rounded transition-colors ml-1 shrink-0">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100/80 bg-slate-50/90 px-4 py-2.5">
+              <Button type="button" variant="ghost" className="h-8 px-3 text-[11px] font-bold rounded-md hover:bg-slate-200/80 text-slate-600" onClick={() => setIsFormOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating} className={cn("h-8 px-5 text-[11px] font-bold rounded-md text-white shadow-md transition-all", buttonGradient)}>
+                {creating ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Processing</> : 'Submit Ticket'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Ticket List Area */}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-16 animate-pulse rounded-xl border border-white bg-white/70 shadow-sm"></div>
             ))}
+          </div>
+        ) : tickets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200/60 bg-white/50 py-12 px-4 text-center backdrop-blur-sm shadow-sm">
+            <div className={cn("flex h-12 w-12 items-center justify-center rounded-full mb-3 shadow-inner", isParent ? "bg-gradient-to-br from-blue-100 to-indigo-50" : "bg-gradient-to-br from-violet-100 to-fuchsia-50")}>
+              <CheckCircle2 className={cn("h-6 w-6", isParent ? "text-blue-500" : "text-violet-500")} />
+            </div>
+            <p className="text-sm font-bold text-slate-800 mb-0.5">Inbox is Empty</p>
+            <p className="text-xs font-medium text-slate-500">No active support tickets available right now.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tickets.map((ticket, index) => {
+              const isExpanded = expandedTickets[ticket._id] !== undefined ? expandedTickets[ticket._id] : index === 0;
+              const hasMessages = ticket.messages && ticket.messages.length > 0;
+
+              return (
+                <div 
+                  key={ticket._id} 
+                  className={cn(
+                    "flex flex-col rounded-xl border bg-white/95 backdrop-blur-sm transition-all duration-200 overflow-hidden",
+                    isExpanded 
+                      ? `border-l-[4px] ${activeBorderColor} shadow-lg bg-white` 
+                      : `border-l-[4px] border-l-transparent border-white/90 shadow-sm ${hoverBorderColor} hover:shadow-md`
+                  )}
+                >
+                  {/* Compact Accordion Header */}
+                  <div 
+                    onClick={() => toggleTicket(ticket._id)}
+                    className="group flex flex-col sm:flex-row cursor-pointer sm:items-center justify-between p-3 hover:bg-slate-50/60 select-none transition-colors gap-2 sm:gap-4"
+                  >
+                    <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-600 uppercase tracking-widest border border-slate-200/80 shadow-sm">
+                          <span className="text-slate-400">ID:</span> {ticket.ticketId}
+                        </span>
+                        <span className={cn('inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider', getStatusBadge(ticket.status))}>
+                          {ticket.status}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {formatDate(ticket.createdAt)}
+                        </span>
+                      </div>
+                      <h4 className={cn(
+                        "text-[13px] font-bold truncate transition-colors", 
+                        isExpanded ? "text-slate-900" : "text-slate-700 group-hover:text-slate-900"
+                      )}>
+                        {ticket.title}
+                      </h4>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      {!isExpanded && hasMessages && (
+                        <div className={cn("flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm", isParent ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-violet-50 text-violet-600 border border-violet-100")}>
+                          <MessageCircleMore className="h-3 w-3" />
+                          {ticket.messages.length} Replies
+                        </div>
+                      )}
+                      {/* Arrows strictly removed as per logic/instruction, keeping header clickable */}
+                    </div>
+                  </div>
+
+                  {/* Expanded Content with Grid Details */}
+                  {isExpanded && (
+                    <div className="flex flex-col border-t border-slate-100 bg-slate-50/40 animate-in slide-in-from-top-1 fade-in duration-200">
+                      
+                      <div className="p-3 space-y-3">
+                        {/* Context Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2.5 rounded-lg bg-white border border-slate-100 shadow-sm">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Student</span>
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 truncate">
+                              <User className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{ticket.student?.name || 'N/A'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent</span>
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 truncate">
+                              <User className="h-3 w-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{ticket.parentName || ticket.parent?.name || 'Linked Parent'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned To</span>
+                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-700 truncate">
+                              <GraduationCap className="h-3 w-3 text-blue-500 shrink-0" />
+                              <span className="truncate">{ticket.taggedTeacherName ? `${ticket.taggedSubject} | ${ticket.taggedTeacherName}` : 'Admin / General'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Description Box */}
+                        <div className="rounded-lg bg-slate-100/70 p-3 border border-slate-200/60 shadow-inner">
+                          <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-medium">{ticket.description}</p>
+                        </div>
+                        
+                        {/* Admin Action (Compact) */}
+                        {role !== 'parent' && (
+                          <div className="flex items-center justify-end pt-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Update Status:</span>
+                              <Select value={ticket.status || ''} onValueChange={(value) => handleStatusChange(ticket._id, value)}>
+                                <SelectTrigger className="h-7 w-[120px] text-[11px] font-bold bg-white border-slate-200 shadow-sm hover:border-violet-300 focus:ring-violet-500/20 rounded-md">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-md shadow-lg border-slate-200 min-w-[120px]">
+                                  <SelectItem value="Open" className="text-[11px] font-bold cursor-pointer hover:bg-violet-50">Open</SelectItem>
+                                  <SelectItem value="In Progress" className="text-[11px] font-bold cursor-pointer hover:bg-violet-50">In Progress</SelectItem>
+                                  <SelectItem value="Resolved" className="text-[11px] font-bold cursor-pointer hover:bg-violet-50">Resolved</SelectItem>
+                                  <SelectItem value="Closed" className="text-[11px] font-bold cursor-pointer hover:bg-violet-50">Closed</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Chat Thread */}
+                      {hasMessages && (
+                        <div className="px-3 pb-2">
+                          <div className="p-3 space-y-3 bg-slate-100/50 rounded-xl border border-slate-200/70 shadow-inner max-h-[350px] overflow-y-auto custom-scrollbar">
+                            {ticket.messages.map((message, index) => {
+                              const isCurrentUser = (role === 'parent' && message.senderRole === 'parent') || (role !== 'parent' && message.senderRole !== 'parent');
+                              const alignment = isCurrentUser ? "justify-end" : "justify-start";
+                              
+                              return (
+                                <div key={`${ticket._id}-${index}`} className={cn("flex w-full", alignment)}>
+                                  <div className={cn(
+                                    "max-w-[90%] sm:max-w-[80%] rounded-xl p-2.5 shadow-sm", 
+                                    isCurrentUser 
+                                      ? `${chatBubbleGradient} text-white rounded-tr-none shadow-md` 
+                                      : "bg-white text-slate-800 border border-slate-200 rounded-tl-none"
+                                  )}>
+                                    <div className="flex items-center gap-2 mb-1 border-b border-white/10 pb-1">
+                                      <span className={cn("text-[11px] font-extrabold", isCurrentUser ? "text-white" : "text-slate-800")}>
+                                        {message.senderName || 'User'}
+                                      </span>
+                                      <span className={cn("text-[9px] font-semibold ml-auto", isCurrentUser ? "text-white/70" : "text-slate-400")}>
+                                        {formatTime(message.createdAt)}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs leading-relaxed whitespace-pre-wrap font-medium">
+                                      {message.content || 'Attached file(s)'}
+                                    </p>
+                                    
+                                    {message.attachments && message.attachments.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {message.attachments.map((att, idx) => (
+                                          <a
+                                            key={idx}
+                                            href={att.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                              "flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-all",
+                                              isCurrentUser 
+                                                ? "bg-black/15 border-transparent hover:bg-black/25 text-white" 
+                                                : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-600"
+                                            )}
+                                          >
+                                            <FileText className="h-3 w-3 shrink-0" />
+                                            <span className="truncate max-w-[120px]">{att.name}</span>
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reply Input Area */}
+                      <div className="p-3 bg-white border-t border-slate-100 mt-1">
+                        <div className={cn(
+                          "flex flex-col gap-1.5 rounded-xl border bg-white p-1.5 transition-all duration-200 shadow-sm",
+                          isParent ? "border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/10" : "border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/10"
+                        )}>
+                          <Textarea
+                            className="min-h-[40px] w-full resize-none border-0 bg-transparent p-2 text-xs focus-visible:ring-0 shadow-none placeholder:text-slate-400 font-medium"
+                            value={replyDrafts[ticket._id] || ''}
+                            onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
+                            placeholder="Type your reply..."
+                          />
+                          
+                          {replyAttachments.length > 0 && (
+                            <div className="px-2 pb-1.5 flex flex-wrap gap-1.5">
+                              {replyAttachments.map((file, index) => (
+                                <div key={index} className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-[10px] font-bold border border-slate-200 shadow-sm">
+                                  <div className={cn("p-0.5 rounded", isParent ? "bg-blue-100 text-blue-600" : "bg-violet-100 text-violet-600")}>
+                                    <FileText className="h-2.5 w-2.5" />
+                                  </div>
+                                  <span className="max-w-[100px] truncate text-slate-700">{file.name}</span>
+                                  <button type="button" className="text-slate-400 hover:text-red-500 p-0.5 rounded ml-0.5" onClick={() => removeReplyAttachment(index)}>
+                                    <X className="h-2.5 w-2.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 px-1">
+                            <label className={cn(
+                              "cursor-pointer flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-colors",
+                              isParent ? "text-slate-500 hover:bg-blue-50 hover:text-blue-600" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                            )}>
+                              <Paperclip className="h-3.5 w-3.5" />
+                              <span>Attach</span>
+                              <input type="file" className="sr-only" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                            </label>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleReply(ticket._id)} 
+                              disabled={replying}
+                              className={cn(
+                                "h-7 px-4 text-[11px] font-bold rounded-md text-white shadow-sm transition-all", 
+                                buttonGradient
+                              )}
+                            >
+                              {replying ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
+                              Reply
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
