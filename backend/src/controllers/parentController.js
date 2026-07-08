@@ -494,6 +494,7 @@ export const getParentStudents = asyncHandler(async (req, res) => {
       rollNo: student.rollNo,
       className: student.class?.className || '',
       section: student.class?.section || '',
+      classId: student.class?._id || student.class,
       rank: currentStudentRank?.rank || null,
       percentage: currentStudentRank?.percentage || 0,
       totalStudents,

@@ -44,11 +44,16 @@ export default function FeedbackPanel({ role = 'parent' }) {
   const fetchChildren = async () => {
     try {
       const res = await api.get('/parents/students');
+      console.log('=== FETCH CHILDREN START ===');
+      console.log('API Response:', res.data);
+      console.log('Students:', res.data.students);
       setChildren(res.data.students || []);
       
       if (res.data.students && res.data.students.length === 1) {
+        console.log('Auto-selecting child:', res.data.students[0]);
         setSelectedChild(res.data.students[0]);
       }
+      console.log('=== FETCH CHILDREN END ===');
     } catch (error) {
       toast.error('Failed to load children');
     }
@@ -57,7 +62,10 @@ export default function FeedbackPanel({ role = 'parent' }) {
   const fetchTeachers = async (classId, child = selectedChild) => {
     try {
       console.log('=== FETCH TEACHERS START ===');
-      console.log('classId:', classId, 'type:', typeof classId);
+      console.log('classId passed:', classId, 'type:', typeof classId);
+      console.log('child passed:', child);
+      console.log('selectedChild.class._id:', selectedChild?.class?._id);
+      console.log('selectedChild.class:', selectedChild?.class);
       
       const response = await api.get('/users?role=teacher');
       const allTeachers = response.data.users || [];
@@ -132,8 +140,8 @@ export default function FeedbackPanel({ role = 'parent' }) {
   }, [role]);
 
   useEffect(() => {
-    if (selectedChild && (selectedChild.class?._id || selectedChild.class)) {
-      fetchTeachers(selectedChild.class?._id || selectedChild.class, selectedChild);
+    if (selectedChild && selectedChild.classId) {
+      fetchTeachers(selectedChild.classId, selectedChild);
       setSelectedTeacher(null); // Reset teacher selection when child changes
     }
   }, [selectedChild]);
@@ -345,6 +353,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
                     console.log('teachers array length:', teachers.length);
                     console.log('teachers array:', teachers);
                     console.log('selectedChild:', selectedChild);
+                    console.log('selectedChild.classId:', selectedChild?.classId);
                     console.log('=== TEACHER RENDERING END ===');
                     
                     if (teachers.length === 0) {
