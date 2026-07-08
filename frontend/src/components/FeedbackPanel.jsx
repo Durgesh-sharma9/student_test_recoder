@@ -32,6 +32,12 @@ export default function FeedbackPanel({ role = 'parent' }) {
   const [expandedTickets, setExpandedTickets] = useState({});
   const [isFormOpen, setIsFormOpen] = useState(false);
 
+  // Teacher-specific state
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
   const fetchTickets = async () => {
     try {
       setLoading(true);
@@ -101,10 +107,40 @@ export default function FeedbackPanel({ role = 'parent' }) {
     }
   };
 
+  const fetchClasses = async () => {
+    try {
+      const res = await api.get('/classes');
+      setClasses(res.data.classes || []);
+    } catch (error) {
+      toast.error('Failed to load classes');
+    }
+  };
+
+  const fetchStudentsByClass = async (classId) => {
+    try {
+      const res = await api.get(`/students?class=${classId}`);
+      setStudents(res.data.students || []);
+    } catch (error) {
+      toast.error('Failed to load students');
+    }
+  };
+
+  const fetchAllTeachers = async () => {
+    try {
+      const res = await api.get('/users?role=teacher');
+      setTeachers(res.data.users || []);
+    } catch (error) {
+      toast.error('Failed to load teachers');
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
     if (role === 'parent') {
       fetchChildren();
+    } else if (role === 'teacher') {
+      fetchClasses();
+      fetchAllTeachers();
     }
   }, [role]);
 
@@ -115,12 +151,26 @@ export default function FeedbackPanel({ role = 'parent' }) {
     }
   }, [selectedChild]);
 
+  useEffect(() => {
+    if (role === 'teacher' && selectedClass) {
+      fetchStudentsByClass(selectedClass._id);
+      setSelectedStudent(null);
+    }
+  }, [selectedClass]);
+
   const handleCreateTicket = async (event) => {
     event.preventDefault();
 
-    if (!selectedChild) {
-      toast.error('Please select a child');
-      return;
+    if (role === 'parent') {
+      if (!selectedChild) {
+        toast.error('Please select a child');
+        return;
+      }
+    } else if (role === 'teacher') {
+      if (!selectedStudent) {
+        toast.error('Please select a student');
+        return;
+      }
     }
 
     if (!title.trim() || !description.trim()) {
@@ -133,17 +183,25 @@ export default function FeedbackPanel({ role = 'parent' }) {
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('studentId', selectedChild._id);
-      if (selectedTeacher) {
-        formData.append('teacherId', selectedTeacher._id);
-        formData.append('taggedSubject', selectedTeacher.subject);
+      
+      if (role === 'parent') {
+        formData.append('studentId', selectedChild._id);
+        if (selectedTeacher) {
+          formData.append('teacherId', selectedTeacher._id);
+          formData.append('taggedSubject', selectedTeacher.subject);
+        }
+      } else if (role === 'teacher') {
+        formData.append('studentId', selectedStudent._id);
       }
+      
       attachments.forEach((file) => formData.append('attachments', file));
 
       const res = await api.post('/feedback', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setTitle('');
       setDescription('');
       setSelectedTeacher(null);
+      setSelectedStudent(null);
+      setSelectedClass(null);
       setAttachments([]);
       setIsFormOpen(false);
       toast.success(`Feedback submitted successfully. Ticket ID: ${res.data.feedback.ticketId}`);
@@ -293,6 +351,15 @@ export default function FeedbackPanel({ role = 'parent' }) {
               className={cn("h-8 text-[11px] text-white rounded-full shadow-md transition-all transform hover:-translate-y-0.5 px-4", buttonGradient)}
             >
               <Plus className="h-3.5 w-3.5 mr-1" /> New Feedback
+            </Button>
+          )}
+          
+          {role === 'teacher' && !isFormOpen && (
+            <Button 
+              onClick={() => setIsFormOpen(true)} 
+              className={cn("h-8 text-[11px] text-white rounded-full shadow-md transition-all transform hover:-translate-y-0.5 px-4", buttonGradient)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> Create Feedback
             </Button>
           )}
         </div>
@@ -473,6 +540,150 @@ export default function FeedbackPanel({ role = 'parent' }) {
               </Button>
               <Button type="submit" disabled={creating} className={cn("h-8 px-5 text-[11px] font-bold rounded-md text-white shadow-md transition-all", buttonGradient)}>
                 {creating ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Processing</> : 'Submit Ticket'}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* Teacher Create Form */}
+        {role === 'teacher' && isFormOpen && (
+          <form onSubmit={handleCreateTicket} className="mb-5 rounded-xl border border-white/80 bg-white/85 backdrop-blur-md shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-4">
+            <div className={cn("flex items-center justify-between border-b px-4 py-2", isParent ? "bg-blue-50/50 border-blue-100" : "bg-violet-50/50 border-violet-100")}>
+              <h3 className="text-[13px] font-bold flex items-center gap-2">
+                <div className={cn("p-1 rounded-md", isParent ? "bg-blue-600" : "bg-violet-600")}>
+                  <Plus className="h-3 w-3 text-white" />
+                </div>
+                <span className={textGradient}>Create Feedback</span>
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setIsFormOpen(false)}
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-200/80 hover:text-slate-700 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Class Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Class <span className="text-red-500">*</span></label>
+                <Select value={selectedClass?._id || ''} onValueChange={(val) => setSelectedClass(classes.find(c => c._id === val))}>
+                  <SelectTrigger className="h-8 rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm hover:border-violet-300 focus:ring-violet-500/20">
+                    <SelectValue placeholder="Select Class" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg border-slate-200 shadow-lg">
+                    {classes.map(cls => (
+                      <SelectItem key={cls._id} value={cls._id} className="text-xs cursor-pointer rounded-md hover:bg-violet-50">
+                        {cls.className} - {cls.section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Student Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Student <span className="text-red-500">*</span></label>
+                <Select value={selectedStudent?._id || ''} onValueChange={(val) => setSelectedStudent(students.find(s => s._id === val))} disabled={!selectedClass}>
+                  <SelectTrigger className="h-8 rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm hover:border-violet-300 focus:ring-violet-500/20">
+                    <SelectValue placeholder={selectedClass ? "Select Student" : "Select Class First"} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg border-slate-200 shadow-lg">
+                    {students.map(student => (
+                      <SelectItem key={student._id} value={student._id} className="text-xs cursor-pointer rounded-md hover:bg-violet-50">
+                        {student.name} (Roll: {student.rollNo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Parent Auto (after student is selected) */}
+              {selectedStudent && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parent</label>
+                  <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center px-3 text-xs font-bold text-slate-700">
+                    {selectedStudent.parent?.parentName || 'N/A'}
+                    {selectedStudent.parent?.phone && <span className="ml-2 text-slate-500 font-normal">({selectedStudent.parent.phone})</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Subject <span className="text-red-500">*</span></label>
+                <Input
+                  type="text"
+                  placeholder="Brief subject line"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="h-8 rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm p-2.5 hover:border-violet-300 focus-visible:ring-violet-500/20"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">Message <span className="text-red-500">*</span></label>
+                <Textarea
+                  rows={3} 
+                  placeholder="Elaborate your feedback here..." 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  className="resize-none rounded-lg border-slate-200 bg-white/70 text-xs shadow-sm p-3 hover:border-violet-300 focus-visible:ring-violet-500/20"
+                />
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Attachments</label>
+                <div
+                  className={cn(
+                    'flex flex-col sm:flex-row items-center justify-center gap-2 rounded-lg border-2 border-dashed p-4 transition-all duration-200 text-[11px]',
+                    dragActive 
+                      ? 'border-violet-500 bg-violet-50/80' 
+                      : 'border-slate-300 bg-white/60 hover:bg-violet-50/40 hover:border-violet-400'
+                  )}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  <div className={cn("p-2 rounded-full shrink-0", dragActive ? "bg-violet-100" : "bg-slate-100")}>
+                    <Upload className={cn("h-4 w-4", dragActive ? "text-violet-600" : "text-slate-400")} />
+                  </div>
+                  <div className="text-slate-600 text-center sm:text-left flex-1">
+                    <span className="font-semibold">Drag files</span> or{' '}
+                    <label className="cursor-pointer font-bold text-violet-600 hover:text-violet-700 hover:underline">
+                      browse computer
+                      <input type="file" className="sr-only" multiple onChange={(e) => setAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                    </label>
+                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max file size: 2MB</div>
+                  </div>
+                </div>
+                
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {attachments.map((file, index) => (
+                      <div key={index} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] shadow-sm group hover:border-violet-200">
+                        <FileText className="h-3 w-3 text-violet-500 shrink-0" />
+                        <span className="truncate max-w-[100px] font-semibold text-slate-700">{file.name}</span>
+                        <button type="button" onClick={() => removeAttachment(index)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-0.5 rounded transition-colors ml-1 shrink-0">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100/80 bg-slate-50/90 px-4 py-2.5">
+              <Button type="button" variant="ghost" className="h-8 px-3 text-[11px] font-bold rounded-md hover:bg-slate-200/80 text-slate-600" onClick={() => setIsFormOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating} className={cn("h-8 px-5 text-[11px] font-bold rounded-md text-white shadow-md transition-all", buttonGradient)}>
+                {creating ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Processing</> : 'Send Feedback'}
               </Button>
             </div>
           </form>
