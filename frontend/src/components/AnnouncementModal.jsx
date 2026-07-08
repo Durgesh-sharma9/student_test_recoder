@@ -28,8 +28,8 @@ const defaultPollForm = {
   expiryDate: '',
 };
 
-export default function AnnouncementModal({ open, onOpenChange, role }) {
-  const [activeTab, setActiveTab] = useState('announcement');
+export default function AnnouncementModal({ open, onOpenChange, role, initialTab = 'announcement' }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [formData, setFormData] = useState(defaultAnnouncementForm);
   const [recipientType, setRecipientType] = useState('all');
   const [targetRole, setTargetRole] = useState('teacher');
@@ -54,7 +54,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
       setSelectedRecipients([]);
       setSelectedClass('');
       setAttachmentFile(null);
-      setActiveTab('announcement');
+      setActiveTab(initialTab);
       setPollForm(defaultPollForm);
       setPollOptions([{ text: '' }, { text: '' }]);
       setSelectedClassIds([]);
@@ -73,7 +73,7 @@ export default function AnnouncementModal({ open, onOpenChange, role }) {
         });
       }
     }
-  }, [open, role]);
+  }, [open, role, initialTab]);
 
   const handleSend = async () => {
     try {

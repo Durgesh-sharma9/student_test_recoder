@@ -4,10 +4,11 @@ import {
   ChevronLeft, Search, Download, FileText, MessageSquare, Paperclip, 
   X, Send, User, GraduationCap, Upload, FileText as FileIcon, ArrowRight, 
   Inbox, MessageCircleMore, PieChart, ExternalLink, CheckCheck, Eye, 
-  Image as ImageIcon, File, FileJson, Archive 
+  Image as ImageIcon, File, FileJson, Archive, Plus 
 } from 'lucide-react';
 import api from '@/lib/api';
 import FeedbackPanel from '@/components/FeedbackPanel';
+import AnnouncementModal from '@/components/AnnouncementModal';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,28 @@ export default function AdminNotifications() {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState(null);
 
+  // Admin create feedback form state
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createAttachments, setCreateAttachments] = useState([]);
+  const [recipientType, setRecipientType] = useState('parent');
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  // Feedback filter state
+  const [feedbackFilter, setFeedbackFilter] = useState('all');
+
+  // Announcement Modal state
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [announcementModalTab, setAnnouncementModalTab] = useState('announcement');
+
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -69,6 +92,62 @@ export default function AdminNotifications() {
       setLoading(false);
     }
   };
+
+  const fetchStudents = async () => {
+    try {
+      const res = await api.get('/students');
+      setStudents(res.data.students || []);
+    } catch (error) {
+      toast.error('Failed to load students');
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const res = await api.get('/classes');
+      setClasses(res.data.classes || []);
+    } catch (error) {
+      toast.error('Failed to load classes');
+    }
+  };
+
+  const fetchStudentsByClass = async (classId) => {
+    try {
+      setStudentsLoading(true);
+      const res = await api.get(`/students?class=${classId}`);
+      setStudents(res.data.students || []);
+    } catch (error) {
+      toast.error('Failed to load students');
+    } finally {
+      setStudentsLoading(false);
+    }
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const res = await api.get('/users?role=teacher');
+      setTeachers(res.data.users || []);
+    } catch (error) {
+      toast.error('Failed to load teachers');
+    }
+  };
+
+  useEffect(() => {
+    if (isCreateFormOpen) {
+      fetchClasses();
+      fetchTeachers();
+    }
+  }, [isCreateFormOpen]);
+
+  useEffect(() => {
+    if (selectedClass && (recipientType === 'parent' || recipientType === 'both')) {
+      fetchStudentsByClass(selectedClass._id);
+      setSelectedStudent(null);
+    } else {
+      setStudents([]);
+      setSelectedStudent(null);
+    }
+  }, [selectedClass, recipientType]);
 
   const fetchPolls = async () => {
     try {
@@ -184,6 +263,72 @@ export default function AdminNotifications() {
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update status');
     }
+  };
+
+  const handleCreateFeedback = async (e) => {
+    e.preventDefault();
+    
+    if (!createTitle || !createDescription) {
+      toast.error('Title and description are required');
+      return;
+    }
+
+    if ((recipientType === 'parent' || recipientType === 'both') && !selectedStudent) {
+      toast.error('Please select a student');
+      return;
+    }
+
+    if ((recipientType === 'teacher' || recipientType === 'both') && !selectedTeacher) {
+      toast.error('Please select a teacher');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const formData = new FormData();
+      formData.append('title', createTitle);
+      formData.append('description', createDescription);
+      formData.append('recipientType', recipientType);
+      
+      if (selectedStudent) {
+        formData.append('studentId', selectedStudent._id);
+      }
+      
+      if (selectedTeacher) {
+        formData.append('recipientTeacherId', selectedTeacher._id);
+      }
+      
+      createAttachments.forEach((file) => formData.append('attachments', file));
+
+      const res = await api.post('/feedback', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      
+      setCreateTitle('');
+      setCreateDescription('');
+      setCreateAttachments([]);
+      setSelectedClass(null);
+      setSelectedStudent(null);
+      setSelectedTeacher(null);
+      setRecipientType('parent');
+      setIsCreateFormOpen(false);
+      
+      toast.success(`Feedback created successfully. Ticket ID: ${res.data.feedback.ticketId}`);
+      fetchFeedback();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create feedback');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const getFilteredFeedback = () => {
+    if (feedbackFilter === 'all') return feedback;
+    if (feedbackFilter === 'parent') return feedback.filter(f => f.createdByRole === 'parent');
+    if (feedbackFilter === 'teacher') return feedback.filter(f => f.createdByRole === 'teacher');
+    if (feedbackFilter === 'admin') return feedback.filter(f => f.createdByRole === 'school_admin');
+    if (feedbackFilter === 'open') return feedback.filter(f => f.status === 'Open');
+    if (feedbackFilter === 'resolved') return feedback.filter(f => f.status === 'Resolved');
+    if (feedbackFilter === 'closed') return feedback.filter(f => f.status === 'Closed');
+    return feedback;
   };
 
   const formatDate = (dateString) => {
@@ -351,7 +496,7 @@ export default function AdminNotifications() {
         <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100/80 backdrop-blur-md border border-slate-200/60 rounded-full shadow-inner overflow-x-auto max-w-full custom-scrollbar">
           {[
             { id: 'notifications', label: 'Alerts & Notices', icon: Bell },
-            { id: 'feedback', label: 'Parent Helpdesk', icon: MessageSquare },
+            { id: 'feedback', label: 'Feedback Center', icon: MessageSquare },
             { id: 'polls', label: 'Poll Analytics', icon: BarChart3 }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
@@ -384,10 +529,26 @@ export default function AdminNotifications() {
               <Bell className="h-5 w-5" />
               <h3 className="font-bold text-[15px]">Received Notifications</h3>
             </div>
-            {/* Mark All Read Button */}
-            <Button variant="outline" size="sm" className="h-8 text-[11px] font-bold text-slate-600 bg-white shadow-sm border-slate-200 hover:bg-slate-50">
-              <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> Mark All Read
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => {
+                setAnnouncementModalTab('announcement');
+                setIsAnnouncementModalOpen(true);
+              }} className={cn("h-8 text-[11px] font-bold rounded-lg px-4", buttonGradient)}>
+                <Bell className="mr-1 h-3 w-3" /> Create Announcement
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                setAnnouncementModalTab('poll');
+                setIsAnnouncementModalOpen(true);
+              }} className="h-8 text-[11px] font-bold rounded-lg px-4 border-slate-200 bg-white hover:bg-slate-50">
+                <BarChart3 className="mr-1 h-3 w-3 text-indigo-600" /> Create Poll
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                setActiveTab('feedback');
+                setIsCreateFormOpen(true);
+              }} className="h-8 text-[11px] font-bold rounded-lg px-4 border-slate-200 bg-white hover:bg-slate-50">
+                <MessageSquare className="mr-1 h-3 w-3 text-indigo-600" /> Create Feedback
+              </Button>
+            </div>
           </div>
           
           <div className="p-4 bg-white flex items-center gap-4 text-[12px] font-bold text-slate-600 border-b border-slate-100">
@@ -481,19 +642,228 @@ export default function AdminNotifications() {
 
       {/* Feedback Tab (Compact & Detailed with Gradients) */}
       {activeTab === 'feedback' && (
-        <ErpSection title="Helpdesk Tickets" icon={MessageSquare} tone="indigo">
+        <ErpSection title="Feedback Center" icon={MessageSquare} tone="indigo">
+          {/* Header with Filters and Create Button */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                <SelectTrigger className="h-8 w-[140px] text-[11px] font-bold border-slate-200 bg-white shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold">
+                  <SelectItem value="all">All Tickets</SelectItem>
+                  <SelectItem value="parent">Parent Tickets</SelectItem>
+                  <SelectItem value="teacher">Teacher Tickets</SelectItem>
+                  <SelectItem value="admin">Admin Tickets</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-[11px] font-bold text-slate-500">{getFilteredFeedback().length} tickets</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={() => setIsCreateFormOpen(true)} className={cn("h-8 text-[11px] font-bold rounded-lg px-4", buttonGradient)}>
+                <Plus className="mr-1 h-3 w-3" /> Create Feedback
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => {
+                setAnnouncementModalTab('poll');
+                setIsAnnouncementModalOpen(true);
+              }} className="h-8 text-[11px] font-bold rounded-lg px-4 border-slate-200 bg-white hover:bg-slate-50">
+                <BarChart3 className="mr-1 h-3 w-3 text-indigo-600" /> Create Poll
+              </Button>
+            </div>
+          </div>
+
+          {/* Create Feedback Form */}
+          {isCreateFormOpen && (
+            <form onSubmit={handleCreateFeedback} className="mb-4 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white p-4 shadow-md animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-[13px] font-bold text-indigo-900">Create New Feedback</h4>
+                <button type="button" onClick={() => setIsCreateFormOpen(false)} className="p-1 text-slate-400 hover:text-rose-500 rounded-md hover:bg-rose-50 transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                {/* Recipient Type */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recipient</label>
+                  <Select value={recipientType} onValueChange={(val) => {
+                    setRecipientType(val);
+                    setSelectedClass(null);
+                    setSelectedStudent(null);
+                  }}>
+                    <SelectTrigger className="h-8 text-[11px] font-bold border-slate-200 bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold">
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                      <SelectItem value="both">Parent + Teacher</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Teacher Selection (only when recipient = teacher) */}
+                {recipientType === 'teacher' && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Teacher <span className="text-red-500">*</span></label>
+                    <Select value={selectedTeacher?._id || ''} onValueChange={(val) => setSelectedTeacher(teachers.find(t => t._id === val))}>
+                      <SelectTrigger className="h-8 text-[11px] font-bold border-slate-200 bg-white">
+                        <SelectValue placeholder="Select teacher" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold max-h-[200px]">
+                        {teachers.map(t => (
+                          <SelectItem key={t._id} value={t._id}>
+                            {t.teacherName || t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Class Selection (for parent or both) */}
+                {(recipientType === 'parent' || recipientType === 'both') && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Class <span className="text-red-500">*</span></label>
+                    <Select value={selectedClass?._id || ''} onValueChange={(val) => setSelectedClass(classes.find(c => c._id === val))}>
+                      <SelectTrigger className="h-8 text-[11px] font-bold border-slate-200 bg-white">
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold max-h-[200px]">
+                        {classes.map(cls => (
+                          <SelectItem key={cls._id} value={cls._id}>
+                            {cls.className} - {cls.section}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Student Selection (for parent or both, after class is selected) */}
+                {(recipientType === 'parent' || recipientType === 'both') && selectedClass && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Student <span className="text-red-500">*</span></label>
+                    {studentsLoading ? (
+                      <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500">
+                        Loading students...
+                      </div>
+                    ) : students.length === 0 ? (
+                      <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500">
+                        No students available
+                      </div>
+                    ) : (
+                      <Select value={selectedStudent?._id || ''} onValueChange={(val) => setSelectedStudent(students.find(s => s._id === val))}>
+                        <SelectTrigger className="h-8 text-[11px] font-bold border-slate-200 bg-white">
+                          <SelectValue placeholder="Select student" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold max-h-[200px]">
+                          {students.map(s => (
+                            <SelectItem key={s._id} value={s._id}>
+                              {s.name} (Roll: {s.rollNo})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
+
+                {/* Parent Auto (for parent or both, after student is selected) */}
+                {(recipientType === 'parent' || recipientType === 'both') && selectedStudent && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parent</label>
+                    <div className="h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center px-3 text-[11px] font-bold text-slate-700">
+                      {selectedStudent.parent?.parentName || 'N/A'}
+                      {selectedStudent.parent?.phone && <span className="ml-2 text-slate-500 font-normal">({selectedStudent.parent.phone})</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teacher Selection (for both, after student is selected) */}
+                {recipientType === 'both' && selectedStudent && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Teacher <span className="text-red-500">*</span></label>
+                    <Select value={selectedTeacher?._id || ''} onValueChange={(val) => setSelectedTeacher(teachers.find(t => t._id === val))}>
+                      <SelectTrigger className="h-8 text-[11px] font-bold border-slate-200 bg-white">
+                        <SelectValue placeholder="Select teacher" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-lg shadow-lg text-[11px] font-bold max-h-[200px]">
+                        {teachers.map(t => (
+                          <SelectItem key={t._id} value={t._id}>
+                            {t.teacherName || t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Title */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Title <span className="text-red-500">*</span></label>
+                  <Input
+                    value={createTitle}
+                    onChange={(e) => setCreateTitle(e.target.value)}
+                    placeholder="Enter feedback title"
+                    className="h-8 text-[11px] font-bold border-slate-200 bg-white"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Description <span className="text-red-500">*</span></label>
+                  <Textarea
+                    value={createDescription}
+                    onChange={(e) => setCreateDescription(e.target.value)}
+                    placeholder="Enter feedback description"
+                    className="min-h-[60px] text-[11px] font-bold border-slate-200 bg-white resize-none"
+                  />
+                </div>
+
+                {/* Attachments */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Attachments</label>
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                      <Paperclip className="h-3.5 w-3.5" />
+                      <span>Attach Files</span>
+                      <input type="file" className="hidden" multiple onChange={(e) => setCreateAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                    </label>
+                    {createAttachments.length > 0 && (
+                      <span className="text-[10px] font-bold text-indigo-600">{createAttachments.length} file(s)</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateFormOpen(false)} className="h-8 text-[11px] font-bold rounded-lg">
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={creating} className={cn("h-8 text-[11px] font-bold rounded-lg px-4", buttonGradient)}>
+                    {creating ? 'Creating...' : 'Create Feedback'}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          )}
+
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => <div key={i} className="h-24 animate-pulse bg-slate-100 rounded-xl"></div>)}
             </div>
-          ) : feedback.length === 0 ? (
+          ) : getFilteredFeedback().length === 0 ? (
             <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
               <Inbox className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-500">Inbox is empty</p>
+              <p className="text-sm font-bold text-slate-500">No feedback tickets found</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {feedback.map((ticket) => (
+              {getFilteredFeedback().map((ticket) => (
                 <div key={ticket._id} className="border border-slate-200/80 p-4 rounded-xl bg-gradient-to-br from-white via-white to-indigo-50/30 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex flex-col gap-3">
                   {/* Header Row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -503,6 +873,15 @@ export default function AdminNotifications() {
                       </span>
                       <span className={cn('border px-2 py-0.5 text-[10px] font-bold uppercase rounded-md tracking-wider shadow-sm', getStatusBadge(ticket.status))}>
                         {ticket.status}
+                      </span>
+                      {/* Created By Badge */}
+                      <span className={cn(
+                        'border px-2 py-0.5 text-[10px] font-bold uppercase rounded-md tracking-wider shadow-sm',
+                        ticket.createdByRole === 'parent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        ticket.createdByRole === 'teacher' ? 'bg-violet-50 text-violet-700 border-violet-200' :
+                        'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      )}>
+                        {ticket.createdByRole === 'parent' ? 'Parent' : ticket.createdByRole === 'teacher' ? 'Teacher' : 'Admin'}
                       </span>
                       <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-100">
                         <Clock3 className="h-3 w-3" /> {formatDate(ticket.createdAt)}
@@ -524,25 +903,42 @@ export default function AdminNotifications() {
 
                   {/* Info Grid & Action */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mt-1">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 w-full sm:w-auto">
+                      {/* Created By */}
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent</span>
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate"><User className="h-3 w-3" />{ticket.parent?.parentName || 'N/A'}</div>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Student</span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Created By</span>
                         <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
-                          <GraduationCap className="h-3 w-3" />{ticket.student?.name || 'N/A'} 
-                          {ticket.student?.class && <span className="text-slate-400 font-medium ml-0.5">({ticket.student.class.className})</span>}
+                          {ticket.createdBy?.name || ticket.createdBy?.teacherName || ticket.createdBy?.parentName || ticket.createdBy?.adminName || 'N/A'}
                         </div>
                       </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned</span>
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 truncate">
-                          <Check className="h-3 w-3 text-indigo-500" />
-                          {ticket.taggedTeacherName ? ticket.taggedTeacherName : 'Admin Team'}
+                      {/* Parent */}
+                      {ticket.parent && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent</span>
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate"><User className="h-3 w-3" />{ticket.parent?.parentName || 'N/A'}</div>
                         </div>
-                      </div>
+                      )}
+                      {/* Student */}
+                      {ticket.student && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Student</span>
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
+                            <GraduationCap className="h-3 w-3" />{ticket.student?.name || 'N/A'} 
+                            {ticket.student?.class && <span className="text-slate-400 font-medium ml-0.5">({ticket.student.class.className})</span>}
+                          </div>
+                        </div>
+                      )}
+                      {/* Teacher */}
+                      {ticket.teacherIds && ticket.teacherIds.length > 0 && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Teacher</span>
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 truncate">
+                            <Check className="h-3 w-3 text-indigo-500" />
+                            {ticket.taggedTeacherName || ticket.teacherIds.map(t => t.teacherName || t.name).join(', ')}
+                          </div>
+                        </div>
+                      )}
+                      {/* Files */}
                       {ticket.attachments && ticket.attachments.length > 0 && (
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Files</span>
@@ -565,6 +961,20 @@ export default function AdminNotifications() {
       {/* Poll Analytics Tab - Home */}
       {activeTab === 'polls' && !selectedPoll && (
         <ErpSection title="Live & Past Polls" icon={Vote} tone="indigo">
+          <div className="flex items-center justify-end mb-4 gap-2">
+            <Button size="sm" onClick={() => {
+              setAnnouncementModalTab('poll');
+              setIsAnnouncementModalOpen(true);
+            }} className={cn("h-8 text-[11px] font-bold rounded-lg px-4", buttonGradient)}>
+              <BarChart3 className="mr-1 h-3 w-3" /> Create Poll
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => {
+              setActiveTab('feedback');
+              setIsCreateFormOpen(true);
+            }} className="h-8 text-[11px] font-bold rounded-lg px-4 border-slate-200 bg-white hover:bg-slate-50">
+              <MessageSquare className="mr-1 h-3 w-3 text-indigo-600" /> Create Feedback
+            </Button>
+          </div>
           {loading ? (
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map(i => <div key={i} className="h-40 animate-pulse bg-slate-100 rounded-xl"></div>)}
@@ -1212,6 +1622,14 @@ export default function AdminNotifications() {
           </div>
         </div>
       )}
+
+      {/* Announcement Modal */}
+      <AnnouncementModal 
+        open={isAnnouncementModalOpen} 
+        onOpenChange={setIsAnnouncementModalOpen} 
+        role="school_admin"
+        initialTab={announcementModalTab}
+      />
     </PageStack>
   );
 }

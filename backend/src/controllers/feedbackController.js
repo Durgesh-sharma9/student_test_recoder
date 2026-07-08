@@ -53,14 +53,35 @@ export const getFeedback = asyncHandler(async (req, res) => {
   console.log('User role:', user.role);
   console.log('School ID:', schoolId);
 
-  let filter = {};
+  let filter = { school: schoolId };
 
   if (user.role === 'school_admin') {
+    // Admin sees all feedback for their school
     filter = { school: schoolId };
   } else if (user.role === 'teacher') {
-    filter = { school: schoolId, $or: [{ teacherIds: user._id }, { taggedTeacherId: user._id }] };
+    // Teacher sees:
+    // - Feedback they created
+    // - Feedback where they are tagged
+    // - Feedback addressed to them by admin
+    filter = {
+      school: schoolId,
+      $or: [
+        { createdBy: user._id },
+        { teacherIds: user._id },
+        { taggedTeacherId: user._id }
+      ]
+    };
   } else if (user.role === 'parent') {
-    filter = { $or: [{ parent: user._id }, { createdBy: user._id }] };
+    // Parent sees:
+    // - Feedback they created
+    // - Feedback where they are the parent (sent by teacher/admin)
+    filter = {
+      school: schoolId,
+      $or: [
+        { createdBy: user._id },
+        { parent: user._id }
+      ]
+    };
   } else {
     throw new ApiError(403, 'You do not have permission to view feedback.');
   }
@@ -76,6 +97,7 @@ export const getFeedback = asyncHandler(async (req, res) => {
       }
     })
     .populate('teacherIds', 'teacherName name email')
+    .populate('createdBy', 'name teacherName parentName adminName')
     .sort({ createdAt: -1 });
 
   console.log('Total tickets found:', tickets.length);
@@ -85,7 +107,8 @@ export const getFeedback = asyncHandler(async (req, res) => {
       attachmentsCount: ticket.attachments?.length || 0,
       attachments: ticket.attachments,
       messagesCount: ticket.messages?.length || 0,
-      firstMessageAttachments: ticket.messages[0]?.attachments
+      firstMessageAttachments: ticket.messages[0]?.attachments,
+      createdByRole: ticket.createdByRole
     });
   });
   console.log('=== GET FEEDBACK END ===');
@@ -96,51 +119,128 @@ export const getFeedback = asyncHandler(async (req, res) => {
 export const createFeedback = asyncHandler(async (req, res) => {
   const user = req.user;
 
-  if (user.role !== 'parent') {
-    throw new ApiError(403, 'Only parents can create feedback tickets.');
+  if (!['parent', 'teacher', 'school_admin'].includes(user.role)) {
+    throw new ApiError(403, 'You do not have permission to create feedback tickets.');
   }
 
-  const { title, description, studentId, teacherId, taggedSubject } = req.body;
+  const { title, description, studentId, teacherId, recipientType, recipientTeacherId } = req.body;
   if (!title || !description) {
     throw new ApiError(400, 'Title and description are required.');
   }
 
   console.log('=== CREATE FEEDBACK START ===');
+  console.log('User role:', user.role);
   console.log('req.files:', req.files);
   console.log('Number of files:', req.files?.length || 0);
+  console.log('recipientType:', recipientType);
+  console.log('recipientTeacherId:', recipientTeacherId);
 
   const attachments = await buildAttachmentData(req.files || []);
 
   console.log('Uploaded attachments:', attachments);
   console.log('Number of uploaded attachments:', attachments.length);
 
-  // Fetch teacher name if teacher is tagged
+  let parent = null;
+  let student = null;
+  let teacherIds = [];
+  let taggedTeacherId = null;
   let taggedTeacherName = null;
-  if (teacherId) {
-    const teacher = await User.findById(teacherId).select('teacherName name');
-    if (teacher) {
-      taggedTeacherName = teacher.teacherName || teacher.name;
+  let taggedSubject = null;
+
+  // PARENT FLOW
+  if (user.role === 'parent') {
+    parent = user._id;
+    student = studentId || undefined;
+    teacherIds = teacherId ? [teacherId] : [];
+    taggedTeacherId = teacherId || null;
+    taggedSubject = taggedSubject || null;
+    
+    if (teacherId) {
+      const teacher = await User.findById(teacherId).select('teacherName name');
+      if (teacher) {
+        taggedTeacherName = teacher.teacherName || teacher.name;
+      }
+    }
+  }
+  
+  // TEACHER FLOW
+  else if (user.role === 'teacher') {
+    // Teacher must select a student, parent is auto-determined
+    if (!studentId) {
+      throw new ApiError(400, 'Student is required for teacher feedback.');
+    }
+    
+    const Student = (await import('../models/Student.js')).default;
+    const studentDoc = await Student.findById(studentId).populate('parent');
+    if (!studentDoc) {
+      throw new ApiError(404, 'Student not found.');
+    }
+    
+    parent = studentDoc.parent;
+    student = studentId;
+    teacherIds = [user._id]; // Teacher is tagged by default
+    taggedTeacherId = user._id;
+    taggedTeacherName = user.teacherName || user.name;
+    taggedSubject = taggedSubject || null;
+    
+    // Teacher can optionally tag another teacher
+    if (recipientTeacherId && String(recipientTeacherId) !== String(user._id)) {
+      teacherIds.push(recipientTeacherId);
+    }
+  }
+  
+  // ADMIN FLOW
+  else if (user.role === 'school_admin') {
+    if (!recipientType) {
+      throw new ApiError(400, 'Recipient type is required.');
+    }
+    
+    if (recipientType === 'parent' || recipientType === 'both') {
+      if (!studentId) {
+        throw new ApiError(400, 'Student is required when sending to parent.');
+      }
+      
+      const Student = (await import('../models/Student.js')).default;
+      const studentDoc = await Student.findById(studentId).populate('parent');
+      if (!studentDoc) {
+        throw new ApiError(404, 'Student not found.');
+      }
+      
+      parent = studentDoc.parent;
+      student = studentId;
+    }
+    
+    if (recipientType === 'teacher' || recipientType === 'both') {
+      if (recipientTeacherId) {
+        teacherIds = [recipientTeacherId];
+        taggedTeacherId = recipientTeacherId;
+        const teacher = await User.findById(recipientTeacherId).select('teacherName name');
+        if (teacher) {
+          taggedTeacherName = teacher.teacherName || teacher.name;
+        }
+      }
     }
   }
 
   const feedback = await Feedback.create({
     school: user.school,
-    parent: user._id,
-    student: studentId || undefined,
-    teacherIds: teacherId ? [teacherId] : [],
-    taggedTeacherId: teacherId || null,
-    taggedTeacherName: taggedTeacherName,
-    taggedSubject: taggedSubject || null,
+    parent,
+    student,
+    teacherIds,
+    taggedTeacherId,
+    taggedTeacherName,
+    taggedSubject,
     createdBy: user._id,
+    createdByRole: user.role,
     title,
     description,
     ticketId: generateTicketId(),
     attachments,
     messages: [
       {
-        senderRole: 'parent',
+        senderRole: user.role === 'school_admin' ? 'school_admin' : user.role,
         senderId: user._id,
-        senderName: user.name || user.parentName || 'Parent',
+        senderName: user.name || user.teacherName || user.parentName || user.adminName || 'User',
         content: description,
         attachments,
       },
@@ -151,17 +251,18 @@ export const createFeedback = asyncHandler(async (req, res) => {
   console.log('Feedback messages attachments:', feedback.messages[0].attachments);
   console.log('=== CREATE FEEDBACK END ===');
 
-  // Send notification to school admin
+  // NOTIFICATIONS
   const adminUsers = await User.find({ role: 'school_admin', school: user.school, isActive: true }).select('_id');
   const adminIds = adminUsers.map(admin => admin._id);
 
-  if (adminIds.length > 0) {
+  // Always notify admins (unless admin is the creator)
+  if (adminIds.length > 0 && user.role !== 'school_admin') {
     await Notification.create({
       title: `New Feedback: ${title}`,
-      message: `Parent submitted feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+      message: `${user.role === 'parent' ? 'Parent' : user.role === 'teacher' ? 'Teacher' : 'Admin'} submitted feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
       priority: 'important',
       senderId: user._id,
-      senderRole: 'parent',
+      senderRole: user.role,
       recipientIds: adminIds,
       schoolId: user.school,
       targetRole: 'school_admin',
@@ -171,21 +272,44 @@ export const createFeedback = asyncHandler(async (req, res) => {
     });
   }
 
-  // Send notification to tagged teacher
-  if (teacherId) {
+  // Notify parent if teacher or admin created
+  if (parent && user.role !== 'parent') {
     await Notification.create({
       title: `New Feedback: ${title}`,
-      message: `Parent tagged you in feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+      message: `${user.role === 'teacher' ? 'Teacher' : 'Admin'} sent you feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
       priority: 'important',
       senderId: user._id,
-      senderRole: 'parent',
-      recipientIds: [teacherId],
+      senderRole: user.role,
+      recipientIds: [parent],
       schoolId: user.school,
-      targetRole: 'teacher',
-      isBroadcast: true,
+      targetRole: 'parent',
+      isBroadcast: false,
       type: 'feedback',
       feedbackId: feedback._id,
     });
+  }
+
+  // Notify tagged teachers
+  if (teacherIds.length > 0) {
+    const recipients = user.role === 'teacher' 
+      ? teacherIds.filter(id => String(id) !== String(user._id)) // Don't notify self
+      : teacherIds;
+    
+    if (recipients.length > 0) {
+      await Notification.create({
+        title: `New Feedback: ${title}`,
+        message: `${user.role === 'parent' ? 'Parent' : user.role === 'teacher' ? 'Teacher' : 'Admin'} ${user.role === 'parent' ? 'tagged you in' : 'sent you'} feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
+        priority: 'important',
+        senderId: user._id,
+        senderRole: user.role,
+        recipientIds: recipients,
+        schoolId: user.school,
+        targetRole: 'teacher',
+        isBroadcast: true,
+        type: 'feedback',
+        feedbackId: feedback._id,
+      });
+    }
   }
 
   res.status(201).json({ success: true, feedback });

@@ -24,13 +24,14 @@ const feedbackMessageSchema = new mongoose.Schema(
 const feedbackSchema = new mongoose.Schema(
   {
     school: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
-    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent', required: true },
-    student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent' },
+    student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
     teacherIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     taggedTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     taggedTeacherName: { type: String, trim: true },
     taggedSubject: { type: String, trim: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent', required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    createdByRole: { type: String, enum: ['parent', 'teacher', 'school_admin'], required: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
     status: { type: String, enum: ['Open', 'In Progress', 'Resolved', 'Closed'], default: 'Open' },
