@@ -14,28 +14,48 @@ export const getNotifications = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
+  console.log('[getNotifications] userId:', userId);
+  console.log('[getNotifications] role:', role);
+  console.log('[getNotifications] schoolId:', schoolId);
+
   let filter = {};
 
   if (role === 'teacher') {
     // Teachers can only see notifications sent to them
     filter = {
       recipientIds: userId,
-      schoolId,
     };
+    // Only add schoolId filter if it exists
+    if (schoolId) {
+      filter.schoolId = schoolId;
+    }
   } else if (role === 'parent') {
     // Parents can only see notifications sent to them
     filter = {
       recipientIds: userId,
-      schoolId,
     };
+    // Only add schoolId filter if it exists
+    if (schoolId) {
+      filter.schoolId = schoolId;
+    }
   } else if (role === 'school_admin') {
     // Admins can see notifications sent to them and notifications they sent
-    filter = {
-      $or: [
-        { recipientIds: userId, schoolId },
-        { senderId: userId, schoolId },
-      ],
-    };
+    // Use $or with schoolId in each condition
+    if (schoolId) {
+      filter = {
+        $or: [
+          { recipientIds: userId, schoolId },
+          { senderId: userId, schoolId },
+        ],
+      };
+    } else {
+      filter = {
+        $or: [
+          { recipientIds: userId },
+          { senderId: userId },
+        ],
+      };
+    }
   } else if (role === 'super_admin') {
     // Super admins can see notifications they sent AND received (needed for payment request workflow)
     filter = {
@@ -43,10 +63,7 @@ export const getNotifications = asyncHandler(async (req, res) => {
     };
   }
 
-  console.log('[getNotifications] filter:', filter);
-  console.log('[getNotifications] userId:', userId);
-  console.log('[getNotifications] role:', role);
-  console.log('[getNotifications] schoolId:', schoolId);
+  console.log('[getNotifications] filter:', JSON.stringify(filter, null, 2));
 
   const notifications = await Notification.find(filter)
     .populate('senderId', 'name email')
@@ -56,10 +73,11 @@ export const getNotifications = asyncHandler(async (req, res) => {
   console.log('[getNotifications] notifications found:', notifications.length);
 
   const unreadCount = await Notification.countDocuments({
-    ...filter,
     recipientIds: userId,
     readBy: { $ne: userId },
   });
+
+  console.log('[getNotifications] unreadCount:', unreadCount);
 
   res.json({
     success: true,

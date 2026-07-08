@@ -23,6 +23,7 @@ const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 export default function AdminNotifications() {
   const [activeTab, setActiveTab] = useState('notifications');
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [feedback, setFeedback] = useState([]);
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,9 @@ export default function AdminNotifications() {
   // Attachment preview modal state
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState(null);
+
+  // Attachment dropdown state
+  const [attachmentDropdownOpen, setAttachmentDropdownOpen] = useState(null);
 
   // Admin create feedback form state
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
@@ -74,11 +78,46 @@ export default function AdminNotifications() {
       setLoading(true);
       const res = await api.get('/notifications');
       setNotifications(res.data.notifications || []);
+      setUnreadCount(res.data.unreadCount || 0);
     } catch (error) {
       toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/notifications/unread-count');
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await api.put(`/notifications/${notificationId}/mark-read`);
+      await fetchNotifications();
+      await fetchUnreadCount();
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/notifications/mark-all-read');
+      await fetchNotifications();
+      await fetchUnreadCount();
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
+  const isUnread = (notification) => {
+    const userId = localStorage.getItem('userId');
+    return !notification.readBy?.includes(userId);
   };
 
   const fetchFeedback = async () => {
@@ -170,6 +209,12 @@ export default function AdminNotifications() {
       fetchPolls();
     }
   }, [activeTab]);
+
+  // Poll for unread count every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const openPollAnalytics = async (pollId) => {
     try {
@@ -456,7 +501,10 @@ export default function AdminNotifications() {
   };
 
   const handleNotificationClick = async (n) => {
-    // Mark as read API logic would go here
+    // Mark as read when notification is clicked
+    if (isUnread(n)) {
+      await markAsRead(n._id);
+    }
     
     // Redirect logic for Feedback
     const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
@@ -551,9 +599,16 @@ export default function AdminNotifications() {
             </div>
           </div>
           
-          <div className="p-4 bg-white flex items-center gap-4 text-[12px] font-bold text-slate-600 border-b border-slate-100">
-            <span>Total: <span className="text-slate-900">{notifications.length}</span></span>
-            <span>Unread: <span className="text-rose-600">{notifications.filter(n => !n.isRead).length || 0}</span></span>
+          <div className="p-4 bg-white flex items-center justify-between text-[12px] font-bold text-slate-600 border-b border-slate-100">
+            <div className="flex items-center gap-4">
+              <span>Total: <span className="text-slate-900">{notifications.length}</span></span>
+              <span>Unread: <span className="text-rose-600">{unreadCount}</span></span>
+            </div>
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs font-medium text-indigo-600 hover:text-indigo-700" onClick={markAllAsRead}>
+                <CheckCheck className="mr-1 h-3 w-3" /> Mark all read
+              </Button>
+            )}
           </div>
 
           {loading ? (
@@ -583,26 +638,35 @@ export default function AdminNotifications() {
                   {notifications.map((n) => {
                     const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
                     const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
+                    const unread = isUnread(n);
 
                     return (
                       <tr 
                         key={n._id} 
                         onClick={() => hasRedirect && handleNotificationClick(n)}
                         className={cn(
-                          "transition-colors group", 
-                          n.isRead ? "bg-white hover:bg-slate-50" : "bg-indigo-50/30 hover:bg-indigo-50/60",
+                          "transition-colors group relative", 
+                          unread ? "bg-blue-50 hover:bg-blue-100" : "bg-white hover:bg-slate-50",
+                          unread && "border-l-4 border-l-blue-500",
                           hasRedirect && "cursor-pointer"
                         )}
                       >
                         <td className="px-5 py-3.5">
-                          <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
-                            {n.priority || 'INFO'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
+                              {n.priority || 'INFO'}
+                            </span>
+                            {unread && (
+                              <span className="inline-flex items-center rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
+                                Unread
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-5 py-3.5 font-bold text-slate-900">
+                        <td className={cn("px-5 py-3.5", unread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>
                           {n.title}
                         </td>
-                        <td className="px-5 py-3.5 font-medium text-slate-600 truncate max-w-[200px] sm:max-w-[300px]">
+                        <td className={cn("px-5 py-3.5 truncate max-w-[200px] sm:max-w-[300px]", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>
                           {n.message}
                         </td>
                         <td className="px-5 py-3.5 font-semibold text-slate-700 capitalize">
@@ -613,22 +677,99 @@ export default function AdminNotifications() {
                         </td>
                         <td className="px-5 py-3.5">
                           {n.attachments && n.attachments.length > 0 ? (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <Paperclip className="h-3.5 w-3.5 text-indigo-500" />
-                              <span className="text-[11px] font-bold text-indigo-700">{n.attachments.length} {n.attachments.length === 1 ? 'File' : 'Files'}</span>
+                            <div className="relative">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <Paperclip className="h-3.5 w-3.5 text-indigo-500" />
+                                <span className="text-[11px] font-bold text-indigo-700">{n.attachments.length} {n.attachments.length === 1 ? 'Attachment' : 'Attachments'}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs font-medium text-indigo-600 hover:text-indigo-700 px-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (n.attachments.length === 1) {
+                                      const attachment = n.attachments[0];
+                                      const url = attachment.url?.startsWith('http') 
+                                        ? attachment.url 
+                                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                      window.open(url, '_blank');
+                                    } else {
+                                      setAttachmentDropdownOpen(attachmentDropdownOpen === n._id ? null : n._id);
+                                    }
+                                  }}
+                                >
+                                  View
+                                </Button>
+                              </div>
+                              {attachmentDropdownOpen === n._id && n.attachments.length > 1 && (
+                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                                  <div className="p-3">
+                                    <div className="text-xs font-semibold text-slate-700 mb-2">Attachments ({n.attachments.length})</div>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                      {n.attachments.map((attachment, idx) => {
+                                        const url = attachment.url?.startsWith('http') 
+                                          ? attachment.url 
+                                          : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                        return (
+                                          <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded hover:bg-slate-100">
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-xs font-medium text-slate-700 truncate">{attachment.name || attachment.fileName || 'Attachment'}</div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  window.open(url, '_blank');
+                                                }}
+                                                title="View"
+                                              >
+                                                <Eye className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const link = document.createElement('a');
+                                                  link.href = url;
+                                                  link.download = attachment.name || attachment.fileName || 'attachment';
+                                                  link.click();
+                                                }}
+                                                title="Download"
+                                              >
+                                                <Download className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <div className="text-center text-slate-300">-</div>
+                            <div className="text-center text-slate-400 text-xs">No Attachment</div>
                           )}
                         </td>
                         <td className="px-5 py-3.5 text-center">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); /* handle mark read */ toast.success('Marked as read'); }}
-                            className="p-1.5 text-slate-300 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex" 
-                            title="Mark as Read"
-                          >
-                            <Check className="h-3.5 w-3.5" />
-                          </button>
+                          {unread ? (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
+                              className="p-1.5 text-slate-400 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex" 
+                              title="Mark as Read"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <div className="p-1.5 text-slate-200 inline-flex">
+                              <CheckCheck className="h-3.5 w-3.5" />
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1099,7 +1240,11 @@ export default function AdminNotifications() {
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
-                        data={pollAnalytics.optionSummary}
+                        data={pollAnalytics.optionSummary.map(item => ({
+                          option: item.option,
+                          count: Number(item.count) || 0,
+                          percent: Number(item.percent) || 0
+                        }))}
                         cx="50%" cy="50%" labelLine={false}
                         label={({ option, percent }) => `${option}: ${percent}%`}
                         outerRadius={75} dataKey="count"
@@ -1116,7 +1261,11 @@ export default function AdminNotifications() {
               ) : (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={pollAnalytics.optionSummary} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <BarChart data={pollAnalytics.optionSummary.map(item => ({
+                      option: item.option,
+                      count: Number(item.count) || 0,
+                      percent: Number(item.percent) || 0
+                    }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                       <XAxis dataKey="option" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
                       <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />

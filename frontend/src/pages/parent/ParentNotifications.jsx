@@ -11,6 +11,7 @@ import FeedbackPanel from '@/components/FeedbackPanel';
 
 export default function ParentNotifications() {
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedPollId, setSelectedPollId] = useState(null);
   const [pollModalOpen, setPollModalOpen] = useState(false);
@@ -21,6 +22,9 @@ export default function ParentNotifications() {
 
   useEffect(() => {
     fetchNotifications();
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -33,8 +37,10 @@ export default function ParentNotifications() {
 
   const fetchNotifications = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/notifications');
       setNotifications(res.data.notifications || []);
+      setUnreadCount(res.data.unreadCount || 0);
     } catch (error) {
       toast.error('Failed to load notifications');
     } finally {
@@ -42,12 +48,20 @@ export default function ParentNotifications() {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/notifications/unread-count');
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
+
   const markAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/mark-read`);
-      setNotifications(notifications.map(n => 
-        n._id === notificationId ? { ...n, read: true } : n
-      ));
+      await fetchNotifications();
+      await fetchUnreadCount();
     } catch (error) {
       toast.error('Failed to mark as read');
     }
@@ -56,14 +70,25 @@ export default function ParentNotifications() {
   const markAllAsRead = async () => {
     try {
       await api.put('/notifications/mark-all-read');
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      await fetchNotifications();
+      await fetchUnreadCount();
       toast.success('All notifications marked as read');
     } catch (error) {
       toast.error('Failed to mark all as read');
     }
   };
 
+  const isUnread = (notification) => {
+    const userId = localStorage.getItem('userId');
+    return !notification.readBy?.includes(userId);
+  };
+
   const openNotification = (notification) => {
+    // Mark as read when opening notification
+    if (isUnread(notification)) {
+      markAsRead(notification._id);
+    }
+
     if (notification.type === 'poll' && notification.pollId) {
       setSelectedPollId(notification.pollId);
       setPollModalOpen(true);
@@ -116,24 +141,22 @@ export default function ParentNotifications() {
         </ErpSection>
       ) : (
         <div className="space-y-4">
-          {notifications.map((notification) => (
+          {notifications.map((notification) => {
+            const unread = isUnread(notification);
+            return (
             <div
               key={notification._id}
               onClick={() => openNotification(notification)}
-              className={`rounded-xl border bg-white p-4 shadow-sm transition-all cursor-pointer ${
-                !notification.read ? 'border-indigo-200 bg-indigo-50/30' : 'border-slate-200'
-              }`}
+              className={cn(
+                "rounded-xl border bg-white p-4 shadow-sm transition-all cursor-pointer relative",
+                unread ? "bg-slate-50 border-l-4 border-l-indigo-500" : "border-slate-200"
+              )}
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1 w-full min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    {!notification.read && (
-                      <span className="h-2 w-2 rounded-full bg-indigo-600 shrink-0" />
-                    )}
-                    <h3 className="font-semibold text-slate-900 break-words">
-                      {notification.title}
-                    </h3>
-                  </div>
+                  <h3 className={cn("font-semibold break-words", unread ? "font-bold text-slate-900" : "text-slate-900")}>
+                    {notification.title}
+                  </h3>
                   <p className="text-sm text-slate-600 mb-3 break-words">{notification.message}</p>
                   
                   {notification.attachmentUrl && (
@@ -156,7 +179,7 @@ export default function ParentNotifications() {
                   </div>
                 </div>
 
-                {!notification.read && (
+                {unread && (
                   <Button
                     size="sm"
                     onClick={() => markAsRead(notification._id)}
@@ -169,7 +192,8 @@ export default function ParentNotifications() {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {analyticsOpen && analyticsData && (

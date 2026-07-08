@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { 
   MessageSquare, Send, Plus, CircleCheckBig, MessageCircleMore, 
-  Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2, ChevronDown, ChevronUp, Clock
+  Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2, ChevronDown, ChevronUp, Clock, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -42,7 +42,13 @@ export default function FeedbackPanel({ role = 'parent' }) {
     try {
       setLoading(true);
       const res = await api.get('/feedback');
-      setTickets(res.data.feedback || []);
+      // Sort by lastReplyAt if available, otherwise createdAt (newest first)
+      const sortedTickets = (res.data.feedback || []).sort((a, b) => {
+        const dateA = a.lastReplyAt ? new Date(a.lastReplyAt) : new Date(a.createdAt);
+        const dateB = b.lastReplyAt ? new Date(b.lastReplyAt) : new Date(b.createdAt);
+        return dateB - dateA;
+      });
+      setTickets(sortedTickets);
     } catch (error) {
       toast.error('Failed to load feedback tickets');
     } finally {
@@ -249,11 +255,21 @@ export default function FeedbackPanel({ role = 'parent' }) {
     }
   };
 
+  const canChangeStatus = () => {
+    // Only Admin can change status to Closed or reopen from Closed
+    return role === 'school_admin';
+  };
+
   const toggleTicket = (ticketId) => {
-    setExpandedTickets(prev => ({
-      ...prev,
-      [ticketId]: !prev[ticketId]
-    }));
+    setExpandedTickets(prev => {
+      // If clicking the already expanded ticket, collapse it
+      if (prev[ticketId]) {
+        return { ...prev, [ticketId]: false };
+      }
+      // Otherwise, collapse all and expand the clicked one (only one at a time)
+      const collapsed = Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {});
+      return { ...collapsed, [ticketId]: true };
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -268,6 +284,59 @@ export default function FeedbackPanel({ role = 'parent' }) {
       default:
         return 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-600 border-slate-200 shadow-sm';
     }
+  };
+
+  const getIntelligentBadge = (ticket) => {
+    if (ticket.status === 'Closed') {
+      return { text: 'Closed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    }
+
+    if (ticket.status === 'Resolved') {
+      return { text: 'Resolved', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    }
+
+    const hasMessages = ticket.messages && ticket.messages.length > 0;
+    if (!hasMessages) {
+      return { text: 'New', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    }
+
+    const lastMessage = ticket.messages[ticket.messages.length - 1];
+    const lastSenderRole = lastMessage?.senderRole;
+    const userId = localStorage.getItem('userId');
+
+    // If current user sent the last message, show "Awaiting Response"
+    if (lastSenderRole === role) {
+      if (role === 'parent') {
+        return { text: 'Awaiting Admin', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+      } else if (role === 'teacher') {
+        return { text: 'Awaiting Parent', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+      } else if (role === 'school_admin') {
+        return { text: 'Awaiting Response', color: 'bg-amber-100 text-amber-700 border-amber-200' };
+      }
+    }
+
+    // If parent sent last message
+    if (lastSenderRole === 'parent') {
+      if (role === 'school_admin' || role === 'teacher') {
+        return { text: 'New Reply', color: 'bg-red-100 text-red-700 border-red-200' };
+      }
+    }
+
+    // If teacher sent last message
+    if (lastSenderRole === 'teacher') {
+      if (role === 'parent' || role === 'school_admin') {
+        return { text: 'New Reply', color: 'bg-red-100 text-red-700 border-red-200' };
+      }
+    }
+
+    // If admin sent last message
+    if (lastSenderRole === 'school_admin') {
+      if (role === 'parent' || role === 'teacher') {
+        return { text: 'New Reply', color: 'bg-red-100 text-red-700 border-red-200' };
+      }
+    }
+
+    return { text: 'In Progress', color: 'bg-violet-100 text-violet-700 border-violet-200' };
   };
 
   const handleDrag = (e) => {
@@ -297,6 +366,22 @@ export default function FeedbackPanel({ role = 'parent' }) {
     setReplyAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getFileIcon = (filename) => {
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (['pdf'].includes(ext)) return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'doc';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'sheet';
+    return 'file';
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -308,7 +393,27 @@ export default function FeedbackPanel({ role = 'parent' }) {
   
   const formatTime = (dateString) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const formatRelativeDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date >= today) {
+      return 'Today';
+    } else if (date >= yesterday) {
+      return 'Yesterday';
+    } else {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
   };
 
   const primaryColor = role === 'parent' ? 'blue' : 'violet';
@@ -706,8 +811,8 @@ export default function FeedbackPanel({ role = 'parent' }) {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {tickets.map((ticket, index) => {
-              const isExpanded = expandedTickets[ticket._id] !== undefined ? expandedTickets[ticket._id] : index === 0;
+            {tickets.map((ticket) => {
+              const isExpanded = expandedTickets[ticket._id] || false;
               const hasMessages = ticket.messages && ticket.messages.length > 0;
 
               return (
@@ -732,6 +837,9 @@ export default function FeedbackPanel({ role = 'parent' }) {
                         </span>
                         <span className={cn('inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider', getStatusBadge(ticket.status))}>
                           {ticket.status}
+                        </span>
+                        <span className={cn('inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm', getIntelligentBadge(ticket).color)}>
+                          {getIntelligentBadge(ticket).text}
                         </span>
                         <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
                           <Clock className="h-3 w-3" /> {formatDate(ticket.createdAt)}
@@ -791,10 +899,36 @@ export default function FeedbackPanel({ role = 'parent' }) {
                         {/* Description Box */}
                         <div className="rounded-lg bg-slate-100/70 p-3 border border-slate-200/60 shadow-inner">
                           <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed font-medium">{ticket.description}</p>
+                          {ticket.attachments && ticket.attachments.length > 0 && (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {ticket.attachments.map((att, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-bold bg-white border-slate-200 shadow-sm group"
+                                >
+                                  <FileText className="h-3 w-3 shrink-0 text-slate-500" />
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="truncate max-w-[100px] text-slate-700">{att.name}</span>
+                                    {att.size && (
+                                      <span className="text-[8px] text-slate-400">{formatFileSize(att.size)}</span>
+                                    )}
+                                  </div>
+                                  <a
+                                    href={att.url}
+                                    download={att.name}
+                                    className="ml-1 text-slate-400 hover:text-blue-600 transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         
                         {/* Admin Action (Compact) */}
-                        {role !== 'parent' && (
+                        {role !== 'parent' && canChangeStatus() && (
                           <div className="flex items-center justify-end pt-1">
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-bold text-slate-500 uppercase">Update Status:</span>
@@ -835,6 +969,9 @@ export default function FeedbackPanel({ role = 'parent' }) {
                                         {message.senderName || 'User'}
                                       </span>
                                       <span className={cn("text-[9px] font-semibold ml-auto", isCurrentUser ? "text-white/70" : "text-slate-400")}>
+                                        {formatRelativeDate(message.createdAt)}
+                                      </span>
+                                      <span className={cn("text-[9px] font-semibold", isCurrentUser ? "text-white/70" : "text-slate-400")}>
                                         {formatTime(message.createdAt)}
                                       </span>
                                     </div>
@@ -844,23 +981,36 @@ export default function FeedbackPanel({ role = 'parent' }) {
                                     
                                     {message.attachments && message.attachments.length > 0 && (
                                       <div className="mt-2 flex flex-wrap gap-1.5">
-                                        {message.attachments.map((att, idx) => (
-                                          <a
-                                            key={idx}
-                                            href={att.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={cn(
-                                              "flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-bold transition-all",
-                                              isCurrentUser 
-                                                ? "bg-black/15 border-transparent hover:bg-black/25 text-white" 
-                                                : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-600"
-                                            )}
-                                          >
-                                            <FileText className="h-3 w-3 shrink-0" />
-                                            <span className="truncate max-w-[120px]">{att.name}</span>
-                                          </a>
-                                        ))}
+                                        {message.attachments.map((att, idx) => {
+                                          const iconType = getFileIcon(att.name);
+                                          return (
+                                            <div
+                                              key={idx}
+                                              className={cn(
+                                                "flex items-center gap-1.5 rounded border px-2 py-1.5 text-[10px] font-bold transition-all group",
+                                                isCurrentUser 
+                                                  ? "bg-black/15 border-transparent hover:bg-black/25 text-white" 
+                                                  : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-600"
+                                              )}
+                                            >
+                                              <FileText className="h-3 w-3 shrink-0" />
+                                              <div className="flex flex-col min-w-0">
+                                                <span className="truncate max-w-[100px]">{att.name}</span>
+                                                {att.size && (
+                                                  <span className="text-[8px] opacity-70">{formatFileSize(att.size)}</span>
+                                                )}
+                                              </div>
+                                              <a
+                                                href={att.url}
+                                                download={att.name}
+                                                className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                <Download className="h-3 w-3" />
+                                              </a>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>
@@ -872,58 +1022,72 @@ export default function FeedbackPanel({ role = 'parent' }) {
                       )}
 
                       {/* Reply Input Area */}
-                      <div className="p-3 bg-white border-t border-slate-100 mt-1">
-                        <div className={cn(
-                          "flex flex-col gap-1.5 rounded-xl border bg-white p-1.5 transition-all duration-200 shadow-sm",
-                          isParent ? "border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/10" : "border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/10"
-                        )}>
-                          <Textarea
-                            className="min-h-[40px] w-full resize-none border-0 bg-transparent p-2 text-xs focus-visible:ring-0 shadow-none placeholder:text-slate-400 font-medium"
-                            value={replyDrafts[ticket._id] || ''}
-                            onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
-                            placeholder="Type your reply..."
-                          />
-                          
-                          {replyAttachments.length > 0 && (
-                            <div className="px-2 pb-1.5 flex flex-wrap gap-1.5">
-                              {replyAttachments.map((file, index) => (
-                                <div key={index} className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-[10px] font-bold border border-slate-200 shadow-sm">
-                                  <div className={cn("p-0.5 rounded", isParent ? "bg-blue-100 text-blue-600" : "bg-violet-100 text-violet-600")}>
-                                    <FileText className="h-2.5 w-2.5" />
-                                  </div>
-                                  <span className="max-w-[100px] truncate text-slate-700">{file.name}</span>
-                                  <button type="button" className="text-slate-400 hover:text-red-500 p-0.5 rounded ml-0.5" onClick={() => removeReplyAttachment(index)}>
-                                    <X className="h-2.5 w-2.5" />
-                                  </button>
-                                </div>
-                              ))}
+                      {ticket.status === 'Closed' ? (
+                        <div className="p-3 bg-slate-50 border-t border-slate-100 mt-1">
+                          <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-3 border border-slate-200">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
+                              <X className="h-4 w-4 text-slate-500" />
                             </div>
-                          )}
-
-                          <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 px-1">
-                            <label className={cn(
-                              "cursor-pointer flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-colors",
-                              isParent ? "text-slate-500 hover:bg-blue-50 hover:text-blue-600" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
-                            )}>
-                              <Paperclip className="h-3.5 w-3.5" />
-                              <span>Attach</span>
-                              <input type="file" className="sr-only" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
-                            </label>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleReply(ticket._id)} 
-                              disabled={replying}
-                              className={cn(
-                                "h-7 px-4 text-[11px] font-bold rounded-md text-white shadow-sm transition-all", 
-                                buttonGradient
-                              )}
-                            >
-                              {replying ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
-                              Reply
-                            </Button>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-700">🔒 This conversation has been closed by Admin</p>
+                              <p className="text-[10px] font-medium text-slate-500">Replies are disabled. Only Admin can reopen this ticket.</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="p-3 bg-white border-t border-slate-100 mt-1">
+                          <div className={cn(
+                            "flex flex-col gap-1.5 rounded-xl border bg-white p-1.5 transition-all duration-200 shadow-sm",
+                            isParent ? "border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500/10" : "border-slate-200 focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/10"
+                          )}>
+                            <Textarea
+                              className="min-h-[40px] w-full resize-none border-0 bg-transparent p-2 text-xs focus-visible:ring-0 shadow-none placeholder:text-slate-400 font-medium"
+                              value={replyDrafts[ticket._id] || ''}
+                              onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [ticket._id]: e.target.value }))}
+                              placeholder="Type your reply..."
+                            />
+                            
+                            {replyAttachments.length > 0 && (
+                              <div className="px-2 pb-1.5 flex flex-wrap gap-1.5">
+                                {replyAttachments.map((file, index) => (
+                                  <div key={index} className="flex items-center gap-1 rounded bg-slate-50 px-2 py-1 text-[10px] font-bold border border-slate-200 shadow-sm">
+                                    <div className={cn("p-0.5 rounded", isParent ? "bg-blue-100 text-blue-600" : "bg-violet-100 text-violet-600")}>
+                                      <FileText className="h-2.5 w-2.5" />
+                                    </div>
+                                    <span className="max-w-[100px] truncate text-slate-700">{file.name}</span>
+                                    <button type="button" className="text-slate-400 hover:text-red-500 p-0.5 rounded ml-0.5" onClick={() => removeReplyAttachment(index)}>
+                                      <X className="h-2.5 w-2.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 px-1">
+                              <label className={cn(
+                                "cursor-pointer flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold transition-colors",
+                                isParent ? "text-slate-500 hover:bg-blue-50 hover:text-blue-600" : "text-slate-500 hover:bg-violet-50 hover:text-violet-600"
+                              )}>
+                                <Paperclip className="h-3.5 w-3.5" />
+                                <span>Attach</span>
+                                <input type="file" className="sr-only" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                              </label>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleReply(ticket._id)} 
+                                disabled={replying}
+                                className={cn(
+                                  "h-7 px-4 text-[11px] font-bold rounded-md text-white shadow-sm transition-all", 
+                                  buttonGradient
+                                )}
+                              >
+                                {replying ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
+                                Reply
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                     </div>
                   )}
