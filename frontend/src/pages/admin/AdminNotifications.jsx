@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, BarChart3, Vote, Clock3, Users, ChevronDown, ChevronUp, ChevronLeft, Search, Download, FileText, MessageSquare, Paperclip, X, Send, User, GraduationCap, Upload, FileText as FileIcon } from 'lucide-react';
+import { 
+  Bell, Check, BarChart3, Vote, Clock3, Users, ChevronDown, ChevronUp, 
+  ChevronLeft, Search, Download, FileText, MessageSquare, Paperclip, 
+  X, Send, User, GraduationCap, Upload, FileText as FileIcon, ArrowRight, 
+  Inbox, MessageCircleMore, PieChart, ExternalLink, CheckCheck, Eye, 
+  Image as ImageIcon, File, FileJson, Archive 
+} from 'lucide-react';
 import api from '@/lib/api';
 import FeedbackPanel from '@/components/FeedbackPanel';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
@@ -9,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
@@ -35,6 +41,10 @@ export default function AdminNotifications() {
   const [replyContent, setReplyContent] = useState('');
   const [replyAttachments, setReplyAttachments] = useState([]);
   const [sendingReply, setSendingReply] = useState(false);
+  
+  // Attachment preview modal state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState(null);
 
   const fetchNotifications = async () => {
     try {
@@ -110,7 +120,6 @@ export default function AdminNotifications() {
       setConversationOpen(true);
       setSelectedFeedback(null);
       
-      // Fetch full feedback details including messages
       const res = await api.get(`/feedback`);
       const allFeedback = res.data.feedback || [];
       const feedbackDetail = allFeedback.find(f => f._id === feedbackId);
@@ -156,7 +165,6 @@ export default function AdminNotifications() {
       setReplyAttachments([]);
       toast.success('Reply sent');
       
-      // Refresh feedback data
       await openConversation(selectedFeedback._id);
       fetchFeedback();
     } catch (error) {
@@ -171,7 +179,6 @@ export default function AdminNotifications() {
       await api.put(`/feedback/${selectedFeedback._id}/status`, { status: newStatus });
       toast.success('Status updated');
       
-      // Refresh feedback data
       await openConversation(selectedFeedback._id);
       fetchFeedback();
     } catch (error) {
@@ -181,15 +188,67 @@ export default function AdminNotifications() {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('en-GB', { 
-      day: '2-digit', month: 'short', year: 'numeric', 
-      hour: '2-digit', minute: '2-digit' 
-    });
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  };
+
+  const getFileIcon = (fileName) => {
+    if (!fileName) return File;
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return ImageIcon;
+    if (['pdf'].includes(ext)) return FileText;
+    if (['doc', 'docx'].includes(ext)) return File;
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return FileJson;
+    if (['zip', 'rar', '7z'].includes(ext)) return Archive;
+    return File;
+  };
+
+  const getFileType = (fileName) => {
+    if (!fileName) return 'File';
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'Image';
+    if (['pdf'].includes(ext)) return 'PDF';
+    if (['doc', 'docx'].includes(ext)) return 'Word';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return 'Excel';
+    if (['zip', 'rar', '7z'].includes(ext)) return 'Archive';
+    return ext.toUpperCase();
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const isImage = (fileName) => {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  };
+
+  const openPreview = (attachment) => {
+    setPreviewAttachment(attachment);
+    setPreviewModalOpen(true);
+  };
+
+  const closePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewAttachment(null);
   };
 
   const getAudienceLabel = (audience, scope) => {
@@ -203,16 +262,26 @@ export default function AdminNotifications() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Active':
-        return 'bg-emerald-100 text-emerald-700';
+      case 'Open':
+        return 'bg-gradient-to-r from-emerald-50 to-teal-100 text-emerald-700 border-emerald-200';
       case 'Closed':
-        return 'bg-slate-100 text-slate-700';
+      case 'Resolved':
+        return 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-600 border-slate-200';
       case 'Expired':
-        return 'bg-red-100 text-red-700';
+        return 'bg-gradient-to-r from-red-50 to-rose-100 text-red-700 border-red-200';
       case 'Draft':
-        return 'bg-amber-100 text-amber-700';
+      case 'In Progress':
+        return 'bg-gradient-to-r from-amber-50 to-orange-100 text-amber-700 border-amber-200';
       default:
-        return 'bg-slate-100 text-slate-700';
+        return 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-600 border-slate-200';
     }
+  };
+
+  const getPriorityBadge = (priority = 'INFO') => {
+    const p = priority.toUpperCase();
+    if (p === 'URGENT') return 'bg-gradient-to-r from-rose-50 to-red-100 text-rose-700 border-rose-200';
+    if (p === 'IMPORTANT') return 'bg-gradient-to-r from-orange-50 to-amber-100 text-orange-700 border-orange-200';
+    return 'bg-gradient-to-r from-blue-50 to-indigo-100 text-blue-700 border-blue-200';
   };
 
   const exportResponseHistory = () => {
@@ -241,6 +310,20 @@ export default function AdminNotifications() {
     toast.success('Response history exported successfully');
   };
 
+  const handleNotificationClick = async (n) => {
+    // Mark as read API logic would go here
+    
+    // Redirect logic for Feedback
+    const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
+    const refId = n.referenceId || n.feedbackId || n.ticketId; // Adjust based on your API schema
+    
+    if (isFeedback && refId) {
+      toast.info('Redirecting to chat thread...');
+      setActiveTab('feedback');
+      await openConversation(refId);
+    }
+  };
+
   const filteredResponses = pollAnalytics?.responses?.filter(r => 
     r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (r.studentName && r.studentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -257,118 +340,219 @@ export default function AdminNotifications() {
     setCurrentPage(1);
   }, [searchQuery]);
 
+  const buttonGradient = "bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-indigo-500/25 text-white";
+
   return (
     <PageStack>
-      <PageHeader title="School Notifications" description="Manage all school-related updates and alerts." />
+      <PageHeader title="School Communications" description="Manage notifications, feedback, and interactive polls comprehensively." />
 
-      {/* Tabs */}
-      <div className="mb-6 border-b border-slate-200">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('notifications')}
-            className={cn(
-              'pb-3 text-sm font-semibold border-b-2 transition-colors',
-              activeTab === 'notifications' 
-                ? 'border-indigo-600 text-indigo-600' 
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            )}
-          >
-            Notifications
-          </button>
-          <button
-            onClick={() => setActiveTab('feedback')}
-            className={cn(
-              'pb-3 text-sm font-semibold border-b-2 transition-colors',
-              activeTab === 'feedback' 
-                ? 'border-indigo-600 text-indigo-600' 
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            )}
-          >
-            Parent Feedback
-          </button>
-          <button
-            onClick={() => setActiveTab('polls')}
-            className={cn(
-              'pb-3 text-sm font-semibold border-b-2 transition-colors',
-              activeTab === 'polls' 
-                ? 'border-indigo-600 text-indigo-600' 
-                : 'border-transparent text-slate-500 hover:text-slate-700'
-            )}
-          >
-            Poll Analytics
-          </button>
+      {/* Classy Pill Tabs */}
+      <div className="mb-6">
+        <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-100/80 backdrop-blur-md border border-slate-200/60 rounded-full shadow-inner overflow-x-auto max-w-full custom-scrollbar">
+          {[
+            { id: 'notifications', label: 'Alerts & Notices', icon: Bell },
+            { id: 'feedback', label: 'Parent Helpdesk', icon: MessageSquare },
+            { id: 'polls', label: 'Poll Analytics', icon: BarChart3 }
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-full transition-all duration-300 whitespace-nowrap',
+                  isActive 
+                    ? 'bg-gradient-to-r from-white to-slate-50 text-indigo-700 shadow-sm border border-slate-200/60' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 border border-transparent'
+                )}
+              >
+                <Icon className={cn("h-4 w-4", isActive ? "text-indigo-600" : "text-slate-400")} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Notifications Tab */}
+      {/* Notifications Tab (Redesigned matching image_d87dae.png) */}
       {activeTab === 'notifications' && (
-        <ErpSection title="Inbox" icon={Bell}>
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-2xl border border-slate-200/80 shadow-md bg-white overflow-hidden">
+          {/* Header Bar matching image */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50/30 p-4 border-b border-emerald-100 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-800">
+              <Bell className="h-5 w-5" />
+              <h3 className="font-bold text-[15px]">Received Notifications</h3>
+            </div>
+            {/* Mark All Read Button */}
+            <Button variant="outline" size="sm" className="h-8 text-[11px] font-bold text-slate-600 bg-white shadow-sm border-slate-200 hover:bg-slate-50">
+              <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-500" /> Mark All Read
+            </Button>
+          </div>
+          
+          <div className="p-4 bg-white flex items-center gap-4 text-[12px] font-bold text-slate-600 border-b border-slate-100">
+            <span>Total: <span className="text-slate-900">{notifications.length}</span></span>
+            <span>Unread: <span className="text-rose-600">{notifications.filter(n => !n.isRead).length || 0}</span></span>
+          </div>
+
           {loading ? (
-            <p className="text-slate-500">Loading...</p>
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map(i => <div key={i} className="h-12 animate-pulse bg-slate-100 rounded-lg"></div>)}
+            </div>
           ) : notifications.length === 0 ? (
-            <p className="text-slate-500">No notifications yet.</p>
+            <div className="text-center py-16 bg-gradient-to-b from-slate-50/50 to-white">
+              <Bell className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-[14px] font-bold text-slate-500">No active notifications</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {notifications.map((n) => (
-                <div key={n._id} className="border border-slate-200 p-4 rounded-lg bg-white">
-                  <h4 className="font-semibold text-slate-900">{n.title}</h4>
-                  <p className="text-sm text-slate-600 mt-1">{n.message}</p>
-                </div>
-              ))}
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left text-[12px] whitespace-nowrap">
+                <thead className="bg-gradient-to-r from-rose-50/50 to-orange-50/30 border-b border-rose-100/60">
+                  <tr className="text-rose-900/80 font-black tracking-wider text-[10px] uppercase">
+                    <th className="px-5 py-3.5">Priority</th>
+                    <th className="px-5 py-3.5">Title</th>
+                    <th className="px-5 py-3.5 w-1/3">Message</th>
+                    <th className="px-5 py-3.5">From</th>
+                    <th className="px-5 py-3.5">Date</th>
+                    <th className="px-5 py-3.5 text-center">Files</th>
+                    <th className="px-5 py-3.5 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {notifications.map((n) => {
+                    const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
+                    const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
+
+                    return (
+                      <tr 
+                        key={n._id} 
+                        onClick={() => hasRedirect && handleNotificationClick(n)}
+                        className={cn(
+                          "transition-colors group", 
+                          n.isRead ? "bg-white hover:bg-slate-50" : "bg-indigo-50/30 hover:bg-indigo-50/60",
+                          hasRedirect && "cursor-pointer"
+                        )}
+                      >
+                        <td className="px-5 py-3.5">
+                          <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
+                            {n.priority || 'INFO'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-slate-900">
+                          {n.title}
+                        </td>
+                        <td className="px-5 py-3.5 font-medium text-slate-600 truncate max-w-[200px] sm:max-w-[300px]">
+                          {n.message}
+                        </td>
+                        <td className="px-5 py-3.5 font-semibold text-slate-700 capitalize">
+                          {n.senderName || n.from || 'System Admin'}
+                        </td>
+                        <td className="px-5 py-3.5 font-medium text-slate-500">
+                          {formatDate(n.createdAt)}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {n.attachments && n.attachments.length > 0 ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <Paperclip className="h-3.5 w-3.5 text-indigo-500" />
+                              <span className="text-[11px] font-bold text-indigo-700">{n.attachments.length} {n.attachments.length === 1 ? 'File' : 'Files'}</span>
+                            </div>
+                          ) : (
+                            <div className="text-center text-slate-300">-</div>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-center">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); /* handle mark read */ toast.success('Marked as read'); }}
+                            className="p-1.5 text-slate-300 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex" 
+                            title="Mark as Read"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-        </ErpSection>
+        </div>
       )}
 
-      {/* Feedback Tab */}
+      {/* Feedback Tab (Compact & Detailed with Gradients) */}
       {activeTab === 'feedback' && (
-        <ErpSection title="Parent Feedback" icon={MessageSquare} tone="blue">
+        <ErpSection title="Helpdesk Tickets" icon={MessageSquare} tone="indigo">
           {loading ? (
-            <p className="text-slate-500">Loading feedback...</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => <div key={i} className="h-24 animate-pulse bg-slate-100 rounded-xl"></div>)}
+            </div>
           ) : feedback.length === 0 ? (
-            <p className="text-slate-500">No feedback tickets yet.</p>
+            <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <Inbox className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-bold text-slate-500">Inbox is empty</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {feedback.map((ticket) => (
-                <div key={ticket._id} className="border border-slate-200 p-4 rounded-lg bg-white">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{ticket.ticketId}</span>
-                        <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', getStatusBadge(ticket.status))}>
-                          {ticket.status}
-                        </span>
+                <div key={ticket._id} className="border border-slate-200/80 p-4 rounded-xl bg-gradient-to-br from-white via-white to-indigo-50/30 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex flex-col gap-3">
+                  {/* Header Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm tracking-wider">
+                        ID: {ticket.ticketId}
+                      </span>
+                      <span className={cn('border px-2 py-0.5 text-[10px] font-bold uppercase rounded-md tracking-wider shadow-sm', getStatusBadge(ticket.status))}>
+                        {ticket.status}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-100">
+                        <Clock3 className="h-3 w-3" /> {formatDate(ticket.createdAt)}
+                      </span>
+                    </div>
+                    {ticket.messages?.length > 1 && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 self-start sm:self-auto shadow-sm">
+                        <MessageCircleMore className="h-3 w-3" />
+                        {ticket.messages.length - 1} Replies
                       </div>
-                      <h4 className="font-semibold text-slate-900">{ticket.title}</h4>
-                    </div>
-                    <div className="text-xs text-slate-500">{formatDate(ticket.createdAt)}</div>
-                  </div>
-                  <p className="text-sm text-slate-600 mb-3 line-clamp-2">{ticket.description}</p>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
-                    <span>Parent: {ticket.parent?.parentName || 'N/A'}</span>
-                    <span>Student: {ticket.student?.name || 'N/A'}</span>
-                    {ticket.student?.class && (
-                      <span>Class: {ticket.student.class.className} {ticket.student.class.section}</span>
-                    )}
-                    {ticket.taggedTeacherName && (
-                      <span>Tagged: {ticket.taggedSubject} • {ticket.taggedTeacherName}</span>
-                    )}
-                    {!ticket.taggedTeacherName && (
-                      <span>Admin Only</span>
                     )}
                   </div>
-                  {ticket.attachments && ticket.attachments.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
-                      <Paperclip className="h-3 w-3" />
-                      <span>{ticket.attachments.length} attachment(s)</span>
+                  
+                  {/* Title & Desc */}
+                  <div>
+                    <h4 className="font-bold text-[14px] text-slate-900 mb-1">{ticket.title}</h4>
+                    <p className="text-[12px] font-medium text-slate-600 line-clamp-2 leading-relaxed bg-white/60 backdrop-blur-sm p-2 rounded-lg border border-slate-100 shadow-inner">{ticket.description}</p>
+                  </div>
+
+                  {/* Info Grid & Action */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mt-1">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full sm:w-auto">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent</span>
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate"><User className="h-3 w-3" />{ticket.parent?.parentName || 'N/A'}</div>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Student</span>
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
+                          <GraduationCap className="h-3 w-3" />{ticket.student?.name || 'N/A'} 
+                          {ticket.student?.class && <span className="text-slate-400 font-medium ml-0.5">({ticket.student.class.className})</span>}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Assigned</span>
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 truncate">
+                          <Check className="h-3 w-3 text-indigo-500" />
+                          {ticket.taggedTeacherName ? ticket.taggedTeacherName : 'Admin Team'}
+                        </div>
+                      </div>
+                      {ticket.attachments && ticket.attachments.length > 0 && (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Files</span>
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700"><Paperclip className="h-3 w-3 text-slate-400" />{ticket.attachments.length} attached</div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-slate-500">
-                      {ticket.messages?.length > 1 && `${ticket.messages.length - 1} reply(ies)`}
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => openConversation(ticket._id)}>
-                      Open Conversation
+                    
+                    <Button size="sm" onClick={() => openConversation(ticket._id)} className={cn("shrink-0 h-8 text-[11px] font-bold rounded-lg px-4 transition-transform hover:-translate-y-0.5", buttonGradient)}>
+                      View Thread <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -380,67 +564,57 @@ export default function AdminNotifications() {
 
       {/* Poll Analytics Tab - Home */}
       {activeTab === 'polls' && !selectedPoll && (
-        <ErpSection title="Poll Analytics" icon={BarChart3} tone="blue">
+        <ErpSection title="Live & Past Polls" icon={Vote} tone="indigo">
           {loading ? (
-            <p className="text-slate-500">Loading polls...</p>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map(i => <div key={i} className="h-40 animate-pulse bg-slate-100 rounded-xl"></div>)}
+            </div>
           ) : polls.length === 0 ? (
-            <p className="text-slate-500">No polls created yet.</p>
+            <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <BarChart3 className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-bold text-slate-500">No polls generated yet</p>
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {polls.map((poll) => (
-                <div key={poll._id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-slate-900 line-clamp-2">{poll.title}</h3>
-                    <span className={cn('rounded-full px-2 py-1 text-xs font-semibold', getStatusBadge(poll.status))}>
-                      {poll.status}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-slate-400" />
-                      <span>{getAudienceLabel(poll.audience, poll.audienceScope)}</span>
+              {polls.map((poll) => {
+                const completionRate = poll.recipientCount ? Math.round((poll.totalResponses / poll.recipientCount) * 100) : 0;
+                
+                return (
+                  <div key={poll._id} className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white to-violet-50/30 p-5 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-3 gap-2">
+                      <h3 className="font-bold text-[14px] text-slate-900 line-clamp-2 leading-tight">{poll.title}</h3>
+                      <span className={cn('shrink-0 border rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm', getStatusBadge(poll.status))}>
+                        {poll.status}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock3 className="h-4 w-4 text-slate-400" />
-                      <span>Created: {formatDate(poll.createdAt)}</span>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-600 bg-white/70 p-2.5 rounded-lg border border-slate-100 mb-4 flex-1 shadow-sm">
+                      <div className="flex items-center gap-1.5"><Users className="h-3 w-3 text-slate-400" />{getAudienceLabel(poll.audience, poll.audienceScope)}</div>
+                      <div className="flex items-center gap-1.5"><Clock3 className="h-3 w-3 text-slate-400" />{formatDate(poll.createdAt)}</div>
+                      {poll.expiryDate && <div className="flex items-center gap-1.5 col-span-2 text-amber-600"><Clock3 className="h-3 w-3" />Expires: {formatDate(poll.expiryDate)}</div>}
                     </div>
-                    {poll.expiryDate && (
-                      <div className="flex items-center gap-2">
-                        <Clock3 className="h-4 w-4 text-slate-400" />
-                        <span>Expires: {formatDate(poll.expiryDate)}</span>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-lg font-bold text-slate-900">{poll.totalResponses || 0}</div>
-                      <div className="text-xs text-slate-500">Responses</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-slate-900">
-                        {poll.recipientCount ? Math.max(0, poll.recipientCount - (poll.totalResponses || 0)) : 0}
+                    <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                      <div className="bg-gradient-to-b from-emerald-50 to-emerald-100/50 rounded-lg py-2 border border-emerald-100 shadow-sm">
+                        <div className="text-[15px] font-black text-emerald-700">{poll.totalResponses || 0}</div>
+                        <div className="text-[9px] font-bold text-emerald-600/70 uppercase">Votes</div>
                       </div>
-                      <div className="text-xs text-slate-500">Pending</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-indigo-600">
-                        {poll.recipientCount ? Math.round((poll.totalResponses / poll.recipientCount) * 100) : 0}%
+                      <div className="bg-gradient-to-b from-amber-50 to-amber-100/50 rounded-lg py-2 border border-amber-100 shadow-sm">
+                        <div className="text-[15px] font-black text-amber-700">{poll.recipientCount ? Math.max(0, poll.recipientCount - (poll.totalResponses || 0)) : 0}</div>
+                        <div className="text-[9px] font-bold text-amber-600/70 uppercase">Pending</div>
                       </div>
-                      <div className="text-xs text-slate-500">Complete</div>
+                      <div className="bg-gradient-to-b from-indigo-50 to-indigo-100/50 rounded-lg py-2 border border-indigo-100 shadow-sm">
+                        <div className="text-[15px] font-black text-indigo-700">{completionRate}%</div>
+                        <div className="text-[9px] font-bold text-indigo-600/70 uppercase">Done</div>
+                      </div>
                     </div>
-                  </div>
 
-                  <Button 
-                    onClick={() => openPollAnalytics(poll._id)}
-                    className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    View Analytics
-                  </Button>
-                </div>
-              ))}
+                    <Button onClick={() => openPollAnalytics(poll._id)} className={cn("w-full h-9 text-[12px] font-bold rounded-xl mt-auto", buttonGradient)}>
+                      <BarChart3 className="mr-2 h-4 w-4" /> View Full Analytics
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </ErpSection>
@@ -448,131 +622,169 @@ export default function AdminNotifications() {
 
       {/* Detailed Poll Analytics View */}
       {selectedPoll && pollAnalytics && (
-        <>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="mb-4">
-            <Button variant="outline" onClick={closePollAnalytics}>
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Polls
+            <Button variant="outline" size="sm" onClick={closePollAnalytics} className="h-8 text-[11px] font-bold rounded-full border-slate-300 hover:bg-slate-100 shadow-sm">
+              <ChevronLeft className="mr-1.5 h-4 w-4" /> Back to Directory
             </Button>
           </div>
 
-          {/* Section 1: Poll Information */}
-          <ErpSection title="Poll Information" icon={Vote} tone="violet">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Title</div>
-                <div className="text-sm font-medium text-slate-900 mt-1">{pollAnalytics.poll.title}</div>
+          <div className="grid gap-4 lg:grid-cols-3 mb-4">
+            {/* Section 1: Poll Information */}
+            <div className="lg:col-span-2">
+              <ErpSection title="Poll Overview" icon={FileText} tone="violet" className="h-full">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="bg-gradient-to-br from-slate-50 to-white p-2.5 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Title</div>
+                    <div className="text-[11px] font-bold text-slate-900 mt-0.5 truncate">{pollAnalytics.poll.title}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-50 to-white p-2.5 rounded-lg border border-slate-100 shadow-sm col-span-2">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Description</div>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5 truncate">{pollAnalytics.poll.description || 'No description provided'}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-50 to-white p-2.5 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Audience</div>
+                    <div className="text-[11px] font-bold text-indigo-700 mt-0.5">{getAudienceLabel(pollAnalytics.poll.audience, pollAnalytics.poll.audienceScope)}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-50 to-white p-2.5 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Created By</div>
+                    <div className="text-[11px] font-bold text-slate-900 mt-0.5">{pollAnalytics.poll.createdByName || 'Admin'}</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-50 to-white p-2.5 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Timeline</div>
+                    <div className="text-[11px] font-medium text-slate-700 mt-0.5">
+                      {formatDate(pollAnalytics.poll.createdAt)} - {pollAnalytics.poll.expiryDate ? formatDate(pollAnalytics.poll.expiryDate) : 'Ongoing'}
+                    </div>
+                  </div>
+                </div>
+              </ErpSection>
+            </div>
+
+            {/* Section 2: Summary Cards */}
+            <div className="grid grid-cols-2 gap-3 h-full">
+              <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 border border-indigo-200 flex flex-col justify-center shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Audience Size</div>
+                <div className="text-3xl font-black text-indigo-900 mt-1">{pollAnalytics.summary.totalAudience}</div>
               </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Description</div>
-                <div className="text-sm text-slate-600 mt-1">{pollAnalytics.poll.description || 'N/A'}</div>
+              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 border border-emerald-200 flex flex-col justify-center shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Votes In</div>
+                <div className="text-3xl font-black text-emerald-900 mt-1">{pollAnalytics.summary.responsesReceived}</div>
               </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Audience</div>
-                <div className="text-sm text-slate-600 mt-1">{getAudienceLabel(pollAnalytics.poll.audience, pollAnalytics.poll.audienceScope)}</div>
+              <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4 border border-amber-200 flex flex-col justify-center shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Pending</div>
+                <div className="text-3xl font-black text-amber-900 mt-1">{pollAnalytics.summary.pendingResponses}</div>
               </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Created By</div>
-                <div className="text-sm text-slate-600 mt-1">{pollAnalytics.poll.createdByName || 'N/A'}</div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Created Date</div>
-                <div className="text-sm text-slate-600 mt-1">{formatDate(pollAnalytics.poll.createdAt)}</div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Expiry Date</div>
-                <div className="text-sm text-slate-600 mt-1">{pollAnalytics.poll.expiryDate ? formatDate(pollAnalytics.poll.expiryDate) : 'No expiry'}</div>
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</div>
-                <span className={cn('inline-block mt-1 rounded-full px-2 py-1 text-xs font-semibold', getStatusBadge(pollAnalytics.poll.status))}>
-                  {pollAnalytics.poll.status}
-                </span>
+              <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 p-4 border border-violet-200 flex flex-col justify-center shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-[10px] font-bold text-violet-700 uppercase tracking-widest">Completion</div>
+                <div className="text-3xl font-black text-violet-900 mt-1">{pollAnalytics.summary.completionPercent}%</div>
               </div>
             </div>
-          </ErpSection>
+          </div>
 
-          {/* Section 2: Summary Cards */}
-          <ErpSection title="Summary" icon={BarChart3} tone="blue">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 border border-indigo-200">
-                <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Total Audience</div>
-                <div className="text-2xl font-bold text-indigo-900 mt-1">{pollAnalytics.summary.totalAudience}</div>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 border border-emerald-200">
-                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Responded</div>
-                <div className="text-2xl font-bold text-emerald-900 mt-1">{pollAnalytics.summary.responsesReceived}</div>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4 border border-amber-200">
-                <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Pending</div>
-                <div className="text-2xl font-bold text-amber-900 mt-1">{pollAnalytics.summary.pendingResponses}</div>
-              </div>
-              <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 p-4 border border-violet-200">
-                <div className="text-xs font-semibold text-violet-700 uppercase tracking-wide">Completion %</div>
-                <div className="text-2xl font-bold text-violet-900 mt-1">{pollAnalytics.summary.completionPercent}%</div>
-              </div>
-            </div>
-          </ErpSection>
+          <div className="grid gap-4 md:grid-cols-2 mb-4">
+            {/* Section 3: Charts */}
+            <ErpSection title="Vote Distribution" icon={PieChart} tone="indigo">
+              {pollAnalytics.poll.pollType === 'single' && pollAnalytics.optionSummary.length === 2 ? (
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={pollAnalytics.optionSummary}
+                        cx="50%" cy="50%" labelLine={false}
+                        label={({ option, percent }) => `${option}: ${percent}%`}
+                        outerRadius={75} dataKey="count"
+                        stroke="none"
+                      >
+                        {pollAnalytics.optionSummary.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={pollAnalytics.optionSummary} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="option" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                      <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="url(#colorUv)" radius={[4, 4, 0, 0]} barSize={40}>
+                         {/* Adding SVG Gradient for Bars */}
+                        <defs>
+                          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.9}/>
+                          </linearGradient>
+                        </defs>
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ErpSection>
 
-          {/* Section 3: Charts */}
-          <ErpSection title="Response Distribution" icon={BarChart3} tone="blue">
-            {pollAnalytics.poll.pollType === 'single' && pollAnalytics.optionSummary.length === 2 ? (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pollAnalytics.optionSummary}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ option, percent }) => `${option}: ${percent}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {pollAnalytics.optionSummary.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+            {/* Section 8: Quick Insights */}
+            <ErpSection title="Quick Insights" icon={BarChart3} tone="amber">
+              <div className="flex flex-col gap-3 h-full justify-center">
+                <div className="rounded-xl bg-gradient-to-r from-indigo-50 to-white border border-indigo-100 p-4 shadow-sm flex items-center gap-4">
+                  <div className="bg-indigo-100 p-3 rounded-full shadow-inner"><Vote className="h-5 w-5 text-indigo-600" /></div>
+                  <div>
+                    <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Winning Option</div>
+                    <div className="text-[15px] font-black text-slate-800">
+                      {pollAnalytics.optionSummary.sort((a, b) => b.count - a.count)[0]?.option || 'N/A'}
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-500">
+                      Secured {pollAnalytics.optionSummary.sort((a, b) => b.count - a.count)[0]?.count || 0} total votes
+                    </div>
+                  </div>
+                </div>
+
+                {pollAnalytics.parentBreakdown && pollAnalytics.parentBreakdown.length > 0 && (
+                  <>
+                    <div className="rounded-xl bg-gradient-to-r from-emerald-50 to-white border border-emerald-100 p-4 shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Most Active Class</div>
+                        <div className="text-[14px] font-bold text-slate-800">Class {pollAnalytics.parentBreakdown.sort((a, b) => b.completion - a.completion)[0].className}</div>
+                      </div>
+                      <div className="text-xl font-black text-emerald-600 drop-shadow-sm">{pollAnalytics.parentBreakdown.sort((a, b) => b.completion - a.completion)[0].completion}%</div>
+                    </div>
+                    
+                    <div className="rounded-xl bg-gradient-to-r from-rose-50 to-white border border-rose-100 p-4 shadow-sm flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-bold text-rose-600 uppercase tracking-widest">Needs Follow-up</div>
+                        <div className="text-[14px] font-bold text-slate-800">Class {pollAnalytics.parentBreakdown.sort((a, b) => a.completion - b.completion)[0].className}</div>
+                      </div>
+                      <div className="text-xl font-black text-rose-600 drop-shadow-sm">{pollAnalytics.parentBreakdown.sort((a, b) => a.completion - b.completion)[0].completion}%</div>
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={pollAnalytics.optionSummary}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="option" tick={{fontSize: 12}} />
-                    <YAxis tick={{fontSize: 12}} />
-                    <RechartsTooltip />
-                    <Bar dataKey="count" fill="#8b5cf6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </ErpSection>
+            </ErpSection>
+          </div>
 
           {/* Section 4: Class Wise Response (for Parent Polls) */}
           {pollAnalytics.parentBreakdown && pollAnalytics.parentBreakdown.length > 0 && (
-            <ErpSection title="Class Wise Response" icon={Users} tone="green">
-              <div className="space-y-3">
+            <ErpSection title="Engagement by Class" icon={Users} tone="emerald" className="mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {pollAnalytics.parentBreakdown.map((classData, index) => (
-                  <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-slate-900">{classData.className}</div>
-                      <div className="text-sm font-bold text-indigo-600">{classData.completion}%</div>
+                  <div key={index} className="rounded-xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm hover:border-emerald-300 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="font-bold text-[13px] text-slate-800">Class {classData.className}</div>
+                      <div className="text-[11px] font-black bg-white text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md shadow-sm">{classData.completion}% Done</div>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div className="w-full bg-slate-100/80 rounded-full h-2 mb-2 overflow-hidden border border-slate-200/50 shadow-inner">
                       <div 
-                        className="bg-indigo-600 h-2 rounded-full transition-all" 
+                        className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-2 rounded-full transition-all duration-500" 
                         style={{ width: `${classData.completion}%` }}
                       ></div>
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-slate-600">
-                      <span>{classData.responded} responded</span>
-                      <span>{classData.pending} pending</span>
-                      <span>Total: {classData.totalParents}</span>
+                    <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                      <span className="text-emerald-600">{classData.responded} In</span>
+                      <span className="text-amber-500">{classData.pending} Pending</span>
+                      <span>{classData.totalParents} Total</span>
                     </div>
                   </div>
                 ))}
@@ -580,247 +792,174 @@ export default function AdminNotifications() {
             </ErpSection>
           )}
 
-          {/* Section 5: Recent Responses */}
-          <ErpSection title="Recent Responses" icon={Clock3} tone="amber">
-            {pollAnalytics.responses.length === 0 ? (
-              <p className="text-slate-500">No responses yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {pollAnalytics.responses.slice(0, 5).map((response, index) => (
-                  <div key={index} className="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-slate-900">{response.name}</div>
-                      <div className="text-xs text-slate-500">
-                        {response.studentName && `${response.studentName} • `}
-                        {response.className}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-indigo-600">{response.selectedOption}</div>
-                      <div className="text-xs text-slate-500">{formatDateTime(response.submittedAt)}</div>
-                    </div>
-                  </div>
-                ))}
+          {/* Section 6: Complete Response History */}
+          <ErpSection title="Live Ledger & History" icon={FileText} tone="blue">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-between items-start sm:items-center">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Search parent, student, or class..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 text-[12px] bg-white border-slate-200 shadow-sm rounded-lg"
+                />
               </div>
-            )}
-          </ErpSection>
+              <Button onClick={exportResponseHistory} variant="outline" className="h-9 text-[11px] font-bold rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto shrink-0 shadow-sm">
+                <Download className="mr-1.5 h-3.5 w-3.5" /> Export to CSV
+              </Button>
+            </div>
 
-          {/* Section 6: Complete Response History (Collapsible) */}
-          <ErpSection title="Response History" icon={FileText} tone="blue">
-            <button
-              onClick={() => setResponseHistoryOpen(!responseHistoryOpen)}
-              className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4"
-            >
-              {responseHistoryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {responseHistoryOpen ? 'Hide' : 'Show'} Complete History
-            </button>
+            <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-4 py-3">Parent Name</th>
+                      <th className="px-4 py-3">Student Info</th>
+                      <th className="px-4 py-3">Vote Choice</th>
+                      <th className="px-4 py-3">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredResponses.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center bg-slate-50/50">
+                          <p className="text-[12px] font-medium text-slate-500">No records found matching criteria.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedResponses.map((response, index) => (
+                        <tr key={index} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-4 py-2.5 text-[12px] font-bold text-slate-800">{response.name}</td>
+                          <td className="px-4 py-2.5">
+                            <div className="text-[12px] font-semibold text-slate-700">{response.studentName || 'N/A'}</div>
+                            <div className="text-[10px] font-medium text-slate-400">Class {response.className || 'N/A'}</div>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <span className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold border border-indigo-200 shadow-sm">
+                              {response.selectedOption}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="text-[11px] font-semibold text-slate-600">{formatDate(response.submittedAt)}</div>
+                            <div className="text-[9px] font-medium text-slate-400">{new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-            {responseHistoryOpen && (
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Search by name, student, or class..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="max-w-sm"
-                  />
-                  <Button onClick={exportResponseHistory} variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3 bg-gradient-to-r from-slate-50 to-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                <div className="text-[11px] font-semibold text-slate-500 ml-2">
+                  Showing <span className="text-slate-800">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="text-slate-800">{Math.min(currentPage * itemsPerPage, filteredResponses.length)}</span> of {filteredResponses.length}
+                </div>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="h-7 text-[10px] font-bold rounded bg-white shadow-sm">
+                    Prev
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) pageNum = i + 1;
+                      else if (currentPage <= 3) pageNum = i + 1;
+                      else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                      else pageNum = currentPage - 2 + i;
+                      
+                      return (
+                        <Button key={pageNum} variant={currentPage === pageNum ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(pageNum)} className={cn("h-7 w-7 p-0 text-[10px] font-bold rounded shadow-sm", currentPage === pageNum ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-none" : "bg-white")}>
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="h-7 text-[10px] font-bold rounded bg-white shadow-sm">
+                    Next
                   </Button>
                 </div>
-
-                <div className="rounded-lg border border-slate-200 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Parent</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Student</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Class</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Selected Option</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted Date</th>
-                          <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted Time</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredResponses.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                              No responses found matching your search.
-                            </td>
-                          </tr>
-                        ) : (
-                          paginatedResponses.map((response, index) => (
-                            <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
-                              <td className="px-4 py-3 text-slate-900">{response.name}</td>
-                              <td className="px-4 py-3 text-slate-600">{response.studentName || 'N/A'}</td>
-                              <td className="px-4 py-3 text-slate-600">{response.className || 'N/A'}</td>
-                              <td className="px-4 py-3 text-indigo-600 font-medium">{response.selectedOption}</td>
-                              <td className="px-4 py-3 text-slate-600">{formatDate(response.submittedAt)}</td>
-                              <td className="px-4 py-3 text-slate-600">
-                                {new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-slate-600">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredResponses.length)} of {filteredResponses.length} responses
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        disabled={currentPage === 1}
-                      >
-                        Previous
-                      </Button>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={currentPage === pageNum ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setCurrentPage(pageNum)}
-                              className="w-8"
-                            >
-                              {pageNum}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        disabled={currentPage === totalPages}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </ErpSection>
 
           {/* Section 7: Pending Responses (Collapsible) */}
           {pollAnalytics.summary.pendingResponses > 0 && (
-            <ErpSection title="Pending Responses" icon={Clock3} tone="red">
-              <button
-                onClick={() => setPendingResponsesOpen(!pendingResponsesOpen)}
-                className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-4"
-              >
-                {pendingResponsesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                {pendingResponsesOpen ? 'Hide' : 'Show'} Pending Parents ({pollAnalytics.summary.pendingResponses})
+            <ErpSection title="Pending Action Required" icon={Clock3} tone="red">
+              <button onClick={() => setPendingResponsesOpen(!pendingResponsesOpen)} className="flex items-center justify-between w-full p-3 rounded-xl bg-gradient-to-r from-rose-50 to-white border border-rose-200 hover:border-rose-300 transition-colors shadow-sm">
+                <div className="flex items-center gap-2 text-[12px] font-bold text-rose-700">
+                  <Users className="h-4 w-4" /> {pollAnalytics.summary.pendingResponses} Parents Pending Response
+                </div>
+                {pendingResponsesOpen ? <ChevronUp className="h-4 w-4 text-rose-500" /> : <ChevronDown className="h-4 w-4 text-rose-500" />}
               </button>
 
               {pendingResponsesOpen && (
-                <div className="rounded-lg border border-slate-200 bg-amber-50 p-4">
-                  <p className="text-sm text-amber-700">
-                    {pollAnalytics.summary.pendingResponses} parents have not yet responded to this poll.
-                    {pollAnalytics.parentBreakdown && (
-                      <span className="block mt-2 text-xs">
-                        Breakdown by class: {pollAnalytics.parentBreakdown.map(c => `${c.className}: ${c.pending}`).join(', ')}
-                      </span>
-                    )}
-                  </p>
+                <div className="mt-3 rounded-xl border border-rose-200 bg-white p-4 shadow-sm animate-in slide-in-from-top-2">
+                  <p className="text-[12px] font-medium text-slate-600 mb-3">The following classes still require parent follow-ups:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pollAnalytics.parentBreakdown?.map(c => (
+                      <div key={c.className} className="bg-rose-50/50 border border-rose-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
+                        <span className="text-[11px] font-bold text-slate-700">Class {c.className}</span>
+                        <span className="bg-white text-rose-600 text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-rose-100">{c.pending} Left</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </ErpSection>
           )}
-
-          {/* Section 8: Insights */}
-          <ErpSection title="Insights" icon={BarChart3} tone="indigo">
-            <div className="grid gap-3 md:grid-cols-2">
-              {pollAnalytics.parentBreakdown && pollAnalytics.parentBreakdown.length > 0 && (
-                <>
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
-                    <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Highest Response Class</div>
-                    <div className="text-sm font-medium text-emerald-900 mt-1">
-                      {pollAnalytics.parentBreakdown.sort((a, b) => b.completion - a.completion)[0].className}
-                      ({pollAnalytics.parentBreakdown.sort((a, b) => b.completion - a.completion)[0].completion}%)
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                    <div className="text-xs font-semibold text-red-700 uppercase tracking-wide">Lowest Response Class</div>
-                    <div className="text-sm font-medium text-red-900 mt-1">
-                      {pollAnalytics.parentBreakdown.sort((a, b) => a.completion - b.completion)[0].className}
-                      ({pollAnalytics.parentBreakdown.sort((a, b) => a.completion - b.completion)[0].completion}%)
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3">
-                <div className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Completion Rate</div>
-                <div className="text-sm font-medium text-indigo-900 mt-1">{pollAnalytics.summary.completionPercent}%</div>
-              </div>
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-                <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Most Selected Option</div>
-                <div className="text-sm font-medium text-amber-900 mt-1">
-                  {pollAnalytics.optionSummary.sort((a, b) => b.count - a.count)[0]?.option || 'N/A'}
-                  ({pollAnalytics.optionSummary.sort((a, b) => b.count - a.count)[0]?.count || 0} votes)
-                </div>
-              </div>
-            </div>
-          </ErpSection>
-        </>
+        </div>
       )}
 
-      {/* Feedback Conversation Modal */}
+      {/* Feedback Conversation Modal (Styled with Chat Gradients) */}
       {conversationOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl">
-            {/* Modal Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white p-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Feedback Conversation</h3>
-                <p className="text-sm text-slate-500">{selectedFeedback?.ticketId}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="flex flex-col w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-white p-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-indigo-500 to-violet-500 p-2 rounded-lg shadow-sm">
+                  <MessageSquare className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-black text-slate-800">Support Thread</h3>
+                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Ticket: {selectedFeedback?.ticketId}</p>
+                </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={closeConversation}>
+              <button onClick={closeConversation} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors bg-white shadow-sm border border-slate-100">
                 <X className="h-5 w-5" />
-              </Button>
+              </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-4">
-              {conversationLoading ? (
-                <p className="text-center text-slate-500">Loading conversation...</p>
-              ) : selectedFeedback ? (
-                <div className="space-y-4">
-                  {/* Ticket Info */}
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <div className="grid gap-3 md:grid-cols-2">
+            {conversationLoading ? (
+              <div className="flex-1 p-8 flex items-center justify-center bg-slate-50/50">
+                <div className="animate-pulse flex flex-col items-center gap-2 text-indigo-400">
+                  <div className="h-8 w-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                  <p className="text-xs font-bold">Loading thread securely...</p>
+                </div>
+              </div>
+            ) : selectedFeedback ? (
+              <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col bg-slate-50/30">
+                {/* Context Block (Sticky at top of scroll) */}
+                <div className="p-4 bg-white border-b border-slate-100 shadow-sm shrink-0">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Title</p>
-                        <p className="font-medium text-slate-900">{selectedFeedback.title}</p>
+                        <h4 className="font-black text-[15px] text-slate-900">{selectedFeedback.title}</h4>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] font-bold text-slate-500">
+                          <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm"><User className="h-3 w-3 text-indigo-500" /> {selectedFeedback.parent?.parentName || 'N/A'}</span>
+                          <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 shadow-sm"><GraduationCap className="h-3 w-3 text-indigo-500" /> {selectedFeedback.student?.name || 'N/A'}</span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Status</p>
+                      <div className="w-32 shrink-0">
                         <Select value={selectedFeedback.status} onValueChange={handleStatusChange}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="h-8 text-[11px] font-bold border-indigo-200 bg-indigo-50/50 shadow-sm focus:ring-indigo-500/20 text-indigo-700">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="rounded-lg shadow-xl text-[11px] font-bold">
                             <SelectItem value="Open">Open</SelectItem>
                             <SelectItem value="In Progress">In Progress</SelectItem>
                             <SelectItem value="Resolved">Resolved</SelectItem>
@@ -828,169 +967,246 @@ export default function AdminNotifications() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Parent</p>
-                        <p className="text-sm text-slate-700">{selectedFeedback.parent?.parentName || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Student</p>
-                        <p className="text-sm text-slate-700">{selectedFeedback.student?.name || 'N/A'}</p>
-                        {selectedFeedback.student?.class && (
-                          <p className="text-xs text-slate-500">
-                            {selectedFeedback.student.class.className} {selectedFeedback.student.class.section}
-                          </p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Tagged Teacher</p>
-                        {selectedFeedback.taggedTeacherName ? (
-                          <div>
-                            <p className="text-sm text-slate-700">{selectedFeedback.taggedTeacherName}</p>
-                            {selectedFeedback.taggedSubject && (
-                              <p className="text-xs text-slate-500">{selectedFeedback.taggedSubject}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-slate-500">Admin Only</p>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Created</p>
-                        <p className="text-sm text-slate-700">{formatDate(selectedFeedback.createdAt)}</p>
-                      </div>
                     </div>
                     {selectedFeedback.description && (
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Description</p>
-                        <p className="mt-1 text-sm text-slate-700">{selectedFeedback.description}</p>
-                      </div>
-                    )}
-                    {selectedFeedback.attachments && selectedFeedback.attachments.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold text-slate-500 uppercase">Attachments</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {selectedFeedback.attachments.map((att, idx) => (
-                            <a
-                              key={idx}
-                              href={att.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 rounded bg-white border border-slate-200 px-3 py-1.5 text-sm text-violet-600 hover:bg-violet-50"
-                            >
-                              <FileIcon className="h-4 w-4" />
-                              {att.name || 'Attachment'}
-                            </a>
-                          ))}
-                        </div>
+                      <div className="bg-gradient-to-br from-slate-50 to-white rounded-lg p-3 text-[12px] font-medium text-slate-700 leading-relaxed border border-slate-200/60 shadow-inner">
+                        {selectedFeedback.description}
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Conversation Messages */}
-                  <div>
-                    <h4 className="mb-3 text-sm font-semibold text-slate-700">Conversation</h4>
-                    {!selectedFeedback.messages || selectedFeedback.messages.length === 0 ? (
-                      <p className="text-sm text-slate-500">No conversation yet.</p>
-                    ) : (
-                      <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {selectedFeedback.messages.map((message, index) => (
-                          <div
-                            key={index}
-                            className={cn(
-                              'rounded-lg p-3',
-                              message.senderRole === 'parent'
-                                ? 'bg-violet-50 border border-violet-100'
-                                : 'bg-slate-50 border border-slate-200'
-                            )}
-                          >
-                            <div className="mb-2 flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-                                {message.senderRole === 'parent' ? (
-                                  <User className="h-4 w-4 text-violet-600" />
-                                ) : (
-                                  <GraduationCap className="h-4 w-4 text-slate-600" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-900">{message.senderName || 'User'}</p>
-                                <p className="text-xs text-slate-500">
-                                  {message.senderRole === 'parent' ? 'Parent' : message.senderRole === 'teacher' ? 'Teacher' : 'Admin'}
-                                  {message.createdAt && ` • ${formatDateTime(message.createdAt)}`}
-                                </p>
-                              </div>
+                {/* Chat Messages */}
+                <div className="flex-1 p-4 space-y-4">
+                  {!selectedFeedback.messages || selectedFeedback.messages.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-[12px] font-bold text-slate-400">No replies in this thread yet.</p>
+                    </div>
+                  ) : (
+                    selectedFeedback.messages.map((message, index) => {
+                      const isAdmin = message.senderRole !== 'parent';
+                      const alignment = isAdmin ? "justify-end" : "justify-start";
+                      
+                      return (
+                        <div key={index} className={cn("flex w-full", alignment)}>
+                          <div className={cn(
+                            "max-w-[85%] rounded-2xl p-3 shadow-md border",
+                            isAdmin 
+                              ? "bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-tr-sm border-indigo-700/50" 
+                              : "bg-gradient-to-br from-white to-indigo-50/50 text-slate-800 border-indigo-100 rounded-tl-sm"
+                          )}>
+                            <div className="flex items-center gap-2 mb-1.5 border-b border-black/10 pb-1.5">
+                              <span className={cn("text-[11px] font-black", isAdmin ? "text-white" : "text-slate-800")}>
+                                {message.senderName || 'User'}
+                              </span>
+                              <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ml-auto shadow-sm", isAdmin ? "bg-white/20 text-white" : "bg-white text-indigo-600 border border-indigo-100")}>
+                                {message.senderRole}
+                              </span>
+                              <span className={cn("text-[9px] font-bold", isAdmin ? "text-white/70" : "text-slate-400")}>
+                                {formatDateTime(message.createdAt)}
+                              </span>
                             </div>
-                            {message.content && (
-                              <p className="text-sm text-slate-700">{message.content}</p>
-                            )}
+                            
+                            <p className="text-[12px] leading-relaxed whitespace-pre-wrap font-medium">
+                              {message.content || 'Attached file(s)'}
+                            </p>
+                            
                             {message.attachments && message.attachments.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-2">
-                                {message.attachments.map((att, idx) => (
-                                  <a
-                                    key={idx}
-                                    href={att.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded bg-white border border-slate-200 px-2 py-1 text-xs text-violet-600 hover:bg-violet-50"
-                                  >
-                                    <FileIcon className="h-3 w-3" />
-                                    {att.name || 'Attachment'}
-                                  </a>
-                                ))}
+                                {message.attachments.map((att, idx) => {
+                                  const FileIconComp = getFileIcon(att.name);
+                                  const fileType = getFileType(att.name);
+                                  const fileSize = formatFileSize(att.size);
+                                  const isImg = isImage(att.name);
+                                  
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={cn(
+                                        "flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium transition-all shadow-sm border",
+                                        isAdmin 
+                                          ? "bg-black/20 hover:bg-black/30 text-white border-white/10" 
+                                          : "bg-white border-indigo-100 hover:bg-indigo-50 text-slate-700"
+                                      )}
+                                    >
+                                      <FileIconComp className="h-4 w-4 shrink-0" />
+                                      <div className="flex flex-col min-w-0">
+                                        <span className="truncate max-w-[120px] font-semibold">{att.name || 'Attachment'}</span>
+                                        <span className="text-[9px] opacity-70">{fileType}{fileSize ? ` • ${fileSize}` : ''}</span>
+                                      </div>
+                                      {att.url && (
+                                        <div className="flex items-center gap-1 shrink-0 ml-1">
+                                          {isImg ? (
+                                            <button
+                                              onClick={() => openPreview(att)}
+                                              className={cn(
+                                                "p-1 rounded hover:bg-indigo-500/20 transition-colors",
+                                                isAdmin ? "text-white/80 hover:text-white" : "text-indigo-600 hover:text-indigo-700"
+                                              )}
+                                              title="Preview"
+                                            >
+                                              <Eye className="h-3 w-3" />
+                                            </button>
+                                          ) : (
+                                            <a
+                                              href={att.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className={cn(
+                                                "p-1 rounded hover:bg-indigo-500/20 transition-colors",
+                                                isAdmin ? "text-white/80 hover:text-white" : "text-indigo-600 hover:text-indigo-700"
+                                              )}
+                                              title="Open"
+                                            >
+                                              <ExternalLink className="h-3 w-3" />
+                                            </a>
+                                          )}
+                                          <a
+                                            href={att.url}
+                                            download={att.name}
+                                            className={cn(
+                                              "p-1 rounded hover:bg-indigo-500/20 transition-colors",
+                                              isAdmin ? "text-white/80 hover:text-white" : "text-indigo-600 hover:text-indigo-700"
+                                            )}
+                                            title="Download"
+                                          >
+                                            <Download className="h-3 w-3" />
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Reply Box */}
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <h4 className="mb-3 text-sm font-semibold text-slate-700">Reply</h4>
-                    <Textarea
-                      rows={3}
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Write your reply..."
-                      className="mb-3"
-                    />
-                    <div className="mb-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600 hover:text-slate-700">
-                        <Upload className="h-4 w-4" />
-                        <span>Attach files</span>
-                        <input
-                          type="file"
-                          className="hidden"
-                          multiple
-                          onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])}
-                        />
-                      </label>
-                      {replyAttachments.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {replyAttachments.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between rounded border border-slate-200 bg-white p-2 text-xs">
-                              <span className="text-slate-700">{file.name}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== index))}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
                         </div>
-                      )}
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 p-8 text-center text-slate-500 font-bold">Error loading thread.</div>
+            )}
+
+            {/* Input Reply Area */}
+            {selectedFeedback && !conversationLoading && (
+              <div className="p-3 bg-gradient-to-b from-white to-slate-50 border-t border-slate-200 shrink-0">
+                <div className="flex flex-col gap-2 rounded-xl border border-indigo-100 bg-white p-2 focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all shadow-sm">
+                  <Textarea
+                    className="min-h-[50px] w-full resize-none border-0 bg-transparent p-2 text-[12px] font-medium focus-visible:ring-0 shadow-none placeholder:text-slate-400"
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Draft your reply as Admin..."
+                  />
+                  
+                  {replyAttachments.length > 0 && (
+                    <div className="px-2 pb-1 flex flex-wrap gap-1.5">
+                      {replyAttachments.map((file, index) => (
+                        <div key={index} className="flex items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-[10px] font-bold border border-indigo-100 shadow-sm text-indigo-700">
+                          <FileIcon className="h-2.5 w-2.5" />
+                          <span className="max-w-[120px] truncate">{file.name}</span>
+                          <button type="button" className="text-indigo-400 hover:text-rose-500 p-0.5 rounded ml-1 bg-white shadow-sm" onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== index))}>
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex justify-end">
-                      <Button onClick={handleSendReply} disabled={sendingReply}>
-                        {sendingReply ? 'Sending...' : 'Send Reply'}
-                      </Button>
-                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2 px-1">
+                    <label className="cursor-pointer flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
+                      <div className="bg-slate-100 p-1 rounded-md shadow-inner"><Paperclip className="h-3 w-3" /></div>
+                      <span>Attach File</span>
+                      <input type="file" className="hidden" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                    </label>
+                    <Button 
+                      onClick={handleSendReply} 
+                      disabled={sendingReply}
+                      className={cn("h-9 px-5 text-[11px] font-bold rounded-xl shadow-md transition-transform hover:-translate-y-0.5", buttonGradient)}
+                    >
+                      {sendingReply ? <span className="flex items-center"><div className="h-3.5 w-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin mr-1.5"></div> Sending</span> : <span className="flex items-center"><Send className="h-3.5 w-3.5 mr-1.5" /> Send Reply</span>}
+                    </Button>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Attachment Preview Modal */}
+      {previewModalOpen && previewAttachment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white p-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-indigo-500 to-violet-500 p-2 rounded-lg shadow-sm">
+                  {(() => {
+                    const FileIconComp = getFileIcon(previewAttachment.name);
+                    return <FileIconComp className="h-5 w-5 text-white" />;
+                  })()}
+                </div>
+                <div>
+                  <h3 className="text-[15px] font-black text-slate-800 truncate max-w-[300px]">{previewAttachment.name || 'Attachment'}</h3>
+                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">
+                    {getFileType(previewAttachment.name)}{previewAttachment.size ? ` • ${formatFileSize(previewAttachment.size)}` : ''}
+                  </p>
+                </div>
+              </div>
+              <button onClick={closePreview} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-colors bg-white shadow-sm border border-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto custom-scrollbar bg-slate-50/30 p-4 flex items-center justify-center">
+              {isImage(previewAttachment.name) && previewAttachment.url ? (
+                <img
+                  src={previewAttachment.url}
+                  alt={previewAttachment.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                />
               ) : (
-                <p className="text-center text-slate-500">Feedback not found</p>
+                <div className="text-center py-12">
+                  <div className="bg-gradient-to-br from-slate-100 to-slate-50 p-8 rounded-2xl border border-slate-200 shadow-sm inline-block">
+                    {(() => {
+                      const FileIconComp = getFileIcon(previewAttachment.name);
+                      return <FileIconComp className="h-16 w-16 text-slate-400 mx-auto mb-4" />;
+                    })()}
+                    <p className="text-[14px] font-bold text-slate-600 mb-2">Preview not available</p>
+                    <p className="text-[12px] font-medium text-slate-400">This file type cannot be previewed inline</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gradient-to-b from-white to-slate-50 border-t border-slate-200 shrink-0 flex items-center justify-end gap-2">
+              {previewAttachment.url && (
+                <>
+                  {!isImage(previewAttachment.name) && (
+                    <a
+                      href={previewAttachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors shadow-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open in New Tab
+                    </a>
+                  )}
+                  <a
+                    href={previewAttachment.url}
+                    download={previewAttachment.name}
+                    className="flex items-center gap-2 px-4 py-2 text-[12px] font-bold rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 transition-all shadow-md"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </a>
+                </>
               )}
             </div>
           </div>
