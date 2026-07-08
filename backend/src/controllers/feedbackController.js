@@ -296,6 +296,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
       : teacherIds;
     
     if (recipients.length > 0) {
+      console.log('[createFeedback] Notifying teachers:', recipients);
       await Notification.create({
         title: `New Feedback: ${title}`,
         message: `${user.role === 'parent' ? 'Parent' : user.role === 'teacher' ? 'Teacher' : 'Admin'} ${user.role === 'parent' ? 'tagged you in' : 'sent you'} feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,
@@ -305,7 +306,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
         recipientIds: recipients,
         schoolId: user.school,
         targetRole: 'teacher',
-        isBroadcast: true,
+        isBroadcast: false, // Changed to false since we're sending to specific teachers
         type: 'feedback',
         feedbackId: feedback._id,
       });

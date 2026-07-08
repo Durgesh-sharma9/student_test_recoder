@@ -18,12 +18,12 @@ export default function NotificationPanel() {
     try {
       setLoading(true);
       const res = await api.get('/notifications');
-      const userId = localStorage.getItem('userId');
-      // Only show notifications where the user is a recipient, not the sender
-      const receivedNotifications = (res.data.notifications || []).filter(
-        (n) => n.senderId._id !== userId
-      );
-      setNotifications(receivedNotifications);
+      // Use notifications directly from backend - backend already handles role-based filtering
+      // Sort newest first and limit to 8
+      const sortedNotifications = (res.data.notifications || [])
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 8);
+      setNotifications(sortedNotifications);
       setUnreadCount(res.data.unreadCount || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -51,14 +51,10 @@ export default function NotificationPanel() {
   const markAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/mark-read`);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n._id === notificationId
-            ? { ...n, readBy: [...(n.readBy || []), localStorage.getItem('userId')] }
-            : n
-        )
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      // Refresh notifications to get updated readBy array from database
+      await fetchNotifications();
+      // Fetch unread count from API to ensure accuracy
+      await fetchUnreadCount();
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -67,13 +63,10 @@ export default function NotificationPanel() {
   const markAllAsRead = async () => {
     try {
       await api.put('/notifications/mark-all-read');
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          readBy: [...(n.readBy || []), localStorage.getItem('userId')],
-        }))
-      );
-      setUnreadCount(0);
+      // Refresh notifications to get updated readBy array from database
+      await fetchNotifications();
+      // Fetch unread count from API to ensure accuracy
+      await fetchUnreadCount();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
@@ -119,6 +112,7 @@ export default function NotificationPanel() {
   const isUnread = (notification) => !notification.readBy?.includes(userId);
 
   const handleNotificationClick = (notification) => {
+    // Mark as read when notification is opened
     if (isUnread(notification)) {
       markAsRead(notification._id);
     }
@@ -158,7 +152,7 @@ export default function NotificationPanel() {
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white animate-pulse">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </Button>
@@ -168,7 +162,10 @@ export default function NotificationPanel() {
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-100 p-4">
-              <h3 className="font-semibold text-slate-900">Notifications</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-slate-900">Notifications</h3>
+                <span className="text-xs font-medium text-slate-500">({notifications.length})</span>
+              </div>
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
@@ -198,9 +195,9 @@ export default function NotificationPanel() {
                     key={notification._id}
                     onClick={() => handleNotificationClick(notification)}
                     className={cn(
-                      'border-b border-slate-100 p-4 transition-colors',
-                      isUnread(notification) ? 'bg-indigo-50/50' : 'bg-white',
-                      notification.subscriptionRequestId ? 'cursor-pointer hover:bg-slate-50' : ''
+                      'border-b border-slate-100 p-4 transition-colors cursor-pointer hover:bg-slate-50 relative',
+                      isUnread(notification) ? 'bg-slate-50' : 'bg-white',
+                      isUnread(notification) && 'border-l-4 border-l-indigo-500'
                     )}
                   >
                     <div className="flex items-start gap-3">
@@ -215,8 +212,8 @@ export default function NotificationPanel() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-900 truncate">{notification.title}</p>
-                            <p className="mt-1 text-sm text-slate-600 line-clamp-2">{notification.message}</p>
+                            <p className={cn("font-medium truncate", isUnread(notification) ? "font-bold text-slate-900" : "text-slate-900")}>{notification.title}</p>
+                            <p className={cn("mt-1 line-clamp-2", isUnread(notification) ? "text-sm font-semibold text-slate-800" : "text-sm text-slate-600")}>{notification.message}</p>
                             {notification.type === 'poll' && (
                               <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-violet-700">
                                 <Vote className="h-3 w-3" /> Poll
