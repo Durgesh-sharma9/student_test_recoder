@@ -54,16 +54,16 @@ export default function FeedbackPanel({ role = 'parent' }) {
     }
   };
 
-  const fetchTeachers = async (classId) => {
+  const fetchTeachers = async (classId, child = selectedChild) => {
     try {
       console.log('=== FETCH TEACHERS START ===');
       console.log('classId:', classId, 'type:', typeof classId);
       
-      const res = await api.get('/users?role=teacher');
-      const allTeachers = res.data.users || [];
+      const response = await api.get('/users?role=teacher');
+      const allTeachers = response.data.users || [];
       
-      console.log('API Response - Total teachers:', allTeachers.length);
-      console.log('API Response - Full data:', JSON.stringify(allTeachers, null, 2));
+      console.log('Teacher API Response', response.data);
+      console.log('Teacher List Before Filter', allTeachers);
       
       if (allTeachers.length === 0) {
         console.log('ERROR: No teachers returned from API');
@@ -71,36 +71,42 @@ export default function FeedbackPanel({ role = 'parent' }) {
         return;
       }
       
-      // Log each teacher's assignments
-      allTeachers.forEach((teacher, idx) => {
-        console.log(`Teacher ${idx}:`, {
-          _id: teacher._id,
-          name: teacher.teacherName || teacher.name,
-          hasAssignments: !!teacher.assignments,
-          assignmentsCount: teacher.assignments?.length || 0,
-          assignments: teacher.assignments
-        });
+      const normalizedTeachers = allTeachers.map((teacher) => {
+        const fallbackAssignments = Array.isArray(teacher.assignedClasses) && teacher.assignedClasses.length > 0 && (!teacher.assignments || teacher.assignments.length === 0)
+          ? teacher.assignedClasses.map((cls) => ({ class: cls, subject: 'ASSIGNED' }))
+          : [];
+
+        const effectiveAssignments = Array.isArray(teacher.assignments) && teacher.assignments.length > 0
+          ? teacher.assignments
+          : fallbackAssignments;
+
+        return {
+          ...teacher,
+          assignments: effectiveAssignments,
+        };
       });
       
-      console.log('Selected Child:', selectedChild);
-      console.log('Selected Child Class:', selectedChild.class);
-      console.log('Selected Child Class ID:', selectedChild.class._id);
+      const childClassId = child?.class?._id || child?.class;
+      console.log('Selected Child', child);
+      console.log('Selected Class ID', childClassId);
       
-      const classTeachers = allTeachers.filter(teacher => {
-        if (!teacher.assignments || teacher.assignments.length === 0) {
+      const filteredTeachers = normalizedTeachers.filter((teacher) => {
+        const effectiveAssignments = teacher.assignments || [];
+
+        if (effectiveAssignments.length === 0) {
           console.log('Filtering out teacher (no assignments):', teacher.teacherName || teacher.name);
           return false;
         }
         
-        const hasMatch = teacher.assignments.some(assignment => {
+        const hasMatch = effectiveAssignments.some((assignment) => {
           const assignmentClassId = assignment.class?._id || assignment.class;
           const matches = String(assignmentClassId) === String(classId);
-          console.log(`Assignment check:`, {
+          console.log('Assignment check:', {
             teacher: teacher.teacherName || teacher.name,
-            assignmentClassId: assignmentClassId,
+            assignmentClassId,
             targetClassId: classId,
-            matches: matches,
-            subject: assignment.subject
+            matches,
+            subject: assignment.subject,
           });
           return matches;
         });
@@ -108,15 +114,10 @@ export default function FeedbackPanel({ role = 'parent' }) {
         return hasMatch;
       });
       
-      console.log('Filtered teachers count:', classTeachers.length);
-      console.log('Filtered teachers:', classTeachers.map(t => ({
-        _id: t._id,
-        name: t.teacherName || t.name,
-        assignments: t.assignments
-      })));
+      console.log('Teacher List After Filter', filteredTeachers);
       console.log('=== FETCH TEACHERS END ===');
       
-      setTeachers(classTeachers);
+      setTeachers(filteredTeachers);
     } catch (error) {
       console.error('Failed to load teachers:', error);
       setTeachers([]);
@@ -131,8 +132,8 @@ export default function FeedbackPanel({ role = 'parent' }) {
   }, [role]);
 
   useEffect(() => {
-    if (selectedChild && selectedChild.class?._id) {
-      fetchTeachers(selectedChild.class._id);
+    if (selectedChild && (selectedChild.class?._id || selectedChild.class)) {
+      fetchTeachers(selectedChild.class?._id || selectedChild.class, selectedChild);
       setSelectedTeacher(null); // Reset teacher selection when child changes
     }
   }, [selectedChild]);
@@ -290,7 +291,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
                   <CheckCircle2 className="ml-auto h-5 w-5 text-blue-500 md:hidden" />
                 </div>
               ) : (
-                <Select value={selectedChild?._id} onValueChange={(value) => {
+                <Select value={selectedChild?._id || ''} onValueChange={(value) => {
                   const child = children.find(c => c._id === value);
                   setSelectedChild(child);
                 }}>
@@ -339,43 +340,54 @@ export default function FeedbackPanel({ role = 'parent' }) {
                   </label>
 
                   {/* Teacher Options */}
-                  {teachers.length > 0 && teachers.map(teacher => {
-                    const assignments = teacher.assignments?.filter(a => {
-                      const assignmentClassId = a.class?._id || a.class;
-                      return String(assignmentClassId) === String(selectedChild.class._id);
-                    }) || [];
-                    const isSelected = selectedTeacher?._id === teacher._id;
+                  {(() => {
+                    console.log('=== TEACHER RENDERING START ===');
+                    console.log('teachers array length:', teachers.length);
+                    console.log('teachers array:', teachers);
+                    console.log('selectedChild:', selectedChild);
+                    console.log('=== TEACHER RENDERING END ===');
                     
-                    return (
-                      <label
-                        key={teacher._id}
-                        onClick={() => setSelectedTeacher({ _id: teacher._id, subject: assignments[0]?.subject, name: teacher.teacherName || teacher.name })}
-                        className={cn(
-                          'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all',
-                          isSelected 
-                            ? 'border-violet-500 bg-violet-50' 
-                            : 'border-slate-200 bg-white hover:border-violet-300'
-                        )}
-                      >
-                        <div className={cn(
-                          "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                          isSelected 
-                            ? "border-violet-500 bg-violet-500" 
-                            : "border-slate-300 bg-white"
-                        )}>
-                          {isSelected && (
-                            <div className="h-2 w-2 rounded-full bg-white" />
+                    if (teachers.length === 0) {
+                      return (
+                        <p className="text-sm text-slate-500 italic">No teachers found for this student.</p>
+                      );
+                    }
+                    
+                    return teachers.map(teacher => {
+                      const assignments = teacher.assignments || [];
+                      const isSelected = selectedTeacher?._id === teacher._id;
+                    
+                      return (
+                        <label
+                          key={teacher._id}
+                          onClick={() => setSelectedTeacher({ _id: teacher._id, subject: assignments[0]?.subject, name: teacher.teacherName || teacher.name })}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all',
+                            isSelected 
+                              ? 'border-violet-500 bg-violet-50' 
+                              : 'border-slate-200 bg-white hover:border-violet-300'
                           )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-900">{teacher.teacherName || teacher.name}</p>
-                          <p className="text-xs text-slate-500">
-                            {assignments.map(a => a.subject).join(', ') || 'Staff'}
-                          </p>
-                        </div>
-                      </label>
-                    );
-                  })}
+                        >
+                          <div className={cn(
+                            "flex h-5 w-5 items-center justify-center rounded-full border-2",
+                            isSelected 
+                              ? "border-violet-500 bg-violet-500" 
+                              : "border-slate-300 bg-white"
+                          )}>
+                            {isSelected && (
+                              <div className="h-2 w-2 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900">{teacher.teacherName || teacher.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {assignments.map(a => a.subject).join(', ') || 'Staff'}
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    });
+                  })()}
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   If no teacher selected, feedback goes only to Admin.
@@ -551,7 +563,7 @@ export default function FeedbackPanel({ role = 'parent' }) {
 
                     {role !== 'parent' && (
                       <div className="shrink-0 w-full md:w-48">
-                        <Select value={ticket.status} onValueChange={(value) => handleStatusChange(ticket._id, value)}>
+                        <Select value={ticket.status || ''} onValueChange={(value) => handleStatusChange(ticket._id, value)}>
                           <SelectTrigger className="w-full h-9 transition-shadow focus:ring-2 focus:ring-violet-500/20">
                             <SelectValue />
                           </SelectTrigger>

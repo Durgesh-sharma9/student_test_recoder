@@ -17,11 +17,12 @@ import { requireSchoolActive } from '../middleware/tenant.js';
 const upload = multer({ storage: multer.memoryStorage() });
 const router = Router();
 
-router.use(protect, requireSchoolActive, authorize('school_admin'));
+router.use(protect, requireSchoolActive);
 
-router.route('/').get(getUsers).post(createUser);
-router.post('/bulk-import', upload.single('file'), bulkImportTeachers);
-router.get('/download-template', async (req, res) => {
+router.get('/', getUsers);
+router.post('/', authorize('school_admin'), createUser);
+router.post('/bulk-import', authorize('school_admin'), upload.single('file'), bulkImportTeachers);
+router.get('/download-template', authorize('school_admin'), async (req, res) => {
   try {
     const buffer = await generateTeacherImportTemplate();
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -31,8 +32,8 @@ router.get('/download-template', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to generate template' });
   }
 });
-router.put('/:id/assignments', assignTeacherWorkload);
-router.post('/:id/resend-credentials', resendTeacherCredentials);
-router.route('/:id').get(getUser).put(updateUser).delete(deleteUser);
+router.put('/:id/assignments', authorize('school_admin'), assignTeacherWorkload);
+router.post('/:id/resend-credentials', authorize('school_admin'), resendTeacherCredentials);
+router.route('/:id').get(authorize('school_admin'), getUser).put(authorize('school_admin'), updateUser).delete(authorize('school_admin'), deleteUser);
 
 export default router;

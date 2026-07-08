@@ -7,6 +7,27 @@ import School from '../models/School.js';
 import AcademicSession from '../models/AcademicSession.js';
 import mongoose from 'mongoose';
 
+const normalizeTeacherAssignments = (user) => {
+  if (!user || user.role !== 'teacher') return user;
+
+  if (Array.isArray(user.assignments) && user.assignments.length > 0) {
+    return user;
+  }
+
+  if (Array.isArray(user.assignedClasses) && user.assignedClasses.length > 0) {
+    user.assignments = user.assignedClasses.map((cls) => ({
+      class: cls,
+      subject: 'ASSIGNED',
+      totalChapters: 0,
+      academicSession: null,
+    }));
+  } else {
+    user.assignments = [];
+  }
+
+  return user;
+};
+
 // Helper function to get active session
 const getActiveSession = async (schoolId) => {
   let activeSession = await AcademicSession.findOne({
@@ -67,15 +88,19 @@ export const getUsers = asyncHandler(async (req, res) => {
     .populate('assignments.class', 'className section')
     .sort('-createdAt');
 
-  console.log('Total users found:', users.length);
+  const normalizedUsers = users.map(normalizeTeacherAssignments);
+
+  console.log('Total users found:', normalizedUsers.length);
   
   if (role === 'teacher') {
-    users.forEach((user, idx) => {
+    normalizedUsers.forEach((user, idx) => {
       console.log(`Teacher ${idx}:`, {
         _id: user._id,
         name: user.teacherName || user.name,
         hasAssignments: !!user.assignments,
         assignmentsCount: user.assignments?.length || 0,
+        assignmentClass: user.assignments?.[0]?.class,
+        assignmentSubject: user.assignments?.[0]?.subject,
         assignments: user.assignments
       });
     });
@@ -85,8 +110,8 @@ export const getUsers = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    count: users.length,
-    users,
+    count: normalizedUsers.length,
+    users: normalizedUsers,
   });
 
 });
@@ -104,6 +129,8 @@ export const getUser = asyncHandler(async (req, res) => {
     .select('-password')
     .populate('assignedClasses')
     .populate('assignments.class');
+
+  normalizeTeacherAssignments(user);
 
   if (!user) {
     throw new ApiError(404, 'User not found.');
