@@ -18,15 +18,22 @@ export const endOfDay = (d) => {
 /** Store one canonical instant per calendar day */
 export const normalizeStoredDate = (d) => startOfDay(d);
 
-export const findDailySession = async (schoolId, classId, subject, testDate) => {
-  if (!testDate) return null;
-  return ResultSession.findOne({
+// Helper to find ALL daily sessions for a class+subject+date (not just one)
+export const findDailySessions = async (schoolId, classId, subject, testDate) => {
+  if (!testDate) return [];
+  return ResultSession.find({
     school: schoolId,
     class: classId,
     subject: normalizeSubject(subject),
     category: 'daily',
     testDate: { $gte: startOfDay(testDate), $lte: endOfDay(testDate) },
-  });
+  }).sort({ createdAt: -1 }); // Return most recent first
+};
+
+// Keep the old findOne for backward compatibility (used in saveMarksEntry)
+export const findDailySession = async (schoolId, classId, subject, testDate) => {
+  const sessions = await findDailySessions(schoolId, classId, subject, testDate);
+  return sessions.length > 0 ? sessions[0] : null;
 };
 
 export const findMainSession = async (schoolId, classId, subject, examType, examDate) => {

@@ -18,6 +18,7 @@ import {
   endOfDay,
   normalizeStoredDate,
   findDailySession,
+  findDailySessions,
   findMainSession,
   buildMarksRows,
 } from '../utils/sessionHelpers.js';
@@ -76,7 +77,7 @@ const recalcSubjectRanks = async (sessionId) => {
 const schoolIdFromReq = (req) => req.user.school?._id ?? req.user.school;
 
 export const previewMarksEntry = asyncHandler(async (req, res) => {
-  const { classId, subject, category, testDate, examType, examDate, maxMarks } = req.query;
+  const { classId, subject, category, testDate, examType, examDate, maxMarks, forceNew } = req.query;
   const cat = category === 'main' ? 'main' : 'daily';
 
   if (!classId || !subject) throw new ApiError(400, 'Class and subject are required.');
@@ -91,10 +92,21 @@ export const previewMarksEntry = asyncHandler(async (req, res) => {
   if (!classDoc?.isActive) throw new ApiError(404, 'Class not found.');
 
   const schoolId = schoolIdFromReq(req);
-  let session =
-    cat === 'daily'
-      ? await findDailySession(schoolId, classId, subject, testDate)
-      : await findMainSession(schoolId, classId, subject, examType, examDate);
+  let session;
+  let existingSessions = [];
+
+  if (cat === 'daily') {
+    // For daily tests, check if any sessions exist (unless forceNew is true)
+    if (forceNew === 'true') {
+      // Force new: don't load existing session
+      session = null;
+    } else {
+      existingSessions = await findDailySessions(schoolId, classId, subject, testDate);
+      session = existingSessions.length > 0 ? existingSessions[0] : null;
+    }
+  } else {
+    session = await findMainSession(schoolId, classId, subject, examType, examDate);
+  }
 
   // Pass test date override for new sessions to enable admission date validation
   const testDateOverride = !session ? (cat === 'daily' ? testDate : examDate) : null;
@@ -103,6 +115,8 @@ export const previewMarksEntry = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     existing: Boolean(session),
+    existingCount: cat === 'daily' ? existingSessions.length : (session ? 1 : 0),
+    existingSessions: cat === 'daily' ? existingSessions : (session ? [session] : []),
     session,
     rows,
     maxMarks: session?.maxMarks ?? (Number(maxMarks) || 100),
@@ -146,10 +160,12 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
     : null;
 
   if (!session) {
-    session =
-      cat === 'daily'
-        ? await findDailySession(schoolId, classId, sub, testDate)
-        : await findMainSession(schoolId, classId, sub, examType, examDate);
+    // For daily tests, only find existing if sessionId was provided
+    // If sessionId is null, always create a new session (never update existing)
+    if (cat === 'main') {
+      session = await findMainSession(schoolId, classId, sub, examType, examDate);
+    }
+    // For daily tests with no sessionId, session remains null -> will create new
   }
 
   if (!session) {
