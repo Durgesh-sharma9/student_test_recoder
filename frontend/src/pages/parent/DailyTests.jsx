@@ -8,6 +8,7 @@ import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 
 export default function ParentDailyTests() {
   const { studentId } = useParams();
@@ -68,19 +69,17 @@ export default function ParentDailyTests() {
         <div className="grid gap-3 sm:gap-4 p-4 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Date From</label>
-            <Input
-              type="date"
+            <DatePicker
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={setDateFrom}
               className="h-10"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">Date To</label>
-            <Input
-              type="date"
+            <DatePicker
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={setDateTo}
               className="h-10"
             />
           </div>

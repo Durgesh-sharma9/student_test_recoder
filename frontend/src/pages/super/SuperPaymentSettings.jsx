@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 
@@ -300,10 +301,9 @@ export default function SuperPaymentSettings() {
                 />
               </FormField>
               <FormField label="Expiry Date">
-                <Input
-                  type="date"
+                <DatePicker
                   value={couponForm.expiryDate}
-                  onChange={(e) => setCouponForm({ ...couponForm, expiryDate: e.target.value })}
+                  onChange={(date) => setCouponForm({ ...couponForm, expiryDate: date })}
                 />
               </FormField>
               <FormField label="Max Uses">
