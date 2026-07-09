@@ -77,9 +77,29 @@ export default function AdminNotifications() {
     try {
       setLoading(true);
       const res = await api.get('/notifications');
-      setNotifications(res.data.notifications || []);
-      setUnreadCount(res.data.unreadCount || 0);
+      const items = res.data.notifications || [];
+      console.log('[fetchNotifications] API response notifications:', items);
+      console.log('[fetchNotifications] Number of notifications:', items.length);
+      const userId = localStorage.getItem('userId');
+      console.log('[fetchNotifications] Current user ID:', userId);
+      
+      items.forEach((n, idx) => {
+        console.log(`[fetchNotifications] Notification ${idx}:`, {
+          _id: n._id,
+          title: n.title,
+          readBy: n.readBy,
+          readByIncludesUser: n.readBy?.includes(userId),
+          isUnread: !n.readBy?.includes(userId)
+        });
+      });
+      
+      setNotifications(items);
+      // derive unread count from the same source of truth
+      const derivedUnread = items.filter((it) => !it.readBy?.includes(userId)).length;
+      console.log('[fetchNotifications] Derived unread count:', derivedUnread);
+      setUnreadCount(derivedUnread);
     } catch (error) {
+      console.error('[fetchNotifications] Error:', error);
       toast.error('Failed to load notifications');
     } finally {
       setLoading(false);
@@ -97,21 +117,27 @@ export default function AdminNotifications() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await api.put(`/notifications/${notificationId}/mark-read`);
+      console.log('[markAsRead] Marking notification as read:', notificationId);
+      const res = await api.put(`/notifications/${notificationId}/mark-read`);
+      console.log('[markAsRead] API response:', res.data);
+      // Refresh notifications from server to ensure persistence
       await fetchNotifications();
-      await fetchUnreadCount();
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      console.error('[markAsRead] Error:', error);
+      toast.error('Failed to mark notification as read');
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifications/mark-all-read');
+      console.log('[markAllAsRead] Marking all notifications as read');
+      const res = await api.put('/notifications/mark-all-read');
+      console.log('[markAllAsRead] API response:', res.data);
+      // Refresh notifications from server to ensure persistence
       await fetchNotifications();
-      await fetchUnreadCount();
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      console.error('[markAllAsRead] Error:', error);
+      toast.error('Failed to mark all notifications as read');
     }
   };
 
@@ -621,162 +647,315 @@ export default function AdminNotifications() {
               <p className="text-[14px] font-bold text-slate-500">No active notifications</p>
             </div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-left text-[12px] whitespace-nowrap">
-                <thead className="bg-gradient-to-r from-rose-50/50 to-orange-50/30 border-b border-rose-100/60">
-                  <tr className="text-rose-900/80 font-black tracking-wider text-[10px] uppercase">
-                    <th className="px-5 py-3.5">Priority</th>
-                    <th className="px-5 py-3.5">Title</th>
-                    <th className="px-5 py-3.5 w-1/3">Message</th>
-                    <th className="px-5 py-3.5">From</th>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5 text-center">Files</th>
-                    <th className="px-5 py-3.5 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {notifications.map((n) => {
-                    const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
-                    const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
-                    const unread = isUnread(n);
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left text-[12px] table-fixed">
+                  <colgroup>
+                    <col style={{ width: 'auto' }} />
+                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '34%' }} />
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: 'auto' }} />
+                  </colgroup>
+                  <thead className="bg-gradient-to-r from-rose-50/50 to-orange-50/30 border-b border-rose-100/60">
+                    <tr className="text-rose-900/80 font-black tracking-wider text-[10px] uppercase">
+                      <th className="px-4 py-3.5">Priority</th>
+                      <th className="px-4 py-3.5">Title</th>
+                      <th className="px-4 py-3.5">Message</th>
+                      <th className="px-4 py-3.5">From</th>
+                      <th className="px-4 py-3.5">Date</th>
+                      <th className="px-4 py-3.5 text-center">Files</th>
+                      <th className="px-4 py-3.5 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {notifications.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((n) => {
+                      const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
+                      const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
+                      const unread = isUnread(n);
 
-                    return (
-                      <tr 
-                        key={n._id} 
-                        onClick={() => hasRedirect && handleNotificationClick(n)}
-                        className={cn(
-                          "transition-colors group relative", 
-                          unread ? "bg-blue-50 hover:bg-blue-100" : "bg-white hover:bg-slate-50",
-                          unread && "border-l-4 border-l-blue-500",
-                          hasRedirect && "cursor-pointer"
-                        )}
-                      >
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
-                              {n.priority || 'INFO'}
-                            </span>
-                            {unread && (
-                              <span className="inline-flex items-center rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-bold text-white shadow-sm">
-                                Unread
+                      return (
+                        <tr 
+                          key={n._id} 
+                          onClick={() => hasRedirect && handleNotificationClick(n)}
+                          className={cn(
+                            "transition-colors group relative h-14",
+                            unread ? "bg-[#F8FBFF] border-l-4 border-blue-500" : "bg-white hover:bg-slate-50",
+                            hasRedirect && "cursor-pointer"
+                          )}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
+                                {n.priority || 'INFO'}
                               </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className={cn("px-5 py-3.5", unread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>
-                          {n.title}
-                        </td>
-                        <td className={cn("px-5 py-3.5 truncate max-w-[200px] sm:max-w-[300px]", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>
-                          {n.message}
-                        </td>
-                        <td className="px-5 py-3.5 font-semibold text-slate-700 capitalize">
-                          {n.senderName || n.from || 'System Admin'}
-                        </td>
-                        <td className="px-5 py-3.5 font-medium text-slate-500">
-                          {formatDate(n.createdAt)}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {n.attachments && n.attachments.length > 0 ? (
-                            <div className="relative">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <Paperclip className="h-3.5 w-3.5 text-indigo-500" />
-                                <span className="text-[11px] font-bold text-indigo-700">{n.attachments.length} {n.attachments.length === 1 ? 'Attachment' : 'Attachments'}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-xs font-medium text-indigo-600 hover:text-indigo-700 px-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (n.attachments.length === 1) {
-                                      const attachment = n.attachments[0];
-                                      const url = attachment.url?.startsWith('http') 
-                                        ? attachment.url 
-                                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
-                                      window.open(url, '_blank');
-                                    } else {
-                                      setAttachmentDropdownOpen(attachmentDropdownOpen === n._id ? null : n._id);
-                                    }
-                                  }}
-                                >
-                                  View
-                                </Button>
+                            </div>
+                          </td>
+                          <td className={cn("px-4 py-3")}> 
+                            <div className="flex items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className={cn("truncate", unread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>{n.title}</div>
                               </div>
-                              {attachmentDropdownOpen === n._id && n.attachments.length > 1 && (
-                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
-                                  <div className="p-3">
-                                    <div className="text-xs font-semibold text-slate-700 mb-2">Attachments ({n.attachments.length})</div>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                                      {n.attachments.map((attachment, idx) => {
-                                        const url = attachment.url?.startsWith('http') 
-                                          ? attachment.url 
-                                          : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
-                                        return (
-                                          <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded hover:bg-slate-100">
-                                            <div className="flex-1 min-w-0">
-                                              <div className="text-xs font-medium text-slate-700 truncate">{attachment.name || attachment.fileName || 'Attachment'}</div>
-                                            </div>
-                                            <div className="flex gap-1">
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  window.open(url, '_blank');
-                                                }}
-                                                title="View"
-                                              >
-                                                <Eye className="h-3 w-3" />
-                                              </Button>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const link = document.createElement('a');
-                                                  link.href = url;
-                                                  link.download = attachment.name || attachment.fileName || 'attachment';
-                                                  link.click();
-                                                }}
-                                                title="Download"
-                                              >
-                                                <Download className="h-3 w-3" />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
+                              {unread && (
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" aria-hidden />
+                                  <span className="text-[10px] font-bold text-blue-700">Unread</span>
                                 </div>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-center text-slate-400 text-xs">No Attachment</div>
-                          )}
-                        </td>
-                        <td className="px-5 py-3.5 text-center">
-                          {unread ? (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
-                              className="p-1.5 text-slate-400 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex" 
-                              title="Mark as Read"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                            </button>
-                          ) : (
-                            <div className="p-1.5 text-slate-200 inline-flex">
-                              <CheckCheck className="h-3.5 w-3.5" />
+                          </td>
+                          <td className={cn("px-4 py-3", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>
+                            <div className="line-clamp-2" title={n.message}>{n.message}</div>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-slate-700 capitalize whitespace-nowrap">
+                            {n.senderName || n.from || 'System Admin'}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-500 whitespace-nowrap">
+                            {formatDate(n.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {n.attachments && n.attachments.length > 0 ? (
+                              <div className="relative">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Paperclip className="h-3.5 w-3.5 text-indigo-500 flex-shrink-0" />
+                                  <span className="text-[11px] font-bold text-indigo-700 whitespace-nowrap">{n.attachments.length} {n.attachments.length === 1 ? 'Attachment' : 'Attachments'}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs font-medium text-indigo-600 hover:text-indigo-700 px-2 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (n.attachments.length === 1) {
+                                        const attachment = n.attachments[0];
+                                        const url = attachment.url?.startsWith('http') 
+                                          ? attachment.url 
+                                          : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                        window.open(url, '_blank');
+                                      } else {
+                                        setAttachmentDropdownOpen(attachmentDropdownOpen === n._id ? null : n._id);
+                                      }
+                                    }}
+                                  >
+                                    View
+                                  </Button>
+                                </div>
+                                {attachmentDropdownOpen === n._id && n.attachments.length > 1 && (
+                                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                                    <div className="p-3">
+                                      <div className="text-xs font-semibold text-slate-700 mb-2">Attachments ({n.attachments.length})</div>
+                                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {n.attachments.map((attachment, idx) => {
+                                          const url = attachment.url?.startsWith('http') 
+                                            ? attachment.url 
+                                            : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                          return (
+                                            <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded hover:bg-slate-100">
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-medium text-slate-700 truncate">{attachment.name || attachment.fileName || 'Attachment'}</div>
+                                              </div>
+                                              <div className="flex gap-1">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(url, '_blank');
+                                                  }}
+                                                  title="View"
+                                                >
+                                                  <Eye className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.download = attachment.name || attachment.fileName || 'attachment';
+                                                    link.click();
+                                                  }}
+                                                  title="Download"
+                                                >
+                                                  <Download className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-center text-slate-400 text-xs whitespace-nowrap">No Attachment</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {unread ? (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
+                                className="p-1.5 text-slate-400 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex flex-shrink-0" 
+                                title="Mark as Read"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                            ) : (
+                              <div className="p-1.5 text-slate-200 inline-flex">
+                                <CheckCheck className="h-3.5 w-3.5" />
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile/Tablet Card View */}
+              <div className="lg:hidden space-y-3">
+                {notifications.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((n) => {
+                  const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
+                  const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
+                  const unread = isUnread(n);
+
+                  return (
+                    <div 
+                      key={n._id} 
+                      onClick={() => hasRedirect && handleNotificationClick(n)}
+                      className={cn(
+                        "border border-slate-200 rounded-xl p-4 transition-colors",
+                        unread ? "bg-[#F8FBFF] border-l-4 border-l-blue-500" : "bg-white hover:bg-slate-50",
+                        hasRedirect && "cursor-pointer"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
+                            {n.priority || 'INFO'}
+                          </span>
+                          {unread && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
+                              <span className="text-[10px] font-bold text-blue-700">Unread</span>
                             </div>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">{formatDate(n.createdAt)}</span>
+                      </div>
+                      
+                      <h4 className={cn("font-bold text-[13px] text-slate-900 mb-1", unread ? "" : "font-medium")}>{n.title}</h4>
+                      <p className={cn("text-[12px] mb-3 line-clamp-2", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>{n.message}</p>
+                      
+                      <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 mb-3">
+                        <span>From:</span>
+                        <span className="capitalize">{n.senderName || n.from || 'System Admin'}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {n.attachments && n.attachments.length > 0 ? (
+                          <div className="relative flex-1">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-3.5 w-3.5 text-indigo-500" />
+                              <span className="text-[11px] font-bold text-indigo-700">{n.attachments.length} {n.attachments.length === 1 ? 'Attachment' : 'Attachments'}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs font-medium text-indigo-600 hover:text-indigo-700 px-3"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (n.attachments.length === 1) {
+                                    const attachment = n.attachments[0];
+                                    const url = attachment.url?.startsWith('http') 
+                                      ? attachment.url 
+                                      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                    window.open(url, '_blank');
+                                  } else {
+                                    setAttachmentDropdownOpen(attachmentDropdownOpen === n._id ? null : n._id);
+                                  }
+                                }}
+                              >
+                                View
+                              </Button>
+                            </div>
+                            {attachmentDropdownOpen === n._id && n.attachments.length > 1 && (
+                              <div className="absolute left-0 top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-slate-200 z-50">
+                                <div className="p-3">
+                                  <div className="text-xs font-semibold text-slate-700 mb-2">Attachments ({n.attachments.length})</div>
+                                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {n.attachments.map((attachment, idx) => {
+                                      const url = attachment.url?.startsWith('http') 
+                                        ? attachment.url 
+                                        : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${attachment.url}`;
+                                      return (
+                                        <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded hover:bg-slate-100">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-xs font-medium text-slate-700 truncate">{attachment.name || attachment.fileName || 'Attachment'}</div>
+                                          </div>
+                                          <div className="flex gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(url, '_blank');
+                                              }}
+                                              title="View"
+                                            >
+                                              <Eye className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-indigo-600 hover:text-indigo-700"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = attachment.name || attachment.fileName || 'attachment';
+                                                link.click();
+                                              }}
+                                              title="Download"
+                                            >
+                                              <Download className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-slate-400 text-xs">No Attachment</div>
+                        )}
+                        
+                        {unread && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs font-medium text-slate-600 hover:text-emerald-600 px-3"
+                            onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
+                          >
+                            <Check className="mr-1 h-3 w-3" /> Mark Read
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1049,7 +1228,7 @@ export default function AdminNotifications() {
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Created By</span>
                         <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
-                          {ticket.createdBy?.name || ticket.createdBy?.teacherName || ticket.createdBy?.parentName || ticket.createdBy?.adminName || 'N/A'}
+                          {ticket.createdByName || 'Unknown User'}
                         </div>
                       </div>
                       {/* Parent */}
