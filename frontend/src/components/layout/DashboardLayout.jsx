@@ -158,19 +158,19 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
-      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen', isCollapsed ? 'lg:w-20' : 'lg:w-72 w-72', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
-        <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-4 transition-all overflow-hidden whitespace-nowrap">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
-            <GraduationCap className="h-5 w-5" />
+      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen', isCollapsed ? 'lg:w-20' : 'lg:w-60 w-60', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
+        <div className="flex h-14 items-center gap-2.5 border-b border-slate-100 px-3 transition-all overflow-hidden whitespace-nowrap">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
+            <GraduationCap className="h-4 w-4" />
           </div>
           <div className={cn("transition-opacity duration-200", isCollapsed ? "lg:opacity-0" : "opacity-100")}>
-            <p className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">Test Master</p>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Pro Management</p>
+            <p className="text-[13px] font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">Test Master</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pro Management</p>
           </div>
         </div>
         
         {/* COMPACTED NAV SECTION */}
-        <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
+        <nav className="flex-1 space-y-0.5 p-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {navItems.map((item) => {
             // Handle Parent Menus (Like Performance)
             if (item.children) {
@@ -182,25 +182,25 @@ export default function DashboardLayout() {
                   <button
                     onClick={() => toggleMenu(item.label)}
                     className={cn(
-                      'flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap w-full text-left',
+                      'flex items-center gap-2 rounded-lg px-2 py-1 text-[13px] font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap w-full text-left',
                       isParentActive 
                         ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' 
                         : isExpanded
                           ? 'bg-slate-50 text-slate-900 border border-slate-100 shadow-sm'
                           : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600',
-                      isCollapsed && 'lg:justify-center lg:px-0 lg:h-10 lg:w-10 lg:mx-auto'
+                      isCollapsed && 'lg:justify-center lg:px-0 lg:h-9 lg:w-9 lg:mx-auto'
                     )}
                   >
-                    <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200', 
+                    <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200', 
                       isParentActive ? 'bg-white/20 text-white shadow-inner' : (isExpanded ? 'bg-white shadow-sm text-indigo-600' : item.boxBg)
                     )}>
-                      <item.icon className={cn('h-4 w-4 transition-transform duration-200 group-hover:scale-110', 
+                      <item.icon className={cn('h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110', 
                         isParentActive ? 'text-white' : (isExpanded ? 'text-indigo-600' : item.iconColor)
                       )} />
                     </div>
-                    <span className={cn('flex-1 transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
+                    <span className={cn('flex-1 transition-opacity duration-200 font-medium tracking-wide text-[13px]', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
                     {!isCollapsed && (
-                      <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-300", 
+                      <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform duration-300", 
                         isExpanded && "rotate-180", 
                         isParentActive ? 'text-white' : (isExpanded ? 'text-slate-600' : 'text-slate-400')
                       )} />
@@ -213,16 +213,16 @@ export default function DashboardLayout() {
                     isExpanded && !isCollapsed ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   )}>
                     <div className="overflow-hidden">
-                      <div className="relative flex flex-col space-y-0.5 mt-1 pb-1">
+                      <div className="relative flex flex-col space-y-0 mt-0.5 pb-0.5">
                         {/* Connecting Line (UI Guide) */}
-                        <div className="absolute left-[1.45rem] top-2 bottom-3 w-px bg-slate-200" />
+                        <div className="absolute left-[1.15rem] top-1.5 bottom-2 w-px bg-slate-200" />
                         
                         {item.children.map(child => {
                           const childLocked = child.featureKey ? !isFeatureEnabled(child.featureKey) : false;
                           const childLabel = child.lockLabel || child.label;
                           
                           const childClass = ({ isActive }) => cn(
-                            'relative flex items-center gap-3 rounded-xl py-2 pl-[3.25rem] pr-3 text-[13px] font-medium transition-all duration-200 group',
+                            'relative flex items-center gap-2.5 rounded-lg py-1.5 pl-[2.75rem] pr-2.5 text-[12px] font-medium transition-all duration-200 group',
                             isActive ? 'text-indigo-700 bg-indigo-50/70 shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600',
                             childLocked && 'opacity-80'
                           );
@@ -231,11 +231,11 @@ export default function DashboardLayout() {
                             <>
                               {/* Indicator Dot exactly on the line */}
                               <div className={cn(
-                                "absolute left-[1.25rem] h-2 w-2 rounded-full ring-4 ring-white transition-all duration-300 z-10", 
+                                "absolute left-[0.95rem] h-1.5 w-1.5 rounded-full ring-4 ring-white transition-all duration-300 z-10", 
                                 isActive ? "bg-indigo-600" : "bg-slate-300 group-hover:bg-indigo-400"
                               )} />
                               <span className={cn("flex-1 truncate", isActive && "font-semibold")}>{child.label}</span>
-                              {childLocked && <Lock className="h-3 w-3 text-amber-600" />}
+                              {childLocked && <Lock className="h-2.5 w-2.5 text-amber-600" />}
                             </>
                           );
 
@@ -264,19 +264,19 @@ export default function DashboardLayout() {
             const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
             const label = item.lockLabel || item.label;
             const baseClass = ({ isActive }) => cn(
-              'flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap', 
+              'flex items-center gap-2 rounded-lg px-2 py-1 text-[13px] font-medium transition-all duration-200 group overflow-hidden whitespace-nowrap', 
               isActive ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-600 hover:bg-slate-50/80 hover:text-indigo-600', 
               locked && 'opacity-80', 
-              isCollapsed && 'lg:justify-center lg:px-0 lg:h-10 lg:w-10 lg:mx-auto'
+              isCollapsed && 'lg:justify-center lg:px-0 lg:h-9 lg:w-9 lg:mx-auto'
             );
             
             const content = ({ isActive }) => (
               <>
-                <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
-                  <item.icon className={cn('h-4 w-4 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
+                <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200', isActive ? 'bg-white/20 text-white shadow-inner' : item.boxBg)}>
+                  <item.icon className={cn('h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : item.iconColor)} />
                 </div>
-                <span className={cn('transition-opacity duration-200 font-medium tracking-wide', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
-                {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700"><Lock className="h-3 w-3" /> Locked</span>}
+                <span className={cn('transition-opacity duration-200 font-medium tracking-wide text-[13px]', isCollapsed ? 'lg:hidden' : 'block')}>{item.label}</span>
+                {!isCollapsed && locked && <span className="ml-auto inline-flex items-center gap-0.5 rounded-lg bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700"><Lock className="h-2.5 w-2.5" /> Locked</span>}
               </>
             );
             
@@ -285,12 +285,12 @@ export default function DashboardLayout() {
           })}
         </nav>
         
-        <div className="border-t border-slate-100 bg-slate-50/50 p-4 transition-all overflow-hidden whitespace-nowrap">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md">{getInitials(user)}</div>
+        <div className="border-t border-slate-100 bg-slate-50/50 p-3 transition-all overflow-hidden whitespace-nowrap">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-bold text-xs shadow-md">{getInitials(user)}</div>
             <div className={cn("flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
-              <p className="truncate text-sm font-semibold text-slate-800">{getDisplayName(user)}</p>
-              <p className="mt-0.5 truncate text-xs font-medium text-slate-500">({role})</p>
+              <p className="truncate text-[13px] font-semibold text-slate-800">{getDisplayName(user)}</p>
+              <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">({role})</p>
             </div>
           </div>
         </div>
