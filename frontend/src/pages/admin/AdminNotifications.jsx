@@ -650,7 +650,7 @@ export default function AdminNotifications() {
             <>
               {/* Desktop Table View */}
               <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full text-left text-[12px] table-fixed">
+                <table className="w-full text-left text-[12px] table-fixed border-separate border-spacing-y-3">
                   <colgroup>
                     <col style={{ width: 'auto' }} />
                     <col style={{ width: '18%' }} />
@@ -659,7 +659,7 @@ export default function AdminNotifications() {
                     <col style={{ width: '10%' }} />
                     <col style={{ width: '12%' }} />
                   </colgroup>
-                  <thead className="bg-gradient-to-r from-rose-50/50 to-orange-50/30 border-b border-rose-100/60">
+                  <thead className="bg-transparent">
                     <tr className="text-rose-900/80 font-black tracking-wider text-[10px] uppercase">
                       <th className="px-4 py-3.5">Priority</th>
                       <th className="px-4 py-3.5">Title</th>
@@ -669,7 +669,7 @@ export default function AdminNotifications() {
                       <th className="px-4 py-3.5 text-center">Files</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y-0">
                     {notifications.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((n) => {
                       const isFeedback = n.type === 'feedback' || (n.title && n.title.toLowerCase().includes('feedback'));
                       const hasRedirect = isFeedback && (n.referenceId || n.feedbackId || n.ticketId);
@@ -680,19 +680,23 @@ export default function AdminNotifications() {
                           key={n._id} 
                           onClick={() => hasRedirect && handleNotificationClick(n)}
                           className={cn(
-                            "transition-colors group relative h-14",
-                            unread ? "bg-[#F8FBFF] border-l-4 border-blue-500" : "bg-white hover:bg-slate-50",
+                            "transition-all duration-200 group relative",
+                            unread ? "bg-gradient-to-r from-blue-50 via-white to-purple-50" : "bg-gradient-to-r from-gray-50 via-white to-gray-50",
+                            "hover:shadow-lg hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-blue-100/50 hover:via-white hover:to-purple-100/50",
                             hasRedirect && "cursor-pointer"
                           )}
                         >
-                          <td className="px-4 py-3">
+                          <td className={cn(
+                            "px-4 py-3 rounded-l-xl border border-slate-200/60",
+                            unread && "border-l-4 border-l-blue-500"
+                          )}>
                             <div className="flex items-center gap-2">
                               <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
                                 {n.priority || 'INFO'}
                               </span>
                             </div>
                           </td>
-                          <td className={cn("px-4 py-3")}>
+                          <td className={cn("px-4 py-3 border-t border-b border-slate-200/60")}>
                             <div className="flex items-start gap-2 min-w-0">
                               {unread && (
                                 <span className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" aria-hidden />
@@ -718,16 +722,16 @@ export default function AdminNotifications() {
                               )}
                             </div>
                           </td>
-                          <td className={cn("px-4 py-3", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>
+                          <td className={cn("px-4 py-3 border-t border-b border-slate-200/60", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>
                             <div className="line-clamp-2" title={n.message}>{n.message}</div>
                           </td>
-                          <td className="px-4 py-3 font-semibold text-slate-700 capitalize whitespace-nowrap">
+                          <td className={cn("px-4 py-3 border-t border-b border-slate-200/60 font-semibold text-slate-700 capitalize whitespace-nowrap")}>
                             {n.senderName || n.from || 'System Admin'}
                           </td>
-                          <td className="px-4 py-3 font-medium text-slate-500 whitespace-nowrap">
+                          <td className={cn("px-4 py-3 border-t border-b border-slate-200/60 font-medium text-slate-500 whitespace-nowrap")}>
                             {formatDate(n.createdAt)}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className={cn("px-4 py-3 rounded-r-xl border border-slate-200/60")}>
                             {n.attachments && n.attachments.length > 0 ? (
                               <div className="relative">
                                 <div className="flex items-center justify-center gap-2">
@@ -807,9 +811,6 @@ export default function AdminNotifications() {
                             ) : (
                               <div className="text-center text-slate-400 text-xs whitespace-nowrap">No Attachment</div>
                             )}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="text-slate-400 text-xs">-</div>
                           </td>
                         </tr>
                       );
@@ -965,7 +966,7 @@ export default function AdminNotifications() {
 
       {/* Feedback Tab (Compact & Detailed with Gradients) */}
       {activeTab === 'feedback' && (
-        <ErpSection title="Feedback Center" icon={MessageSquare} tone="indigo">
+        <ErpSection title="Feedback Center" icon={MessageSquare} tone="indigo" className="bg-gradient-to-b from-[#f9fbff] to-[#f5f9ff]">
           {/* Header with Filters and Create Button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
@@ -1185,97 +1186,130 @@ export default function AdminNotifications() {
               <p className="text-sm font-bold text-slate-500">No feedback tickets found</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {getFilteredFeedback().map((ticket) => (
-                <div key={ticket._id} className="border border-slate-200/80 p-4 rounded-xl bg-gradient-to-br from-white via-white to-indigo-50/30 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex flex-col gap-3">
-                  {/* Header Row */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-sm tracking-wider">
-                        ID: {ticket.ticketId}
-                      </span>
-                      <span className={cn('border px-2 py-0.5 text-[10px] font-bold uppercase rounded-md tracking-wider shadow-sm', getStatusBadge(ticket.status))}>
-                        {ticket.status}
-                      </span>
-                      {/* Created By Badge */}
-                      <span className={cn(
-                        'border px-2 py-0.5 text-[10px] font-bold uppercase rounded-md tracking-wider shadow-sm',
-                        ticket.createdByRole === 'parent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        ticket.createdByRole === 'teacher' ? 'bg-violet-50 text-violet-700 border-violet-200' :
-                        'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      )}>
-                        {ticket.createdByRole === 'parent' ? 'Parent' : ticket.createdByRole === 'teacher' ? 'Teacher' : 'Admin'}
-                      </span>
-                      <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-100">
-                        <Clock3 className="h-3 w-3" /> {formatDate(ticket.createdAt)}
-                      </span>
-                    </div>
-                    {ticket.messages?.length > 1 && (
-                      <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 self-start sm:self-auto shadow-sm">
-                        <MessageCircleMore className="h-3 w-3" />
-                        {ticket.messages.length - 1} Replies
+            <div className="space-y-4">
+              {getFilteredFeedback().map((ticket) => {
+                const isRead = ticket.status === 'Resolved' || ticket.status === 'Closed';
+                const replyCount = ticket.messages?.length > 1 ? ticket.messages.length - 1 : 0;
+                
+                // Get creator name with fallback
+                const getCreatorName = () => {
+                  if (ticket.createdByName && ticket.createdByName !== 'Unknown User') {
+                    return ticket.createdByName;
+                  }
+                  if (ticket.createdByRole === 'parent' && ticket.parent?.parentName) {
+                    return ticket.parent.parentName;
+                  }
+                  if (ticket.createdByRole === 'teacher' && ticket.taggedTeacherName) {
+                    return ticket.taggedTeacherName;
+                  }
+                  if (ticket.createdByRole === 'school_admin' && ticket.createdByName) {
+                    return ticket.createdByName;
+                  }
+                  return 'Deleted User';
+                };
+                
+                return (
+                  <div key={ticket._id} className={cn(
+                    "border border-blue-100 p-4 rounded-2xl bg-gradient-to-br from-white via-[#f8fbff] to-[#f5f8ff] shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 transition-all duration-200 relative",
+                    ticket.status === 'Open' && "border-l-4 border-l-emerald-500",
+                    ticket.status === 'Resolved' && "border-l-4 border-l-blue-500",
+                    ticket.status === 'Closed' && "border-l-4 border-l-gray-400"
+                  )}>
+                    {/* Top Row: Ticket ID | Status | Category | Date | Reply Badge */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3 bg-blue-50/60 rounded-lg p-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 tracking-wider">
+                          ID: {ticket.ticketId}
+                        </span>
+                        <span className={cn('border px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider', getStatusBadge(ticket.status))}>
+                          {ticket.status}
+                        </span>
+                        <span className={cn(
+                          'border px-2 py-0.5 text-[10px] font-bold uppercase rounded tracking-wider',
+                          ticket.createdByRole === 'parent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          ticket.createdByRole === 'teacher' ? 'bg-violet-50 text-violet-700 border-violet-200' :
+                          'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        )}>
+                          {ticket.createdByRole === 'parent' ? 'Parent' : ticket.createdByRole === 'teacher' ? 'Teacher' : 'Admin'}
+                        </span>
+                        <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                          <Clock3 className="h-3 w-3" /> {formatDate(ticket.createdAt)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Title & Desc */}
-                  <div>
-                    <h4 className="font-bold text-[14px] text-slate-900 mb-1">{ticket.title}</h4>
-                    <p className="text-[12px] font-medium text-slate-600 line-clamp-2 leading-relaxed bg-white/60 backdrop-blur-sm p-2 rounded-lg border border-slate-100 shadow-inner">{ticket.description}</p>
-                  </div>
-
-                  {/* Info Grid & Action */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mt-1">
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 w-full sm:w-auto">
-                      {/* Created By */}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Created By</span>
-                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
-                          {ticket.createdByName || 'Unknown User'}
-                        </div>
-                      </div>
-                      {/* Parent */}
-                      {ticket.parent && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Parent</span>
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate"><User className="h-3 w-3" />{ticket.parent?.parentName || 'N/A'}</div>
-                        </div>
-                      )}
-                      {/* Student */}
-                      {ticket.student && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Student</span>
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700 truncate">
-                            <GraduationCap className="h-3 w-3" />{ticket.student?.name || 'N/A'} 
-                            {ticket.student?.class && <span className="text-slate-400 font-medium ml-0.5">({ticket.student.class.className})</span>}
-                          </div>
-                        </div>
-                      )}
-                      {/* Teacher */}
-                      {ticket.teacherIds && ticket.teacherIds.length > 0 && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Teacher</span>
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 truncate">
-                            <Check className="h-3 w-3 text-indigo-500" />
-                            {ticket.taggedTeacherName || ticket.teacherIds.map(t => t.teacherName || t.name).join(', ')}
-                          </div>
-                        </div>
-                      )}
-                      {/* Files */}
-                      {ticket.attachments && ticket.attachments.length > 0 && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Files</span>
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-700"><Paperclip className="h-3 w-3 text-slate-400" />{ticket.attachments.length} attached</div>
+                      {replyCount > 0 && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-100">
+                          <MessageCircleMore className="h-3 w-3" />
+                          {replyCount} {replyCount === 1 ? 'Reply' : 'Replies'}
                         </div>
                       )}
                     </div>
                     
-                    <Button size="sm" onClick={() => openConversation(ticket._id)} className={cn("shrink-0 h-8 text-[11px] font-bold rounded-lg px-4 transition-transform hover:-translate-y-0.5", buttonGradient)}>
-                      View Thread <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
+                    {/* Second Row: Title | Action Buttons */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <h4 className="font-bold text-sm text-slate-900 line-clamp-1 flex-1">{ticket.title}</h4>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* {!isRead && (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange('Resolved');
+                            }}
+                            className="h-8 text-xs font-bold rounded-full px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300"
+                          >
+                            <Check className="h-3 w-3 mr-1" /> Mark Resolved
+                          </Button>
+                        )} */}
+                        <Button 
+                          size="sm" 
+                          onClick={() => openConversation(ticket._id)} 
+                          className="h-8 text-xs font-bold rounded-full px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-sm"
+                        >
+                          View Thread <ArrowRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Third Row: Message Preview (2 lines max) */}
+                    <div className="mb-3">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-slate-100">{ticket.description}</p>
+                    </div>
+
+                    {/* Bottom Row: Metadata Chips */}
+                    <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                      <span className="flex items-center gap-1 text-slate-600 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
+                        <User className="h-3 w-3 text-gray-400" />
+                        {getCreatorName()}
+                      </span>
+                      {ticket.parent && (
+                        <span className="flex items-center gap-1 text-slate-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                          <User className="h-3 w-3 text-sky-400" />
+                          Parent: {ticket.parent?.parentName || 'N/A'}
+                        </span>
+                      )}
+                      {ticket.student && (
+                        <span className="flex items-center gap-1 text-slate-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                          <GraduationCap className="h-3 w-3 text-purple-400" />
+                          {ticket.student?.name || 'N/A'}
+                        </span>
+                      )}
+                      {ticket.teacherIds && ticket.teacherIds.length > 0 && (
+                        <span className="flex items-center gap-1 text-slate-600 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                          <Check className="h-3 w-3 text-green-400" />
+                          {ticket.taggedTeacherName || ticket.teacherIds.map(t => t.teacherName || t.name).join(', ')}
+                        </span>
+                      )}
+                      {ticket.attachments && ticket.attachments.length > 0 && (
+                        <span className="flex items-center gap-1 text-slate-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                          <Paperclip className="h-3 w-3 text-amber-400" />
+                          {ticket.attachments.length} {ticket.attachments.length === 1 ? 'Attachment' : 'Attachments'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ErpSection>
