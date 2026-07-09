@@ -262,133 +262,156 @@ export default function TeacherPerformance() {
     <PageStack>
       <PageHeader title="Teacher Performance Analytics" description="Analyze teacher performance by Teacher + Subject + Class." />
 
-      <ErpSection title="Filters" icon={Filter} tone="blue">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <FormField label="Teacher">
-            <SearchableTeacherSelect
-              value={teacherId}
-              onChange={setTeacherId}
-              teachers={teachers}
-              placeholder="All Teachers"
-              includeAllOption
-              allLabel="All Teachers"
-            />
-          </FormField>
-
-          <FormField label="Class">
-            <Select
-              value={classId ? classId : ALL_CLASSES_VALUE}
-              onValueChange={(v) => setClassId(v === ALL_CLASSES_VALUE ? '' : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CLASSES_VALUE}>All Classes</SelectItem>
-                {filteredClasses.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>
-                    {formatClassName(c.className)}-{c.section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          <FormField label="Subject">
-            <SubjectSelect
-              value={subject}
-              onChange={setSubject}
-              subjects={filteredSubjects}
-              placeholder="All Subjects"
-              includeAllOption
-              allLabel="All Subjects"
-            />
-          </FormField>
-
-          <FormField label="Assessment Type (Multi-select)">
-            <AssessmentTypeMultiSelect value={assessmentTypes} onChange={setAssessmentTypes} options={ASSESSMENT_OPTIONS} />
-          </FormField>
-
-          <FormField label="Date">
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          {dateFilter === 'specific_date' && (
-            <FormField label="Specific Date">
-              <DatePicker value={specificDate} onChange={setSpecificDate} />
-            </FormField>
-          )}
-
-          {dateFilter === 'date_range' && (
-            <>
-              <FormField label="From">
-                <DatePicker value={dateFrom} onChange={setDateFrom} />
+      {/* Compact & Colorful Filters Section */}
+      <ErpSection title="Filters" icon={Filter} tone="indigo">
+        <div className="rounded-lg border border-indigo-100 bg-white shadow-sm overflow-hidden">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 p-3">
+            <div className="flex flex-col gap-1">
+              <FormField label="Teacher">
+                <SearchableTeacherSelect
+                  value={teacherId}
+                  onChange={setTeacherId}
+                  teachers={teachers}
+                  placeholder="All Teachers"
+                  includeAllOption
+                  allLabel="All Teachers"
+                />
               </FormField>
-              <FormField label="To">
-                <DatePicker value={dateTo} onChange={setDateTo} />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FormField label="Class">
+                <Select
+                  value={classId ? classId : ALL_CLASSES_VALUE}
+                  onValueChange={(v) => setClassId(v === ALL_CLASSES_VALUE ? '' : v)}
+                >
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_CLASSES_VALUE}>All Classes</SelectItem>
+                    {filteredClasses.map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {formatClassName(c.className)}-{c.section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
-            </>
-          )}
+            </div>
 
-          <FormField label="Sort">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-        </div>
+            <div className="flex flex-col gap-1">
+              <FormField label="Subject">
+                <SubjectSelect
+                  value={subject}
+                  onChange={setSubject}
+                  subjects={filteredSubjects}
+                  placeholder="All Subjects"
+                  includeAllOption
+                  allLabel="All Subjects"
+                />
+              </FormField>
+            </div>
 
-        <div className="mt-4">
-          <Button onClick={fetchRows} disabled={loading} className="shadow-sm">
-            {loading ? 'Loading...' : 'Apply Filters'}
-          </Button>
+            <div className="flex flex-col gap-1">
+              <FormField label="Assessment Type">
+                <AssessmentTypeMultiSelect value={assessmentTypes} onChange={setAssessmentTypes} options={ASSESSMENT_OPTIONS} />
+              </FormField>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <FormField label="Date Filter">
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+
+            {dateFilter === 'specific_date' && (
+              <div className="flex flex-col gap-1">
+                <FormField label="Specific Date">
+                  <DatePicker value={specificDate} onChange={setSpecificDate} />
+                </FormField>
+              </div>
+            )}
+
+            {dateFilter === 'date_range' && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <FormField label="From">
+                    <DatePicker value={dateFrom} onChange={setDateFrom} />
+                  </FormField>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <FormField label="To">
+                    <DatePicker value={dateTo} onChange={setDateTo} />
+                  </FormField>
+                </div>
+              </>
+            )}
+
+            <div className="flex flex-col gap-1">
+              <FormField label="Sort By">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+          </div>
+
+          {/* Compact Bottom Actions */}
+          <div className="border-t border-indigo-50 bg-gradient-to-r from-indigo-50/40 to-blue-50/40 p-2.5 px-3 flex justify-end">
+            <Button size="sm" onClick={fetchRows} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-4 text-xs font-medium shadow-sm">
+              {loading ? 'Loading...' : 'Apply Filters'}
+            </Button>
+          </div>
         </div>
       </ErpSection>
 
-      <ErpSection title="Performance List" icon={BarChart3} tone="green">
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      {/* Compact Table Section */}
+      <ErpSection title="Performance List" icon={BarChart3} tone="indigo">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-50/70">
-                <TableHead>Teacher</TableHead>
-                <TableHead>Subject</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead className="text-right">Performance %</TableHead>
-                <TableHead className="text-right">Students</TableHead>
-                <TableHead className="text-right">Tests Conducted</TableHead>
-                <TableHead>Last Test Date</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+              <TableRow className="bg-gradient-to-r from-slate-50 to-indigo-50/30">
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600">Teacher</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600">Subject</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600">Class</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600 text-right">Performance %</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600 text-right">Students</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600 text-right">Tests Conducted</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600">Last Test Date</TableHead>
+                <TableHead className="py-2.5 px-3 text-xs font-semibold text-slate-600 text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-slate-100">
               {error ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-rose-600">
+                  <TableCell colSpan={8} className="py-8 text-center text-sm font-medium text-rose-600">
                     {error}
                   </TableCell>
                 </TableRow>
               ) : loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-slate-500">
+                  <TableCell colSpan={8} className="py-8 text-center text-sm font-medium text-slate-500">
                     Loading...
                   </TableCell>
                 </TableRow>
@@ -396,20 +419,21 @@ export default function TeacherPerformance() {
                 rows.map((r, idx) => (
                   <TableRow
                     key={`${r?.teacher?._id || r?.teacherId || 't'}-${r?.class?._id || r?.classId || 'c'}-${r?.subject || 's'}-${idx}`}
-                    className="hover:bg-slate-50"
+                    className="hover:bg-indigo-50/20 transition-colors"
                   >
-                    <TableCell className="font-medium">{getTeacherName(r)}</TableCell>
-                    <TableCell className="font-semibold text-slate-900">{r?.subject || '-'}</TableCell>
-                    <TableCell>{getClassLabel(r) || '-'}</TableCell>
-                    <TableCell className="text-right font-bold text-indigo-700">{getPerformance(r)}%</TableCell>
-                    <TableCell className="text-right">{getStudentsCount(r)}</TableCell>
-                    <TableCell className="text-right">{getTestsCount(r)}</TableCell>
-                    <TableCell>{getLastTestDate(r) ? formatDisplayDateShort(getLastTestDate(r)) : '-'}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="py-2 px-3 text-sm font-medium text-slate-800">{getTeacherName(r)}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm font-semibold text-slate-900">{r?.subject || '-'}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm text-slate-600">{getClassLabel(r) || '-'}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm text-right font-bold text-indigo-600">{getPerformance(r)}%</TableCell>
+                    <TableCell className="py-2 px-3 text-sm text-right text-slate-700">{getStudentsCount(r)}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm text-right text-slate-700">{getTestsCount(r)}</TableCell>
+                    <TableCell className="py-2 px-3 text-sm text-slate-600">{getLastTestDate(r) ? formatDisplayDateShort(getLastTestDate(r)) : '-'}</TableCell>
+                    <TableCell className="py-2 px-3 text-right">
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={!r?.teacher?._id && !r?.teacherId}
+                        className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 px-2.5"
                         onClick={() => {
                           const sp = new URLSearchParams();
                           sp.set('teacherId', r?.teacher?._id || r?.teacherId || '');
@@ -432,7 +456,7 @@ export default function TeacherPerformance() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-slate-500">
+                  <TableCell colSpan={8} className="py-8 text-center text-sm font-medium text-slate-500">
                     No performance data found
                   </TableCell>
                 </TableRow>

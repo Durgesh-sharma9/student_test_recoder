@@ -84,7 +84,13 @@ export default function SearchableTeacherSelect({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 max-h-[300px] w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div 
+          className="absolute z-50 mt-1 max-h-[300px] w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9'
+          }}
+        >
           {loading && <p className="px-3 py-2 text-sm text-slate-500">Loading...</p>}
           {!loading && includeAllOption && (
             <button

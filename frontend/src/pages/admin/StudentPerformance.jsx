@@ -862,39 +862,38 @@ export default function StudentPerformance() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+    <div className="space-y-4 max-w-7xl mx-auto pb-8 p-4 sm:p-6 lg:p-8">
       
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header Section (Clean White) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Student Performance</h1>
-          <p className="text-sm text-slate-500 mt-1">Comprehensive academic analytics and tracking.</p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Student Performance</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Comprehensive academic analytics and tracking.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="shadow-sm" onClick={handleExportPDF}>
-            <Download className="h-4 w-4 mr-2" /> Download PDF
+        {/* <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="shadow-sm h-8 text-xs" onClick={handleExportPDF}>
+            <Download className="h-3.5 w-3.5 mr-1.5" /> Download PDF
           </Button>
-        </div>
+        </div> */}
       </div>
 
-      {/* Filters Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-          <Filter className="h-5 w-5 text-indigo-500" />
-          <h2 className="text-base font-semibold text-slate-800">Analytics Filters</h2>
+      {/* Compact Filters Card (Clean White as requested) */}
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
+          <Filter className="h-4 w-4 text-indigo-500" />
+          <h2 className="text-sm font-semibold text-slate-800">Analytics Filters</h2>
         </div>
         
-        {/* REDESIGNED 3-COLUMN FILTER LAYOUT */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           
           {/* 1. Class Dropdown */}
           <div>
-            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">
-              Select Class <span className="text-rose-50">*</span>
+            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">
+              Select Class <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <select
-                className="w-full h-11 pl-4 pr-10 appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-100"
+                className="w-full h-9 pl-3 pr-8 appearance-none bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-50"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
               >
@@ -903,18 +902,18 @@ export default function StudentPerformance() {
                   <option key={c._id} value={c._id}>{c.className} - {c.section}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           {/* 2. Date Range for Daily Test Only */}
           <div>
-            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">
+            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">
               Daily Test Date Filter
             </label>
             <div className="relative">
               <select
-                className="w-full h-11 pl-4 pr-10 appearance-none bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-100"
+                className="w-full h-9 pl-3 pr-8 appearance-none bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-50"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
               >
@@ -926,16 +925,17 @@ export default function StudentPerformance() {
                 <option value="Specific Date">Specific Date</option>
                 <option value="Date Range">Date Range</option>
               </select>
-              <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+              <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
           {/* 3. Generate Analytics Button */}
-          <div className="w-full pb-0.5">
+          <div className="w-full">
             <Button 
               onClick={handleGenerateAnalytics} 
               disabled={loading || !selectedClass}
-              className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-md shadow-indigo-200 transition-all"
+              size="sm"
+              className="w-full h-9 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium shadow-sm transition-all"
             >
               {loading ? 'Generating...' : 'Generate Analytics'}
             </Button>
@@ -945,14 +945,14 @@ export default function StudentPerformance() {
 
         {/* Extended Date Filters */}
         {(dateRange === 'Specific Date' || dateRange === 'Date Range') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 pt-5 border-t border-slate-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-3 border-t border-slate-100">
             {dateRange === 'Specific Date' && (
               <div>
-                <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">Specific Date</label>
+                <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">Specific Date</label>
                 <DatePicker
                   value={specificDate}
                   onChange={setSpecificDate}
-                  className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                  className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                 />
               </div>
             )}
@@ -960,19 +960,19 @@ export default function StudentPerformance() {
             {dateRange === 'Date Range' && (
               <>
                 <div>
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">From Date</label>
+                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">From Date</label>
                   <DatePicker
                     value={dateFrom}
                     onChange={setDateFrom}
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                    className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">To Date</label>
+                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">To Date</label>
                   <DatePicker
                     value={dateTo}
                     onChange={setDateTo}
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                    className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                   />
                 </div>
               </>
@@ -981,16 +981,16 @@ export default function StudentPerformance() {
         )}
       </div>
 
-      {/* Results Table Section */}
+      {/* Compact Results Table Section (Clean White) */}
       {filteredTableData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print-container">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden print-container">
           <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h3 className="font-semibold text-slate-800">Performance Report</h3>
+            <h3 className="font-semibold text-slate-800 text-sm">Performance Report</h3>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
               <Input 
                 placeholder="Search by name or roll no..." 
-                className="pl-9 h-9 text-sm rounded-lg bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+                className="pl-8 h-8 text-xs rounded-md bg-white border-slate-200 focus:bg-slate-50 transition-colors shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -998,27 +998,27 @@ export default function StudentPerformance() {
           </div>
           
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
+            <table className="w-full text-xs text-left">
+              <thead className="text-[10px] text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Roll No</th>
-                  <th className="px-6 py-4 font-semibold">Student Name</th>
-                  <th className="px-6 py-4 font-semibold text-center">Daily Test %</th>
-                  <th className="px-6 py-4 font-semibold text-center">Main Exam %</th>
-                  <th className="px-6 py-4 font-semibold text-center">Notebook %</th>
-                  <th className="px-6 py-4 font-semibold text-right">Action</th>
+                  <th className="px-4 py-2.5 font-semibold">Roll No</th>
+                  <th className="px-4 py-2.5 font-semibold">Student Name</th>
+                  <th className="px-4 py-2.5 font-semibold text-center">Daily Test %</th>
+                  <th className="px-4 py-2.5 font-semibold text-center">Main Exam %</th>
+                  <th className="px-4 py-2.5 font-semibold text-center">Notebook %</th>
+                  <th className="px-4 py-2.5 font-semibold text-right">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filteredTableData.map((student) => (
-                  <tr key={student._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3 font-medium text-slate-900">{student.rollNo}</td>
-                    <td className="px-6 py-3 font-medium text-slate-700">{student.name}</td>
-                    <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.dailyPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.mainPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-6 py-3 text-center text-slate-600 font-medium">{student.notebookPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-6 py-3 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => openStudentDetails(student)} className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
+                  <tr key={student._id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-2.5 font-medium text-slate-800">{student.rollNo}</td>
+                    <td className="px-4 py-2.5 font-medium text-slate-700">{student.name}</td>
+                    <td className="px-4 py-2.5 text-center text-emerald-600 font-bold">{student.dailyPercentage?.toFixed(1) || 0}%</td>
+                    <td className="px-4 py-2.5 text-center text-rose-600 font-bold">{student.mainPercentage?.toFixed(1) || 0}%</td>
+                    <td className="px-4 py-2.5 text-center text-sky-600 font-bold">{student.notebookPercentage?.toFixed(1) || 0}%</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => openStudentDetails(student)} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
                         View Details
                       </Button>
                     </td>
