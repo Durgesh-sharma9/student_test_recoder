@@ -25,14 +25,18 @@ const TONE_STYLES = {
 
 export function PageHeader({ title, description, children }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h1>
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between w-full max-w-full overflow-x-hidden">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-3xl break-words leading-tight">
+          {title}
+        </h1>
         {description ? (
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">{description}</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-500 break-words">
+            {description}
+          </p>
         ) : null}
       </div>
-      {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
+      {children ? <div className="flex flex-wrap items-center gap-2 shrink-0">{children}</div> : null}
     </div>
   );
 }

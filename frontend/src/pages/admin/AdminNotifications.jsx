@@ -658,7 +658,6 @@ export default function AdminNotifications() {
                     <col style={{ width: '12%' }} />
                     <col style={{ width: '10%' }} />
                     <col style={{ width: '12%' }} />
-                    <col style={{ width: 'auto' }} />
                   </colgroup>
                   <thead className="bg-gradient-to-r from-rose-50/50 to-orange-50/30 border-b border-rose-100/60">
                     <tr className="text-rose-900/80 font-black tracking-wider text-[10px] uppercase">
@@ -668,7 +667,6 @@ export default function AdminNotifications() {
                       <th className="px-4 py-3.5">From</th>
                       <th className="px-4 py-3.5">Date</th>
                       <th className="px-4 py-3.5 text-center">Files</th>
-                      <th className="px-4 py-3.5 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -694,16 +692,29 @@ export default function AdminNotifications() {
                               </span>
                             </div>
                           </td>
-                          <td className={cn("px-4 py-3")}> 
-                            <div className="flex items-center gap-2">
-                              <div className="min-w-0 flex-1">
-                                <div className={cn("truncate", unread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>{n.title}</div>
-                              </div>
+                          <td className={cn("px-4 py-3")}>
+                            <div className="flex items-start gap-2 min-w-0">
                               {unread && (
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" aria-hidden />
-                                  <span className="text-[10px] font-bold text-blue-700">Unread</span>
+                                <span className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" aria-hidden />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className={cn("line-clamp-2 break-words overflow-wrap-anywhere leading-snug", unread ? "font-bold text-slate-900" : "font-medium text-slate-900")} title={n.title}>
+                                  {n.title}
                                 </div>
+                              </div>
+                              {hasRedirect && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotificationClick(n);
+                                  }}
+                                  className="h-7 px-3 text-xs font-medium rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center gap-1.5 flex-shrink-0"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  View
+                                </Button>
                               )}
                             </div>
                           </td>
@@ -798,19 +809,7 @@ export default function AdminNotifications() {
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">
-                            {unread ? (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
-                                className="p-1.5 text-slate-400 hover:text-emerald-500 bg-white border border-slate-200 hover:border-emerald-200 shadow-sm rounded-md transition-colors inline-flex flex-shrink-0" 
-                                title="Mark as Read"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </button>
-                            ) : (
-                              <div className="p-1.5 text-slate-200 inline-flex">
-                                <CheckCheck className="h-3.5 w-3.5" />
-                              </div>
-                            )}
+                            <div className="text-slate-400 text-xs">-</div>
                           </td>
                         </tr>
                       );
@@ -841,17 +840,32 @@ export default function AdminNotifications() {
                           <span className={cn('border px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider', getPriorityBadge(n.priority))}>
                             {n.priority || 'INFO'}
                           </span>
-                          {unread && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />
-                              <span className="text-[10px] font-bold text-blue-700">Unread</span>
-                            </div>
-                          )}
                         </div>
                         <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">{formatDate(n.createdAt)}</span>
                       </div>
                       
-                      <h4 className={cn("font-bold text-[13px] text-slate-900 mb-1", unread ? "" : "font-medium")}>{n.title}</h4>
+                      <div className="flex items-start gap-2 mb-1">
+                        {unread && (
+                          <span className="h-2 w-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" aria-hidden />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <h4 className={cn("font-bold text-[13px] text-slate-900 line-clamp-2 break-words overflow-wrap-anywhere leading-snug", unread ? "" : "font-medium")} title={n.title}>{n.title}</h4>
+                        </div>
+                        {hasRedirect && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotificationClick(n);
+                            }}
+                            className="h-7 px-3 text-xs font-medium rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center gap-1.5 flex-shrink-0"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View
+                          </Button>
+                        )}
+                      </div>
                       <p className={cn("text-[12px] mb-3 line-clamp-2", unread ? "font-semibold text-slate-800" : "font-medium text-slate-600")}>{n.message}</p>
                       
                       <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 mb-3">
@@ -938,17 +952,6 @@ export default function AdminNotifications() {
                           </div>
                         ) : (
                           <div className="text-slate-400 text-xs">No Attachment</div>
-                        )}
-                        
-                        {unread && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs font-medium text-slate-600 hover:text-emerald-600 px-3"
-                            onClick={(e) => { e.stopPropagation(); markAsRead(n._id); }}
-                          >
-                            <Check className="mr-1 h-3 w-3" /> Mark Read
-                          </Button>
                         )}
                       </div>
                     </div>
