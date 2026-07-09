@@ -103,7 +103,13 @@ const SelectContent = React.forwardRef(
         )}
         {...props}
       >
-        <SelectPrimitive.Viewport className="p-2">
+        <SelectPrimitive.Viewport 
+          className="p-2 max-h-[300px] overflow-y-auto"
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f1f5f9'
+          }}
+        >
           {children}
         </SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
