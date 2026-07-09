@@ -1,10 +1,10 @@
 /**
  * Global Date Formatter
  * 
- * Formats dates for UI display in DD/MM/YYYY format
+ * Formats dates for UI display in dd-MM-yyyy format
  * 
  * @param {Date|string} date - Date object or date string
- * @returns {string} Formatted date string in DD/MM/YYYY format
+ * @returns {string} Formatted date string in dd-MM-yyyy format
  */
 export const formatDisplayDate = (date) => {
   if (!date) return '';
@@ -16,14 +16,14 @@ export const formatDisplayDate = (date) => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
 };
 
 /**
- * Format date with short month name (e.g., 09/Jun/2026)
+ * Format date with short month name (e.g., 09-Jun-2026)
  * 
  * @param {Date|string} date - Date object or date string
- * @returns {string} Formatted date string in DD/MMM/YYYY format
+ * @returns {string} Formatted date string in dd-MMM-yyyy format
  */
 export const formatDisplayDateShort = (date) => {
   if (!date) return '';
@@ -36,7 +36,7 @@ export const formatDisplayDateShort = (date) => {
   const month = monthNames[d.getMonth()];
   const year = d.getFullYear();
   
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
 };
 
 /**

@@ -9,6 +9,7 @@ import SubjectSelect from '@/components/SubjectSelect';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
@@ -386,11 +387,10 @@ export default function MarksEntryForm({ category, title }) {
 
             {isDaily ? (
               <FormField label="Test Date" className="space-y-1.5">
-                <Input
-                  type="date"
+                <DatePicker
                   value={form.testDate}
-                  onChange={(e) => {
-                    setForm({ ...form, testDate: e.target.value });
+                  onChange={(date) => {
+                    setForm({ ...form, testDate: date });
                     clearLoadedData();
                   }}
                   className="h-9 rounded-md bg-white border-orange-200 focus-visible:ring-orange-500 shadow-sm"
@@ -413,11 +413,10 @@ export default function MarksEntryForm({ category, title }) {
                   </Select>
                 </FormField>
                 <FormField label="Exam Date" className="space-y-1.5">
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={form.examDate}
-                    onChange={(e) => {
-                      setForm({ ...form, examDate: e.target.value });
+                    onChange={(date) => {
+                      setForm({ ...form, examDate: date });
                       clearLoadedData();
                     }}
                     className="h-9 rounded-md bg-white border-orange-200 focus-visible:ring-orange-500 shadow-sm"

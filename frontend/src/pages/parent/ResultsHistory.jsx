@@ -11,6 +11,7 @@ import AbsentBadge from '@/components/AbsentBadge';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 
 const getExamTypeColor = (examType) => {
   if (examType === 'Daily Test') return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -271,10 +272,9 @@ export default function ResultsHistory() {
           {filterMode === 'specific' ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Select Date</label>
-              <Input
-                type="date"
+              <DatePicker
                 value={specificDate}
-                onChange={(e) => setSpecificDate(e.target.value)}
+                onChange={setSpecificDate}
                 className="h-10 w-full md:w-64"
               />
             </div>
@@ -282,19 +282,17 @@ export default function ResultsHistory() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Date From</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  onChange={setDateFrom}
                   className="h-10"
                 />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Date To</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  onChange={setDateTo}
                   className="h-10"
                 />
               </div>

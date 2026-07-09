@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 import AssessmentTypeMultiSelect from '@/components/AssessmentTypeMultiSelect';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
@@ -948,11 +949,10 @@ export default function StudentPerformance() {
             {dateRange === 'Specific Date' && (
               <div>
                 <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">Specific Date</label>
-                <input
-                  type="date"
-                  className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                <DatePicker
                   value={specificDate}
-                  onChange={(e) => setSpecificDate(e.target.value)}
+                  onChange={setSpecificDate}
+                  className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                 />
               </div>
             )}
@@ -961,20 +961,18 @@ export default function StudentPerformance() {
               <>
                 <div>
                   <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">From Date</label>
-                  <input
-                    type="date"
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                  <DatePicker
                     value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
+                    onChange={setDateFrom}
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                   />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1.5 block ml-1">To Date</label>
-                  <input
-                    type="date"
-                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+                  <DatePicker
                     value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
+                    onChange={setDateTo}
+                    className="w-full h-11 px-4 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
                   />
                 </div>
               </>

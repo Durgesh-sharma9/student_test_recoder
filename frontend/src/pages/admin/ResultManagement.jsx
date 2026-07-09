@@ -15,6 +15,7 @@ import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -412,9 +413,7 @@ export default function ResultManagement() {
             {view === 'daily' && dateFilterType === 'specific' && (
 
               <FormField label="Test Date">
-
-                <Input type="date" value={filters.testDate} onChange={(e) => setFilters({ ...filters, testDate: e.target.value })} className="h-9" />
-
+                <DatePicker value={filters.testDate} onChange={(date) => setFilters({ ...filters, testDate: date })} className="h-9" />
               </FormField>
 
             )}
@@ -424,15 +423,10 @@ export default function ResultManagement() {
               <>
 
                 <FormField label="From">
-
-                  <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="h-9" />
-
+                  <DatePicker value={filters.dateFrom} onChange={(date) => setFilters({ ...filters, dateFrom: date })} className="h-9" />
                 </FormField>
-
                 <FormField label="To">
-
-                  <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="h-9" />
-
+                  <DatePicker value={filters.dateTo} onChange={(date) => setFilters({ ...filters, dateTo: date })} className="h-9" />
                 </FormField>
 
               </>
@@ -458,9 +452,7 @@ export default function ResultManagement() {
             {view === 'main' && (
 
               <FormField label="Exam Date">
-
-                <Input type="date" placeholder="Exam Date" value={filters.examDate} onChange={(e) => setFilters({ ...filters, examDate: e.target.value })} className="h-9" />
-
+                <DatePicker value={filters.examDate} onChange={(date) => setFilters({ ...filters, examDate: date })} className="h-9" />
               </FormField>
 
             )}

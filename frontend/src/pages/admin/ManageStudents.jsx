@@ -10,6 +10,7 @@ import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -602,10 +603,9 @@ export default function ManageStudents() {
                 </Select>
               </FormField>
               <FormField label="Admission Date">
-                <Input
-                  type="date"
+                <DatePicker
                   value={form.admissionDate}
-                  onChange={(e) => setForm({ ...form, admissionDate: e.target.value })}
+                  onChange={(date) => setForm({ ...form, admissionDate: date })}
                   required
                   className="h-9 rounded-md text-sm"
                 />

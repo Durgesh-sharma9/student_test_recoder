@@ -8,6 +8,7 @@ import { PageHeader, ErpSection, PageStack, FormField } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatClassName } from '@/lib/utils';
@@ -493,10 +494,9 @@ export default function AcademicSessions() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Start Date
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, startDate: date })}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       required
                     />
@@ -505,10 +505,9 @@ export default function AcademicSessions() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       End Date
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, endDate: date })}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       required
                     />
@@ -559,10 +558,9 @@ export default function AcademicSessions() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       Start Date
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, startDate: date })}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       required
                     />
@@ -571,10 +569,9 @@ export default function AcademicSessions() {
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       End Date
                     </label>
-                    <input
-                      type="date"
+                    <DatePicker
                       value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      onChange={(date) => setFormData({ ...formData, endDate: date })}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                       required
                     />
@@ -721,15 +718,15 @@ export default function AcademicSessions() {
                   </FormField>
                   {reportFilters.dateFilterType === 'specific' ? (
                     <FormField label="Test Date">
-                      <Input type="date" value={reportFilters.specificDate} onChange={(e) => setReportFilters({ ...reportFilters, specificDate: e.target.value })} />
+                      <DatePicker value={reportFilters.specificDate} onChange={(date) => setReportFilters({ ...reportFilters, specificDate: date })} />
                     </FormField>
                   ) : (
                     <>
                       <FormField label="From">
-                        <Input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({ ...reportFilters, dateFrom: e.target.value })} />
+                        <DatePicker value={reportFilters.dateFrom} onChange={(date) => setReportFilters({ ...reportFilters, dateFrom: date })} />
                       </FormField>
                       <FormField label="To">
-                        <Input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({ ...reportFilters, dateTo: e.target.value })} />
+                        <DatePicker value={reportFilters.dateTo} onChange={(date) => setReportFilters({ ...reportFilters, dateTo: date })} />
                       </FormField>
                     </>
                   )}

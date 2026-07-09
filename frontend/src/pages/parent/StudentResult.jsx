@@ -10,6 +10,7 @@ import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DatePicker from '@/components/ui/DatePicker';
 
 const getExamTypeColor = (examType) => {
   if (examType === 'Daily Test') return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -301,19 +302,17 @@ export default function StudentResult() {
               <>
                 <div className="w-full sm:w-auto">
                   <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
+                    onChange={setDateFrom}
                     className="w-full sm:w-48"
                   />
                 </div>
                 <div className="w-full sm:w-auto">
                   <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
+                    onChange={setDateTo}
                     className="w-full sm:w-48"
                   />
                 </div>
@@ -321,10 +320,9 @@ export default function StudentResult() {
             ) : (
               <div className="w-full sm:w-auto">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={specificDate}
-                  onChange={(e) => setSpecificDate(e.target.value)}
+                  onChange={setSpecificDate}
                   className="w-full sm:w-48"
                 />
               </div>
