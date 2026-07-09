@@ -70,6 +70,29 @@ export const getNotifications = asyncHandler(async (req, res) => {
     .populate('recipientIds', 'name email')
     .sort({ createdAt: -1 });
 
+  // Normalize attachments for backward compatibility
+  const normalizedNotifications = notifications.map(notification => {
+    const notificationObj = notification.toObject();
+    
+    // If attachments array exists, use it
+    if (notificationObj.attachments && notificationObj.attachments.length > 0) {
+      return notificationObj;
+    }
+    
+    // Otherwise, normalize legacy single attachment fields to array format
+    if (notificationObj.attachmentUrl) {
+      notificationObj.attachments = [{
+        url: notificationObj.attachmentUrl,
+        name: notificationObj.attachmentName || 'Attachment',
+        type: notificationObj.attachmentType
+      }];
+    } else {
+      notificationObj.attachments = [];
+    }
+    
+    return notificationObj;
+  });
+
   console.log('[getNotifications] notifications found:', notifications.length);
 
   const unreadCount = await Notification.countDocuments({
@@ -83,7 +106,7 @@ export const getNotifications = asyncHandler(async (req, res) => {
     success: true,
     count: notifications.length,
     unreadCount,
-    notifications,
+    notifications: normalizedNotifications,
   });
 });
 
@@ -293,6 +316,11 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;
 
+  console.log('[markAsRead] Notification ID:', id);
+  console.log('[markAsRead] User ID:', userId);
+  console.log('[markAsRead] Before update - readBy:', notification.readBy);
+  console.log('[markAsRead] Before update - readBy includes user:', notification.readBy.includes(userId));
+
   // Check if user is a recipient
   if (!notification.recipientIds.some((r) => r.toString() === userId.toString())) {
     throw new ApiError(403, 'You do not have permission to mark this notification as read.');
@@ -301,7 +329,11 @@ export const markAsRead = asyncHandler(async (req, res) => {
   // Add user to readBy array if not already there
   if (!notification.readBy.includes(userId)) {
     notification.readBy.push(userId);
-    await notification.save();
+    const saved = await notification.save();
+    console.log('[markAsRead] After save - readBy:', saved.readBy);
+    console.log('[markAsRead] After save - readBy includes user:', saved.readBy.includes(userId));
+  } else {
+    console.log('[markAsRead] User already in readBy, skipping update');
   }
 
   res.json({
@@ -316,6 +348,9 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
+  console.log('[markAllAsRead] User ID:', userId);
+  console.log('[markAllAsRead] School ID:', schoolId);
+
   let filter = {
     recipientIds: userId,
     readBy: { $ne: userId },
@@ -325,9 +360,14 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
     filter.schoolId = schoolId;
   }
 
-  await Notification.updateMany(filter, {
+  console.log('[markAllAsRead] Filter:', JSON.stringify(filter, null, 2));
+
+  const result = await Notification.updateMany(filter, {
     $addToSet: { readBy: userId },
   });
+
+  console.log('[markAllAsRead] Update result:', result);
+  console.log('[markAllAsRead] Modified count:', result.modifiedCount);
 
   res.json({
     success: true,

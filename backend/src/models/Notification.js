@@ -1,5 +1,14 @@
 import mongoose from 'mongoose';
 
+const notificationAttachmentSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true, trim: true },
+    name: { type: String, trim: true },
+    type: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const notificationSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -29,10 +38,11 @@ const notificationSchema = new mongoose.Schema(
     type: { type: String, enum: ['announcement', 'poll', 'feedback'], default: 'announcement' },
     pollId: { type: mongoose.Schema.Types.ObjectId, ref: 'Poll' },
     feedbackId: { type: mongoose.Schema.Types.ObjectId, ref: 'Feedback' },
-    // Attachment fields
+    // Attachment fields - both single attachment (legacy) and multiple attachments (new)
     attachmentUrl: { type: String, trim: true },
     attachmentName: { type: String, trim: true },
     attachmentType: { type: String, trim: true },
+    attachments: [notificationAttachmentSchema],
   },
   { timestamps: true }
 );

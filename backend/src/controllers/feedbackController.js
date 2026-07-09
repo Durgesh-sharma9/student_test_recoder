@@ -97,23 +97,49 @@ export const getFeedback = asyncHandler(async (req, res) => {
       }
     })
     .populate('teacherIds', 'teacherName name email')
-    .populate('createdBy', 'name teacherName parentName adminName')
     .sort({ createdAt: -1 });
 
+  // Manually populate createdBy based on role to handle different user types
+  const ticketsWithCreator = await Promise.all(tickets.map(async (ticket) => {
+    const ticketObj = ticket.toObject();
+    let creatorName = 'Unknown User';
+    
+    if (ticket.createdByRole === 'parent') {
+      const parent = await Parent.findById(ticket.createdBy).select('parentName');
+      if (parent) {
+        creatorName = parent.parentName || 'Unknown Parent';
+      }
+    } else if (ticket.createdByRole === 'teacher') {
+      const teacher = await User.findById(ticket.createdBy).select('name teacherName');
+      if (teacher) {
+        creatorName = teacher.teacherName || teacher.name || 'Unknown Teacher';
+      }
+    } else if (ticket.createdByRole === 'school_admin') {
+      const admin = await User.findById(ticket.createdBy).select('name adminName');
+      if (admin) {
+        creatorName = admin.adminName || admin.name || 'Unknown Admin';
+      }
+    }
+    
+    ticketObj.createdByName = creatorName;
+    return ticketObj;
+  }));
+
   console.log('Total tickets found:', tickets.length);
-  tickets.forEach((ticket, idx) => {
+  ticketsWithCreator.forEach((ticket, idx) => {
     console.log(`Ticket ${idx} (${ticket.ticketId}):`, {
       hasAttachments: !!ticket.attachments,
       attachmentsCount: ticket.attachments?.length || 0,
       attachments: ticket.attachments,
       messagesCount: ticket.messages?.length || 0,
       firstMessageAttachments: ticket.messages[0]?.attachments,
-      createdByRole: ticket.createdByRole
+      createdByRole: ticket.createdByRole,
+      createdByName: ticket.createdByName
     });
   });
   console.log('=== GET FEEDBACK END ===');
 
-  res.json({ success: true, feedback: tickets });
+  res.json({ success: true, feedback: ticketsWithCreator });
 });
 
 export const createFeedback = asyncHandler(async (req, res) => {
@@ -269,6 +295,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
       isBroadcast: true,
       type: 'feedback',
       feedbackId: feedback._id,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
   }
 
@@ -286,6 +313,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
       isBroadcast: false,
       type: 'feedback',
       feedbackId: feedback._id,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
   }
 
@@ -309,6 +337,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
         isBroadcast: false, // Changed to false since we're sending to specific teachers
         type: 'feedback',
         feedbackId: feedback._id,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
     }
   }

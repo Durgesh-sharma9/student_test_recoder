@@ -30,7 +30,7 @@ const feedbackSchema = new mongoose.Schema(
     taggedTeacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     taggedTeacherName: { type: String, trim: true },
     taggedSubject: { type: String, trim: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
     createdByRole: { type: String, enum: ['parent', 'teacher', 'school_admin'], required: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
