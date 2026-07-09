@@ -2,14 +2,17 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart3, Search, Calendar, Filter, Download, X, 
   Target, BrainCircuit, XCircle, ChevronUp, ChevronDown,
-  Award, BookOpen, TrendingUp
+  Award, BookOpen, TrendingUp, ChevronDown as SelectChevron, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import DatePicker from '@/components/ui/DatePicker';
 import AssessmentTypeMultiSelect from '@/components/AssessmentTypeMultiSelect';
+import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend
@@ -862,172 +865,207 @@ export default function StudentPerformance() {
   };
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-8 p-4 sm:p-6 lg:p-8">
-      
-      {/* Header Section (Clean White) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Student Performance</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Comprehensive academic analytics and tracking.</p>
-        </div>
-        {/* <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="shadow-sm h-8 text-xs" onClick={handleExportPDF}>
-            <Download className="h-3.5 w-3.5 mr-1.5" /> Download PDF
-          </Button>
-        </div> */}
-      </div>
+    <PageStack>
+      <PageHeader title="Student Performance" description="Comprehensive academic analytics and tracking" />
 
-      {/* Compact Filters Card (Clean White as requested) */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100">
-          <Filter className="h-4 w-4 text-indigo-500" />
-          <h2 className="text-sm font-semibold text-slate-800">Analytics Filters</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          
-          {/* 1. Class Dropdown */}
-          <div>
-            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">
-              Select Class <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                className="w-full h-9 pl-3 pr-8 appearance-none bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-50"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+      {/* Compact Filters Section */}
+      <ErpSection title="Filters" icon={Filter} tone="indigo">
+        <div className="rounded-lg border border-indigo-100 bg-white shadow-sm overflow-hidden">
+          <div className="grid gap-3 sm:grid-cols-3 p-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Class <span className="text-rose-500">*</span></label>
+              <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <SelectTrigger className="h-9 rounded-xl border-slate-200 text-sm">
+                  <SelectValue placeholder="-- Choose Class --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map(c => (
+                    <SelectItem key={c._id} value={c._id}>{c.className} - {c.section}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Date Filter</label>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="h-9 rounded-xl border-slate-200 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Time">All Time</SelectItem>
+                  <SelectItem value="Today">Today</SelectItem>
+                  <SelectItem value="This Week">This Week</SelectItem>
+                  <SelectItem value="This Month">This Month</SelectItem>
+                  <SelectItem value="This Year">This Year</SelectItem>
+                  <SelectItem value="Specific Date">Specific Date</SelectItem>
+                  <SelectItem value="Date Range">Date Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">&nbsp;</label>
+              <Button 
+                onClick={handleGenerateAnalytics} 
+                disabled={loading || !selectedClass}
+                size="sm"
+                className="w-full h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium shadow-sm transition-all"
               >
-                <option value="">-- Choose Class --</option>
-                {classes.map(c => (
-                  <option key={c._id} value={c._id}>{c.className} - {c.section}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                {loading ? 'Generating...' : 'Generate Analytics'}
+              </Button>
             </div>
           </div>
 
-          {/* 2. Date Range for Daily Test Only */}
-          <div>
-            <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">
-              Daily Test Date Filter
-            </label>
-            <div className="relative">
-              <select
-                className="w-full h-9 pl-3 pr-8 appearance-none bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium cursor-pointer hover:bg-slate-50"
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-              >
-                <option value="All Time">All Time</option>
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="This Year">This Year</option>
-                <option value="Specific Date">Specific Date</option>
-                <option value="Date Range">Date Range</option>
-              </select>
-              <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          {/* Extended Date Filters */}
+          {(dateRange === 'Specific Date' || dateRange === 'Date Range') && (
+            <div className="border-t border-indigo-50 bg-gradient-to-r from-indigo-50/30 to-blue-50/30 p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {dateRange === 'Specific Date' && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">Specific Date</label>
+                  <DatePicker
+                    value={specificDate}
+                    onChange={setSpecificDate}
+                    className="h-9 rounded-xl border-slate-200 text-sm"
+                  />
+                </div>
+              )}
+
+              {dateRange === 'Date Range' && (
+                <>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">From Date</label>
+                    <DatePicker
+                      value={dateFrom}
+                      onChange={setDateFrom}
+                      className="h-9 rounded-xl border-slate-200 text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">To Date</label>
+                    <DatePicker
+                      value={dateTo}
+                      onChange={setDateTo}
+                      className="h-9 rounded-xl border-slate-200 text-sm"
+                    />
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-
-          {/* 3. Generate Analytics Button */}
-          <div className="w-full">
-            <Button 
-              onClick={handleGenerateAnalytics} 
-              disabled={loading || !selectedClass}
-              size="sm"
-              className="w-full h-9 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium shadow-sm transition-all"
-            >
-              {loading ? 'Generating...' : 'Generate Analytics'}
-            </Button>
-          </div>
-
+          )}
         </div>
+      </ErpSection>
 
-        {/* Extended Date Filters */}
-        {(dateRange === 'Specific Date' || dateRange === 'Date Range') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4 pt-3 border-t border-slate-100">
-            {dateRange === 'Specific Date' && (
-              <div>
-                <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">Specific Date</label>
-                <DatePicker
-                  value={specificDate}
-                  onChange={setSpecificDate}
-                  className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
+      {/* Performance Report Section */}
+      {filteredTableData.length > 0 && (
+        <ErpSection title="Performance Report" icon={BarChart3} tone="indigo">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {/* Search Bar */}
+            <div className="p-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-indigo-50/30">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="Search student..." 
+                  className="pl-10 h-9 text-sm rounded-lg bg-white border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-            )}
-
-            {dateRange === 'Date Range' && (
-              <>
-                <div>
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">From Date</label>
-                  <DatePicker
-                    value={dateFrom}
-                    onChange={setDateFrom}
-                    className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block ml-0.5">To Date</label>
-                  <DatePicker
-                    value={dateTo}
-                    onChange={setDateTo}
-                    className="w-full h-9 px-3 bg-white border border-slate-200 text-slate-700 text-xs rounded-md focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-medium"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Compact Results Table Section (Clean White) */}
-      {filteredTableData.length > 0 && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden print-container">
-          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h3 className="font-semibold text-slate-800 text-sm">Performance Report</h3>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
-              <Input 
-                placeholder="Search by name or roll no..." 
-                className="pl-8 h-8 text-xs rounded-md bg-white border-slate-200 focus:bg-slate-50 transition-colors shadow-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            </div>
+            
+            {/* Modern Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50/80 border-b border-slate-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Roll</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Student Name</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Daily Test</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Main Exam</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Notebook</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredTableData.map((student, idx) => (
+                    <tr key={student._id} className={cn(
+                      "hover:bg-indigo-50/40 transition-colors",
+                      idx % 2 === 0 && "bg-white",
+                      idx % 2 === 1 && "bg-slate-50/30"
+                    )}>
+                      {/* Roll.Badge */}
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700 font-bold text-xs border border-indigo-200">
+                          #{student.rollNo}
+                        </span>
+                      </td>
+                      
+                      {/* Student Name */}
+                      <td className="px-3 py-2">
+                        <div className="font-semibold text-slate-800 text-sm">{student.name}</div>
+                      </td>
+                      
+                      {/* Daily Test Badge */}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border",
+                            (student.dailyPercentage || 0) >= 75 ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            (student.dailyPercentage || 0) >= 50 ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-rose-50 text-rose-700 border-rose-200"
+                          )}>
+                            🟢 {student.dailyPercentage?.toFixed(1) || 0}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Main Exam Badge */}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border",
+                            (student.mainPercentage || 0) >= 75 ? "bg-blue-50 text-blue-700 border-blue-200" :
+                            (student.mainPercentage || 0) >= 50 ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-rose-50 text-rose-700 border-rose-200"
+                          )}>
+                            🔵 {student.mainPercentage?.toFixed(1) || 0}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* Notebook Badge */}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border",
+                            (student.notebookPercentage || 0) >= 75 ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
+                            (student.notebookPercentage || 0) >= 50 ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            "bg-rose-50 text-rose-700 border-rose-200"
+                          )}>
+                            🟣 {student.notebookPercentage?.toFixed(1) || 0}%
+                          </span>
+                        </div>
+                      </td>
+                      
+                      {/* View Details Button */}
+                      <td className="px-3 py-2 text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openStudentDetails(student)} 
+                          className="h-7 px-2.5 text-xs font-medium rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 transition-all flex items-center gap-1 mx-auto"
+                        >
+                          <Eye className="h-3 w-3" />
+                          View Details
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="text-[10px] text-slate-500 uppercase bg-slate-50/80 border-b border-slate-100">
-                <tr>
-                  <th className="px-4 py-2.5 font-semibold">Roll No</th>
-                  <th className="px-4 py-2.5 font-semibold">Student Name</th>
-                  <th className="px-4 py-2.5 font-semibold text-center">Daily Test %</th>
-                  <th className="px-4 py-2.5 font-semibold text-center">Main Exam %</th>
-                  <th className="px-4 py-2.5 font-semibold text-center">Notebook %</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredTableData.map((student) => (
-                  <tr key={student._id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-slate-800">{student.rollNo}</td>
-                    <td className="px-4 py-2.5 font-medium text-slate-700">{student.name}</td>
-                    <td className="px-4 py-2.5 text-center text-emerald-600 font-bold">{student.dailyPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-4 py-2.5 text-center text-rose-600 font-bold">{student.mainPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-4 py-2.5 text-center text-sky-600 font-bold">{student.notebookPercentage?.toFixed(1) || 0}%</td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Button variant="ghost" size="sm" onClick={() => openStudentDetails(student)} className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
-                        View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </ErpSection>
       )}
 
       {/* Centered Modal for Student Details */}
@@ -1649,6 +1687,6 @@ export default function StudentPerformance() {
         </div>
       )}
 
-    </div>
+    </PageStack>
   );
 }

@@ -139,8 +139,8 @@ const SelectItem = React.forwardRef(
           cursor-pointer
           select-none
           items-center
-          rounded-xl
-          py-2.5
+          rounded-lg
+          py-2
           pl-9
           pr-3
           text-sm
