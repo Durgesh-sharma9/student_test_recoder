@@ -35,6 +35,10 @@ export default function MarksEntryForm({ category, title }) {
   const [errorFields, setErrorFields] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const loadRef = useRef(0);
+  const [showDailyTestModal, setShowDailyTestModal] = useState(false);
+  const [pendingLoadData, setPendingLoadData] = useState(null);
+  const [showSessionSelectModal, setShowSessionSelectModal] = useState(false);
+  const [availableSessions, setAvailableSessions] = useState([]);
 
   const { subjects, assignments, loading: subjectsLoading, allowCustom, canAddSubjects, registerSubject, emptyMessage } =
     useSubjects(form.classId, { fetchAllAssignments: isDaily });
@@ -68,7 +72,7 @@ export default function MarksEntryForm({ category, title }) {
     setRows([]);
   };
 
-  const loadEntry = async () => {
+  const loadEntry = async (forceNew = false) => {
     if (!form.classId) return toast.error('Select a class');
     if (!form.subject) return toast.error('Select a subject');
     if (isDaily && !form.testDate) return toast.error('Select a test date');
@@ -97,6 +101,23 @@ export default function MarksEntryForm({ category, title }) {
       };
       const res = await api.get('/results/entry-preview', { params });
       if (id !== loadRef.current) return;
+
+      // For daily tests, check if existing sessions exist and show modal
+      if (isDaily && res.data.existingCount > 0 && !forceNew) {
+        setAvailableSessions(res.data.existingSessions || []);
+        if (res.data.existingCount > 1) {
+          // Multiple sessions exist - show selection dialog
+          setShowSessionSelectModal(true);
+          setLoadingStudents(false);
+          return;
+        } else {
+          // Only one session exists - show edit/create modal
+          setPendingLoadData({ session: res.data.session, rows: res.data.rows, maxMarks: res.data.maxMarks });
+          setShowDailyTestModal(true);
+          setLoadingStudents(false);
+          return;
+        }
+      }
 
       setSession(res.data.session || null);
       setRows(res.data.rows || []);
@@ -207,6 +228,103 @@ export default function MarksEntryForm({ category, title }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSelectSession = async (selectedSession) => {
+    setShowSessionSelectModal(false);
+    setAvailableSessions([]);
+    
+    setLoadingStudents(true);
+    try {
+      const params = {
+        classId: form.classId,
+        subject: form.subject,
+        category,
+        maxMarks: form.maxMarks,
+        sessionId: selectedSession._id,
+        ...(isDaily
+          ? { testDate: form.testDate }
+          : { examType: form.examType, examDate: form.examDate }),
+      };
+      const res = await api.get('/results/entry-preview', { params });
+      
+      setSession(res.data.session || null);
+      setRows(res.data.rows || []);
+      setLoaded(true);
+      if (res.data.maxMarks) {
+        setForm((f) => ({ ...f, maxMarks: res.data.maxMarks }));
+      }
+      
+      toast.info('Existing Daily Test Loaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load');
+      clearLoadedData();
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const handleCancelSessionSelect = () => {
+    setShowSessionSelectModal(false);
+    setAvailableSessions([]);
+  };
+
+  const handleEditExisting = () => {
+    if (pendingLoadData) {
+      setSession(pendingLoadData.session);
+      setRows(pendingLoadData.rows);
+      setLoaded(true);
+      if (pendingLoadData.maxMarks) {
+        setForm((f) => ({ ...f, maxMarks: pendingLoadData.maxMarks }));
+      }
+      toast.info('Existing Daily Test Loaded');
+    }
+    setShowDailyTestModal(false);
+    setPendingLoadData(null);
+  };
+
+  const handleCreateNew = async () => {
+    // Close both modals
+    setShowDailyTestModal(false);
+    setShowSessionSelectModal(false);
+    setPendingLoadData(null);
+    setAvailableSessions([]);
+    
+    // Force load without checking for existing - pass forceNew=true to backend
+    setLoadingStudents(true);
+    try {
+      const params = {
+        classId: form.classId,
+        subject: form.subject,
+        category,
+        maxMarks: form.maxMarks,
+        forceNew: 'true',
+        ...(isDaily
+          ? { testDate: form.testDate }
+          : { examType: form.examType, examDate: form.examDate }),
+      };
+      const res = await api.get('/results/entry-preview', { params });
+      
+      // Explicitly set session to null to ensure new session is created on save
+      setSession(null);
+      setRows(res.data.rows || []);
+      setLoaded(true);
+      if (res.data.maxMarks) {
+        setForm((f) => ({ ...f, maxMarks: res.data.maxMarks }));
+      }
+      
+      toast.success('Students loaded. Enter marks and click Save to create the Daily Test.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to load');
+      clearLoadedData();
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const handleCancelModal = () => {
+    setShowDailyTestModal(false);
+    setPendingLoadData(null);
   };
 
   const download = () => {
@@ -532,6 +650,104 @@ export default function MarksEntryForm({ category, title }) {
         open={expiredDialogOpen}
         onOpenChange={setExpiredDialogOpen}
       />
+
+      {/* Session Selection Modal for Multiple Existing Tests */}
+      {showSessionSelectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+              <h3 className="text-lg font-bold text-white">Select Daily Test</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 mb-4">
+                Multiple Daily Tests exist for the selected Class, Subject and Date.
+                Select which one to edit:
+              </p>
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                {availableSessions.map((session, idx) => {
+                  const createdDate = new Date(session.createdAt);
+                  const formattedDate = createdDate.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                  });
+                  const formattedTime = createdDate.toLocaleTimeString('en-GB', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+                  return (
+                    <button
+                      key={session._id}
+                      onClick={() => handleSelectSession(session)}
+                      className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                    >
+                      <div className="text-xs font-semibold text-slate-700">
+                        Daily Test #{idx + 1}
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        {formattedDate} at {formattedTime}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-200 flex flex-col gap-2">
+                <Button
+                  onClick={handleCreateNew}
+                  className="w-full h-10 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-md font-medium"
+                >
+                  + Create New Daily Test
+                </Button>
+                <Button
+                  onClick={handleCancelSessionSelect}
+                  variant="outline"
+                  className="w-full h-10 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-md font-medium"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Test Already Exists Modal */}
+      {showDailyTestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+              <h3 className="text-lg font-bold text-white">Daily Test Already Exists</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 mb-6">
+                A Daily Test already exists for the selected Class, Subject and Date.
+                What would you like to do?
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleEditExisting}
+                  className="w-full h-10 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-md font-medium"
+                >
+                  ✏ Edit Existing Test
+                </Button>
+                <Button
+                  onClick={handleCreateNew}
+                  className="w-full h-10 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-md font-medium"
+                >
+                  ➕ Create New Daily Test
+                </Button>
+                <Button
+                  onClick={handleCancelModal}
+                  variant="outline"
+                  className="w-full h-10 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-md font-medium"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageStack>
   );
 }

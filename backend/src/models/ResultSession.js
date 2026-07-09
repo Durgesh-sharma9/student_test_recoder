@@ -32,11 +32,10 @@ resultSessionSchema.pre('validate', function (next) {
   next();
 });
 
-/** Daily: one test per school + class + subject + calendar day */
+/** Daily: multiple tests allowed per school + class + subject + calendar day */
 resultSessionSchema.index(
   { school: 1, class: 1, subject: 1, testDate: 1 },
   {
-    unique: true,
     partialFilterExpression: { category: 'daily' },
   }
 );
