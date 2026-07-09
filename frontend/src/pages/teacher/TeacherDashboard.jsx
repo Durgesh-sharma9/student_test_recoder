@@ -11,6 +11,7 @@ import { PageHeader, ErpSection, PageStack, FormField } from '@/components/erp/P
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import DatePicker from '@/components/ui/DatePicker';
 import { useNavigate } from 'react-router-dom';
 import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
@@ -202,11 +203,11 @@ export default function TeacherDashboard() {
               </div>
 
               {dateType === 'specific' ? (
-                <FormField label="Date"><Input type="date" value={specificDate} onChange={(e) => setSpecificDate(e.target.value)} className="rounded-md h-9 bg-white" /></FormField>
+                <FormField label="Date"><DatePicker value={specificDate} onChange={setSpecificDate} className="rounded-md h-9 bg-white" /></FormField>
               ) : (
                 <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                  <FormField label="From"><Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="rounded-md h-9 bg-white" /></FormField>
-                  <FormField label="To"><Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="rounded-md h-9 bg-white" /></FormField>
+                  <FormField label="From"><DatePicker value={dateFrom} onChange={setDateFrom} className="rounded-md h-9 bg-white" /></FormField>
+                  <FormField label="To"><DatePicker value={dateTo} onChange={setDateTo} className="rounded-md h-9 bg-white" /></FormField>
                 </div>
               )}
 
