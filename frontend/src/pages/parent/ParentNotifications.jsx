@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
@@ -20,6 +20,7 @@ export default function ParentNotifications() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -93,6 +94,12 @@ export default function ParentNotifications() {
     if (notification.type === 'poll' && notification.pollId) {
       setSelectedPollId(notification.pollId);
       setPollModalOpen(true);
+      return;
+    }
+
+    // Handle feedback notifications - navigate to feedback center with the feedback thread
+    if (notification.type === 'feedback' && notification.feedbackId) {
+      navigate('/parent/feedback', { state: { feedbackId: notification.feedbackId } });
       return;
     }
   };
