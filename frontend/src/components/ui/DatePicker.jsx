@@ -121,3 +121,4 @@ const DateTimePicker = ({ value, onChange, placeholder = "DD/MM/YYYY HH:mm", cla
 };
 
 export { DatePicker, DateTimePicker };
+export default DatePicker;
