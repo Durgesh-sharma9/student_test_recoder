@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'];
 
 export default function AdminNotifications() {
   const [activeTab, setActiveTab] = useState('notifications');
@@ -500,20 +500,56 @@ export default function AdminNotifications() {
     return 'bg-gradient-to-r from-blue-50 to-indigo-100 text-blue-700 border-blue-200';
   };
 
+  const getAudienceLabelLower = (audience, audienceScope) => {
+    if (audience === 'teachers') return 'teachers';
+    if (audience === 'students') return 'students';
+    return 'parents';
+  };
+
   const exportResponseHistory = () => {
     if (!pollAnalytics?.responses) return;
     
-    const headers = ['Parent Name', 'Student Name', 'Class', 'Selected Option', 'Submitted Date', 'Submitted Time'];
+    const audience = pollAnalytics.poll.audience;
+    let headers;
+    
+    if (audience === 'teachers') {
+      headers = ['Teacher Name', 'Vote Choice', 'Submitted Date', 'Submitted Time'];
+    } else if (audience === 'students') {
+      headers = ['Student Name', 'Roll No', 'Class', 'Selected Option', 'Submitted Date', 'Submitted Time'];
+    } else {
+      headers = ['Parent Name', 'Student Name', 'Class', 'Selected Option', 'Submitted Date', 'Submitted Time'];
+    }
+    
     const csvContent = [
       headers.join(','),
-      ...pollAnalytics.responses.map(r => [
-        `"${r.name}"`,
-        `"${r.studentName || 'N/A'}"`,
-        `"${r.className || 'N/A'}"`,
-        `"${r.selectedOption}"`,
-        formatDate(r.submittedAt),
-        new Date(r.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      ].join(','))
+      ...pollAnalytics.responses.map(r => {
+        if (audience === 'teachers') {
+          return [
+            `"${r.name}"`,
+            `"${r.selectedOption}"`,
+            formatDate(r.submittedAt),
+            new Date(r.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          ].join(',');
+        } else if (audience === 'students') {
+          return [
+            `"${r.name}"`,
+            `"${r.rollNo || 'N/A'}"`,
+            `"${r.className || 'N/A'}"`,
+            `"${r.selectedOption}"`,
+            formatDate(r.submittedAt),
+            new Date(r.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          ].join(',');
+        } else {
+          return [
+            `"${r.name}"`,
+            `"${r.studentName || 'N/A'}"`,
+            `"${r.className || 'N/A'}"`,
+            `"${r.selectedOption}"`,
+            formatDate(r.submittedAt),
+            new Date(r.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          ].join(',');
+        }
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1451,22 +1487,25 @@ export default function AdminNotifications() {
           <div className="grid gap-4 md:grid-cols-2 mb-4">
             {/* Section 3: Charts */}
             <ErpSection title="Vote Distribution" icon={PieChart} tone="indigo">
-              {pollAnalytics.poll.pollType === 'single' && pollAnalytics.optionSummary.length === 2 ? (
+              {pollAnalytics.poll.pollType === 'single' && pollAnalytics.poll.options.length === 2 ? (
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
-                        data={pollAnalytics.optionSummary.map(item => ({
-                          option: item.option,
-                          count: Number(item.count) || 0,
-                          percent: Number(item.percent) || 0
-                        }))}
+                        data={pollAnalytics.poll.options.map(option => {
+                          const summaryItem = pollAnalytics.optionSummary.find(s => s.option === option.text);
+                          return {
+                            option: option.text,
+                            count: summaryItem ? Number(summaryItem.count) || 0 : 0,
+                            percent: summaryItem ? Number(summaryItem.percent) || 0 : 0
+                          };
+                        })}
                         cx="50%" cy="50%" labelLine={false}
                         label={({ option, percent }) => `${option}: ${percent}%`}
                         outerRadius={75} dataKey="count"
                         stroke="none"
                       >
-                        {pollAnalytics.optionSummary.map((entry, index) => (
+                        {pollAnalytics.poll.options.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -1475,29 +1514,48 @@ export default function AdminNotifications() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={pollAnalytics.optionSummary.map(item => ({
-                      option: item.option,
-                      count: Number(item.count) || 0,
-                      percent: Number(item.percent) || 0
-                    }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="option" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                      <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
-                      <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="url(#colorUv)" radius={[4, 4, 0, 0]} barSize={40}>
-                         {/* Adding SVG Gradient for Bars */}
-                        <defs>
-                          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.9}/>
-                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.9}/>
-                          </linearGradient>
-                        </defs>
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                <>
+                  {pollAnalytics.poll.options.every(option => {
+                    const summaryItem = pollAnalytics.optionSummary.find(s => s.option === option.text);
+                    return !summaryItem || Number(summaryItem.count) === 0;
+                  }) && (
+                    <div className="text-center text-xs text-slate-500 mb-2">No votes received yet.</div>
+                  )}
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={pollAnalytics.poll.options.map((option, index) => {
+                          const summaryItem = pollAnalytics.optionSummary.find(s => s.option === option.text);
+                          return {
+                            option: option.text,
+                            count: summaryItem ? Number(summaryItem.count) || 0 : 0,
+                            percent: summaryItem ? Number(summaryItem.percent) || 0 : 0,
+                            color: COLORS[index % COLORS.length]
+                          };
+                        })} 
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="option" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
+                        <YAxis 
+                          tick={{fontSize: 10, fill: '#64748b'}} 
+                          axisLine={false} 
+                          tickLine={false}
+                          domain={[0, pollAnalytics.poll.options.every(option => {
+                            const summaryItem = pollAnalytics.optionSummary.find(s => s.option === option.text);
+                            return !summaryItem || Number(summaryItem.count) === 0;
+                          }) ? 1 : 'auto']}
+                        />
+                        <RechartsTooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                        <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
+                          {pollAnalytics.poll.options.map((option, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
               )}
             </ErpSection>
 
@@ -1573,15 +1631,15 @@ export default function AdminNotifications() {
               <div className="relative w-full max-w-sm">
                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search parent, student, or class..."
+                  placeholder={pollAnalytics.poll.audience === 'teachers' ? "Search teacher or vote choice..." : "Search parent, student, or class..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-9 text-[12px] bg-white border-slate-200 shadow-sm rounded-lg"
                 />
               </div>
-              <Button onClick={exportResponseHistory} variant="outline" className="h-9 text-[11px] font-bold rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto shrink-0 shadow-sm">
+              {/* <Button onClick={exportResponseHistory} variant="outline" className="h-9 text-[11px] font-bold rounded-lg border-indigo-200 text-indigo-700 hover:bg-indigo-50 w-full sm:w-auto shrink-0 shadow-sm">
                 <Download className="mr-1.5 h-3.5 w-3.5" /> Export to CSV
-              </Button>
+              </Button> */}
             </div>
 
             <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
@@ -1589,36 +1647,85 @@ export default function AdminNotifications() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      <th className="px-4 py-3">Parent Name</th>
-                      <th className="px-4 py-3">Student Info</th>
-                      <th className="px-4 py-3">Vote Choice</th>
-                      <th className="px-4 py-3">Timestamp</th>
+                      {pollAnalytics.poll.audience === 'teachers' ? (
+                        <>
+                          <th className="px-4 py-3">Teacher Name</th>
+                          <th className="px-4 py-3">Vote Choice</th>
+                          <th className="px-4 py-3">Timestamp</th>
+                        </>
+                      ) : pollAnalytics.poll.audience === 'students' ? (
+                        <>
+                          <th className="px-4 py-3">Student Name</th>
+                          <th className="px-4 py-3">Roll No</th>
+                          <th className="px-4 py-3">Class</th>
+                          <th className="px-4 py-3">Vote Choice</th>
+                          <th className="px-4 py-3">Timestamp</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-4 py-3">Parent Name</th>
+                          <th className="px-4 py-3">Student Name</th>
+                          <th className="px-4 py-3">Class</th>
+                          <th className="px-4 py-3">Vote Choice</th>
+                          <th className="px-4 py-3">Timestamp</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredResponses.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center bg-slate-50/50">
+                        <td colSpan={pollAnalytics.poll.audience === 'teachers' ? 3 : pollAnalytics.poll.audience === 'students' ? 5 : 5} className="px-4 py-8 text-center bg-slate-50/50">
                           <p className="text-[12px] font-medium text-slate-500">No records found matching criteria.</p>
                         </td>
                       </tr>
                     ) : (
                       paginatedResponses.map((response, index) => (
                         <tr key={index} className="hover:bg-indigo-50/30 transition-colors">
-                          <td className="px-4 py-2.5 text-[12px] font-bold text-slate-800">{response.name}</td>
-                          <td className="px-4 py-2.5">
-                            <div className="text-[12px] font-semibold text-slate-700">{response.studentName || 'N/A'}</div>
-                            <div className="text-[10px] font-medium text-slate-400">Class {response.className || 'N/A'}</div>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <span className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold border border-indigo-200 shadow-sm">
-                              {response.selectedOption}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <div className="text-[11px] font-semibold text-slate-600">{formatDate(response.submittedAt)}</div>
-                            <div className="text-[9px] font-medium text-slate-400">{new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
-                          </td>
+                          {pollAnalytics.poll.audience === 'teachers' ? (
+                            <>
+                              <td className="px-4 py-2.5 text-[12px] font-bold text-slate-800">{response.name}</td>
+                              <td className="px-4 py-2.5">
+                                <span className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold border border-indigo-200 shadow-sm">
+                                  {response.selectedOption}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="text-[11px] font-semibold text-slate-600">{formatDate(response.submittedAt)}</div>
+                                <div className="text-[9px] font-medium text-slate-400">{new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                              </td>
+                            </>
+                          ) : pollAnalytics.poll.audience === 'students' ? (
+                            <>
+                              <td className="px-4 py-2.5 text-[12px] font-bold text-slate-800">{response.name}</td>
+                              <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-700">{response.rollNo || 'N/A'}</td>
+                              <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-700">{response.className || 'N/A'}</td>
+                              <td className="px-4 py-2.5">
+                                <span className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold border border-indigo-200 shadow-sm">
+                                  {response.selectedOption}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="text-[11px] font-semibold text-slate-600">{formatDate(response.submittedAt)}</div>
+                                <div className="text-[9px] font-medium text-slate-400">{new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="px-4 py-2.5 text-[12px] font-bold text-slate-800">{response.name}</td>
+                              <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-700">{response.studentName || 'N/A'}</td>
+                              <td className="px-4 py-2.5 text-[12px] font-semibold text-slate-700">{response.className || 'N/A'}</td>
+                              <td className="px-4 py-2.5">
+                                <span className="bg-white text-indigo-700 px-2 py-0.5 rounded-md text-[11px] font-bold border border-indigo-200 shadow-sm">
+                                  {response.selectedOption}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="text-[11px] font-semibold text-slate-600">{formatDate(response.submittedAt)}</div>
+                                <div className="text-[9px] font-medium text-slate-400">{new Date(response.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))
                     )}
@@ -1665,14 +1772,20 @@ export default function AdminNotifications() {
             <ErpSection title="Pending Action Required" icon={Clock3} tone="red">
               <button onClick={() => setPendingResponsesOpen(!pendingResponsesOpen)} className="flex items-center justify-between w-full p-3 rounded-xl bg-gradient-to-r from-rose-50 to-white border border-rose-200 hover:border-rose-300 transition-colors shadow-sm">
                 <div className="flex items-center gap-2 text-[12px] font-bold text-rose-700">
-                  <Users className="h-4 w-4" /> {pollAnalytics.summary.pendingResponses} Parents Pending Response
+                  <Users className="h-4 w-4" /> {pollAnalytics.summary.pendingResponses} {getAudienceLabel(pollAnalytics.poll.audience, pollAnalytics.poll.audienceScope)} Pending Response
                 </div>
                 {pendingResponsesOpen ? <ChevronUp className="h-4 w-4 text-rose-500" /> : <ChevronDown className="h-4 w-4 text-rose-500" />}
               </button>
 
               {pendingResponsesOpen && (
                 <div className="mt-3 rounded-xl border border-rose-200 bg-white p-4 shadow-sm animate-in slide-in-from-top-2">
-                  <p className="text-[12px] font-medium text-slate-600 mb-3">The following classes still require parent follow-ups:</p>
+                  <p className="text-[12px] font-medium text-slate-600 mb-3">
+                    {pollAnalytics.poll.audience === 'teachers' 
+                      ? 'The following teachers have not responded yet:' 
+                      : pollAnalytics.poll.audience === 'students'
+                      ? 'The following students have not responded yet:'
+                      : 'The following classes still require parent follow-ups:'}
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {pollAnalytics.parentBreakdown?.map(c => (
                       <div key={c.className} className="bg-rose-50/50 border border-rose-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">

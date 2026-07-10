@@ -4,7 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const DatePicker = ({ value, onChange, placeholder = "dd-mm-yyyy", className, ...props }) => {
+const DatePicker = ({ value, onChange, placeholder = "DD/MM/YYYY", className, ...props }) => {
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ const DatePicker = ({ value, onChange, placeholder = "dd-mm-yyyy", className, ..
       <ReactDatePicker
         selected={selectedDate}
         onChange={handleChange}
-        dateFormat="dd-MM-yyyy"
+        dateFormat="dd/MM/yyyy"
         placeholderText={placeholder}
         className={cn(
           "flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
@@ -65,4 +65,59 @@ const DatePicker = ({ value, onChange, placeholder = "dd-mm-yyyy", className, ..
   );
 };
 
-export default DatePicker;
+const DateTimePicker = ({ value, onChange, placeholder = "DD/MM/YYYY HH:mm", className, ...props }) => {
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  useEffect(() => {
+    if (value) {
+      // Handle value in various formats (ISO datetime, or Date object)
+      if (value instanceof Date) {
+        setSelectedDate(value);
+      } else if (typeof value === 'string') {
+        // Try to parse as ISO datetime (YYYY-MM-DDTHH:mm:ss.sssZ)
+        if (value.includes('T') || value.includes('-')) {
+          const parsedDate = new Date(value);
+          if (!isNaN(parsedDate.getTime())) {
+            setSelectedDate(parsedDate);
+          }
+        }
+      }
+    } else {
+      setSelectedDate(null);
+    }
+  }, [value]);
+
+  const handleChange = (date) => {
+    setSelectedDate(date);
+    if (onChange) {
+      // Convert to ISO datetime format for backend
+      if (date) {
+        onChange(date.toISOString());
+      } else {
+        onChange('');
+      }
+    }
+  };
+
+  return (
+    <div className="relative">
+      <ReactDatePicker
+        selected={selectedDate}
+        onChange={handleChange}
+        dateFormat="dd/MM/yyyy HH:mm"
+        placeholderText={placeholder}
+        showTimeSelect
+        timeFormat="HH:mm"
+        timeIntervals={15}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        calendarClassName="bg-white border border-slate-200 rounded-lg shadow-lg"
+        {...props}
+      />
+    </div>
+  );
+};
+
+export { DatePicker, DateTimePicker };
