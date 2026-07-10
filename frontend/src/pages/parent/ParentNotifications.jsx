@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
+import { cn } from '@/lib/utils';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Bell, FileText, ExternalLink, Check, BarChart3 } from 'lucide-react';
@@ -123,10 +124,10 @@ export default function ParentNotifications() {
       />
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button onClick={openPollAnalytics} variant="outline" className="rounded-xl w-full sm:w-auto">
+        {/* <Button onClick={openPollAnalytics} variant="outline" className="rounded-xl w-full sm:w-auto">
           <BarChart3 className="mr-2 h-4 w-4 shrink-0" />
           Poll Analytics
-        </Button>
+        </Button> */}
         <Button onClick={markAllAsRead} variant="outline" className="rounded-xl w-full sm:w-auto">
           <Check className="mr-2 h-4 w-4 shrink-0" />
           Mark All as Read

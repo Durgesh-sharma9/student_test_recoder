@@ -102,6 +102,7 @@ const navByRole = {
   parent: [
     { to: '/parent/dashboard', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true, featureKey: 'parent_portal' },
     { to: '/parent/results', label: 'View Results', icon: FileText, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-100', featureKey: 'reports', lockLabel: 'Results' },
+    { to: '/parent/notebook-analytics', label: 'Notebook Analytics', icon: FileCheck, iconColor: 'text-fuchsia-600', boxBg: 'bg-fuchsia-50 group-hover:bg-fuchsia-100' },
     { to: '/parent/notifications', label: 'Notifications', icon: Bell, iconColor: 'text-amber-600', boxBg: 'bg-amber-50 group-hover:bg-amber-100', featureKey: 'notifications' },
     { to: '/parent/feedback', label: 'Feedback', icon: MessageSquare, iconColor: 'text-violet-600', boxBg: 'bg-violet-50 group-hover:bg-violet-100', featureKey: 'parent_portal' },
     { to: '/parent/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
