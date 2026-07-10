@@ -16,6 +16,7 @@ import {
   DialogBody,
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/erp/PagePrimitives';
+import { DateTimePicker } from '@/components/ui/DatePicker';
 
 const defaultAnnouncementForm = { title: '', message: '', priority: 'normal' };
 const defaultPollForm = {
@@ -475,7 +476,11 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                 <FormField label="Expiry">
                   <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm space-y-3">
-                    <Input type="datetime-local" value={pollForm.expiryDate} onChange={(e) => setPollForm({ ...pollForm, expiryDate: e.target.value })} className="rounded-xl border-slate-200 shadow-sm" />
+                    <DateTimePicker 
+                      value={pollForm.expiryDate} 
+                      onChange={(date) => setPollForm({ ...pollForm, expiryDate: date })} 
+                      className="rounded-xl border-slate-200 shadow-sm" 
+                    />
                     <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                       <input type="checkbox" checked={!pollForm.expiryDate} onChange={() => setPollForm({ ...pollForm, expiryDate: '' })} />
                       No Expiry
