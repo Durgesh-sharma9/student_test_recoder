@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   MessageSquare, Send, Plus, CircleCheckBig, MessageCircleMore, 
   Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2, ChevronDown, ChevronUp, Clock, Download
@@ -13,6 +14,7 @@ import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { cn } from '@/lib/utils';
 
 export default function FeedbackPanel({ role = 'parent' }) {
+  const location = useLocation();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
@@ -149,6 +151,24 @@ export default function FeedbackPanel({ role = 'parent' }) {
       fetchAllTeachers();
     }
   }, [role]);
+
+  // Handle navigation from notification - auto-expand the feedback thread
+  useEffect(() => {
+    if (location.state?.feedbackId && tickets.length > 0) {
+      const feedbackId = location.state.feedbackId;
+      const ticketExists = tickets.find(t => t._id === feedbackId);
+      
+      if (ticketExists) {
+        setExpandedTickets(prev => ({ ...prev, [feedbackId]: true }));
+        // Clear the state to prevent re-expanding on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        toast.error('This feedback is no longer available.');
+        // Clear the state
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [location.state, tickets]);
 
   useEffect(() => {
     if (selectedChild && selectedChild.classId) {
