@@ -3,10 +3,14 @@ import { Calendar, Layers, FileText, Download, Printer, Trash2, Edit3, Grid } fr
 import PlannerStatusBadge from './PlannerStatusBadge';
 
 export default function PlannerCard({ planner, onEdit, onDelete, onDownloadPDF, onDownloadExcel, onPrint }) {
+  if (!planner) return null;
+
   const formatDateRange = (startS, endS) => {
     if (!startS || !endS) return '';
     const parse = (s) => {
-      const [year, month, day] = s.split('-');
+      const parts = String(s).split('-');
+      if (parts.length < 3) return '';
+      const [year, month, day] = parts;
       const d = new Date(year, month - 1, day);
       return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
     };
@@ -15,14 +19,16 @@ export default function PlannerCard({ planner, onEdit, onDelete, onDownloadPDF, 
 
   const getUpdatedText = (dateS) => {
     if (!dateS) return 'Updated recently';
-    const [year, month, day] = dateS.split('-');
+    const parts = String(dateS).split('-');
+    if (parts.length < 3) return 'Updated recently';
+    const [year, month, day] = parts;
     const d = new Date(year, month - 1, day);
     return `Updated ${d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   };
 
-  const examLabel = planner.assessmentType === 'Main Exam' && planner.selectedMainExam
+  const examLabel = planner?.assessmentType === 'Main Exam' && planner?.selectedMainExam
     ? `${planner.assessmentType} (${planner.selectedMainExam})`
-    : planner.assessmentType;
+    : planner?.assessmentType || 'Daily Test';
 
   return (
     <div className="relative group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:shadow-md hover:border-indigo-200 flex flex-col justify-between min-h-[160px]">

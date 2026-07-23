@@ -17,10 +17,12 @@ export default function PlannerLibrary({
   const [typeFilter, setTypeFilter] = useState('all'); // all, daily, main
   const [statusFilter, setStatusFilter] = useState('all'); // all, draft, published, archived
 
-  const maxReached = planners.length >= 5;
+  const safePlanners = Array.isArray(planners) ? planners : [];
+  const maxReached = safePlanners.length >= 5;
 
   // Filter planners list
-  const filteredPlanners = planners.filter(p => {
+  const filteredPlanners = safePlanners.filter(p => {
+    if (!p) return false;
     // 1. Search term (Name, Type, Main Exam)
     const term = searchTerm.toLowerCase().trim();
     const nameMatch = p.name?.toLowerCase().includes(term);
