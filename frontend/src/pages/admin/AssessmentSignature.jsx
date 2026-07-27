@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { 
-  FileSignature, Info, Plus, Trash2, Printer, Download, Save, Sparkles, FolderOpen, AlertCircle, FileText, Calendar, RefreshCw
+  FileSignature, Info, Plus, Trash2, Printer, Download, Save, Sparkles, FolderOpen, AlertCircle, FileText, Calendar, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { PageHeader } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -64,9 +64,8 @@ const ensureDMYFormat = (str) => {
 // Utility function to paginate students dynamically to maximize printable space
 const paginateStudents = (studentsList, B) => {
   if (studentsList.length === 0) return [];
-  // A4: 297mm | startY: 28mm | footer margin: 36mm | header row: ~10mm | body row: 8mm (minCellHeight)
-  // Available body height = 297 - 28 - 36 - 10 = 223mm → floor(223/8) = 27 rows before autotable overflows
-  const maxRows = 27;
+  // Maximum 25 student rows per page
+  const maxRows = 25;
   const chunks = [];
   let currentIndex = 0;
   const total = studentsList.length;
@@ -128,6 +127,8 @@ export default function AssessmentSignature() {
   // Saved templates state
   const [savedSheets, setSavedSheets] = useState([]);
   const [currentSheetId, setCurrentSheetId] = useState(null);
+  const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Calendar popover trigger state (column ID)
   const [showCalendarId, setShowCalendarId] = useState(null);
@@ -650,55 +651,50 @@ export default function AssessmentSignature() {
     document.title = "Attendance Sheet | TestMaster Pro";
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowTemplatesDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-4 max-w-7xl mx-auto lg:-mt-10 md:-mt-8 -mt-6 pb-10 px-2 sm:px-4">
       {/* Inject print stylesheet overrides dynamically */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
-          /* Hide navigation sidebar, main header, buttons, config panel, footer */
-          aside, header, nav, button, .left-panel, .no-print {
-            display: none !important;
+          /* Hide everything by default */
+          body * {
+            visibility: hidden !important;
           }
-          
-          /* Full screen main container */
-          body, html, #root, .min-h-screen, .flex-col, main {
-            background: white !important;
-            color: black !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            min-height: unset !important;
-            overflow: visible !important;
-            width: 100% !important;
-            display: block !important;
-          }
-          
-          /* Target printed preview area container */
-          .print-area-wrapper {
-            display: block !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            visibility: visible !important;
-          }
-          
+
+          /* Show only the print container and its children */
+          .print-area-wrapper,
           .print-area-wrapper * {
             visibility: visible !important;
           }
-          
-          /* Force page margins */
+
+          /* Position print container - let content flow naturally */
+          .print-area-wrapper {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            background: white !important;
+          }
+
+          /* Force page margins - use standard margins to avoid scaling */
           @page {
             size: A4 portrait;
-            margin: 10mm 15mm;
+            margin: 10mm;
           }
 
           .page-break-after-always {
             page-break-after: always !important;
             break-after: always !important;
-            position: relative !important;
-            min-height: 100vh !important;
           }
 
           /* Watermark: absolute within each page container so it appears on EVERY printed page */
@@ -708,8 +704,8 @@ export default function AssessmentSignature() {
             top: 50% !important;
             left: 50% !important;
             transform: translate(-50%, -50%) !important;
-            width: 180px !important;
-            height: 180px !important;
+            width: 110mm !important;
+            height: 110mm !important;
             opacity: 0.08 !important;
             z-index: 0 !important;
             pointer-events: none !important;
@@ -728,8 +724,8 @@ export default function AssessmentSignature() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 180px;
-          height: 180px;
+          width: 110mm;
+          height: 110mm;
           opacity: 0.08;
           z-index: 0;
           pointer-events: none;
@@ -741,11 +737,71 @@ export default function AssessmentSignature() {
         }
       `}} />
 
-      <div className="no-print -mb-4">
+      <div className="no-print -mb-4 flex items-center justify-between">
         <PageHeader
           title="Attendance Sheet"
           description="Generate and export printable student attendance sheets for classrooms."
         />
+        <div className="relative" ref={dropdownRef}>
+          <Button
+            onClick={() => setShowTemplatesDropdown(!showTemplatesDropdown)}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm font-semibold text-xs h-10 flex items-center gap-2 border-0"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Saved Templates ({savedSheets.length})
+            <ChevronDown className={`h-4 w-4 transition-transform ${showTemplatesDropdown ? 'rotate-180' : ''}`} />
+          </Button>
+          
+          {showTemplatesDropdown && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border border-slate-200 shadow-lg z-50 max-h-[350px] overflow-y-auto">
+              <div className="p-3 border-b border-slate-100">
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                  <FolderOpen className="h-4 w-4 text-indigo-500" />
+                  Saved Templates
+                </h3>
+              </div>
+              
+              {savedSheets.length === 0 ? (
+                <div className="p-4">
+                  <p className="text-[11px] text-slate-400 text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                    No templates saved yet. Configure and save to store.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-2 space-y-2">
+                  {savedSheets.map((sheet) => (
+                    <div 
+                      key={sheet.id} 
+                      className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all group cursor-pointer"
+                      onClick={() => {
+                        handleLoadSheet(sheet);
+                        setShowTemplatesDropdown(false);
+                      }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-700 truncate">{sheet.title}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                          Class: {activeClasses.find(c => c._id === sheet.classId)?.className || 'Unknown'} • Columns: {sheet.columns.length}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => {
+                          handleDeleteSheet(sheet.id, e);
+                          e.stopPropagation();
+                        }}
+                        className="h-7 w-7 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 items-stretch">
@@ -1021,7 +1077,7 @@ export default function AssessmentSignature() {
         </div>
 
         {/* RIGHT PANEL - LIVE PREVIEW */}
-        <div className="w-full space-y-3 print-area-wrapper">
+        <div className="w-full space-y-3">
           
           <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full">
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
@@ -1035,7 +1091,7 @@ export default function AssessmentSignature() {
             )}
           </div>
 
-          <div className="max-w-5xl mx-auto w-full space-y-4">
+          <div className="max-w-5xl mx-auto w-full space-y-4 print-area-wrapper">
             {loadingStudents ? (
               <div className="flex flex-col items-center justify-center py-10 space-y-2 no-print bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -1046,9 +1102,17 @@ export default function AssessmentSignature() {
                 {/* Header block for empty state */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end border-b border-black pb-2 mb-3 gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 flex items-center justify-center rounded-lg border border-black font-bold text-sm select-none print:border-black shrink-0 bg-slate-50/50">
-                      🏫
-                    </div>
+                    {user?.school?.logo ? (
+                      <img 
+                        src={user.school.logo} 
+                        alt="" 
+                        className="h-8 w-8 object-contain rounded-lg border border-black shrink-0"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 flex items-center justify-center rounded-lg border border-black font-bold text-sm select-none print:border-black shrink-0 bg-slate-50/50">
+                        🏫
+                      </div>
+                    )}
                     <div className="text-left">
                       <h2 className="text-sm font-bold uppercase tracking-tight text-slate-900 print:text-black leading-tight">
                         {user?.school?.schoolName || 'Demo Public School'}
@@ -1113,9 +1177,17 @@ export default function AssessmentSignature() {
                     {/* Header Block */}
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end border-b border-black pb-2 mb-3 gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 flex items-center justify-center rounded-lg border border-black font-bold text-sm select-none print:border-black shrink-0 bg-slate-50/50">
-                          🏫
-                        </div>
+                        {user?.school?.logo ? (
+                          <img 
+                            src={user.school.logo} 
+                            alt="" 
+                            className="h-8 w-8 object-contain rounded-lg border border-black shrink-0"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 flex items-center justify-center rounded-lg border border-black font-bold text-sm select-none print:border-black shrink-0 bg-slate-50/50">
+                            🏫
+                          </div>
+                        )}
                         <div className="text-left">
                           <h2 className="text-sm font-bold uppercase tracking-tight text-slate-900 print:text-black leading-tight">
                             {user?.school?.schoolName || 'Demo Public School'}
@@ -1216,8 +1288,8 @@ export default function AssessmentSignature() {
 
         </div>
 
-        {/* SAVED TEMPLATES (full width below preview) */}
-        <div className="w-full bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3 no-print max-w-5xl mx-auto">
+        {/* SAVED TEMPLATES (full width below preview) - HIDDEN - now in dropdown */}
+        {/* <div className="w-full bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3 no-print max-w-5xl mx-auto">
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
             <FolderOpen className="h-4 w-4 text-slate-500" />
             Saved Templates
@@ -1253,7 +1325,7 @@ export default function AssessmentSignature() {
               ))}
             </div>
           )}
-        </div>
+        </div> */}
 
       </div>
     </div>
