@@ -566,7 +566,7 @@ export default function AssessmentSignature() {
         tableLineWidth: 0.35,
         rowPageBreak: 'avoid', // Avoid split rows
         headStyles: {
-          fillColor: [255, 255, 255],
+          fillColor: null,
           textColor: [0, 0, 0],
           fontSize: 8,
           fontStyle: 'bold',
@@ -576,7 +576,7 @@ export default function AssessmentSignature() {
           lineColor: [0, 0, 0]
         },
         bodyStyles: {
-          fillColor: [255, 255, 255],
+          fillColor: null,
           textColor: [0, 0, 0],
           fontSize: 8,
           valign: 'middle',
@@ -1067,14 +1067,14 @@ export default function AssessmentSignature() {
                     </div>
                   </div>
                 </div>
-                <div className="mb-3 bg-slate-50 py-1 px-2.5 rounded border border-slate-100">
+                <div className="mb-3 bg-transparent py-1 px-2.5 rounded border border-slate-100">
                   <span className="text-[11px] font-bold text-slate-500 uppercase">Title: </span>
                   <span className="text-xs font-extrabold text-slate-900">{assessmentTitle.trim() || 'ASSESSMENT'}</span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-black text-[11px] bg-white">
+                  <table className="w-full border-collapse border border-black text-[11px] bg-transparent">
                     <thead>
-                      <tr className="bg-slate-50">
+                      <tr className="bg-transparent">
                         <th className="border border-black px-1.5 py-1 text-center font-bold w-10 text-slate-800">S.No</th>
                         <th className="border border-black px-2 py-1 text-left font-bold w-44 text-slate-800">Student Name</th>
                         {assessmentColumns.map((col, idx) => (
@@ -1137,16 +1137,16 @@ export default function AssessmentSignature() {
                     </div>
 
                     {/* Title Banner */}
-                    <div className="mb-3 bg-slate-50 print:bg-transparent py-1 px-2.5 rounded border border-slate-100 print:border-0 print:px-0">
+                    <div className="mb-3 bg-transparent print:bg-transparent py-1 px-2.5 rounded border border-slate-100 print:border-0 print:px-0">
                       <span className="text-[11px] font-bold text-slate-500 print:text-black uppercase">Title: </span>
                       <span className="text-xs font-extrabold text-slate-900 print:text-black">{assessmentTitle.trim() || 'ASSESSMENT'}</span>
                     </div>
 
                     {/* Table */}
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border border-black text-[11px] bg-white print:text-black">
+                      <table className="w-full border-collapse border border-black text-[11px] bg-transparent print:text-black">
                         <thead>
-                          <tr className="bg-slate-50 print:bg-transparent">
+                          <tr className="bg-transparent print:bg-transparent">
                             <th className="border border-black px-1.5 py-1 text-center font-bold w-10 text-slate-800 print:text-black">S.No</th>
                             <th className="border border-black px-2 py-1 text-left font-bold w-44 text-slate-800 print:text-black">Student Name</th>
                             {assessmentColumns.map((col, idx) => (
