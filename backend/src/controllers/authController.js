@@ -264,13 +264,13 @@ export const getMe = asyncHandler(async (req, res) => {
   // Try to find user first (for admin/teacher)
   let user = await User.findById(req.user._id)
     .select('-password')
-    .populate('school', 'schoolName planExpiresAt isActive')
+    .populate('school', 'schoolName planExpiresAt isActive schoolCode address city state pincode logo')
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section');
 
   // If not found in User, try Parent (for parents)
   if (!user) {
-    user = await Parent.findById(req.user._id).select('-password').populate('school', 'schoolName planExpiresAt isActive');
+    user = await Parent.findById(req.user._id).select('-password').populate('school', 'schoolName planExpiresAt isActive schoolCode address city state pincode logo');
     if (user) {
       // Convert Parent to user-like object
       user = {
@@ -913,4 +913,89 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
     console.error('[verifySignupOTP] Error creating account:', error);
     throw new ApiError(500, error.message || 'Failed to create account');
   }
+});
+
+export const updateSchoolSettings = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'school_admin' && req.user.role !== 'admin') {
+    throw new ApiError(403, 'Access denied.');
+  }
+
+  const schoolId = req.user.school?._id || req.user.school;
+  if (!schoolId) {
+    throw new ApiError(404, 'School not found.');
+  }
+
+  const { schoolName, schoolCode, address, city, state, pincode, phone, email } = req.body;
+
+  if (!schoolName) {
+    throw new ApiError(400, 'School name is required.');
+  }
+
+  const school = await School.findById(schoolId);
+  if (!school) {
+    throw new ApiError(404, 'School not found.');
+  }
+
+  school.schoolName = schoolName;
+  school.schoolCode = schoolCode;
+  school.address = address;
+  school.city = city;
+  school.state = state;
+  school.pincode = pincode;
+  school.phone = phone;
+  school.email = email;
+
+  await school.save();
+
+  res.json({ success: true, school });
+});
+
+export const updateSchoolLogo = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'school_admin' && req.user.role !== 'admin') {
+    throw new ApiError(403, 'Access denied.');
+  }
+
+  const schoolId = req.user.school?._id || req.user.school;
+  if (!schoolId) {
+    throw new ApiError(404, 'School not found.');
+  }
+
+  const { logo } = req.body;
+
+  const school = await School.findById(schoolId);
+  if (!school) {
+    throw new ApiError(404, 'School not found.');
+  }
+
+  school.logo = logo;
+  await school.save();
+
+  res.json({ success: true, logo });
+});
+
+export const updateAccountDetails = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { name, phone, email } = req.body;
+
+  let updatedUser;
+  if (req.user.role === 'parent') {
+    updatedUser = await Parent.findById(userId);
+    if (!updatedUser) throw new ApiError(404, 'Parent not found.');
+    if (name) updatedUser.parentName = name;
+    if (phone) updatedUser.phone = phone;
+    if (email) updatedUser.email = email;
+    await updatedUser.save();
+  } else {
+    updatedUser = await User.findById(userId);
+    if (!updatedUser) throw new ApiError(404, 'User not found.');
+    if (name) updatedUser.name = name;
+    if (req.user.role === 'teacher' && name) {
+      updatedUser.teacherName = name;
+    }
+    if (phone) updatedUser.phoneNo = phone;
+    if (email) updatedUser.email = email;
+    await updatedUser.save();
+  }
+
+  res.json({ success: true, user: updatedUser });
 });

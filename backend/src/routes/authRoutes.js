@@ -1,5 +1,22 @@
 import { Router } from 'express';
-import { login, registerSchool, getMe, changePassword, parentLogin, resetTeacherPassword, googleAuth, googleCallback, verifyEmail, resendVerificationEmail, sendPasswordChangeOTP, sendSignupOTP, verifySignupOTP } from '../controllers/authController.js';
+import { 
+  login, 
+  registerSchool, 
+  getMe, 
+  changePassword, 
+  parentLogin, 
+  resetTeacherPassword, 
+  googleAuth, 
+  googleCallback, 
+  verifyEmail, 
+  resendVerificationEmail, 
+  sendPasswordChangeOTP, 
+  sendSignupOTP, 
+  verifySignupOTP,
+  updateSchoolSettings,
+  updateSchoolLogo,
+  updateAccountDetails
+} from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = Router();
@@ -9,6 +26,9 @@ router.post('/login', login);
 router.post('/parent-login', parentLogin);
 router.get('/me', protect, getMe);
 router.put('/change-password', protect, changePassword);
+router.put('/school-settings', protect, updateSchoolSettings);
+router.put('/school-logo', protect, updateSchoolLogo);
+router.put('/update-account', protect, updateAccountDetails);
 router.post('/reset-teacher-password/:userId', protect, authorize('school_admin'), resetTeacherPassword);
 
 // Email Verification Routes

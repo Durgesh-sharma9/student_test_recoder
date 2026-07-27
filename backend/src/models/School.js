@@ -6,6 +6,12 @@ const schoolSchema = new mongoose.Schema(
     adminName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone: { type: String, trim: true },
+    schoolCode: { type: String, trim: true },
+    address: { type: String, trim: true },
+    city: { type: String, trim: true },
+    state: { type: String, trim: true },
+    pincode: { type: String, trim: true },
+    logo: { type: String }, // base64 or file path
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', required: true },
     planExpiresAt: { type: Date, required: true },
     isActive: { type: Boolean, default: true },

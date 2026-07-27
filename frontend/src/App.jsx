@@ -35,6 +35,7 @@ import TeacherPerformanceDetail from '@/pages/admin/TeacherPerformanceDetail';
 import StudentPerformance from '@/pages/admin/StudentPerformance'; // Added new import
 import AssessmentPlanner from '@/pages/admin/AssessmentPlanner';
 import AssessmentSignature from '@/pages/admin/AssessmentSignature';
+import SettingsPage from '@/pages/admin/SettingsPage';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
@@ -141,6 +142,7 @@ export default function App() {
               
               <Route path="/admin/academic-sessions" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="academic_session" label="Academic Session"><AcademicSessions /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/security" element={<ProtectedRoute roles={['school_admin', 'admin']}><SecuritySettings /></ProtectedRoute>} />
+              <Route path="/admin/settings" element={<ProtectedRoute roles={['school_admin', 'admin']}><SettingsPage /></ProtectedRoute>} />
               <Route path="/admin/notebook-analytics" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><NotebookAnalytics /></RequireFeature></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
