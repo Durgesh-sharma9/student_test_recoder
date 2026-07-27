@@ -61,42 +61,26 @@ const ensureDMYFormat = (str) => {
   return cleaned;
 };
 
-// Utility function to paginate students dynamically to maximize printable space
+// Utility function to paginate students using fixed row count
 const paginateStudents = (studentsList, B) => {
   if (studentsList.length === 0) return [];
-  // Maximum 25 student rows per page
-  const maxRows = 25;
+  // Fixed 25 rows per page
+  const ROWS_PER_PAGE = 25;
   const chunks = [];
-  let currentIndex = 0;
   const total = studentsList.length;
 
-  while (currentIndex < total) {
-    const remainingStudents = total - currentIndex;
+  for (let i = 0; i < total; i += ROWS_PER_PAGE) {
+    const chunkStudents = studentsList.slice(i, i + ROWS_PER_PAGE);
+    const isLastChunk = i + ROWS_PER_PAGE >= total;
     
-    // If all remaining students plus blank rows fit, make it the last chunk
-    if (remainingStudents + B <= maxRows) {
-      chunks.push({
-        startIndex: currentIndex,
-        list: studentsList.slice(currentIndex),
-        isLast: true,
-        blankRowsCount: B
-      });
-      break;
-    } else {
-      // Otherwise, fill the page up to maxRows with actual students.
-      const size = Math.min(remainingStudents, maxRows);
-      const nextRemaining = remainingStudents - size;
-      const isNextLast = (nextRemaining + B <= maxRows);
-
-      chunks.push({
-        startIndex: currentIndex,
-        list: studentsList.slice(currentIndex, currentIndex + size),
-        isLast: isNextLast && nextRemaining === 0,
-        blankRowsCount: (isNextLast && nextRemaining === 0) ? B : 0
-      });
-      currentIndex += size;
-    }
+    chunks.push({
+      startIndex: i,
+      list: chunkStudents,
+      isLast: isLastChunk,
+      blankRowsCount: isLastChunk ? B : 0
+    });
   }
+  
   return chunks;
 };
 
@@ -1151,7 +1135,7 @@ export default function AssessmentSignature() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td colSpan={2 + assessmentColumns.length} className="border border-black px-4 py-6 text-center text-slate-400 font-semibold italic">
+                        <td colSpan={2 + assessmentColumns.length} className="border border-black px-4 py-8 text-center text-slate-400 font-semibold italic">
                           No student records loaded. Select a class in the configuration panel.
                         </td>
                       </tr>
