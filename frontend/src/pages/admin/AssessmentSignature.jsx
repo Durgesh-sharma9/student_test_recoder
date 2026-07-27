@@ -567,7 +567,7 @@ export default function AssessmentSignature() {
           valign: 'middle',
           lineWidth: 0.2,
           lineColor: [0, 0, 0],
-          minCellHeight: 8
+          minCellHeight: 8.5
         },
         columnStyles: colStyles,
         willDrawPage: function(data) {
