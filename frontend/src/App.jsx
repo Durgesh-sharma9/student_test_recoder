@@ -34,6 +34,7 @@ import TeacherPerformance from '@/pages/admin/TeacherPerformance';
 import TeacherPerformanceDetail from '@/pages/admin/TeacherPerformanceDetail';
 import StudentPerformance from '@/pages/admin/StudentPerformance'; // Added new import
 import AssessmentPlanner from '@/pages/admin/AssessmentPlanner';
+import AssessmentSignature from '@/pages/admin/AssessmentSignature';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherClasses from '@/pages/teacher/TeacherClasses';
 import DailyTestEntry from '@/pages/teacher/DailyTestEntry';
@@ -125,6 +126,7 @@ export default function App() {
               <Route path="/admin/notifications" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminNotifications /></ProtectedRoute>} /> {/* Ye add karein */}
               <Route path="/admin/plans" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminPlans /></ProtectedRoute>} />
               <Route path="/admin/assessment-planner" element={<ProtectedRoute roles={['school_admin', 'admin']}><AssessmentPlanner /></ProtectedRoute>} />
+              <Route path="/admin/assessment-signature" element={<ProtectedRoute roles={['school_admin', 'admin']}><AssessmentSignature /></ProtectedRoute>} />
               <Route path="/admin/teachers" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><ManageUsers /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/classes" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageClasses /></ProtectedRoute>} />
               <Route path="/admin/students" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="student_portal" label="Student Portal"><ManageStudents /></RequireFeature></ProtectedRoute>} />

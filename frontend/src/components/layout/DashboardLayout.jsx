@@ -54,7 +54,16 @@ const navByRole = {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-sky-600', boxBg: 'bg-sky-50 group-hover:bg-sky-100', end: true },
     { to: '/admin/teachers', label: 'Teachers', icon: Users, iconColor: 'text-teal-600', boxBg: 'bg-teal-50 group-hover:bg-teal-100', featureKey: 'teacher_portal' },
     { to: '/admin/classes', label: 'Classes', icon: School, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
-    { to: '/admin/assessment-planner', label: 'Assessment Planner', icon: Calendar, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100' },
+    {
+      label: 'Assessment',
+      icon: Calendar,
+      iconColor: 'text-indigo-600',
+      boxBg: 'bg-indigo-50 group-hover:bg-indigo-100',
+      children: [
+        { to: '/admin/assessment-planner', label: 'Assessment Planning' },
+        { to: '/admin/assessment-signature', label: 'Assessment Signature' },
+      ]
+    },
     { to: '/admin/students', label: 'Students', icon: GraduationCap, iconColor: 'text-purple-600', boxBg: 'bg-purple-50 group-hover:bg-purple-100', featureKey: 'student_portal' },
     { to: '/admin/assignments', label: 'Assign Subjects', icon: ClipboardList, iconColor: 'text-orange-600', boxBg: 'bg-orange-50 group-hover:bg-orange-100', featureKey: 'teacher_portal', lockLabel: 'Assign Subjects' },
     { to: '/admin/parents', label: 'Parents', icon: UserCheck, iconColor: 'text-pink-600', boxBg: 'bg-pink-50 group-hover:bg-pink-100', featureKey: 'parent_portal' },

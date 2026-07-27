@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -220,6 +220,8 @@ export default function AssessmentPlanner() {
   const [addDateDialogOpen, setAddDateDialogOpen] = useState(false);
   const [renameDateDialogOpen, setRenameDateDialogOpen] = useState(false);
   const [skipDatesDialogOpen, setSkipDatesDialogOpen] = useState(false);
+  const [originalPlanner, setOriginalPlanner] = useState(null);
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   // Sub-selector target references
   const [newDateValue, setNewDateValue] = useState('');
@@ -248,6 +250,33 @@ export default function AssessmentPlanner() {
   // Copy / Paste Selection States
   const [selectedCellKey, setSelectedCellKey] = useState(null); // "dateStr_classId"
   const [copiedCellData, setCopiedCellData] = useState(null); // { subject, notes }
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!isGenerated) return false;
+    
+    if (currentPlannerId) {
+      if (!originalPlanner) return false;
+      
+      const nameDiff = plannerName !== originalPlanner.name;
+      const typeDiff = assessmentType !== originalPlanner.assessmentType;
+      const examDiff = selectedMainExam !== (originalPlanner.selectedMainExam || '');
+      const classesDiff = JSON.stringify([...selectedClasses].sort()) !== JSON.stringify([...(originalPlanner.classes || [])].sort());
+      const startDiff = startDate !== originalPlanner.startDate;
+      const endDiff = endDate !== originalPlanner.endDate;
+      const skipDaysDiff = JSON.stringify([...skipDays].sort()) !== JSON.stringify([...(originalPlanner.skipDays || [])].sort());
+      const skipSpecificDatesDiff = JSON.stringify([...skipSpecificDates].sort()) !== JSON.stringify([...(originalPlanner.skipSpecificDates || [])].sort());
+      const gridDataDiff = JSON.stringify(gridData) !== JSON.stringify(originalPlanner.gridData || {});
+      
+      return nameDiff || typeDiff || examDiff || classesDiff || startDiff || endDiff || skipDaysDiff || skipSpecificDatesDiff || gridDataDiff;
+    } else {
+      const hasData = Object.keys(gridData).length > 0 || plannerName !== '' || selectedClasses.length > 0;
+      return hasData;
+    }
+  }, [
+    isGenerated, currentPlannerId, originalPlanner,
+    plannerName, assessmentType, selectedMainExam, selectedClasses,
+    startDate, endDate, skipDays, skipSpecificDates, gridData
+  ]);
 
   // Drag and Drop drag indices
   const [draggedRowIndex, setDraggedRowIndex] = useState(null);
@@ -342,11 +371,6 @@ export default function AssessmentPlanner() {
           return;
         }
 
-        if (plannerStatus === 'Published') {
-          toast.error('Published Planner is Read-Only');
-          return;
-        }
-
         setGridData(prev => ({
           ...prev,
           [selectedCellKey]: { ...copiedCellData }
@@ -356,11 +380,6 @@ export default function AssessmentPlanner() {
 
       // Delete or Backspace (Clear Cell)
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (plannerStatus === 'Published') {
-          toast.error('Published Planner is Read-Only');
-          return;
-        }
-
         if (gridData[selectedCellKey]) {
           setGridData(prev => {
             const updated = { ...prev };
@@ -529,13 +548,6 @@ export default function AssessmentPlanner() {
     const cellKey = `${dateItem.dateStr}_${classItem.id}`;
     setSelectedCellKey(cellKey);
 
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner Is Read Only', {
-        icon: <Lock className="h-4 w-4 text-rose-500" />
-      });
-      return;
-    }
-
     setEditingCell({ date: dateItem, classItem });
     const existing = gridData[cellKey];
     
@@ -580,6 +592,14 @@ export default function AssessmentPlanner() {
       return;
     }
 
+    if (currentPlannerId) {
+      setSaveConfirmOpen(true);
+    } else {
+      executeSavePlanner();
+    }
+  };
+
+  const executeSavePlanner = () => {
     setIsLoading(true);
     setTimeout(() => {
       const todayString = new Date().toISOString().split('T')[0];
@@ -587,7 +607,7 @@ export default function AssessmentPlanner() {
       if (currentPlannerId) {
         setPlanners(prev => prev.map(p => {
           if (p.id === currentPlannerId) {
-            return {
+            const updated = {
               ...p,
               name: plannerName,
               status: plannerStatus,
@@ -601,6 +621,8 @@ export default function AssessmentPlanner() {
               skipSpecificDates,
               updatedDate: todayString
             };
+            setOriginalPlanner(updated);
+            return updated;
           }
           return p;
         }));
@@ -616,7 +638,7 @@ export default function AssessmentPlanner() {
         const newPlannerObj = {
           id: newId,
           name: plannerName,
-          status: plannerStatus,
+          status: 'Draft',
           assessmentType,
           selectedMainExam,
           classes: selectedClasses,
@@ -632,7 +654,8 @@ export default function AssessmentPlanner() {
 
         setPlanners(prev => [...prev, newPlannerObj]);
         setCurrentPlannerId(newId);
-        toast.success(`Planner "${plannerName}" saved to library as ${plannerStatus}.`);
+        setOriginalPlanner(newPlannerObj);
+        toast.success(`Planner "${plannerName}" saved to library.`);
       }
 
       setSavedGridData(gridData);
@@ -641,11 +664,56 @@ export default function AssessmentPlanner() {
   };
 
   const handleDiscardChanges = () => {
-    setGridData(savedGridData);
-    toast.info('Changes discarded.');
+    if (originalPlanner) {
+      setPlannerName(originalPlanner.name);
+      setAssessmentType(originalPlanner.assessmentType);
+      setSelectedMainExam(originalPlanner.selectedMainExam || '');
+      setSelectedClasses(originalPlanner.classes || []);
+      setStartDate(originalPlanner.startDate);
+      setEndDate(originalPlanner.endDate);
+      setSkipDays(originalPlanner.skipDays || []);
+      setSkipSpecificDates(originalPlanner.skipSpecificDates || []);
+      setGridData(originalPlanner.gridData || {});
+      setSavedGridData(originalPlanner.gridData || {});
+
+      // Re-generate grid coordinates
+      const start = new Date(originalPlanner.startDate);
+      const end = new Date(originalPlanner.endDate);
+      const tempDates = [];
+      let current = new Date(start);
+      const limit = new Date(start);
+      limit.setMonth(limit.getMonth() + 3);
+
+      while (current <= end && current <= limit) {
+        const year = current.getFullYear();
+        const month = String(current.getMonth() + 1).padStart(2, '0');
+        const day = String(current.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        const dayOfWeek = current.getDay();
+        const isHoliday = (originalPlanner.skipDays || []).includes(dayOfWeek) || (originalPlanner.skipSpecificDates || []).includes(dateStr);
+
+        tempDates.push({
+          dateStr,
+          dayOfWeek,
+          isHoliday,
+          label: `${current.getDate()} ${current.toLocaleDateString('en-US', { month: 'short' })}`,
+          dayName: current.toLocaleDateString('en-US', { weekday: 'long' }),
+          formattedYear: year
+        });
+        current.setDate(current.getDate() + 1);
+      }
+
+      const classesItems = availableClasses.filter(c => (originalPlanner.classes || []).includes(c.id));
+      setDatesList(tempDates);
+      setSelectedClassesList(classesItems);
+      toast.info('Changes discarded.');
+    } else {
+      handleResetPlanner();
+    }
   };
 
   const handleResetPlanner = () => {
+    setOriginalPlanner(null);
     setGridData({});
     setSavedGridData({});
     setIsGenerated(false);
@@ -659,6 +727,7 @@ export default function AssessmentPlanner() {
   const handleEditPlannerFromLibrary = (planner) => {
     setIsLoading(true);
     setTimeout(() => {
+      setOriginalPlanner(planner);
       setCurrentPlannerId(planner.id);
       setPlannerName(planner.name);
       setPlannerStatus(planner.status || 'Draft');
@@ -816,10 +885,6 @@ export default function AssessmentPlanner() {
 
   // Add class row trigger
   const handleOpenAddClassDialog = () => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     const unselected = availableClasses.filter(c => !selectedClasses.includes(c.id));
     setClassToSelectState(unselected);
     setInsertIndex(null);
@@ -828,10 +893,6 @@ export default function AssessmentPlanner() {
   };
 
   const handleInsertClassAt = (index) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     const unselected = availableClasses.filter(c => !selectedClasses.includes(c.id));
     setClassToSelectState(unselected);
     setInsertIndex(index);
@@ -840,10 +901,6 @@ export default function AssessmentPlanner() {
   };
 
   const handleDuplicateClass = (classId) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     const unselected = availableClasses.filter(c => !selectedClasses.includes(c.id));
     setClassToSelectState(unselected);
     const targetIndex = selectedClassesList.findIndex(c => c.id === classId);
@@ -901,10 +958,6 @@ export default function AssessmentPlanner() {
   };
 
   const handleDeleteClass = (classId) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     setSelectedClassesList(prev => prev.filter(c => c.id !== classId));
     setSelectedClasses(prev => prev.filter(id => id !== classId));
     toast.success('Class row removed from worksheet.');
@@ -912,30 +965,18 @@ export default function AssessmentPlanner() {
 
   // Add Date Column triggers
   const handleOpenAddDateDialog = () => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     setInsertIndex(null);
     setDuplicatingDateStr(null);
     setAddDateDialogOpen(true);
   };
 
   const handleInsertDateAt = (index) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     setInsertIndex(index);
     setDuplicatingDateStr(null);
     setAddDateDialogOpen(true);
   };
 
   const handleDuplicateDate = (dateStr) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     const targetIndex = datesList.findIndex(d => d.dateStr === dateStr);
     setInsertIndex(targetIndex + 1);
     setDuplicatingDateStr(dateStr);
@@ -999,20 +1040,12 @@ export default function AssessmentPlanner() {
   };
 
   const handleDeleteDate = (dateStr) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     setDatesList(prev => prev.filter(d => d.dateStr !== dateStr));
     toast.success(`Date column removed: ${formatDateLabel(dateStr)}`);
   };
 
   // Date Renaming trigger
   const handleRenameTrigger = (dtItem) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     setDateToRename(dtItem);
     setRenamedDateValue(dtItem.dateStr);
     setRenameDateDialogOpen(true);
@@ -1098,10 +1131,6 @@ export default function AssessmentPlanner() {
 
   // HTML5 Native Drag & Drop operations
   const handleRowDragStart = (e, index) => {
-    if (plannerStatus === 'Published') {
-      e.preventDefault();
-      return;
-    }
     setDraggedRowIndex(index);
   };
 
@@ -1137,10 +1166,6 @@ export default function AssessmentPlanner() {
   };
 
   const handleColDragStart = (e, index) => {
-    if (plannerStatus === 'Published') {
-      e.preventDefault();
-      return;
-    }
     setDraggedColIndex(index);
   };
 
@@ -1162,7 +1187,6 @@ export default function AssessmentPlanner() {
   // Right-Click Context Menu Trigger
   const handleRightClick = (e, type, target) => {
     e.preventDefault();
-    if (plannerStatus === 'Published') return;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -1247,28 +1271,14 @@ export default function AssessmentPlanner() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {/* Type, Name and Datepicker Row */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Planner Name</label>
-                    <Input
-                      value={plannerName}
-                      onChange={(e) => setPlannerName(e.target.value)}
-                      placeholder="e.g. August Board"
-                      className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
-                    <select
-                      value={plannerStatus}
-                      onChange={(e) => setPlannerStatus(e.target.value)}
-                      className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 hover:border-slate-300"
-                    >
-                      <option value="Draft">Draft</option>
-                      <option value="Published">Published</option>
-                      <option value="Archived">Archived</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Planner Name</label>
+                  <Input
+                    value={plannerName}
+                    onChange={(e) => setPlannerName(e.target.value)}
+                    placeholder="e.g. August Board"
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                  />
                 </div>
 
                 <div>
@@ -1466,22 +1476,13 @@ export default function AssessmentPlanner() {
                     />
                   ) : (
                     <span 
-                      onDoubleClick={() => { if (plannerStatus !== 'Published') setEditingPlannerName(true); }}
+                      onDoubleClick={() => setEditingPlannerName(true)}
                       className="cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition"
                       title="Double click to rename planner inline"
                     >
                       {plannerName || 'Assessment Planner'}
                     </span>
                   )}
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
-                    plannerStatus === 'Published' 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                      : plannerStatus === 'Archived'
-                        ? 'bg-slate-100 text-slate-600 border-slate-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
-                    {plannerStatus}
-                  </span>
                 </h3>
                 <p className="text-[11px] text-slate-400 font-medium">Double-click planner name to edit inline</p>
               </div>
@@ -1645,11 +1646,6 @@ export default function AssessmentPlanner() {
                   {assessmentType === 'Main Exam' ? `Main Exam: ${selectedMainExam}` : assessmentType}
                 </span>
                 <span>• Classes: {filteredClassesList.length} • Dates: {datesList.length}</span>
-                {plannerStatus === 'Published' && (
-                  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 font-bold border border-emerald-100 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wider ml-2">
-                    <Lock className="h-2.5 w-2.5" /> Published (Read Only)
-                  </span>
-                )}
               </div>
               <div className="hidden md:block">
                 💡 Double click Class/Name to edit inline • Right-click rows/headers for context menu • Drag to reorder
@@ -1694,7 +1690,7 @@ export default function AssessmentPlanner() {
                     return (
                       <div
                         key={dt.dateStr}
-                        draggable={plannerStatus !== 'Published'}
+                        draggable
                         onDragStart={(e) => handleColDragStart(e, index)}
                         onDragOver={handleColDragOver}
                         onDrop={() => handleColDrop(index)}
@@ -1710,7 +1706,7 @@ export default function AssessmentPlanner() {
                         }`}
                       >
                         <span 
-                          onDoubleClick={() => { if (plannerStatus !== 'Published') handleRenameTrigger(dt); }}
+                          onDoubleClick={() => handleRenameTrigger(dt)}
                           className="text-[15px] font-bold text-slate-800 leading-tight block hover:bg-slate-200/50 rounded px-1 cursor-pointer transition"
                           title="Double click to rename column date"
                         >
@@ -1749,7 +1745,7 @@ export default function AssessmentPlanner() {
                       <React.Fragment key={cls.id}>
                         {/* sticky Left class column */}
                         <div
-                          draggable={plannerStatus !== 'Published'}
+                          draggable
                           onDragStart={(e) => handleRowDragStart(e, rowIndex)}
                           onDragOver={handleRowDragOver}
                           onDrop={() => handleRowDrop(rowIndex)}
@@ -1767,7 +1763,7 @@ export default function AssessmentPlanner() {
                             />
                           ) : (
                             <span 
-                              onDoubleClick={() => { if (plannerStatus !== 'Published') setEditingClassId(cls.id); }}
+                              onDoubleClick={() => setEditingClassId(cls.id)}
                               className="cursor-pointer hover:bg-slate-200/50 rounded px-1"
                               title="Double click to rename class row inline"
                             >
@@ -1812,10 +1808,8 @@ export default function AssessmentPlanner() {
                             <div
                               key={cellKey}
                               onClick={() => handleCellClick(dt, cls)}
-                              title={plannerStatus === 'Published' ? 'Published - Read Only' : 'Click to edit • Ctrl+C/V to copy/paste'}
-                              className={`border-r border-b border-slate-100 h-10 flex items-center justify-center hover:bg-slate-50/60 transition-colors select-none relative ${
-                                plannerStatus === 'Published' ? 'cursor-not-allowed' : 'cursor-pointer'
-                              } ${
+                              title="Click to edit • Ctrl+C/V to copy/paste"
+                              className={`border-r border-b border-slate-100 h-10 flex items-center justify-center hover:bg-slate-50/60 transition-colors select-none relative cursor-pointer ${
                                 isSelected ? 'ring-2 ring-indigo-500 ring-inset z-10' : ''
                               }`}
                             >
@@ -1827,16 +1821,12 @@ export default function AssessmentPlanner() {
                                   {cell.subject}
                                 </span>
                               ) : (
-                                plannerStatus === 'Published' ? (
-                                  <Lock className="h-3 w-3 text-slate-200" />
-                                ) : (
-                                  <div className="group/cell w-full h-full flex items-center justify-center min-h-[38px] transition-all">
-                                    <span className="text-slate-350 font-medium text-xs group-hover/cell:hidden transition-all duration-200 opacity-60">—</span>
-                                    <span className="hidden group-hover/cell:inline-flex text-indigo-600 font-extrabold text-[9.5px] uppercase tracking-widest transition-all duration-200 scale-95 group-hover/cell:scale-100 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg shadow-sm">
-                                      Schedule
-                                    </span>
-                                  </div>
-                                )
+                                <div className="group/cell w-full h-full flex items-center justify-center min-h-[38px] transition-all">
+                                  <span className="text-slate-350 font-medium text-xs group-hover/cell:hidden transition-all duration-200 opacity-60">—</span>
+                                  <span className="hidden group-hover/cell:inline-flex text-indigo-600 font-extrabold text-[9.5px] uppercase tracking-widest transition-all duration-200 scale-95 group-hover/cell:scale-100 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-lg shadow-sm">
+                                    Schedule
+                                  </span>
+                                </div>
                               )}
                             </div>
                           );
@@ -1882,14 +1872,11 @@ export default function AssessmentPlanner() {
           </div>
 
           {/* BOTTOM STATUS DETAILS BAR */}
-          <div className="no-print bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row gap-3 items-center justify-between text-xs">
+          <div className="no-print bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row gap-3 items-center justify-between text-xs mb-16">
             <div className="flex items-center gap-1.5 font-semibold text-slate-300">
               <Info className="h-4.5 w-4.5 text-indigo-400 shrink-0" />
               <span>
                 {Object.keys(gridData).length} tests scheduled.
-                {JSON.stringify(gridData) !== JSON.stringify(savedGridData) && (
-                  <span className="text-amber-400 ml-1.5 font-bold animate-pulse">● Unsaved Draft Edits</span>
-                )}
               </span>
             </div>
 
@@ -1901,24 +1888,6 @@ export default function AssessmentPlanner() {
               >
                 <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                 Reset Layout
-              </Button>
-
-              {JSON.stringify(gridData) !== JSON.stringify(savedGridData) && (
-                <Button
-                  variant="outline"
-                  onClick={handleDiscardChanges}
-                  className="bg-transparent border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-semibold h-10 rounded-xl cursor-pointer"
-                >
-                  Discard Changes
-                </Button>
-              )}
-
-              <Button
-                onClick={handleSaveAllPlanner}
-                className="bg-gradient-to-r from-indigo-500 to-indigo-500 hover:from-indigo-600 hover:to-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-500/10 text-xs font-bold flex items-center gap-1.5 h-10 px-5 border-0 cursor-pointer"
-              >
-                <Save className="h-3.5 w-3.5" />
-                Save Planner
               </Button>
             </div>
           </div>
@@ -2488,6 +2457,72 @@ export default function AssessmentPlanner() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* SAVE OVERWRITE CONFIRMATION DIALOG */}
+      <Dialog open={saveConfirmOpen} onOpenChange={setSaveConfirmOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-0 overflow-hidden bg-white border-slate-200 shadow-2xl">
+          <DialogHeader className="bg-indigo-50/70 px-6 py-5 border-b border-indigo-100">
+            <DialogTitle className="text-base font-bold text-indigo-850 flex items-center gap-2">
+              💾 Save Planner Changes?
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="p-6 space-y-3">
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Are you sure you want to save and overwrite the changes made to the planner <strong>"{plannerName}"</strong>?
+            </p>
+            <p className="text-xs text-slate-400">
+              This action will update the original planner configuration and library views.
+            </p>
+          </DialogBody>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setSaveConfirmOpen(false)}
+              className="rounded-xl h-10 px-5 text-sm font-semibold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setSaveConfirmOpen(false);
+                executeSavePlanner();
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-sm font-bold shadow-sm cursor-pointer border-0"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* STICKY BOTTOM BAR FOR UNSAVED CHANGES */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl py-4 px-6 no-print animate-in slide-in-from-bottom duration-300">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-250">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <span>Unsaved Changes in <strong>"{plannerName || 'New Planner'}"</strong></span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={handleDiscardChanges}
+                className="text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold h-10 rounded-xl cursor-pointer"
+              >
+                Discard
+              </Button>
+              <Button
+                onClick={handleSaveAllPlanner}
+                className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 text-xs font-bold flex items-center gap-1.5 h-10 px-5 border-0 cursor-pointer"
+              >
+                <Save className="h-3.5 w-3.5" />
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageStack>
   );
 }

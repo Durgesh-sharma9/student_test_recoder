@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Plus, Filter, AlertTriangle, HelpCircle, Archive, ClipboardList } from 'lucide-react';
+import { Search, Plus, HelpCircle, ClipboardList } from 'lucide-react';
 import PlannerCard from './PlannerCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,13 +9,11 @@ export default function PlannerLibrary({
   onEdit,
   onDelete,
   onDownloadPDF,
-  onDownloadExcel,
   onPrint,
   onNewPlanner
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all'); // all, daily, main
-  const [statusFilter, setStatusFilter] = useState('all'); // all, draft, published, archived
 
   const safePlanners = Array.isArray(planners) ? planners : [];
   const maxReached = safePlanners.length >= 5;
@@ -35,13 +33,7 @@ export default function PlannerLibrary({
     if (typeFilter === 'daily') categoryMatch = p.assessmentType === 'Daily Test';
     if (typeFilter === 'main') categoryMatch = p.assessmentType === 'Main Exam';
 
-    // 3. Status filter
-    let stateMatch = true;
-    if (statusFilter !== 'all') {
-      stateMatch = p.status?.toLowerCase() === statusFilter.toLowerCase();
-    }
-
-    return searchMatch && categoryMatch && stateMatch;
+    return searchMatch && categoryMatch;
   });
 
   return (
@@ -73,7 +65,7 @@ export default function PlannerLibrary({
       {/* Maximum planners warning card */}
       {maxReached && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200/60 p-3.5 rounded-2xl text-amber-800 text-xs">
-          <AlertTriangle className="h-4.5 w-4.5 text-amber-600 shrink-0 mt-0.5" />
+          <span className="shrink-0 mt-0.5 text-amber-600 font-bold">⚠️</span>
           <div className="space-y-0.5">
             <p className="font-bold">Planner Storage Limit Reached</p>
             <p className="text-[11px] text-amber-700 leading-relaxed">
@@ -109,21 +101,6 @@ export default function PlannerLibrary({
               <option value="main">Main Exam</option>
             </select>
           </div>
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 focus:outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -143,7 +120,6 @@ export default function PlannerLibrary({
               onEdit={onEdit}
               onDelete={onDelete}
               onDownloadPDF={onDownloadPDF}
-              onDownloadExcel={onDownloadExcel}
               onPrint={onPrint}
             />
           ))}
