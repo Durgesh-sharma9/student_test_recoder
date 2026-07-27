@@ -64,9 +64,9 @@ const ensureDMYFormat = (str) => {
 // Utility function to paginate students dynamically to maximize printable space
 const paginateStudents = (studentsList, B) => {
   if (studentsList.length === 0) return [];
-  // A4: 297mm | startY: 28mm | footer margin: 36mm | header row: ~10mm | body row: 9mm (minCellHeight)
-  // Available body height = 297 - 28 - 36 - 10 = 223mm → floor(223/9) = 24 rows before autotable overflows
-  const maxRows = 24;
+  // A4: 297mm | startY: 28mm | footer margin: 36mm | header row: ~10mm | body row: 8mm (minCellHeight)
+  // Available body height = 297 - 28 - 36 - 10 = 223mm → floor(223/8) = 27 rows before autotable overflows
+  const maxRows = 27;
   const chunks = [];
   let currentIndex = 0;
   const total = studentsList.length;
@@ -84,7 +84,7 @@ const paginateStudents = (studentsList, B) => {
       });
       break;
     } else {
-      // Otherwise, fill the page up to 23 rows with actual students.
+      // Otherwise, fill the page up to maxRows with actual students.
       const size = Math.min(remainingStudents, maxRows);
       const nextRemaining = remainingStudents - size;
       const isNextLast = (nextRemaining + B <= maxRows);
@@ -433,7 +433,7 @@ export default function AssessmentSignature() {
           const y = (pageHeight - size) / 2;
           
           if (typeof pdfDoc.GState === 'function') {
-            const gState = new pdfDoc.GState({ opacity: 0.07 });
+            const gState = new pdfDoc.GState({ opacity: 0.08 });
             pdfDoc.saveGraphicsState();
             pdfDoc.setGState(gState);
             pdfDoc.addImage(user.school.logo, 'JPEG', x, y, size, size);
@@ -491,7 +491,7 @@ export default function AssessmentSignature() {
       // Document Type subtitle
       pdfDoc.setFont('Helvetica', 'bold');
       pdfDoc.setFontSize(8.5);
-      pdfDoc.text('ASSESSMENT SIGNATURE SHEET', 26, 15.5);
+      pdfDoc.text('ATTENDANCE SHEET', 26, 15.5);
 
       // Right-aligned Class & Date
       pdfDoc.setFont('Helvetica', 'bold');
@@ -582,7 +582,7 @@ export default function AssessmentSignature() {
           valign: 'middle',
           lineWidth: 0.2,
           lineColor: [0, 0, 0],
-          minCellHeight: 9
+          minCellHeight: 8
         },
         columnStyles: colStyles,
         willDrawPage: function(data) {
@@ -611,18 +611,15 @@ export default function AssessmentSignature() {
       doc.setFontSize(8.5);
       doc.setTextColor(0, 0, 0);
 
-      // Row 1: Total Students | Present | Absent  (evenly across page width)
-      const col1 = 15;
-      const col2 = pageWidth / 3;
-      const col3 = (pageWidth / 3) * 2;
-      doc.text('Total Students : ____________', col1, pageHeight - 27);
-      doc.text('Present : ____________', col2, pageHeight - 27);
-      doc.text('Absent : ____________', col3, pageHeight - 27);
+      // Row 1: Total Students | Present | Absent (3-column grid layout)
+      doc.text('Total Students : __________', 15, pageHeight - 27);
+      doc.text('Present : __________', pageWidth / 2, pageHeight - 27, { align: 'center' });
+      doc.text('Absent : __________', pageWidth - 15, pageHeight - 27, { align: 'right' });
       
-      // Row 2: Invigilator 1 | Invigilator 2 | Checked By  (same three columns)
-      doc.text('Invigilator 1 : ____________________', col1, pageHeight - 19);
-      doc.text('Invigilator 2 : ____________________', col2, pageHeight - 19);
-      doc.text('Checked By : ____________________', col3, pageHeight - 19);
+      // Row 2: Invigilator 1 | Invigilator 2 | Checked By (3-column grid layout)
+      doc.text('Invigilator 1 : _____________________', 15, pageHeight - 19);
+      doc.text('Invigilator 2 : _____________________', pageWidth / 2, pageHeight - 19, { align: 'center' });
+      doc.text('Checked By : _____________________', pageWidth - 15, pageHeight - 19, { align: 'right' });
       
       // Bottom row: Generated on (left) | Page X of Y (right)
       doc.setFont('Helvetica', 'normal');
@@ -1090,7 +1087,7 @@ export default function AssessmentSignature() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td colSpan={2 + assessmentColumns.length} className="border border-black px-4 py-8 text-center text-slate-400 font-semibold italic">
+                        <td colSpan={2 + assessmentColumns.length} className="border border-black px-4 py-6 text-center text-slate-400 font-semibold italic">
                           No student records loaded. Select a class in the configuration panel.
                         </td>
                       </tr>
@@ -1163,10 +1160,10 @@ export default function AssessmentSignature() {
                         <tbody>
                           {chunk.list.map((student, idx) => (
                             <tr key={student._id || idx} className="hover:bg-slate-50/50 print:hover:bg-transparent">
-                              <td className="border border-black px-1.5 py-1 text-center text-slate-800 print:text-black font-semibold">{chunk.startIndex + idx + 1}</td>
-                              <td className="border border-black px-2 py-1 text-left font-bold text-slate-800 print:text-black whitespace-nowrap">{student.name}</td>
+                              <td className="border border-black px-1.5 py-0.5 text-center text-slate-800 print:text-black font-semibold">{chunk.startIndex + idx + 1}</td>
+                              <td className="border border-black px-2 py-0.5 text-left font-bold text-slate-800 print:text-black whitespace-nowrap">{student.name}</td>
                               {assessmentColumns.map((col, cIdx) => (
-                                <td key={col.id || cIdx} className="border border-black px-1.5 py-1 text-center select-none">
+                                <td key={col.id || cIdx} className="border border-black px-1.5 py-0.5 text-center select-none">
                                   <span className="text-[10px] text-slate-300 print:text-black opacity-60">________________</span>
                                 </td>
                               ))}
@@ -1175,10 +1172,10 @@ export default function AssessmentSignature() {
                           {/* Dynamic blank rows on last page */}
                           {Array.from({ length: chunk.blankRowsCount }).map((_, bIdx) => (
                             <tr key={`blank_${bIdx}`} className="print:hover:bg-transparent">
-                              <td className="border border-black px-1.5 py-1 text-center text-slate-800 print:text-black font-semibold">&nbsp;</td>
-                              <td className="border border-black px-2 py-1 text-left font-bold text-slate-800 print:text-black whitespace-nowrap">&nbsp;</td>
+                              <td className="border border-black px-1.5 py-0.5 text-center text-slate-800 print:text-black font-semibold">&nbsp;</td>
+                              <td className="border border-black px-2 py-0.5 text-left font-bold text-slate-800 print:text-black whitespace-nowrap">&nbsp;</td>
                               {assessmentColumns.map((col, cIdx) => (
-                                <td key={`blank_col_${cIdx}`} className="border border-black px-1.5 py-1 text-center select-none">
+                                <td key={`blank_col_${cIdx}`} className="border border-black px-1.5 py-0.5 text-center select-none">
                                   <span className="text-[10px] text-slate-300 print:text-black opacity-60">________________</span>
                                 </td>
                               ))}
@@ -1193,15 +1190,15 @@ export default function AssessmentSignature() {
                       className="mt-4 pt-3 border-t border-black text-[10px] font-bold text-slate-900 print:text-black"
                       style={{ pageBreakInside: 'avoid', breakInside: 'avoid', width: '100%' }}
                     >
-                      <div className="flex justify-between items-center whitespace-nowrap mb-2">
+                      <div className="grid grid-cols-3 gap-4 mb-2">
                         <span>Total Students : __________</span>
-                        <span>Present : __________</span>
-                        <span>Absent : __________</span>
+                        <span className="text-center">Present : __________</span>
+                        <span className="text-right">Absent : __________</span>
                       </div>
-                      <div className="flex justify-between items-center whitespace-nowrap mb-3">
+                      <div className="grid grid-cols-3 gap-4 mb-3">
                         <span>Invigilator 1 : _____________________</span>
-                        <span>Invigilator 2 : _____________________</span>
-                        <span>Checked By : _____________________</span>
+                        <span className="text-center">Invigilator 2 : _____________________</span>
+                        <span className="text-right">Checked By : _____________________</span>
                       </div>
                       <div className="flex justify-between items-center text-[8px] text-slate-500 print:text-black font-medium whitespace-nowrap">
                         <span>Generated on: {getFormattedDate()}</span>
