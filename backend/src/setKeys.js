@@ -12,22 +12,25 @@ const run = async () => {
   await mongoose.connect(uri);
 
   const existing = await PaymentSettings.findOne();
+  const keyId = process.env.RAZORPAY_KEY_ID || '';
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
   if (existing) {
     existing.razorpayEnabled = true;
-    existing.razorpayKeyId = 'rzp_test_TNFrLSunBdtmcv';
-    existing.razorpayKeySecret = 'rYqvnc8Q8GqIpXT6ZSNKp7Ly';
+    existing.razorpayKeyId = keyId;
+    existing.razorpayKeySecret = keySecret;
     await existing.save();
-    console.log('Updated existing PaymentSettings with Razorpay test keys.');
+    console.log('Updated existing PaymentSettings with Razorpay test keys from process.env.');
   } else {
     await PaymentSettings.create({
       upiId: 'test@upi',
       merchantName: 'Test Merchant',
       qrExpiryMinutes: 5,
       razorpayEnabled: true,
-      razorpayKeyId: 'rzp_test_TNFrLSunBdtmcv',
-      razorpayKeySecret: 'rYqvnc8Q8GqIpXT6ZSNKp7Ly',
+      razorpayKeyId: keyId,
+      razorpayKeySecret: keySecret,
     });
-    console.log('Created new PaymentSettings with Razorpay test keys.');
+    console.log('Created new PaymentSettings with Razorpay test keys from process.env.');
   }
 
   await mongoose.disconnect();

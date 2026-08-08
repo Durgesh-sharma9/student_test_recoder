@@ -10,6 +10,7 @@ import { FormField } from '@/components/erp/PagePrimitives';
 import { SUBSCRIPTION_FEATURES } from '@/lib/subscriptionFeatures';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { cn } from '@/lib/utils';
+import { firePlanActiveConfetti } from '@/utils/confetti';
 
 const cycleLabel = (cycle) =>
   cycle === 'yearly' ? 'Yearly' : 'Monthly';
@@ -215,6 +216,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
 
       setSubmitted(true);
       toast.success('Payment request submitted');
+      localStorage.setItem('pending_activation_plan_id', plan._id);
       refreshSubscription().catch(() => {});
     } finally {
       setLoading(false);
@@ -277,6 +279,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               setSubmitted(true);
               toast.success('Payment verified and plan activated successfully!');
               refreshSubscription().catch(() => {});
+              firePlanActiveConfetti();
             }
           } catch (err) {
             toast.error(err.response?.data?.message || 'Payment verification failed');

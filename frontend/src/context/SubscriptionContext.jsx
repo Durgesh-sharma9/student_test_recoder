@@ -31,6 +31,21 @@ export function SubscriptionProvider({ children }) {
     refresh().catch(() => {});
   }, [refresh, user]);
 
+  useEffect(() => {
+    if (!subscription) return;
+    const pendingPlanId = localStorage.getItem('pending_activation_plan_id');
+    if (pendingPlanId) {
+      const currentPlan = subscription.currentPlan;
+      const hasPendingRequest = Boolean(subscription.pendingRequest);
+      if (currentPlan && currentPlan._id === pendingPlanId && !hasPendingRequest) {
+        import('@/utils/confetti').then(({ firePlanActiveConfetti }) => {
+          firePlanActiveConfetti();
+        });
+        localStorage.removeItem('pending_activation_plan_id');
+      }
+    }
+  }, [subscription]);
+
   const value = useMemo(() => {
     const currentPlan = subscription?.currentPlan || null;
     const usage = subscription?.usage || null;
