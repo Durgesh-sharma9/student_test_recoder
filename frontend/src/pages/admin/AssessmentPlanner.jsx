@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatClassName } from '@/lib/utils';
-import { PageHeader, PageStack } from '@/components/erp/PagePrimitives';
+import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -1203,6 +1203,10 @@ export default function AssessmentPlanner() {
 
   return (
     <PageStack className="max-w-full overflow-x-hidden p-1 sm:p-2">
+      <PageHeader 
+        title="Assessment Planning" 
+        description="Design, coordinate, and export student daily tests and main exam schedules in an interactive spreadsheet workspace."
+      />
       {/* Dynamic Printing CSS override */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
@@ -1233,56 +1237,35 @@ export default function AssessmentPlanner() {
         }
       `}} />
 
-      {/* PLANNER LIBRARY SECTION */}
-      <div className="no-print">
-        <PlannerLibrary
-          planners={planners}
-          onEdit={handleEditPlannerFromLibrary}
-          onDelete={handleDeleteTrigger}
-          onDownloadPDF={handleDownloadPDF}
-          onDownloadExcel={(p) => exportPlannerToExcel(p, availableClasses)}
-          onPrint={handlePrintPlanner}
-          onNewPlanner={handleCreateNewPlanner}
-        />
-      </div>
-
-      {/* WORKSPACE SEPARATOR */}
-      <div className="border-t border-slate-200/80 my-4 no-print" />
-
       {/* CONFIGURATION SETUP CARD (Before Generation) */}
       {!isGenerated && !isLoading && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm shadow-slate-100 overflow-hidden transition-all duration-300 no-print">
-          <div className="bg-gradient-to-r from-indigo-50/70 via-indigo-50/20 to-transparent border-b border-slate-100 px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
-                <Grid className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-800">1. Planner Configuration</h2>
-                <p className="text-xs text-slate-500">Configure parameters to generate your spreadsheet layout</p>
-              </div>
-            </div>
-            <div className="hidden sm:inline-flex items-center rounded-full bg-indigo-50 border border-indigo-100/50 px-3 py-1 text-xs font-semibold text-indigo-700">
+        <ErpSection
+          title="1. Planner Configuration"
+          icon={Grid}
+          tone="orange"
+          action={
+            <div className="hidden sm:inline-flex items-center rounded-full bg-orange-50 border border-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
               🛠️ Setup Mode
             </div>
-          </div>
-
-          <div className="p-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          }
+          className="no-print border border-slate-200/80 shadow-sm"
+        >
+          <div className="border border-orange-150/70 rounded-2xl p-4 bg-gradient-to-br from-orange-50/70 to-amber-50/30">
+            <div className="grid gap-4 md:grid-cols-3">
               {/* Type, Name and Datepicker Row */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Planner Name</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Planner Name</label>
                   <Input
                     value={plannerName}
                     onChange={(e) => setPlannerName(e.target.value)}
                     placeholder="e.g. August Board"
-                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                    className="w-full h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assessment Type</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Assessment Type</label>
                   <select
                     value={assessmentType}
                     onChange={(e) => {
@@ -1291,7 +1274,7 @@ export default function AssessmentPlanner() {
                         setSelectedMainExam('');
                       }
                     }}
-                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 hover:border-slate-300"
+                    className="w-full h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 hover:border-slate-300"
                   >
                     <option value="Daily Test">Daily Test</option>
                     <option value="Main Exam">Main Exam</option>
@@ -1300,11 +1283,11 @@ export default function AssessmentPlanner() {
 
                 {assessmentType === 'Main Exam' && (
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Main Exam</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Main Exam</label>
                     <select
                       value={selectedMainExam}
                       onChange={(e) => setSelectedMainExam(e.target.value)}
-                      className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 hover:border-slate-300"
+                      className="w-full h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 hover:border-slate-300"
                     >
                       <option value="">Select Main Exam Session...</option>
                       {mainExamSessions.map((exam) => (
@@ -1312,30 +1295,30 @@ export default function AssessmentPlanner() {
                       ))}
                     </select>
                     {selectedMainExam === '' && (
-                      <p className="text-xs text-rose-500 mt-1.5 flex items-center gap-1 font-medium">
-                        ⚠️ Please select a Main Exam before generating the planner.
+                      <p className="text-[10px] text-rose-500 mt-1 flex items-center gap-1 font-medium">
+                        ⚠️ Select a Main Exam before generating.
                       </p>
                     )}
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Start Date</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Start Date</label>
                     <DatePicker
                       value={startDate}
                       onChange={setStartDate}
                       placeholder="DD/MM/YYYY"
-                      className="w-full h-11 rounded-xl"
+                      className="w-full h-9 rounded-xl"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">End Date</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">End Date</label>
                     <DatePicker
                       value={endDate}
                       onChange={setEndDate}
                       placeholder="DD/MM/YYYY"
-                      className="w-full h-11 rounded-xl"
+                      className="w-full h-9 rounded-xl"
                     />
                   </div>
                 </div>
@@ -1344,32 +1327,32 @@ export default function AssessmentPlanner() {
               {/* Class Checklist */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-slate-700">Class Selection</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Class Selection</label>
                   <button
                     type="button"
                     onClick={handleSelectAllClasses}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer animate-none"
+                    className="text-[10.5px] font-bold text-indigo-650 hover:text-indigo-750 cursor-pointer animate-none"
                   >
                     {selectedClasses.length === availableClasses.length ? 'Deselect All' : 'Select All'}
                   </button>
                 </div>
-                <div className="border border-slate-200 rounded-2xl bg-slate-50/50 p-4 max-h-[220px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <div className="border border-slate-200 rounded-xl bg-slate-50/50 p-3 max-h-[140px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                     {availableClasses.map((cls) => {
                       if (!cls || !cls.id) return null;
                       const isChecked = selectedClasses.includes(cls.id);
                       return (
                         <label
                           key={cls.id}
-                          className={`flex items-center gap-2.5 cursor-pointer text-sm font-medium transition-colors select-none ${
-                            isChecked ? 'text-indigo-600 font-semibold' : 'text-slate-600 hover:text-slate-900'
+                          className={`flex items-center gap-2 cursor-pointer text-xs font-semibold transition-colors select-none ${
+                            isChecked ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleToggleClass(cls.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
                           />
                           <span>{cls.name}</span>
                         </label>
@@ -1380,10 +1363,10 @@ export default function AssessmentPlanner() {
               </div>
 
               {/* Exclude/Skip items */}
-              <div className="space-y-4 md:col-span-2 lg:col-span-1">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Skip Days (Recurring)</label>
-                  <div className="flex flex-wrap gap-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Skip Days (Recurring)</label>
+                  <div className="flex flex-wrap gap-1.5">
                     {WEEK_DAYS.map((day) => {
                       const isSkipped = skipDays.includes(day.value);
                       return (
@@ -1391,13 +1374,13 @@ export default function AssessmentPlanner() {
                           key={day.value}
                           type="button"
                           onClick={() => handleToggleSkipDay(day.value)}
-                          className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                             isSkipped
-                              ? 'bg-red-50 border-red-200 text-red-600'
+                              ? 'bg-red-50 border-red-200 text-red-650'
                               : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          {day.label}
+                          {day.label.slice(0, 3)}
                         </button>
                       );
                     })}
@@ -1405,24 +1388,24 @@ export default function AssessmentPlanner() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Skip Specific Dates (Holidays)</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Skip Specific Dates (Holidays)</label>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <DatePicker
                         value={skipSpecificDateInput}
                         onChange={handleAddSkipDate}
-                        placeholder="Add date to exclude..."
-                        className="w-full h-10 rounded-xl"
+                        placeholder="Exclude date..."
+                        className="w-full h-9 rounded-xl"
                       />
                     </div>
                   </div>
                   
                   {skipSpecificDates.length > 0 && (
-                    <div className="mt-2.5 flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto p-1 bg-slate-50/70 border border-slate-100 rounded-xl">
+                    <div className="mt-2 flex flex-wrap gap-1 max-h-[60px] overflow-y-auto p-1 bg-slate-50/70 border border-slate-100 rounded-lg">
                       {skipSpecificDates.map((date) => (
                         <span
                           key={date}
-                          className="inline-flex items-center gap-1 bg-red-100/70 text-red-700 px-2 py-0.5 rounded-lg text-xs font-medium border border-red-200/50"
+                          className="inline-flex items-center gap-1 bg-red-100/70 text-red-700 px-2 py-0.5 rounded-md text-[10.5px] font-semibold border border-red-200/50"
                         >
                           {formatDateLabel(date)}
                           <button
@@ -1430,7 +1413,7 @@ export default function AssessmentPlanner() {
                             onClick={() => handleRemoveSkipDate(date)}
                             className="hover:bg-red-200 rounded p-0.5 cursor-pointer"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-2.5 w-2.5" />
                           </button>
                         </span>
                       ))}
@@ -1440,19 +1423,19 @@ export default function AssessmentPlanner() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-slate-100 flex justify-end">
+            <div className="mt-4 pt-3 border-t border-slate-100 flex justify-end">
               <Button
                 onClick={handleGeneratePlanner}
-                size="lg"
+                size="default"
                 disabled={assessmentType === 'Main Exam' && selectedMainExam === ''}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-md shadow-indigo-600/10 font-bold flex items-center gap-2 border-0 cursor-pointer h-12 px-8 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl shadow-md shadow-orange-500/10 text-xs font-bold flex items-center gap-1.5 border-0 cursor-pointer h-9 px-5 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Grid className="h-4.5 w-4.5" />
+                <Grid className="h-4 w-4" />
                 {assessmentType === 'Daily Test' ? 'Generate Daily Test Planner' : 'Generate Main Exam Planner'}
               </Button>
             </div>
           </div>
-        </div>
+        </ErpSection>
       )}
 
       {/* COMPACT METADATA SUMMARY CARD (After Generation) */}
@@ -1639,18 +1622,20 @@ export default function AssessmentPlanner() {
           </div>
 
           {/* COMPACT SPREADSHEET GRID */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm shadow-slate-100/50 overflow-hidden">
-            <div className="px-4 py-3 bg-slate-50/30 border-b border-slate-100 flex items-center justify-between text-xs font-medium text-slate-400">
-              <div className="flex items-center gap-2">
+          <ErpSection
+            title="2. Interactive Planning Grid"
+            icon={Calendar}
+            tone="indigo"
+            contentClassName="p-0 sm:p-0"
+            action={
+              <div className="flex items-center gap-2 text-xs font-medium">
                 <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 text-[10px] tracking-wide uppercase">
                   {assessmentType === 'Main Exam' ? `Main Exam: ${selectedMainExam}` : assessmentType}
                 </span>
-                <span>• Classes: {filteredClassesList.length} • Dates: {datesList.length}</span>
+                <span className="text-slate-500 font-semibold hidden sm:inline">• Classes: {filteredClassesList.length} • Dates: {datesList.length}</span>
               </div>
-              <div className="hidden md:block">
-                💡 Double click Class/Name to edit inline • Right-click rows/headers for context menu • Drag to reorder
-              </div>
-            </div>
+            }
+          >
 
             {/* Colors Legend Row in Grid Head */}
             <div className="no-print border-b border-slate-100 px-4 py-2 bg-slate-50/20 flex flex-wrap items-center gap-x-4 gap-y-1.5">
@@ -1869,7 +1854,7 @@ export default function AssessmentPlanner() {
                 </div>
               )}
             </div>
-          </div>
+          </ErpSection>
 
           {/* BOTTOM STATUS DETAILS BAR */}
           <div className="no-print bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row gap-3 items-center justify-between text-xs mb-16">
@@ -1893,6 +1878,22 @@ export default function AssessmentPlanner() {
           </div>
         </div>
       )}
+
+      {/* WORKSPACE SEPARATOR */}
+      <div className="border-t border-slate-200/80 my-4 no-print" />
+
+      {/* PLANNER LIBRARY SECTION */}
+      <div className="no-print">
+        <PlannerLibrary
+          planners={planners}
+          onEdit={handleEditPlannerFromLibrary}
+          onDelete={handleDeleteTrigger}
+          onDownloadPDF={handleDownloadPDF}
+          onDownloadExcel={(p) => exportPlannerToExcel(p, availableClasses)}
+          onPrint={handlePrintPlanner}
+          onNewPlanner={handleCreateNewPlanner}
+        />
+      </div>
 
       {/* FLOATING RIGHT-CLICK CONTEXT MENU */}
       {contextMenu && (

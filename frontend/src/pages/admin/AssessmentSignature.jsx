@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { 
   FileSignature, Info, Plus, Trash2, Printer, Download, Save, Sparkles, FolderOpen, AlertCircle, FileText, Calendar, RefreshCw, ChevronDown
 } from 'lucide-react';
-import { PageHeader } from '@/components/erp/PagePrimitives';
+import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -792,164 +792,158 @@ export default function AssessmentSignature() {
         
         {/* TOP TWO-COLUMN CONFIGURATION ROW (no-print) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch no-print">
-          
           {/* LEFT CARD - SHEET CONFIGURATION */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3.5 h-full">
-            <div>
-              <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1.5 mb-0.5">
-                <FileSignature className="h-4.5 w-4.5" />
-                Sheet Configuration
-              </h3>
-              <p className="text-[11px] text-slate-405">Configure parameters below to generate the attendance sheet.</p>
-            </div>
-
-            {/* Assessment Title */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Assessment Title</label>
-              <Input 
-                value={assessmentTitle}
-                onChange={(e) => setAssessmentTitle(e.target.value)}
-                placeholder="Half Yearly Examination / Unit Test"
-                className="rounded-lg border-slate-200 h-9 text-xs"
-              />
-            </div>
-
-            {/* Class Selector */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Select Class</label>
-              {loadingClasses ? (
-                <div className="h-9 w-full bg-slate-50 animate-pulse rounded-lg border border-slate-200" />
-              ) : (
-                <Select value={selectedClassId} onValueChange={(val) => { setSelectedClassId(val); setSelectedPlannerId(''); }}>
-                  <SelectTrigger className="rounded-lg border-slate-200 text-slate-700 h-9 text-xs bg-white">
-                    <SelectValue placeholder="Choose a class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeClasses.map((cls) => (
-                      <SelectItem key={cls._id} value={cls._id}>
-                        Class {cls.className} - {cls.section}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Assessment Source Radios */}
-            {selectedClassId && (
-              <div className="space-y-1.5 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
-                <label className="text-xs font-bold text-slate-700 block">Assessment Source</label>
-                <div className="flex gap-4 mt-0.5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="assessmentSource"
-                      value="planner"
-                      checked={assessmentSource === 'planner'}
-                      onChange={() => setAssessmentSource('planner')}
-                      className="text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
-                    />
-                    Fetch from Assessment Planner
-                  </label>
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
-                    <input 
-                      type="radio" 
-                      name="assessmentSource"
-                      value="manual"
-                      checked={assessmentSource === 'manual'}
-                      onChange={() => setAssessmentSource('manual')}
-                      className="text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
-                    />
-                    Manual Entry
-                  </label>
-                </div>
+          <ErpSection
+            title="Sheet Configuration"
+            icon={FileSignature}
+            tone="green"
+            className="h-full border border-slate-200/80 shadow-sm"
+            contentClassName="p-4"
+          >
+            <div className="border border-emerald-150/70 rounded-2xl p-4 bg-gradient-to-br from-emerald-50/70 to-teal-50/30 space-y-3">
+              {/* Assessment Title */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Assessment Title</label>
+                <Input 
+                  value={assessmentTitle}
+                  onChange={(e) => setAssessmentTitle(e.target.value)}
+                  placeholder="Half Yearly Examination / Unit Test"
+                  className="rounded-lg border-slate-200 h-9 text-xs"
+                />
               </div>
-            )}
 
-            {/* Planner Selector Option */}
-            {selectedClassId && assessmentSource === 'planner' && (
-              <div className="space-y-1 border-l-2 border-indigo-500 pl-3">
-                <label className="text-xs font-semibold text-slate-700 block">Select Assessment Planner</label>
-                {classPlanners.length === 0 ? (
-                  <div className="rounded-lg border border-red-100 bg-red-50/50 p-2.5 flex flex-col gap-1.5">
-                    <div className="flex items-start gap-2 text-red-800 text-xs font-medium">
-                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
-                      <span>No Assessment Planner found for this class.</span>
-                    </div>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setAssessmentSource('manual')}
-                      className="h-7 text-[10px] w-fit font-bold border-red-200 text-red-700 bg-white hover:bg-red-50 rounded-md"
-                    >
-                      Switch to Manual Entry
-                    </Button>
-                  </div>
+              {/* Class Selector */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Select Class</label>
+                {loadingClasses ? (
+                  <div className="h-9 w-full bg-slate-50 animate-pulse rounded-lg border border-slate-200" />
                 ) : (
-                  <Select value={selectedPlannerId} onValueChange={handleSelectPlanner}>
-                    <SelectTrigger className="rounded-lg border-slate-200 text-slate-700 bg-white shadow-xs h-9 text-xs">
-                      <SelectValue placeholder="Choose an Assessment Planner" />
+                  <Select value={selectedClassId} onValueChange={(val) => { setSelectedClassId(val); setSelectedPlannerId(''); }}>
+                    <SelectTrigger className="rounded-lg border-slate-200 text-slate-700 h-9 text-xs bg-white">
+                      <SelectValue placeholder="Choose a class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {classPlanners.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
+                      {activeClasses.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          Class {cls.className} - {cls.section}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               </div>
-            )}
 
-            {/* Extra Blank Rows Selector */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Extra Blank Rows</label>
-              <Input 
-                type="number"
-                min={0}
-                max={10}
-                value={extraBlankRows}
-                onChange={(e) => setExtraBlankRows(Math.max(0, Math.min(10, parseInt(e.target.value, 10) || 0)))}
-                className="rounded-lg border-slate-200 h-9 text-xs"
-              />
-            </div>
-          </div>
-
-          {/* RIGHT CARD - ASSESSMENT COLUMNS & ACTIONS */}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col h-full space-y-3.5">
-            
-            <div className="flex-1 flex flex-col space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1.5 mb-0.5">
-                    <Calendar className="h-4.5 w-4.5" />
-                    Assessment Columns
-                  </h3>
-                  <p className="text-[11px] text-slate-405">Add or manage assessment dates and subjects.</p>
+              {/* Assessment Source Radios */}
+              {selectedClassId && (
+                <div className="space-y-1.5 bg-white/70 backdrop-blur-md p-2.5 rounded-lg border border-slate-200 shadow-sm">
+                  <label className="text-xs font-bold text-slate-700 block">Assessment Source</label>
+                  <div className="flex gap-4 mt-0.5">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="assessmentSource"
+                        value="planner"
+                        checked={assessmentSource === 'planner'}
+                        onChange={() => setAssessmentSource('planner')}
+                        className="text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                      />
+                      Fetch from Assessment Planner
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-655 cursor-pointer">
+                      <input 
+                        type="radio" 
+                        name="assessmentSource"
+                        value="manual"
+                        checked={assessmentSource === 'manual'}
+                        onChange={() => setAssessmentSource('manual')}
+                        className="text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                      />
+                      Manual Entry
+                    </label>
+                  </div>
                 </div>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAddColumn}
-                  className="h-7.5 text-xs font-semibold text-indigo-600 border-indigo-100 bg-indigo-50 hover:bg-indigo-100/70 rounded-md py-0.5 px-2.5"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  Add Column
-                </Button>
-              </div>
+              )}
 
+              {/* Planner Selector Option */}
+              {selectedClassId && assessmentSource === 'planner' && (
+                <div className="space-y-1 border-l-2 border-emerald-500 pl-3">
+                  <label className="text-xs font-semibold text-slate-700 block">Select Assessment Planner</label>
+                  {classPlanners.length === 0 ? (
+                    <div className="rounded-lg border border-red-100 bg-red-50/50 p-2.5 flex flex-col gap-1.5">
+                      <div className="flex items-start gap-2 text-red-800 text-xs font-medium">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+                        <span>No Assessment Planner found for this class.</span>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setAssessmentSource('manual')}
+                        className="h-7 text-[10px] w-fit font-bold border-red-200 text-red-700 bg-white hover:bg-red-50 rounded-md"
+                      >
+                        Switch to Manual Entry
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={selectedPlannerId} onValueChange={handleSelectPlanner}>
+                      <SelectTrigger className="rounded-lg border-slate-200 text-slate-700 bg-white shadow-xs h-9 text-xs">
+                        <SelectValue placeholder="Choose an Assessment Planner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classPlanners.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
+              {/* Extra Blank Rows Selector */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Extra Blank Rows</label>
+                <Input 
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={extraBlankRows}
+                  onChange={(e) => setExtraBlankRows(Math.max(0, Math.min(10, parseInt(e.target.value, 10) || 0)))}
+                  className="rounded-lg border-slate-200 h-9 text-xs"
+                />
+              </div>
+            </div>
+          </ErpSection>
+          <ErpSection
+            title="Assessment Columns"
+            icon={Calendar}
+            tone="green"
+            action={
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddColumn}
+                className="h-7.5 text-xs font-semibold text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-md py-0.5 px-2.5"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add Column
+              </Button>
+            }
+            className="h-full border border-slate-200/80 shadow-sm"
+            contentClassName="p-4"
+          >
+            <div className="border border-emerald-150/70 rounded-2xl p-4 bg-gradient-to-br from-emerald-50/70 to-teal-50/30 flex flex-col h-full space-y-3.5">
               <div className="flex-1 flex flex-col justify-center min-h-[120px]">
                 {assessmentColumns.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center bg-slate-50/30 flex-1 flex flex-col justify-center">
+                  <div className="rounded-lg border border-dashed border-slate-200 p-8 text-center bg-white/50 flex-1 flex flex-col justify-center">
                     <AlertCircle className="h-5 w-5 text-slate-400 mx-auto mb-1.5" />
                     <p className="text-xs text-slate-500 font-medium">No assessment columns added yet.</p>
                     <p className="text-[10px] text-slate-405">Click the 'Add Column' button to add columns manually.</p>
                   </div>
                 ) : (
-                  <div className="max-h-[160px] overflow-y-auto space-y-2 border border-slate-100 rounded-lg p-2 bg-slate-50/50 scrollbar-thin flex-1">
+                  <div className="max-h-[160px] overflow-y-auto space-y-2 border border-slate-100 rounded-lg p-2 bg-white/70 backdrop-blur-md scrollbar-thin flex-1">
                     {assessmentColumns.map((col, index) => (
                       <div key={col.id} className="flex gap-2 items-center bg-white p-1.5 rounded-lg border border-slate-200/60 shadow-xs">
                         <div className="text-[11px] font-bold text-slate-400 w-5 text-center">
@@ -976,7 +970,7 @@ export default function AssessmentSignature() {
                           <button
                             type="button"
                             onClick={() => setShowCalendarId(showCalendarId === col.id ? null : col.id)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-655 transition-colors"
                           >
                             <Calendar className="h-3.5 w-3.5" />
                           </button>
@@ -1022,41 +1016,40 @@ export default function AssessmentSignature() {
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Actions 2x2 Grid at bottom */}
-            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 mt-auto">
-              <Button 
-                onClick={handleSaveSheet}
-                className="w-full rounded-lg bg-gradient-to-r from-violet-650 to-indigo-650 hover:from-violet-755 hover:to-indigo-755 text-white shadow-sm font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
-              >
-                <Save className="h-4 w-4" />
-                Save Template
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={handleResetForm}
-                className="w-full rounded-lg border-slate-200 bg-white text-slate-655 hover:bg-slate-50 font-semibold text-xs h-10 flex items-center justify-center cursor-pointer"
-              >
-                Clear Form
-              </Button>
-              <Button 
-                onClick={handlePrint}
-                className="w-full rounded-lg bg-slate-900 text-white hover:bg-slate-800 font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
-              >
-                <Printer className="h-4 w-4" />
-                Print Sheet
-              </Button>
-              <Button 
-                onClick={handleDownloadPDF}
-                className="w-full rounded-lg bg-gradient-to-r from-violet-650 to-indigo-650 hover:from-violet-755 hover:to-indigo-755 text-white shadow-sm font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
-              >
-                <Download className="h-4 w-4" />
-                Download PDF
-              </Button>
+              {/* Actions 2x2 Grid at bottom */}
+              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-slate-100 mt-auto">
+                <Button 
+                  onClick={handleSaveSheet}
+                  className="w-full rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md shadow-emerald-500/10 font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                >
+                  <Save className="h-4 w-4" />
+                  Save Template
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleResetForm}
+                  className="w-full rounded-lg border-slate-200 bg-white text-slate-655 hover:bg-slate-50 font-semibold text-xs h-10 flex items-center justify-center cursor-pointer"
+                >
+                  Clear Form
+                </Button>
+                <Button 
+                  onClick={handlePrint}
+                  className="w-full rounded-lg bg-slate-900 text-white hover:bg-slate-800 font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Sheet
+                </Button>
+                <Button 
+                  onClick={handleDownloadPDF}
+                  className="w-full rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md shadow-emerald-500/10 font-semibold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
             </div>
-
-          </div>
+          </ErpSection>
           
         </div>
 
