@@ -6,7 +6,16 @@ const subscriptionHistorySchema = new mongoose.Schema(
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan', required: true },
     action: { 
       type: String, 
-      enum: ['trial_started', 'plan_activated', 'plan_upgraded', 'plan_renewed', 'downgrade_scheduled'],
+      enum: [
+        'trial_started',
+        'plan_activated',
+        'plan_upgraded',
+        'plan_renewed',
+        'downgrade_scheduled',
+        'plan_downgrade_scheduled',
+        'plan_downgraded',
+        'plan_purchased_razorpay'
+      ],
       required: true 
     },
     previousPlan: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },

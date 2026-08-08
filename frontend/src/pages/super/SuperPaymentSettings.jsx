@@ -11,7 +11,14 @@ import { Switch } from '@/components/ui/switch';
 
 export default function SuperPaymentSettings() {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ upiId: '', merchantName: '', qrExpiryMinutes: 5 });
+  const [form, setForm] = useState({
+    upiId: '',
+    merchantName: '',
+    qrExpiryMinutes: 5,
+    razorpayEnabled: false,
+    razorpayKeyId: '',
+    razorpayKeySecret: '',
+  });
   const [coupons, setCoupons] = useState([]);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
@@ -31,6 +38,9 @@ export default function SuperPaymentSettings() {
       upiId: res.data.settings?.upiId || '',
       merchantName: res.data.settings?.merchantName || '',
       qrExpiryMinutes: res.data.settings?.qrExpiryMinutes || 5,
+      razorpayEnabled: Boolean(res.data.settings?.razorpayEnabled),
+      razorpayKeyId: res.data.settings?.razorpayKeyId || '',
+      razorpayKeySecret: res.data.settings?.razorpayKeySecret || '',
     });
   };
 
@@ -56,6 +66,9 @@ export default function SuperPaymentSettings() {
         upiId: form.upiId,
         merchantName: form.merchantName,
         qrExpiryMinutes: Number(form.qrExpiryMinutes || 5),
+        razorpayEnabled: Boolean(form.razorpayEnabled),
+        razorpayKeyId: form.razorpayKeyId,
+        razorpayKeySecret: form.razorpayKeySecret,
       });
       toast.success('Payment settings updated');
       load();
@@ -182,6 +195,43 @@ export default function SuperPaymentSettings() {
           <div className="flex items-end justify-end md:col-span-2">
             <Button type="submit" variant="success" disabled={loading}>
               Save Settings
+            </Button>
+          </div>
+        </form>
+      </ErpSection>
+
+      <ErpSection title="Razorpay Settings" icon={Settings} tone="purple">
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
+          <div className="flex items-center gap-2 md:col-span-2">
+            <Switch
+              checked={form.razorpayEnabled}
+              onCheckedChange={(checked) => setForm((s) => ({ ...s, razorpayEnabled: checked }))}
+            />
+            <label className="text-sm font-semibold text-slate-700">Enable Razorpay Instant Payments</label>
+          </div>
+
+          <FormField label="Razorpay Key ID">
+            <Input
+              placeholder="rzp_test_..."
+              value={form.razorpayKeyId}
+              onChange={(e) => setForm((s) => ({ ...s, razorpayKeyId: e.target.value }))}
+              required={form.razorpayEnabled}
+            />
+          </FormField>
+
+          <FormField label="Razorpay Key Secret">
+            <Input
+              type="password"
+              placeholder="Enter Razorpay Key Secret"
+              value={form.razorpayKeySecret}
+              onChange={(e) => setForm((s) => ({ ...s, razorpayKeySecret: e.target.value }))}
+              required={form.razorpayEnabled}
+            />
+          </FormField>
+
+          <div className="flex items-end justify-end md:col-span-2">
+            <Button type="submit" variant="success" disabled={loading}>
+              Save Razorpay Settings
             </Button>
           </div>
         </form>

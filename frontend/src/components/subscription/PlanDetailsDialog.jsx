@@ -34,6 +34,22 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const timerRef = useRef(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
+
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .razorpay-container, iframe.razorpay-checkout-frame {
+        pointer-events: auto !important;
+        z-index: 2147483647 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const [form, setForm] = useState({
     mobileNumber: '',
@@ -56,8 +72,14 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
         api.get('/subscriptions/payment-settings'),
       ]);
       setPlanData(planRes.data);
-      setSettings(settingsRes.data.settings);
+      const paymentSettings = settingsRes.data.settings;
+      setSettings(paymentSettings);
       setSelectedPlanId(idToLoad);
+      if (paymentSettings?.razorpayEnabled) {
+        setPaymentMethod('razorpay');
+      } else {
+        setPaymentMethod('upi');
+      }
       
       const plan = planRes.data.plan;
       console.log('DETAIL PLAN');
@@ -199,6 +221,97 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async () => {
+    if (!plan?._id) return;
+    setLoading(true);
+    try {
+      const res = await api.post('/subscriptions/razorpay-order', {
+        planId: plan._id,
+        couponCode: form.couponCode,
+      });
+      
+      const { order } = res.data;
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error('Failed to load Razorpay SDK. Please check your internet connection.');
+        setLoading(false);
+        return;
+      }
+
+      const options = {
+        key: settings.razorpayKeyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'School ERP',
+        description: `Plan Purchase: ${plan.name}`,
+        order_id: order.id,
+        handler: async function (response) {
+          setIsRazorpayOpen(false);
+          document.body.style.pointerEvents = '';
+          setLoading(true);
+          try {
+            const verifyRes = await api.post('/subscriptions/razorpay-verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              planId: plan._id,
+              couponCode: form.couponCode,
+            });
+
+            if (verifyRes.data.success) {
+              setSubmitted(true);
+              toast.success('Payment verified and plan activated successfully!');
+              refreshSubscription().catch(() => {});
+            }
+          } catch (err) {
+            toast.error(err.response?.data?.message || 'Payment verification failed');
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          contact: form.mobileNumber || '',
+        },
+        theme: {
+          color: '#4f46e5',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsRazorpayOpen(false);
+            document.body.style.pointerEvents = '';
+            toast.info('Payment cancelled');
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      setIsRazorpayOpen(true);
+      document.body.style.pointerEvents = 'auto';
+      rzp.open();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to initiate Razorpay payment');
+      setIsRazorpayOpen(false);
+      document.body.style.pointerEvents = '';
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const taxEnabled = Boolean(plan?.tax?.enabled);
   
   // Use pricing from coupon if available, otherwise use plan pricing
@@ -211,7 +324,19 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+      <DialogContent 
+        className="max-w-5xl max-h-[90vh] overflow-hidden"
+        onPointerDownOutside={(e) => {
+          if (isRazorpayOpen) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          if (isRazorpayOpen) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader className="pb-4">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <CreditCard className="h-5 w-5 text-indigo-600" />
@@ -302,40 +427,87 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Right - Payment */}
+                       {/* Right - Payment */}
             <div className="space-y-3">
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-xs font-semibold text-slate-900">Payment</p>
-                {!settings?.upiId ? (
+                {!settings?.upiId && !settings?.razorpayEnabled ? (
                   <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs text-rose-700">
-                    Super Admin has not configured the UPI ID yet.
+                    Super Admin has not configured any payment settings yet.
                   </div>
                 ) : (
                   <>
-                    <div className="mt-4 flex flex-col items-center gap-3">
-                      {qr?.dataUrl ? (
-                        <img
-                          src={qr.dataUrl}
-                          alt="UPI QR"
-                          className="h-56 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-lg"
-                        />
-                      ) : (
-                        <div className="flex h-56 w-56 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500">
-                          Generating QR...
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2 text-xs text-slate-700">
-                        <Timer className="h-4 w-4 text-indigo-600" />
-                        Expires in <span className="font-bold text-indigo-900">{secondsLeft}s</span>
-                        <Button variant="outline" size="sm" onClick={() => regenerateQr(plan._id)} disabled={loading} className="h-7 px-2 text-xs">
-                          Regenerate
-                        </Button>
+                    {/* Method Selector if both are enabled */}
+                    {settings?.razorpayEnabled && settings?.upiId && (
+                      <div className="mt-3 flex gap-2 border-b border-slate-100 pb-3">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('razorpay')}
+                          className={cn(
+                            'flex-1 rounded-lg py-2 text-xs font-bold transition-all border',
+                            paymentMethod === 'razorpay'
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          )}
+                        >
+                          Instant Payment (Razorpay)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('upi')}
+                          className={cn(
+                            'flex-1 rounded-lg py-2 text-xs font-bold transition-all border',
+                            paymentMethod === 'upi'
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          )}
+                        >
+                          Manual UPI QR Code
+                        </button>
                       </div>
-                    </div>
+                    )}
+
+                    {paymentMethod === 'upi' ? (
+                      <>
+                        {!settings?.upiId ? (
+                          <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs text-rose-700">
+                            Super Admin has not configured the UPI ID yet.
+                          </div>
+                        ) : (
+                          <div className="mt-4 flex flex-col items-center gap-3">
+                            {qr?.dataUrl ? (
+                              <img
+                                src={qr.dataUrl}
+                                alt="UPI QR"
+                                className="h-52 w-52 rounded-xl border border-slate-200 bg-white p-3 shadow-lg"
+                              />
+                            ) : (
+                              <div className="flex h-52 w-52 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500">
+                                Generating QR...
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2 text-xs text-slate-700">
+                              <Timer className="h-4 w-4 text-indigo-600" />
+                              Expires in <span className="font-bold text-indigo-900">{secondsLeft}s</span>
+                              <Button variant="outline" size="sm" onClick={() => regenerateQr(plan._id)} disabled={loading} className="h-7 px-2 text-xs">
+                                Regenerate
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="mt-4 flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
+                        <CreditCard className="h-10 w-10 text-indigo-500 mb-2" />
+                        <p className="text-xs font-bold text-slate-800">Instant Activation via Razorpay</p>
+                        <p className="mt-1 text-[10px] text-slate-500 max-w-xs">
+                          Pay securely using cards, Netbanking, wallets, or UPI. Your plan will be upgraded instantly once verified.
+                        </p>
+                      </div>
+                    )}
 
                     {!submitted ? (
                       <div className="mt-4 space-y-3">
@@ -384,34 +556,44 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                           )}
                         </FormField>
 
-                        <FormField label="UPI Transaction ID / UTR">
-                          <Input
-                            placeholder="Enter UTR"
-                            value={form.utr}
-                            onChange={(e) => setForm((s) => ({ ...s, utr: e.target.value }))}
-                            required
-                            className="h-9 text-sm"
-                          />
-                        </FormField>
+                        {paymentMethod === 'upi' && (
+                          <>
+                            <FormField label="UPI Transaction ID / UTR">
+                              <Input
+                                placeholder="Enter UTR"
+                                value={form.utr}
+                                onChange={(e) => setForm((s) => ({ ...s, utr: e.target.value }))}
+                                required
+                                className="h-9 text-sm"
+                              />
+                            </FormField>
 
-                        <FormField label="Payment Screenshot (Optional)">
-                          <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 transition-colors">
-                            <span className="flex items-center gap-2">
-                              <Upload className="h-3 w-3 text-slate-500" />
-                              {form.screenshot ? form.screenshot.name : 'Upload Image'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/jpg"
-                              className="hidden"
-                              onChange={(e) => setForm((s) => ({ ...s, screenshot: e.target.files?.[0] || null }))}
-                            />
-                          </label>
-                        </FormField>
+                            <FormField label="Payment Screenshot (Optional)">
+                              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 transition-colors">
+                                <span className="flex items-center gap-2">
+                                  <Upload className="h-3 w-3 text-slate-500" />
+                                  {form.screenshot ? form.screenshot.name : 'Upload Image'}
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/jpg"
+                                  className="hidden"
+                                  onChange={(e) => setForm((s) => ({ ...s, screenshot: e.target.files?.[0] || null }))}
+                                />
+                              </label>
+                            </FormField>
+                          </>
+                        )}
 
-                        <Button onClick={submit} disabled={loading} className="w-full h-10 text-sm">
-                          {loading ? 'Submitting...' : 'Submit Payment Request'}
-                        </Button>
+                        {paymentMethod === 'razorpay' ? (
+                          <Button onClick={handleRazorpayPayment} disabled={loading} className="w-full h-10 text-sm">
+                            {loading ? 'Processing...' : 'Pay via Razorpay'}
+                          </Button>
+                        ) : (
+                          <Button onClick={submit} disabled={loading || !settings?.upiId} className="w-full h-10 text-sm">
+                            {loading ? 'Submitting...' : 'Submit Payment Request'}
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
@@ -420,12 +602,16 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                             <CheckCircle2 className="h-6 w-6" />
                           </span>
                           <div>
-                            <p className="text-sm font-extrabold text-emerald-900">Payment Request Submitted Successfully</p>
+                            <p className="text-sm font-extrabold text-emerald-900">
+                              {paymentMethod === 'razorpay' ? 'Payment Successful!' : 'Payment Request Submitted'}
+                            </p>
                             <p className="mt-1 text-xs text-emerald-800">
-                              Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.
+                              {paymentMethod === 'razorpay'
+                                ? 'Your subscription has been activated instantly. You now have full access to your plan benefits.'
+                                : 'Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.'}
                             </p>
                             <div className="mt-2 inline-flex rounded-lg bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-900">
-                              Status: Pending Verification
+                              Status: {paymentMethod === 'razorpay' ? 'Active' : 'Pending Verification'}
                             </div>
                           </div>
                         </div>
@@ -467,9 +653,15 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
-              <Button variant="success" onClick={submit} disabled={loading || !settings?.upiId}>
-                Submit Payment Request
-              </Button>
+              {paymentMethod === 'razorpay' ? (
+                <Button variant="success" onClick={handleRazorpayPayment} disabled={loading}>
+                  {loading ? 'Processing...' : 'Pay via Razorpay'}
+                </Button>
+              ) : (
+                <Button variant="success" onClick={submit} disabled={loading || !settings?.upiId}>
+                  {loading ? 'Submitting...' : 'Submit Payment Request'}
+                </Button>
+              )}
             </>
           ) : null}
         </DialogFooter>

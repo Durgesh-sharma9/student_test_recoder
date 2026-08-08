@@ -26,7 +26,7 @@ const subscriptionRequestSchema = new mongoose.Schema(
 
     mobileNumber: { type: String, trim: true },
     state: { type: String, trim: true },
-    utr: { type: String, required: true, trim: true, uppercase: true },
+    utr: { type: String, trim: true, uppercase: true },
 
     paymentScreenshotUrl: { type: String, trim: true },
     paymentScreenshotName: { type: String, trim: true },

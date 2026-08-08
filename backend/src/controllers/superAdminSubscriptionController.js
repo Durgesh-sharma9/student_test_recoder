@@ -12,22 +12,51 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
   res.json({
     success: true,
-    settings: settings || { upiId: '', merchantName: '', qrExpiryMinutes: 5 },
+    settings: settings || {
+      upiId: '',
+      merchantName: '',
+      qrExpiryMinutes: 5,
+      razorpayEnabled: false,
+      razorpayKeyId: '',
+      razorpayKeySecret: '',
+    },
   });
 });
 
 export const updatePaymentSettings = asyncHandler(async (req, res) => {
-  const { upiId, merchantName, qrExpiryMinutes } = req.body;
+  const {
+    upiId,
+    merchantName,
+    qrExpiryMinutes,
+    razorpayEnabled,
+    razorpayKeyId,
+    razorpayKeySecret,
+  } = req.body;
+
   if (!upiId) throw new ApiError(400, 'UPI ID is required');
+
+  const updateFields = {
+    upiId: String(upiId).trim(),
+    merchantName: String(merchantName || '').trim(),
+    qrExpiryMinutes: Number(qrExpiryMinutes || 5),
+    razorpayEnabled: Boolean(razorpayEnabled),
+    updatedBy: req.user._id,
+  };
+
+  if (razorpayKeyId !== undefined) {
+    updateFields.razorpayKeyId = String(razorpayKeyId || '').trim();
+  }
+  if (razorpayKeySecret !== undefined) {
+    updateFields.razorpayKeySecret = String(razorpayKeySecret || '').trim();
+  }
+
+  if (updateFields.razorpayEnabled && (!updateFields.razorpayKeyId || !updateFields.razorpayKeySecret)) {
+    throw new ApiError(400, 'Razorpay Key ID and Secret are required when Razorpay is enabled');
+  }
 
   const updated = await PaymentSettings.findOneAndUpdate(
     {},
-    {
-      upiId: String(upiId).trim(),
-      merchantName: String(merchantName || '').trim(),
-      qrExpiryMinutes: Number(qrExpiryMinutes || 5),
-      updatedBy: req.user._id,
-    },
+    updateFields,
     { upsert: true, new: true, runValidators: true }
   );
 

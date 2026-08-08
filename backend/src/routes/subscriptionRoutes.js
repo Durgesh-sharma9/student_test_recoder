@@ -9,6 +9,8 @@ import {
   generateUpiQr,
   submitSubscriptionRequest,
   getSubscriptionStatus,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
 } from '../controllers/subscriptionController.js';
 
 const router = Router();
@@ -34,6 +36,9 @@ router.get('/payment-settings', getPaymentSettings);
 router.post('/upi-qr', generateUpiQr);
 router.post('/requests', upload.single('screenshot'), submitSubscriptionRequest);
 router.get('/status', getSubscriptionStatus);
+
+router.post('/razorpay-order', createRazorpayOrder);
+router.post('/razorpay-verify', verifyRazorpayPayment);
 
 export default router;
 

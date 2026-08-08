@@ -15,7 +15,7 @@ const notificationSchema = new mongoose.Schema(
     message: { type: String, required: true, trim: true },
     priority: {
       type: String,
-      enum: ['info', 'normal', 'important', 'urgent'],
+      enum: ['info', 'normal', 'important', 'urgent', 'success'],
       default: 'normal',
     },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

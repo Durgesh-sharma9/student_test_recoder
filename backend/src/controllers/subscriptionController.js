@@ -12,6 +12,8 @@ import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { uploadFile } from '../utils/imagekit.js';
 import { normalizePlanPricing } from '../utils/planPricing.js';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 
 const computeSavePercent = (monthlyPrice, cyclePrice, multiplier) => {
   const m = Number(monthlyPrice) || 0;
@@ -133,7 +135,19 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
   res.json({
     success: true,
-    settings: settings || { upiId: '', merchantName: '', qrExpiryMinutes: 5 },
+    settings: settings ? {
+      upiId: settings.upiId || '',
+      merchantName: settings.merchantName || '',
+      qrExpiryMinutes: settings.qrExpiryMinutes || 5,
+      razorpayEnabled: Boolean(settings.razorpayEnabled),
+      razorpayKeyId: settings.razorpayKeyId || '',
+    } : {
+      upiId: '',
+      merchantName: '',
+      qrExpiryMinutes: 5,
+      razorpayEnabled: false,
+      razorpayKeyId: '',
+    },
   });
 });
 
@@ -207,16 +221,19 @@ export const generateUpiQr = asyncHandler(async (req, res) => {
 
   // Generate a short ref to help in bank statement search (not a security token)
   const ref = `SUB${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
-  const note = purpose || `School ERP Subscription - ${plan.name} (${plan.billingCycle || 'monthly'}) - ${ref}`;
+  
+  // Simplify note and merchant name for UPI app compatibility (alphanumeric and spaces only, max 50 chars)
+  const rawNote = purpose || `School ERP ${plan.name} ${plan.billingCycle || 'monthly'}`;
+  const cleanNote = rawNote.replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 50);
+  const cleanMerchantName = (settings.merchantName || 'Merchant').replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 50);
 
   const amount = finalAmount.toFixed(2);
   const params = new URLSearchParams({
     pa: settings.upiId,
-    pn: settings.merchantName || 'Merchant',
+    pn: cleanMerchantName,
     am: amount,
     cu: 'INR',
-    tn: note,
-    tr: ref,
+    tn: cleanNote,
   });
 
   const upiUri = `upi://pay?${params.toString()}`;
@@ -535,4 +552,227 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
   });
 
   res.json(response);
+});
+
+export const createRazorpayOrder = asyncHandler(async (req, res) => {
+  const { planId, couponCode } = req.body;
+  if (!planId || !mongoose.Types.ObjectId.isValid(planId)) throw new ApiError(400, 'planId is required');
+
+  const [plan, settings] = await Promise.all([
+    Plan.findById(planId),
+    PaymentSettings.findOne().sort('-updatedAt -createdAt'),
+  ]);
+
+  if (!plan || !plan.isActive) throw new ApiError(404, 'Plan not found');
+  if (!settings || !settings.razorpayEnabled) throw new ApiError(400, 'Razorpay payments are not enabled by Super Admin');
+
+  const keyId = settings.razorpayKeyId || process.env.RAZORPAY_KEY_ID;
+  const keySecret = settings.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) throw new ApiError(500, 'Razorpay is not fully configured (missing Key ID or Secret)');
+
+  // Calculate pricing exactly same as UPI QR code flow
+  let basePrice = Number(plan.basePrice ?? plan.price ?? 0);
+  let discountAmount = 0;
+  let appliedCoupon = null;
+
+  if (couponCode && couponCode.trim()) {
+    const coupon = await Coupon.findOne({ code: couponCode.trim().toUpperCase() });
+    
+    if (coupon) {
+      if (!coupon.isActive) throw new ApiError(400, 'Coupon is disabled');
+      if (coupon.isExpired) throw new ApiError(400, 'Coupon has expired');
+      if (coupon.isUsageLimitReached) throw new ApiError(400, 'Coupon usage limit reached');
+      
+      if (coupon.applicablePlans && coupon.applicablePlans.length > 0) {
+        const normalizedPlanType = plan.planType?.toLowerCase();
+        if (!coupon.applicablePlans.includes(normalizedPlanType)) {
+          throw new ApiError(400, 'Coupon is not applicable to this plan');
+        }
+      }
+
+      discountAmount = (basePrice * coupon.discountValue) / 100;
+      appliedCoupon = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discountAmount,
+      };
+    } else {
+      throw new ApiError(404, 'Invalid coupon code');
+    }
+  }
+
+  const discountedPrice = Math.max(0, basePrice - discountAmount);
+  const taxEnabled = plan.tax?.enabled;
+  const taxPercentage = taxEnabled ? Number(plan.tax?.percentage ?? 18) : 0;
+  const taxAmount = taxEnabled ? (discountedPrice * taxPercentage) / 100 : 0;
+  const finalAmount = discountedPrice + taxAmount;
+
+  // Initialize Razorpay client
+  const razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+
+  const receipt = `RCPT_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+  // Amount in Razorpay is in paisa
+  const order = await razorpay.orders.create({
+    amount: Math.round(finalAmount * 100),
+    currency: 'INR',
+    receipt,
+  });
+
+  res.json({
+    success: true,
+    order: {
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+    },
+    pricing: {
+      basePrice,
+      discountAmount,
+      discountedPrice,
+      taxPercentage,
+      taxAmount,
+      finalAmount,
+      appliedCoupon,
+    },
+  });
+});
+
+export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId, couponCode } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    throw new ApiError(400, 'Missing payment confirmation parameters');
+  }
+  if (!planId || !mongoose.Types.ObjectId.isValid(planId)) {
+    throw new ApiError(400, 'Invalid or missing planId');
+  }
+
+  const [requestedPlan, school, settings] = await Promise.all([
+    Plan.findById(planId),
+    School.findById(req.user.school).populate('plan'),
+    PaymentSettings.findOne().sort('-updatedAt -createdAt'),
+  ]);
+
+  if (!requestedPlan || !requestedPlan.isActive) throw new ApiError(404, 'Requested plan not found');
+  if (!school) throw new ApiError(400, 'School not found');
+  if (!settings || !settings.razorpayEnabled) throw new ApiError(400, 'Razorpay payments are disabled');
+
+  const keySecret = settings.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
+  if (!keySecret) throw new ApiError(500, 'Razorpay Key Secret is not configured');
+
+  // Verify signature
+  const body = razorpay_order_id + '|' + razorpay_payment_id;
+  const expectedSignature = crypto
+    .createHmac('sha256', keySecret)
+    .update(body.toString())
+    .digest('hex');
+
+  const isSignatureValid = expectedSignature === razorpay_signature;
+  if (!isSignatureValid) {
+    throw new ApiError(400, 'Payment signature verification failed. Invalid transaction.');
+  }
+
+  // Calculate pricing to record accurately in history
+  const basePrice = Number(requestedPlan.basePrice ?? requestedPlan.price ?? 0);
+  let discountAmount = 0;
+  let couponId = null;
+
+  if (couponCode && couponCode.trim()) {
+    const coupon = await Coupon.findOne({ code: couponCode.trim().toUpperCase() });
+    if (coupon && coupon.isActive && !coupon.isExpired && !coupon.isUsageLimitReached) {
+      discountAmount = (basePrice * coupon.discountValue) / 100;
+      couponId = coupon._id;
+
+      // Increment coupon usage
+      coupon.usedCount += 1;
+      await coupon.save();
+    }
+  }
+
+  const discountedPrice = Math.max(0, basePrice - discountAmount);
+  const taxEnabled = requestedPlan.tax?.enabled;
+  const taxName = taxEnabled ? (requestedPlan.tax?.name || 'GST') : undefined;
+  const taxPercentage = taxEnabled ? Number(requestedPlan.tax?.percentage ?? 18) : 0;
+  const taxAmount = taxEnabled ? (discountedPrice * taxPercentage) / 100 : 0;
+  const finalAmount = discountedPrice + taxAmount;
+
+  // Plan activation logic (immediate since Razorpay is fully verified)
+  const currentPlan = school.plan;
+  const currentExpiry = school.planExpiresAt || new Date();
+  const durationDays = requestedPlan.durationDays || 30;
+  
+  // Calculate new expiry date
+  const now = new Date();
+  const baseDate = school.planExpiresAt && school.planExpiresAt > now ? school.planExpiresAt : now;
+  const newExpiry = new Date(baseDate);
+  newExpiry.setDate(newExpiry.getDate() + durationDays);
+
+  // Upgrade immediately
+  school.plan = requestedPlan._id;
+  school.planExpiresAt = newExpiry;
+  school.scheduledDowngradePlan = null;
+  school.scheduledDowngradeDate = null;
+  await school.save();
+
+  // Create approved SubscriptionRequest record to keep logs consistent
+  const requestDoc = await SubscriptionRequest.create({
+    school: school._id,
+    adminUser: req.user._id,
+    currentPlan: currentPlan?._id,
+    requestedPlan: requestedPlan._id,
+    billingCycle: requestedPlan.billingCycle,
+    basePrice,
+    taxName,
+    taxPercentage,
+    taxAmount,
+    finalAmount,
+    couponId,
+    couponCode: couponCode ? couponCode.trim().toUpperCase() : null,
+    discountAmount,
+    paymentProvider: 'razorpay',
+    providerRef: razorpay_payment_id,
+    utr: razorpay_payment_id, // payment ID is the best transaction ref
+    status: 'approved',
+    submittedAt: new Date(),
+    reviewedBy: null, // auto-approved by system
+    reviewedAt: new Date(),
+  });
+
+  // Create subscription history entry
+  await SubscriptionHistory.create({
+    school: school._id,
+    plan: requestedPlan._id,
+    action: 'plan_purchased_razorpay',
+    previousPlan: currentPlan?._id,
+    expiryDate: newExpiry,
+  });
+
+  // Notify admin about purchase
+  await Notification.create({
+    title: 'Subscription Activated Instantly',
+    message: `Your subscription to ${requestedPlan.name} has been activated. Valid until ${newExpiry.toLocaleDateString()}.`,
+    priority: 'success',
+    senderId: req.user._id,
+    senderRole: 'school_admin',
+    recipientIds: [req.user._id],
+    schoolId: school._id,
+    targetRole: 'school_admin',
+    isBroadcast: false,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Payment verified and plan activated successfully',
+    subscription: {
+      currentPlan: requestedPlan,
+      planExpiresAt: newExpiry,
+    },
+    request: requestDoc,
+  });
 });
