@@ -150,7 +150,7 @@ export const generateUpiQr = asyncHandler(async (req, res) => {
   if (!settings?.upiId) throw new ApiError(400, 'UPI ID is not configured by Super Admin');
 
   // Calculate base price
-  let basePrice = Number(plan.finalPrice ?? plan.price ?? 0);
+  let basePrice = Number(plan.basePrice ?? plan.price ?? 0);
   let discountAmount = 0;
   let appliedCoupon = null;
 
@@ -305,7 +305,7 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
       }
 
       couponId = coupon._id;
-      discountAmount = (Number(requestedPlan.finalPrice ?? requestedPlan.price ?? 0) * coupon.discountValue) / 100;
+      discountAmount = (Number(requestedPlan.basePrice ?? requestedPlan.price ?? 0) * coupon.discountValue) / 100;
       
       // Increment coupon usage
       coupon.usedCount += 1;

@@ -199,17 +199,15 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     }
   };
 
-  const displayPrice = getDisplayPrice(plan);
-  const price = displayPrice.toFixed(2);
   const taxEnabled = Boolean(plan?.tax?.enabled);
   
   // Use pricing from coupon if available, otherwise use plan pricing
-  const basePrice = pricing?.basePrice || displayPrice;
+  const basePrice = pricing?.basePrice || Number(plan?.basePrice ?? plan?.price ?? 0);
   const discountAmount = pricing?.discountAmount || 0;
   const discountedPrice = pricing?.discountedPrice || basePrice;
-  const taxPercentage = pricing?.taxPercentage || (plan?.tax?.percentage || 18);
-  const taxAmount = pricing?.taxAmount || (taxEnabled ? (basePrice * taxPercentage) / 100 : 0);
-  const finalAmount = pricing?.finalAmount || (basePrice + taxAmount);
+  const taxPercentage = pricing?.taxPercentage || (plan?.tax?.percentage || 0);
+  const taxAmount = pricing?.taxAmount || (taxEnabled ? (discountedPrice * taxPercentage) / 100 : 0);
+  const finalAmount = pricing?.finalAmount || (discountedPrice + taxAmount);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
