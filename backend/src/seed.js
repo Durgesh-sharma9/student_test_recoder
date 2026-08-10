@@ -6,10 +6,18 @@ import School from './models/School.js';
 import Plan from './models/Plan.js';
 import Class from './models/Class.js';
 import Student from './models/Student.js';
+import AcademicSession from './models/AcademicSession.js';
 
 const seed = async () => {
   await connectDB();
-  await Promise.all([User.deleteMany({}), School.deleteMany({}), Plan.deleteMany({}), Class.deleteMany({}), Student.deleteMany({})]);
+  await Promise.all([
+    User.deleteMany({}),
+    School.deleteMany({}),
+    Plan.deleteMany({}),
+    Class.deleteMany({}),
+    Student.deleteMany({}),
+    AcademicSession.deleteMany({}),
+  ]);
 
   const [trial, basic, premium] = await Plan.insertMany([
     { name: 'Trial', slug: 'trial', durationDays: 14, maxTeachers: 5, maxStudents: 100 },
@@ -18,10 +26,11 @@ const seed = async () => {
   ]);
 
   await User.create({
-    name: 'Super Admin',
-    email: 'super@school.com',
-    password: 'super123',
+    name: process.env.SUPER_ADMIN_NAME || 'Super Admin',
+    email: process.env.SUPER_ADMIN_EMAIL || 'super@school.com',
+    password: process.env.SUPER_ADMIN_PASSWORD || 'super123',
     role: 'super_admin',
+    isEmailVerified: true,
   });
 
   const expires = new Date();
@@ -36,6 +45,14 @@ const seed = async () => {
     planExpiresAt: expires,
   });
 
+  const academicSession = await AcademicSession.create({
+    school: school._id,
+    sessionName: '2026-2027',
+    startDate: new Date('2026-04-01'),
+    endDate: new Date('2027-03-31'),
+    status: 'active',
+  });
+
   const schoolAdmin = await User.create({
     school: school._id,
     name: 'School Admin',
@@ -43,6 +60,7 @@ const seed = async () => {
     password: 'admin123',
     role: 'school_admin',
     phoneNo: '9999999999',
+    isEmailVerified: true,
   });
 
   // Create classes 1-10 (section A)
@@ -87,9 +105,9 @@ const seed = async () => {
     const c2 = classes[(i * 2 + 1) % classes.length];
     t.assignedClasses = [c1._id, c2._id];
     t.assignments = [
-      { class: c1._id, subject: SUBJECTS[i % SUBJECTS.length] },
-      { class: c1._id, subject: SUBJECTS[(i + 1) % SUBJECTS.length] },
-      { class: c2._id, subject: SUBJECTS[(i + 2) % SUBJECTS.length] },
+      { class: c1._id, subject: SUBJECTS[i % SUBJECTS.length], academicSession: academicSession._id },
+      { class: c1._id, subject: SUBJECTS[(i + 1) % SUBJECTS.length], academicSession: academicSession._id },
+      { class: c2._id, subject: SUBJECTS[(i + 2) % SUBJECTS.length], academicSession: academicSession._id },
     ];
     await t.save();
   }
@@ -105,17 +123,19 @@ const seed = async () => {
       const ln = lastNames[(r - 1 + Number(cls.className)) % lastNames.length];
       students.push({
         school: school._id,
+        academicSession: academicSession._id,
         class: cls._id,
         rollNo: String(r),
         name: `${fn} ${ln}`,
         gender: r % 2 === 0 ? 'male' : 'female',
+        admissionDate: new Date(),
       });
     }
   }
   await Student.insertMany(students);
 
   console.log('Seed OK');
-  console.log('Super Admin: super@school.com / super123');
+  console.log('Super Admin: Created successfully (credentials configured in .env)');
   console.log('School Admin: admin@school.com / admin123');
   console.log('Teachers: teacher1@school.com .. teacher5@school.com / teacher123');
   void schoolAdmin;
