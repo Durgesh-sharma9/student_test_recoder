@@ -25,10 +25,10 @@ const computeCompetitionRanks = (items, valueKey) => {
   });
 };
 
-// Helper function to generate random password (8-10 characters)
+// Helper function to generate random password (6 characters)
 const generatePassword = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const length = Math.floor(Math.random() * 3) + 8; // 8-10 characters
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing characters like O, 0, I, 1, l
+  const length = 6;
   let password = '';
   for (let i = 0; i < length; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -274,7 +274,7 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Parent ID is required.');
   }
   
-  const parent = await Parent.findOne({ _id: parentId, school: schoolId, status: 'Active' }).select('+password');
+  const parent = await Parent.findOne({ _id: parentId, school: schoolId, status: 'Active' });
   if (!parent) throw new ApiError(404, 'Parent not found.');
   
   if (!parent.email) {
@@ -289,12 +289,17 @@ export const sendParentCredentials = asyncHandler(async (req, res) => {
     else finalSchoolName = 'Your School';
   }
   
-  // Send credential email
+  // Generate a new temporary password and update the parent
+  const newPassword = generatePassword();
+  parent.password = newPassword;
+  await parent.save();
+  
+  // Send credential email with the plain text temporary password
   const emailResult = await sendParentCreationEmail(
     finalSchoolName,
     parent.parentName,
     parent.email,
-    parent.password,
+    newPassword,
     loginUrl || process.env.CLIENT_URL || 'http://localhost:5173'
   );
   
@@ -1265,7 +1270,7 @@ export const resetParentPassword = asyncHandler(async (req, res) => {
   if (!parent) throw new ApiError(404, 'Parent not found.');
   
   // Generate new password
-  const newPassword = crypto.randomBytes(8).toString('hex');
+  const newPassword = generatePassword();
   
   // Hash and update password
   parent.password = newPassword;
