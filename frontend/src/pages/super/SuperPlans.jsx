@@ -18,7 +18,6 @@ const planTypes = [
   { key: 'basic', label: 'Basic' },
   { key: 'standard', label: 'Standard' },
   { key: 'premium', label: 'Premium' },
-  { key: 'trial', label: 'Trial' },
 ];
 
 const cycleTitle = (cycle) =>

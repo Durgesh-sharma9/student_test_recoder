@@ -8,10 +8,17 @@ export function cn(...inputs) {
 export function formatClassName(className) {
   if (!className) return className;
   
-  // Preserve these class names as-is
-  const preservedNames = ['Nursery', 'LKG', 'UKG', 'Prep'];
-  if (preservedNames.includes(className)) {
-    return className;
+  // Case-insensitive mapping/check
+  const formattedMap = {
+    'NURSERY': 'Nursery',
+    'LKG': 'LKG',
+    'UKG': 'UKG',
+    'PREP': 'Prep',
+  };
+  
+  const upperName = String(className).toUpperCase().trim();
+  if (formattedMap[upperName]) {
+    return formattedMap[upperName];
   }
   
   // Check if it's a number (1, 2, 3, etc.)

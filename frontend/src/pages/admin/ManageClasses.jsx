@@ -25,6 +25,8 @@ export default function ManageClasses() {
   const [form, setForm] = useState({ className: '', section: '' });
   const [customClass, setCustomClass] = useState('');
   const [customSection, setCustomSection] = useState('');
+  const [isCustomClass, setIsCustomClass] = useState(false);
+  const [isCustomSection, setIsCustomSection] = useState(false);
   
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState(null);
@@ -44,8 +46,8 @@ export default function ManageClasses() {
 
   const submit = async (e) => {
     e.preventDefault();
-    const className = (customClass || form.className || '').trim().toUpperCase();
-    const section = (customSection || form.section || '').trim().toUpperCase();
+    const className = (isCustomClass ? customClass : form.className || '').trim().toUpperCase();
+    const section = (isCustomSection ? customSection : form.section || '').trim().toUpperCase();
     
     if (!className || !section) {
       return toast.error('Please select or enter class name and section');
@@ -62,6 +64,8 @@ export default function ManageClasses() {
       setForm({ className: '', section: '' });
       setCustomClass('');
       setCustomSection('');
+      setIsCustomClass(false);
+      setIsCustomSection(false);
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -96,6 +100,8 @@ export default function ManageClasses() {
               setForm({ className: '', section: '' });
               setCustomClass('');
               setCustomSection('');
+              setIsCustomClass(false);
+              setIsCustomSection(false);
               setOpen(true);
             })) return;
           }}
@@ -140,9 +146,16 @@ export default function ManageClasses() {
                       e.stopPropagation();
                       if (!checkAndBlock(() => {
                         setEdit(c);
-                        setForm({ className: c.className, section: c.section });
-                        setCustomClass('');
-                        setCustomSection('');
+                        const isCustomC = !suggestions.classSuggestions.includes(c.className);
+                        const isCustomS = !suggestions.sectionSuggestions.includes(c.section);
+                        setIsCustomClass(isCustomC);
+                        setIsCustomSection(isCustomS);
+                        setForm({
+                          className: isCustomC ? '' : c.className,
+                          section: isCustomS ? '' : c.section
+                        });
+                        setCustomClass(isCustomC ? c.className : '');
+                        setCustomSection(isCustomS ? c.section : '');
                         setOpen(true);
                       })) return;
                     }}
@@ -188,7 +201,7 @@ export default function ManageClasses() {
       </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-2xl rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-white to-slate-50 border-slate-200 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden bg-gradient-to-br from-white to-slate-50 border-slate-200 shadow-xl">
           <DialogHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 px-6 py-4 border-b border-slate-100">
             <DialogTitle className="text-lg font-bold text-slate-800">
               {edit ? 'Edit Class' : 'Add Class'}
@@ -196,63 +209,144 @@ export default function ManageClasses() {
           </DialogHeader>
           <DialogBody className="p-6">
             <form className="space-y-5" onSubmit={submit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField label="Class">
-                  <Select
-                    value={form.className || undefined}
-                    onValueChange={(v) => {
-                      setForm({ ...form, className: v });
-                      setCustomClass('');
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm">
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto">
-                      {suggestions.classSuggestions.map((c) => (
-                        <SelectItem key={c} value={c}>{formatClassName(c)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-                <FormField label="Section">
-                  <Select
-                    value={form.section || undefined}
-                    onValueChange={(v) => {
-                      setForm({ ...form, section: v });
-                      setCustomSection('');
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm">
-                      <SelectValue placeholder="Select section" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60 overflow-y-auto">
-                      {suggestions.sectionSuggestions.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-                <FormField label="Custom Class Name">
-                  <Input
-                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
-                    placeholder="Enter custom class"
-                    value={customClass}
-                    onChange={(e) => setCustomClass(e.target.value.toUpperCase())}
-                  />
-                </FormField>
-                <FormField label="Custom Section">
-                  <Input
-                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
-                    placeholder="Enter custom section"
-                    value={customSection}
-                    onChange={(e) => setCustomSection(e.target.value.toUpperCase())}
-                  />
-                </FormField>
+              <div className="space-y-6">
+                {/* Class Field */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Class Mode</label>
+                  <div className="flex rounded-lg bg-slate-100 p-0.5 w-full border border-slate-200/50 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomClass(false);
+                        setForm(prev => ({ ...prev, className: suggestions.classSuggestions.includes(customClass) ? customClass : '' }));
+                        setCustomClass('');
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold text-center transition-all duration-200 cursor-pointer ${
+                        !isCustomClass
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200/20'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Select Standard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomClass(true);
+                        setCustomClass(form.className || '');
+                        setForm(prev => ({ ...prev, className: '' }));
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold text-center transition-all duration-200 cursor-pointer ${
+                        isCustomClass
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200/20'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Enter Custom Class
+                    </button>
+                  </div>
+                  {isCustomClass ? (
+                    <Input
+                      className="h-10 text-sm rounded-xl bg-white border-slate-200 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="e.g. NURSERY, LKG, CLASS 3"
+                      value={customClass}
+                      onChange={(e) => setCustomClass(e.target.value.toUpperCase())}
+                    />
+                  ) : (
+                    <Select
+                      value={form.className || undefined}
+                      onValueChange={(v) => {
+                        setForm({ ...form, className: v });
+                        setCustomClass('');
+                      }}
+                    >
+                      <SelectTrigger className="h-10 text-sm rounded-xl bg-white border-slate-200 shadow-sm">
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {suggestions.classSuggestions.map((c) => (
+                          <SelectItem key={c} value={c}>{formatClassName(c)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed px-1">
+                    {isCustomClass 
+                      ? "Type any custom name for this class." 
+                      : "Choose from standard classes list."}
+                  </p>
+                </div>
+
+                {/* Section Field */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Section Mode</label>
+                  <div className="flex rounded-lg bg-slate-100 p-0.5 w-full border border-slate-200/50 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomSection(false);
+                        setForm(prev => ({ ...prev, section: suggestions.sectionSuggestions.includes(customSection) ? customSection : '' }));
+                        setCustomSection('');
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold text-center transition-all duration-200 cursor-pointer ${
+                        !isCustomSection
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200/20'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Select Standard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomSection(true);
+                        setCustomSection(form.section || '');
+                        setForm(prev => ({ ...prev, section: '' }));
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-bold text-center transition-all duration-200 cursor-pointer ${
+                        isCustomSection
+                          ? 'bg-white text-blue-600 shadow-sm border border-slate-200/20'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      Enter Custom Section
+                    </button>
+                  </div>
+                  {isCustomSection ? (
+                    <Input
+                      className="h-10 text-sm rounded-xl bg-white border-slate-200 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      placeholder="e.g. A, SCIENCE, BLUE"
+                      value={customSection}
+                      onChange={(e) => setCustomSection(e.target.value.toUpperCase())}
+                    />
+                  ) : (
+                    <Select
+                      value={form.section || undefined}
+                      onValueChange={(v) => {
+                        setForm({ ...form, section: v });
+                        setCustomSection('');
+                      }}
+                    >
+                      <SelectTrigger className="h-10 text-sm rounded-xl bg-white border-slate-200 shadow-sm">
+                        <SelectValue placeholder="Select section" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60 overflow-y-auto">
+                        {suggestions.sectionSuggestions.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed px-1">
+                    {isCustomSection 
+                      ? "Type any custom section name (e.g. Science, Commerce, Red)." 
+                      : "Choose from standard sections list."}
+                  </p>
+                </div>
               </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <Button type="button" variant="outline" size="sm" className="h-9 text-sm bg-white" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button type="submit" size="sm" className="h-9 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-sm">
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                <Button type="button" variant="outline" size="sm" className="h-9 text-sm bg-white rounded-xl" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button type="submit" size="sm" className="h-9 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-sm rounded-xl px-4 font-semibold">
                   {edit ? 'Update Class' : 'Create Class'}
                 </Button>
               </div>

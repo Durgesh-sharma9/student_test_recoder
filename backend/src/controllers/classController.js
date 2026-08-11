@@ -32,12 +32,43 @@ export const getClasses = asyncHandler(async (req, res) => {
     });
   }
 
+  const PREDEFINED_ORDER = ['NURSERY', 'LKG', 'UKG', 'PREP'];
+
   classes.sort((a, b) => {
-    const classDiff = Number(a.className) - Number(b.className);
-
-    if (classDiff !== 0) return classDiff;
-
-    return a.section.localeCompare(b.section);
+    const nameA = String(a.className || '').toUpperCase().trim();
+    const nameB = String(b.className || '').toUpperCase().trim();
+    
+    const idxA = PREDEFINED_ORDER.indexOf(nameA);
+    const idxB = PREDEFINED_ORDER.indexOf(nameB);
+    
+    if (idxA !== -1 && idxB !== -1) {
+      if (idxA !== idxB) return idxA - idxB;
+    } else if (idxA !== -1) {
+      return -1;
+    } else if (idxB !== -1) {
+      return 1;
+    } else {
+      const numA = Number(nameA);
+      const numB = Number(nameB);
+      const isNumA = !isNaN(numA) && nameA !== '';
+      const isNumB = !isNaN(numB) && nameB !== '';
+      
+      if (isNumA && isNumB) {
+        const diff = numA - numB;
+        if (diff !== 0) return diff;
+      } else if (isNumA) {
+        return 1;
+      } else if (isNumB) {
+        return -1;
+      } else {
+        const comp = nameA.localeCompare(nameB);
+        if (comp !== 0) return comp;
+      }
+    }
+    
+    const secA = String(a.section || '').toUpperCase().trim();
+    const secB = String(b.section || '').toUpperCase().trim();
+    return secA.localeCompare(secB);
   });
 
   res.json({

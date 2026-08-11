@@ -5,7 +5,6 @@ import { PageStack, ErpSection } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/context/SubscriptionContext';
 import PlanDetailsDialog from '@/components/subscription/PlanDetailsDialog';
-import TrialRequestDialog from '@/components/subscription/TrialRequestDialog';
 import EnterpriseRequestDialog from '@/components/subscription/EnterpriseRequestDialog';
 import ExpiryReminderBanner from '@/components/subscription/ExpiryReminderBanner';
 
@@ -14,7 +13,6 @@ export default function AdminPlans() {
   const [plans, setPlans] = useState([]);
   const [activeCycle, setActiveCycle] = useState('monthly');
   const [details, setDetails] = useState({ open: false, planId: null });
-  const [trialDialogOpen, setTrialDialogOpen] = useState(false);
   const [enterpriseDialogOpen, setEnterpriseDialogOpen] = useState(false);
   const [history, setHistory] = useState([]);
 
@@ -118,17 +116,13 @@ export default function AdminPlans() {
         })}
       </div>
 
-      <div className="mt-8 text-center space-y-2">
-        <Button variant="ghost" size="sm" className="text-slate-500" onClick={() => setTrialDialogOpen(true)}>Request 7-Day Free Trial</Button>
-        <div>
-          <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setEnterpriseDialogOpen(true)}>
-             Request Custom Enterprise Plan
-          </Button>
-        </div>
+      <div className="mt-8 text-center">
+        <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setEnterpriseDialogOpen(true)}>
+           Request Custom Enterprise Plan
+        </Button>
       </div>
 
       <PlanDetailsDialog open={details.open} onOpenChange={(v) => setDetails((s) => ({ ...s, open: v }))} planId={details.planId} />
-      <TrialRequestDialog open={trialDialogOpen} onOpenChange={setTrialDialogOpen} />
       <EnterpriseRequestDialog open={enterpriseDialogOpen} onOpenChange={setEnterpriseDialogOpen} />
 
       {/* Redesigned Current Subscription Section */}
