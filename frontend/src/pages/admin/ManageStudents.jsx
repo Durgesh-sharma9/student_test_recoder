@@ -30,7 +30,7 @@ export default function ManageStudents() {
   
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
   const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -86,6 +86,11 @@ export default function ManageStudents() {
 
   const submit = async (e) => {
     e.preventDefault();
+    const phoneClean = form.parentPhone.replace(/\D/g, '');
+    if (phoneClean.length !== 10) {
+      toast.error('Parent Phone number must be exactly 10 digits');
+      return;
+    }
     
     // For edit with roll number change, check for conflicts
     if (edit && form.rollNo !== edit.rollNo) {
@@ -107,7 +112,7 @@ export default function ManageStudents() {
                 toast.success('Student updated');
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -157,7 +162,7 @@ export default function ManageStudents() {
                 
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -198,7 +203,7 @@ export default function ManageStudents() {
       }
       setOpen(false); 
       setEdit(null); 
-      setForm({ rollNo: '', name: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+      setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
       loadStudents(selectedClass);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -478,6 +483,7 @@ export default function ManageStudents() {
               <TableHeader className="bg-slate-50/80 border-b border-slate-100">
                 <TableRow>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Roll No</TableHead>
+                  <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Admission No</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Name</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2">Parent Name</TableHead>
                   <TableHead className="font-semibold text-slate-600 text-[11px] uppercase tracking-wider py-2 text-center">Admission Date</TableHead>
@@ -490,6 +496,7 @@ export default function ManageStudents() {
                 {filtered.map((s) => (
                   <TableRow key={s._id} className="hover:bg-emerald-50/30 transition-colors border-b-slate-100">
                     <TableCell className="font-medium text-slate-700 text-xs py-2">{s.rollNo}</TableCell>
+                    <TableCell className="text-slate-700 text-xs py-2 font-medium">{s.admissionNo || 'N/A'}</TableCell>
                     <TableCell className="text-slate-800 text-xs py-2">{s.name}</TableCell>
                     <TableCell className="text-slate-600 text-xs py-2">{s.parent?.parentName || 'N/A'}</TableCell>
                     <TableCell className="text-slate-600 text-xs py-2 text-center">{formatDate(s.admissionDate)}</TableCell>
@@ -516,6 +523,7 @@ export default function ManageStudents() {
                             setForm({ 
                               rollNo: s.rollNo, 
                               name: s.name, 
+                              admissionNo: s.admissionNo || '',
                               gender: s.gender, 
                               admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                               parentName: s.parentName||'', 
@@ -580,6 +588,16 @@ export default function ManageStudents() {
                   className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </FormField>
+              <FormField label="Admission No" required>
+                <Input
+                  type="text"
+                  placeholder="Enter Admission No"
+                  value={form.admissionNo}
+                  onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
+                  required
+                  className="h-9 rounded-md text-sm"
+                />
+              </FormField>
               <FormField label="Name" required>
                 <Input
                   type="text"
@@ -628,10 +646,16 @@ export default function ManageStudents() {
               <FormField label="Parent Phone" required>
                 {/* CSS added to remove up/down arrows from input */}
                 <Input
-                  type="text"
+                  type="tel"
+                  pattern="[0-9]{10}"
+                  maxLength={10}
+                  minLength={10}
                   placeholder="Enter Parent Phone"
                   value={form.parentPhone}
-                  onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    setForm({ ...form, parentPhone: value });
+                  }}
                   required
                   className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />

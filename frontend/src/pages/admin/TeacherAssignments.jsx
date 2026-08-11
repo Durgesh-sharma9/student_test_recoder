@@ -117,34 +117,88 @@ export default function TeacherAssignments() {
     );
   }, [teacherId, teachers]);
 
+  const saveWithItems = async (itemsToSave) => {
+    try {
+      if (!teacherId) {
+        toast.error("Please select a teacher first");
+        return;
+      }
+
+      const uniqueClassIds = [...new Set(itemsToSave.map((i) => i.class))];
+      const uniqueSubjects = [
+        ...new Set(
+          itemsToSave
+            .map((i) => i.subject)
+            .filter(Boolean),
+        ),
+      ];
+
+      for (const subj of uniqueSubjects) {
+        try {
+          await api.post("/subjects", {
+            subject: subj,
+          });
+        } catch {
+          // ignore duplicate
+        }
+      }
+
+      const payload = {
+        assignedClasses: uniqueClassIds,
+        assignments: itemsToSave,
+      };
+      
+      await api.put(
+        `/users/${teacherId}/assignments`,
+        payload,
+      );
+
+      // Refresh teachers list to keep local state updated
+      const res = await api.get("/users?role=teacher");
+      const activeTeachers = (res.data.users || []).filter(t => t.status !== 'Inactive');
+      setTeachers(activeTeachers);
+
+      toast.success("Assignments saved successfully");
+    } catch (error) {
+      console.error('[TeacherAssignments] Error:', error);
+      toast.error(
+        error?.response?.data?.message || "Failed to save assignments",
+      );
+    }
+  };
+
   const addItem = () => {
-    if (!checkAndBlock(() => {
+    if (!checkAndBlock(async () => {
       if (!selectedClass || !subject.trim() || !totalChapters) {
         toast.error("Please select class, enter subject and total chapters");
         return;
       }
 
-      setItems((prev) => [
-        ...prev,
+      const newItems = [
+        ...items,
         {
           class: selectedClass,
           subject: subject.toUpperCase(),
           totalChapters: Number(totalChapters),
         },
-      ]);
+      ];
 
+      setItems(newItems);
       setSubject("");
       setTotalChapters("");
+
+      await saveWithItems(newItems);
     })) return;
   };
 
-  const handleRemoveItem = (indexToRemove, className, subjectName) => {
+  const handleRemoveItem = async (indexToRemove, className, subjectName) => {
     const classDisplay = className ? formatClassName(className) : "this class";
     const confirmMessage = `Are you sure you want to remove ${subjectName} from ${classDisplay}?`;
     
     if (window.confirm(confirmMessage)) {
-      setItems((prev) => prev.filter((_, idx) => idx !== indexToRemove));
-      toast.success("Assignment removed from list (Click Save to apply changes)");
+      const newItems = items.filter((_, idx) => idx !== indexToRemove);
+      setItems(newItems);
+      await saveWithItems(newItems);
     }
   };
 
@@ -163,7 +217,7 @@ export default function TeacherAssignments() {
   };
 
   const handleSaveEdit = () => {
-    if (!checkAndBlock(() => {
+    if (!checkAndBlock(async () => {
       // Validation
       if (!editForm.classId || !editForm.subject.trim()) {
         toast.error("Please select class and enter subject");
@@ -188,18 +242,16 @@ export default function TeacherAssignments() {
       }
 
       // Update the item
-      setItems((prev) => {
-        const updated = [...prev];
-        updated[editingIndex] = {
-          class: editForm.classId,
-          subject: editForm.subject.toUpperCase(),
-          totalChapters: chapters,
-        };
-        return updated;
-      });
-
+      const newItems = [...items];
+      newItems[editingIndex] = {
+        class: editForm.classId,
+        subject: editForm.subject.toUpperCase(),
+        totalChapters: chapters,
+      };
+      setItems(newItems);
       setEditDialogOpen(false);
-      toast.success("Assignment updated (Click Save to apply changes)");
+
+      await saveWithItems(newItems);
     })) return;
   };
 
@@ -213,53 +265,6 @@ export default function TeacherAssignments() {
       totalChapters: "",
       status: "Active",
     });
-  };
-
-  const save = async () => {
-    if (!checkAndBlock(async () => {
-      try {
-        if (!teacherId) {
-          toast.error("Please select a teacher first");
-          return;
-        }
-
-        const uniqueClassIds = [...new Set(items.map((i) => i.class))];
-        const uniqueSubjects = [
-          ...new Set(
-            items
-              .map((i) => i.subject)
-              .filter(Boolean),
-          ),
-        ];
-
-        for (const subj of uniqueSubjects) {
-          try {
-            await api.post("/subjects", {
-              subject: subj,
-            });
-          } catch {
-            // ignore duplicate
-          }
-        }
-
-        const payload = {
-          assignedClasses: uniqueClassIds,
-          assignments: items,
-        };
-        
-        await api.put(
-          `/users/${teacherId}/assignments`,
-          payload,
-        );
-
-        toast.success("Assignments saved successfully");
-      } catch (error) {
-        console.error('[TeacherAssignments] Error:', error);
-        toast.error(
-          error?.response?.data?.message || "Failed to save assignments",
-        );
-      }
-    })) return;
   };
 
   return (
@@ -607,17 +612,7 @@ export default function TeacherAssignments() {
         </div>
       </ErpSection>
 
-      <div className="flex justify-end mt-2">
-        <Button 
-          size="sm" 
-          onClick={save} 
-          className="px-6 h-9 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md border-0" 
-          disabled={isArchived}
-        >
-          <Save className="mr-1.5 h-4 w-4" />
-          Save Assignments
-        </Button>
-      </div>
+
 
       {/* Edit Assignment Dialog */}
       {editDialogOpen && (

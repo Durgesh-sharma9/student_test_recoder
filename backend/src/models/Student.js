@@ -10,6 +10,7 @@ const studentSchema = new mongoose.Schema(
     gender: { type: String, enum: ['male', 'female', 'other'], required: true },
     parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent' },
     admissionDate: { type: Date, required: true },
+    admissionNo: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -20,6 +21,14 @@ studentSchema.index(
   {
     unique: true,
     partialFilterExpression: { rollNo: { $type: 'string' }, isActive: true },
+  }
+);
+
+studentSchema.index(
+  { school: 1, admissionNo: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { admissionNo: { $type: 'string' } },
   }
 );
 

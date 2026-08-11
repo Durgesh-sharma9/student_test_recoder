@@ -177,6 +177,11 @@ export default function ManageUsers() {
 
   const submit = async (e) => {
     e.preventDefault();
+    const phoneClean = form.phoneNo.replace(/\D/g, '');
+    if (phoneClean.length !== 10) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
     try {
       if (edit) {
         await api.put(`/users/${edit._id}`, form);
@@ -594,9 +599,16 @@ export default function ManageUsers() {
 
                 <FormField label="Phone No" required>
                   <Input
+                    type="tel"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    minLength={10}
                     placeholder="e.g. 9876543210"
                     value={form.phoneNo}
-                    onChange={(e) => setForm({ ...form, phoneNo: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setForm({ ...form, phoneNo: value });
+                    }}
                     className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
                     required
                   />

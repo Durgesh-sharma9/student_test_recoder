@@ -118,12 +118,25 @@ export const createStudent = asyncHandler(async (req, res) => {
     academicSessionId = activeSession._id;
   }
 
+  const admissionNo = String(req.body.admissionNo || '').trim();
+  if (admissionNo) {
+    const existingAdmission = await Student.findOne({
+      school: schoolId,
+      admissionNo: admissionNo,
+      isActive: true,
+    });
+    if (existingAdmission) {
+      throw new ApiError(400, `Admission No ${admissionNo} already exists in this school.`);
+    }
+  }
+
   const payload = {
     ...req.body,
     school: schoolId,
     academicSession: academicSessionId,
     rollNo: String(req.body.rollNo || '').trim(),
     name: String(req.body.name || '').trim(),
+    admissionNo: admissionNo || undefined,
     admissionDate: req.body.admissionDate ? new Date(req.body.admissionDate) : new Date(),
   };
 
@@ -200,11 +213,24 @@ export const updateStudent = asyncHandler(async (req, res) => {
     ...req.body,
     ...(req.body.rollNo !== undefined ? { rollNo: String(req.body.rollNo).trim() } : {}),
     ...(req.body.name !== undefined ? { name: String(req.body.name).trim() } : {}),
+    ...(req.body.admissionNo !== undefined ? { admissionNo: String(req.body.admissionNo || '').trim() } : {}),
     ...(req.body.admissionDate !== undefined ? { admissionDate: new Date(req.body.admissionDate) } : {}),
   };
 
   const current = await Student.findOne(withSchool(req, { _id: req.params.id }));
   if (!current) throw new ApiError(404, 'Student not found.');
+
+  if (updates.admissionNo && updates.admissionNo !== current.admissionNo) {
+    const duplicateAdmission = await Student.findOne({
+      _id: { $ne: req.params.id },
+      school: current.school,
+      admissionNo: updates.admissionNo,
+      isActive: true,
+    });
+    if (duplicateAdmission) {
+      throw new ApiError(400, `Admission No ${updates.admissionNo} already exists in this school.`);
+    }
+  }
 
   const targetClass = updates.class || current.class;
   const targetRoll = updates.rollNo || current.rollNo;
