@@ -20,7 +20,8 @@ import {
   updateAccountDetails,
   forgotPassword,
   resetPassword,
-  verifyResetOTP
+  verifyResetOTP,
+  requestFeature
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -32,6 +33,7 @@ router.post('/parent-login', parentLogin);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-reset-otp', verifyResetOTP);
 router.post('/reset-password', resetPassword);
+router.post('/request-feature', protect, requestFeature);
 router.get('/me', protect, getMe);
 router.put('/change-password', protect, changePassword);
 router.put('/school-settings', protect, updateSchoolSettings);

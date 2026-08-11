@@ -996,7 +996,7 @@ export const updateSchoolSettings = asyncHandler(async (req, res) => {
   school.state = state;
   school.pincode = pincode;
   school.phone = phone;
-  school.email = email;
+  school.email = email || school.email;
 
   await school.save();
 
@@ -1154,4 +1154,52 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   res.json({ success: true, message: 'Password reset successful. You can now login.' });
+});
+
+export const requestFeature = asyncHandler(async (req, res) => {
+  const { message } = req.body;
+  const user = req.user;
+
+  if (!message || !message.trim()) {
+    throw new ApiError(400, 'Message content is required.');
+  }
+
+  // Get active super admins
+  const superUsers = await User.find({ role: 'super_admin', isActive: true }).select('_id');
+  const superIds = superUsers.map(u => u._id);
+
+  if (superIds.length === 0) {
+    throw new ApiError(404, 'No active Super Administrators found to receive the request.');
+  }
+
+  // Load Notification model dynamically
+  const Notification = (await import('../models/Notification.js')).default;
+
+  // Find school name to include in description if school admin/teacher
+  let schoolName = 'N/A';
+  if (user.school) {
+    const School = (await import('../models/School.js')).default;
+    const schoolDoc = await School.findById(user.school).select('schoolName');
+    if (schoolDoc) {
+      schoolName = schoolDoc.schoolName;
+    }
+  }
+
+  const title = `Feature Request: ${user.name || 'User'}`;
+  const notificationMessage = `User: ${user.name} (${user.email})\nSchool: ${schoolName}\nRole: ${user.role}\n\nRequest:\n${message}`;
+
+  // Create notification for Super Admins
+  await Notification.create({
+    title,
+    message: notificationMessage,
+    priority: 'important',
+    senderId: user._id,
+    senderRole: user.role === 'admin' ? 'school_admin' : user.role,
+    recipientIds: superIds,
+    schoolId: user.school || undefined,
+    isBroadcast: false,
+    type: 'announcement',
+  });
+
+  res.json({ success: true, message: 'Feature request sent successfully to the Super Admin.' });
 });

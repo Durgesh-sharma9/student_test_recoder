@@ -384,7 +384,41 @@ export default function DashboardLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}><Menu className="h-5 w-5" /></Button>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            
+            {/* School Logo & Name on Left */}
+            {user?.school && (
+              <div className="flex items-center gap-2.5">
+                {user.school.logo ? (
+                  <div className="h-9 w-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden p-1 shadow-sm shrink-0">
+                    <img 
+                      src={user.school.logo} 
+                      alt="School Logo" 
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-9 w-9 rounded-lg border border-slate-200 bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm shrink-0">
+                    <School className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="hidden sm:flex flex-col min-w-0 leading-tight">
+                  <span className="font-bold text-slate-800 text-sm tracking-tight truncate max-w-[200px] md:max-w-[250px]">
+                    {user.school.schoolName}
+                  </span>
+                  {user.school.address && (
+                    <span className="text-[10px] text-slate-500 font-medium truncate max-w-[200px] md:max-w-[250px]">
+                      {user.school.address}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 ml-auto">
             {isAdmin && planBadge && (
               <button
@@ -399,7 +433,7 @@ export default function DashboardLayout() {
             <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8"><Outlet /></main>
+        <main className="flex-1 py-2.5 px-4 sm:py-3.5 sm:px-6 lg:py-4 lg:px-8"><Outlet /></main>
       </div>
 
       <AnnouncementModal open={isAnnouncementModalOpen} onOpenChange={setIsAnnouncementModalOpen} role={role} />

@@ -616,13 +616,13 @@ export default function AdminNotifications() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-full transition-all duration-300 whitespace-nowrap',
+                  'flex items-center gap-2 px-4 py-2 text-[13px] font-bold rounded-full transition-all duration-300 whitespace-nowrap cursor-pointer',
                   isActive 
-                    ? 'bg-gradient-to-r from-white to-slate-50 text-indigo-700 shadow-sm border border-slate-200/60' 
+                    ? 'bg-indigo-600 text-white shadow-sm border-0' 
                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 border border-transparent'
                 )}
               >
-                <Icon className={cn("h-4 w-4", isActive ? "text-indigo-600" : "text-slate-400")} />
+                <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-400")} />
                 {tab.label}
               </button>
             );
