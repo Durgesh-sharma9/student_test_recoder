@@ -58,10 +58,15 @@ export function ErpSection({ title, icon: Icon, tone = 'green', children, action
   );
 }
 
-export function FormField({ label, children, className }) {
+export function FormField({ label, children, className, required }) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      {label ? <label className="text-sm font-medium text-slate-700">{label}</label> : null}
+      {label ? (
+        <label className="text-sm font-medium text-slate-700">
+          {label}
+          {required ? <span className="text-red-500 ml-1 font-bold">*</span> : null}
+        </label>
+      ) : null}
       {children}
     </div>
   );

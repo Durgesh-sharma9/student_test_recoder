@@ -541,7 +541,7 @@ export default function ManageUsers() {
           <DialogBody className="p-6">
             <form className="space-y-6" onSubmit={submit}>
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField label="Teacher Name">
+                <FormField label="Teacher Name" required>
                   <Input
                     placeholder="e.g. John Doe"
                     value={form.teacherName}
@@ -551,7 +551,7 @@ export default function ManageUsers() {
                   />
                 </FormField>
 
-                <FormField label="Email">
+                <FormField label="Email" required>
                   <Input
                     type="email"
                     placeholder="teacher@school.com"
@@ -562,7 +562,7 @@ export default function ManageUsers() {
                   />
                 </FormField>
 
-                <FormField label="Phone No">
+                <FormField label="Phone No" required>
                   <Input
                     placeholder="e.g. 9876543210"
                     value={form.phoneNo}

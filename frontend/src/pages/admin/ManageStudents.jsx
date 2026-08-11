@@ -569,7 +569,7 @@ export default function ManageStudents() {
 
           <DialogBody>
             <form className="space-y-4" onSubmit={submit}>
-              <FormField label="Roll No">
+              <FormField label="Roll No" required>
                 {/* CSS added to remove up/down arrows from input */}
                 <Input
                   type="text"
@@ -580,7 +580,7 @@ export default function ManageStudents() {
                   className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </FormField>
-              <FormField label="Name">
+              <FormField label="Name" required>
                 <Input
                   type="text"
                   placeholder="Enter Student Name"
@@ -590,7 +590,7 @@ export default function ManageStudents() {
                   className="h-9 rounded-md text-sm"
                 />
               </FormField>
-              <FormField label="Gender">
+              <FormField label="Gender" required>
                 <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
                   <SelectTrigger className="h-9 rounded-md text-sm">
                     <SelectValue />
@@ -602,7 +602,7 @@ export default function ManageStudents() {
                   </SelectContent>
                 </Select>
               </FormField>
-              <FormField label="Admission Date">
+              <FormField label="Admission Date" required>
                 <DatePicker
                   value={form.admissionDate}
                   onChange={(date) => setForm({ ...form, admissionDate: date })}
@@ -615,22 +615,24 @@ export default function ManageStudents() {
                 <p className="text-xs font-semibold text-slate-600 mb-2">Parent/Guardian Information</p>
               </div>
               
-              <FormField label="Parent/Guardian Name">
+              <FormField label="Parent/Guardian Name" required>
                 <Input
                   type="text"
                   placeholder="Enter Parent Name"
                   value={form.parentName}
                   onChange={(e) => setForm({ ...form, parentName: e.target.value })}
                   className="h-9 rounded-md text-sm"
+                  required
                 />
               </FormField>
-              <FormField label="Parent Phone (Required)">
+              <FormField label="Parent Phone" required>
                 {/* CSS added to remove up/down arrows from input */}
                 <Input
                   type="text"
                   placeholder="Enter Parent Phone"
                   value={form.parentPhone}
                   onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
+                  required
                   className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </FormField>
