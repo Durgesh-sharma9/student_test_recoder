@@ -332,15 +332,6 @@ export default function SettingsPage() {
                       className="rounded-lg border-slate-200 h-10 text-xs bg-white"
                     />
                   </FormField>
-                  <FormField label="Email Address">
-                    <Input 
-                      type="email"
-                      value={generalForm.email}
-                      onChange={(e) => setGeneralForm({...generalForm, email: e.target.value})}
-                      placeholder="e.g. contact@school.com"
-                      className="rounded-lg border-slate-200 h-10 text-xs bg-white"
-                    />
-                  </FormField>
                 </div>
                 <FormField label="School Address">
                   <Input 
@@ -493,9 +484,8 @@ export default function SettingsPage() {
                     <Input 
                       type="email"
                       value={accountForm.email}
-                      onChange={(e) => setAccountForm({...accountForm, email: e.target.value})}
-                      placeholder="e.g. admin@school.com"
-                      className="rounded-lg border-slate-200 h-10 text-xs bg-white"
+                      disabled
+                      className="rounded-lg border-slate-200 h-10 text-xs bg-slate-50 cursor-not-allowed"
                     />
                   </FormField>
                   <FormField label="Role (System Assigned)">

@@ -246,7 +246,7 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-500 shadow-md">
-                <Megaphone className="h-4.5 w-4.5 text-white" />
+                <Megaphone className="h-4.5 w-4.5 text-white animate-pulse" />
               </div>
               <div>
                 <DialogTitle className="text-base md:text-lg font-bold text-slate-900">Announcement Center</DialogTitle>
@@ -257,14 +257,14 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
           <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/50 w-full max-w-[300px]">
             <button
               type="button"
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${activeTab === 'announcement' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${activeTab === 'announcement' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/20' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
               onClick={() => setActiveTab('announcement')}
             >
               Announcement
             </button>
             <button
               type="button"
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 ${activeTab === 'poll' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${activeTab === 'poll' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm shadow-purple-500/20' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
               onClick={() => setActiveTab('poll')}
             >
               Create Poll
@@ -276,26 +276,35 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
           {activeTab === 'announcement' ? (
             <div className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Title *</label>
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Title *
+                </label>
                 <Input
                   placeholder="Enter announcement title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="rounded-xl border-slate-200 shadow-sm focus:ring-1 focus:ring-purple-500 h-9 text-xs md:text-sm"
+                  className="rounded-xl border-slate-200 bg-white focus:border-purple-300 focus:ring-1 focus:ring-purple-500 shadow-sm h-9 text-xs md:text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Message *</label>
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Message *
+                </label>
                 <Textarea
                   placeholder="Enter announcement message"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   rows={4}
-                  className="rounded-xl border-slate-200 shadow-sm focus:ring-1 focus:ring-purple-500 text-xs md:text-sm"
+                  className="rounded-xl border-slate-200 bg-white focus:border-purple-300 focus:ring-1 focus:ring-purple-500 shadow-sm text-xs md:text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Priority</label>
+                <label className="text-[11px] md:text-xs font-semibold text-slate-500 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  Priority
+                </label>
                 <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
                   <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm">
                     <SelectValue />
@@ -311,31 +320,37 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                       <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-orange-500" />Important</div>
                     </SelectItem>
                     <SelectItem value="urgent">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />Urgent</div>
+                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500 animate-ping" />Urgent</div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {role === 'school_admin' && (
-                <>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/30 p-3 space-y-3.5 shadow-sm">
                   <div className="space-y-1">
-                    <label className="text-[11px] md:text-xs font-semibold text-slate-500">Send To</label>
+                    <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                      Send To
+                    </label>
                     <Select value={targetRole} onValueChange={(value) => { setTargetRole(value); setRecipientType('all'); setSelectedRecipients([]); setSelectedClass(''); }}>
-                      <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm">
+                      <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9 text-xs md:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="teacher"><div className="flex items-center gap-2"><Users className="h-4 w-4" />Teachers</div></SelectItem>
-                        <SelectItem value="parent"><div className="flex items-center gap-2"><GraduationCap className="h-4 w-4" />Parents</div></SelectItem>
+                        <SelectItem value="teacher"><div className="flex items-center gap-2"><Users className="h-4 w-4 text-purple-600" />Teachers</div></SelectItem>
+                        <SelectItem value="parent"><div className="flex items-center gap-2"><GraduationCap className="h-4 w-4 text-purple-600" />Parents</div></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {targetRole === 'teacher' && (
                     <div className="space-y-1">
-                      <label className="text-[11px] md:text-xs font-semibold text-slate-500">Recipients</label>
+                      <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                        Recipients
+                      </label>
                       <Select value={recipientType} onValueChange={setRecipientType}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9 text-xs md:text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Teachers</SelectItem>
                           <SelectItem value="selected">Selected Teachers</SelectItem>
@@ -346,7 +361,10 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                   {targetRole === 'teacher' && recipientType === 'selected' && (
                     <div className="space-y-1">
-                      <label className="text-[11px] md:text-xs font-semibold text-slate-500">Select Teachers</label>
+                      <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                        Select Teachers
+                      </label>
                       <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 p-2 shadow-sm bg-white">
                         {recipients.map((recipient) => (
                           <label key={recipient._id} className="flex items-center gap-2.5 p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
@@ -360,9 +378,12 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                   {targetRole === 'parent' && (
                     <div className="space-y-1">
-                      <label className="text-[11px] md:text-xs font-semibold text-slate-500">Recipients</label>
+                      <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                        Recipients
+                      </label>
                       <Select value={recipientType} onValueChange={setRecipientType}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9 text-xs md:text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Parents</SelectItem>
                           <SelectItem value="class">Class-wise Parents</SelectItem>
@@ -373,9 +394,12 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                   {targetRole === 'parent' && recipientType === 'class' && (
                     <div className="space-y-1">
-                      <label className="text-[11px] md:text-xs font-semibold text-slate-500">Select Class</label>
+                      <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                        Select Class
+                      </label>
                       <Select value={selectedClass} onValueChange={setSelectedClass}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm"><SelectValue placeholder="Select a class" /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 bg-white h-9 text-xs md:text-sm"><SelectValue placeholder="Select a class" /></SelectTrigger>
                         <SelectContent>
                           {classes.map((cls) => (
                             <SelectItem key={cls._id} value={cls._id}>{cls.className} {cls.section}</SelectItem>
@@ -384,10 +408,13 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                       </Select>
                     </div>
                   )}
-                </>
+                </div>
               )}
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Attachment (Optional)</label>
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Attachment (Optional)
+                </label>
                 <Input
                   type="file"
                   accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
@@ -402,22 +429,25 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                       setAttachmentFile(file);
                     }
                   }}
-                  className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                  className="rounded-xl border-slate-200 bg-white shadow-sm h-9 text-xs md:text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                 />
-                {attachmentFile && <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600"><Paperclip className="h-3.5 w-3.5" /><span className="truncate">{attachmentFile.name}</span></div>}
+                {attachmentFile && <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600"><Paperclip className="h-3.5 w-3.5 text-purple-600" /><span className="truncate">{attachmentFile.name}</span></div>}
               </div>
             </div>
           ) : (
             <div className="space-y-3.5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] md:text-xs font-semibold text-slate-500">Audience *</label>
-                  <div className="flex gap-4 py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100">
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                  <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Audience *
+                  </label>
+                  <div className="flex gap-4 py-1.5 px-2.5 bg-slate-50/50 rounded-xl border border-slate-200/60">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                       <input type="radio" name="poll-audience" checked={pollForm.audience === 'teachers'} onChange={() => setPollForm({ ...pollForm, audience: 'teachers', audienceScope: 'all' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
                       Teachers
                     </label>
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                       <input type="radio" name="poll-audience" checked={pollForm.audience === 'parents'} onChange={() => setPollForm({ ...pollForm, audience: 'parents', audienceScope: 'all' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
                       Parents
                     </label>
@@ -425,16 +455,19 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] md:text-xs font-semibold text-slate-500">Targeting *</label>
+                  <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Targeting *
+                  </label>
                   {pollForm.audience === 'teachers' ? (
-                    <div className="text-[11px] text-slate-400 py-2 px-2 bg-slate-50 rounded-lg border border-slate-100 font-medium">Broadcasts to all teachers.</div>
+                    <div className="text-[11px] text-slate-500 py-2 px-2.5 bg-slate-50/50 rounded-xl border border-slate-200/60 font-semibold">Broadcasts to all teachers.</div>
                   ) : (
-                    <div className="flex gap-4 py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                    <div className="flex gap-4 py-1.5 px-2.5 bg-slate-50/50 rounded-xl border border-slate-200/60">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                         <input type="radio" name="parent-scope" checked={pollForm.audienceScope === 'all'} onChange={() => setPollForm({ ...pollForm, audienceScope: 'all' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
                         All Parents
                       </label>
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                         <input type="radio" name="parent-scope" checked={pollForm.audienceScope === 'selected_classes'} onChange={() => setPollForm({ ...pollForm, audienceScope: 'selected_classes' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
                         Classes
                       </label>
@@ -444,13 +477,16 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
               </div>
 
               {pollForm.audience === 'parents' && pollForm.audienceScope === 'selected_classes' && (
-                <div className="space-y-1">
-                  <label className="text-[11px] md:text-xs font-semibold text-slate-500">Select Classes *</label>
-                  <div className="max-h-28 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                <div className="space-y-1 animate-fadeIn">
+                  <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Select Classes *
+                  </label>
+                  <div className="max-h-28 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/20 p-2 shadow-sm">
                     {classes.length === 0 ? <p className="text-xs text-slate-500">No classes available.</p> : classes.map((cls) => (
-                      <label key={cls._id} className="flex items-center gap-2 rounded-lg p-1 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer">
+                      <label key={cls._id} className="flex items-center gap-2 rounded-lg p-1 text-xs text-slate-700 hover:bg-white cursor-pointer transition-all">
                         <input type="checkbox" checked={selectedClassIds.includes(cls._id)} onChange={() => toggleClassSelection(cls._id)} className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
-                        <span>{cls.className} {cls.section}</span>
+                        <span className="font-medium">{cls.className} {cls.section}</span>
                       </label>
                     ))}
                   </div>
@@ -458,41 +494,53 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
               )}
 
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Poll Title *</label>
-                <Input placeholder="Enter poll title" value={pollForm.title} onChange={(e) => setPollForm({ ...pollForm, title: e.target.value })} className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm" />
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Poll Title *
+                </label>
+                <Input placeholder="Enter poll title" value={pollForm.title} onChange={(e) => setPollForm({ ...pollForm, title: e.target.value })} className="rounded-xl border-slate-200 bg-white focus:border-purple-300 focus:ring-1 focus:ring-purple-500 shadow-sm h-9 text-xs md:text-sm" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Description *</label>
-                <Textarea placeholder="Enter poll description" value={pollForm.description} onChange={(e) => setPollForm({ ...pollForm, description: e.target.value })} rows={2} className="rounded-xl border-slate-200 shadow-sm text-xs md:text-sm" />
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Description *
+                </label>
+                <Textarea placeholder="Enter poll description" value={pollForm.description} onChange={(e) => setPollForm({ ...pollForm, description: e.target.value })} rows={2} className="rounded-xl border-slate-200 bg-white focus:border-purple-300 focus:ring-1 focus:ring-purple-500 shadow-sm text-xs md:text-sm" />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] md:text-xs font-semibold text-slate-500">Poll Type</label>
-                  <div className="flex gap-4 py-1.5 px-2 bg-slate-50 rounded-lg border border-slate-100">
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                  <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Poll Type
+                  </label>
+                  <div className="flex gap-4 py-1.5 px-2.5 bg-slate-50/50 rounded-xl border border-slate-200/60">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                       <input type="radio" name="poll-type" checked={pollForm.pollType === 'single'} onChange={() => setPollForm({ ...pollForm, pollType: 'single' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
-                      Single Choice
+                      Single
                     </label>
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer">
                       <input type="radio" name="poll-type" checked={pollForm.pollType === 'multiple'} onChange={() => setPollForm({ ...pollForm, pollType: 'multiple' })} className="rounded-full border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
-                      Multiple Choice
+                      Multiple
                     </label>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] md:text-xs font-semibold text-slate-500">Expiry</label>
+                  <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Expiry
+                  </label>
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
                       <DateTimePicker 
                         value={pollForm.expiryDate} 
                         onChange={(date) => setPollForm({ ...pollForm, expiryDate: date })} 
-                        className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm w-full" 
+                        className="rounded-xl border-slate-200 bg-white shadow-sm h-9 text-xs md:text-sm w-full" 
                       />
                     </div>
-                    <label className="flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer shrink-0">
+                    <label className="flex items-center gap-1 text-[10px] md:text-[11px] font-bold text-slate-500 cursor-pointer shrink-0">
                       <input type="checkbox" checked={!pollForm.expiryDate} onChange={() => setPollForm({ ...pollForm, expiryDate: '' })} className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
                       No Expiry
                     </label>
@@ -501,26 +549,35 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Poll Options *</label>
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Poll Options *
+                </label>
+                <div className="space-y-2 rounded-xl border border-slate-100 bg-slate-50/30 p-2 shadow-sm">
                   {pollOptions.map((option, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <Input placeholder={`Option ${index + 1}`} value={option.text} onChange={(e) => handlePollOptionChange(index, e.target.value)} className="rounded-xl border-slate-200 shadow-sm h-8 text-xs md:text-sm" />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(index)} className="rounded-xl border border-slate-200 hover:bg-slate-50 h-8 w-8 shrink-0"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold shrink-0 shadow-sm">
+                        {index + 1}
+                      </span>
+                      <Input placeholder={`Option ${index + 1}`} value={option.text} onChange={(e) => handlePollOptionChange(index, e.target.value)} className="rounded-xl border-slate-200 bg-white shadow-sm h-8 text-xs md:text-sm focus:border-purple-300 focus:ring-purple-500" />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(index)} className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-red-500 h-8 w-8 shrink-0"><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" className="rounded-xl h-8 text-[11px]" onClick={addPollOption}><Plus className="mr-1 h-3 w-3" />Add Option</Button>
+                  <Button type="button" variant="outline" className="rounded-xl h-8 text-[11px] border-slate-200 text-purple-700 bg-white hover:bg-purple-50/50" onClick={addPollOption}><Plus className="mr-1 h-3 w-3" />Add Option</Button>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-500">Attachment (Optional)</label>
-                <Input type="file" accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png" onChange={(e) => { const file = e.target.files[0]; if (file) { if (file.size > 10 * 1024 * 1024) { toast.error('File size exceeds 10MB limit'); return; } setPollAttachmentFile(file); } }} className="rounded-xl border-slate-200 shadow-sm h-9 text-xs md:text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
-                {pollAttachmentFile && <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600"><Paperclip className="h-3.5 w-3.5" /><span className="truncate">{pollAttachmentFile.name}</span></div>}
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+                  Attachment (Optional)
+                </label>
+                <Input type="file" accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png" onChange={(e) => { const file = e.target.files[0]; if (file) { if (file.size > 10 * 1024 * 1024) { toast.error('File size exceeds 10MB limit'); return; } setPollAttachmentFile(file); } }} className="rounded-xl border-slate-200 bg-white shadow-sm h-9 text-xs md:text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
+                {pollAttachmentFile && <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600"><Paperclip className="h-3.5 w-3.5 text-purple-600" /><span className="truncate">{pollAttachmentFile.name}</span></div>}
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-2.5">
-                <label className="text-[11px] md:text-xs font-semibold text-slate-700">Allow voters to edit their response while the poll is active</label>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-2 px-3">
+                <label className="text-[11px] md:text-xs font-semibold text-slate-700">Allow voters to edit response while active</label>
                 <input type="checkbox" checked={pollForm.allowEdit} onChange={() => setPollForm({ ...pollForm, allowEdit: !pollForm.allowEdit })} className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
               </div>
             </div>
