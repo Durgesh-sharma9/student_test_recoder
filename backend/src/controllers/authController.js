@@ -9,9 +9,10 @@ import SubscriptionHistory from '../models/SubscriptionHistory.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import passport from '../config/passport.js';
+import crypto from 'crypto';
 import { generateEmailVerificationToken, createOTPToken, verifyOTP, checkOTPRateLimit, isAccountLocked, incrementFailedLoginAttempts, resetFailedLoginAttempts } from '../utils/otpUtils.js';
 import { createSignupOTP, verifySignupOTP as verifySignupOTPUtil, checkSignupOTPRateLimit, deleteSignupOTP } from '../utils/signupOtpUtils.js';
-import { sendEmailVerificationEmail, sendPasswordChangeOTPEmail, sendEmailChangeOTPEmail, sendSignupOTPEmail } from '../services/emailService.js';
+import { sendEmailVerificationEmail, sendPasswordChangeOTPEmail, sendEmailChangeOTPEmail, sendSignupOTPEmail, sendResetPasswordEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
 import PaymentSettings from '../models/PaymentSettings.js';
 
@@ -1050,4 +1051,107 @@ export const updateAccountDetails = asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, user: updatedUser });
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new ApiError(400, 'Please provide an email address.');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email address.');
+  }
+
+  // Check rate limit
+  const rateLimitCheck = await checkOTPRateLimit(user._id, 'password_reset');
+  if (!rateLimitCheck.allowed) {
+    throw new ApiError(429, rateLimitCheck.message);
+  }
+
+  // Generate and set reset OTP
+  const otp = await createOTPToken(user._id, 'password_reset');
+
+  // Send Email
+  try {
+    const school = await School.findById(user.school);
+    const schoolName = school?.schoolName || 'Your School';
+    await sendResetPasswordEmail(schoolName, user.name, user.email, otp);
+    res.json({ success: true, message: 'Password reset OTP sent to your email address.' });
+  } catch (error) {
+    throw new ApiError(500, 'Failed to send reset OTP email. Please try again later.');
+  }
+});
+
+export const verifyResetOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ApiError(400, 'Please provide email and OTP.');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email address.');
+  }
+
+  // Verify OTP
+  const verification = await verifyOTP(user._id, 'password_reset', otp);
+  if (!verification.valid) {
+    throw new ApiError(400, verification.message);
+  }
+
+  // Generate a random temporary token for password reset authorization
+  const tempToken = crypto.randomBytes(20).toString('hex');
+  
+  // Hash token and set to resetPasswordToken field on user model
+  user.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(tempToken)
+    .digest('hex');
+
+  // Set expire (10 minutes)
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ success: true, message: 'OTP verified successfully.', token: tempToken });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { email, token, password } = req.body;
+
+  if (!email || !token || !password) {
+    throw new ApiError(400, 'Please provide email, token, and new password.');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'No account found with this email address.');
+  }
+
+  // Hash the incoming token to compare with the one in DB
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  // Verify token expiry and match
+  if (
+    !user.resetPasswordToken ||
+    user.resetPasswordToken !== hashedToken ||
+    user.resetPasswordExpires < Date.now()
+  ) {
+    throw new ApiError(400, 'Invalid or expired reset session. Please verify OTP again.');
+  }
+
+  // Set new password
+  user.password = password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  user.mustChangePassword = false;
+  await user.save();
+
+  res.json({ success: true, message: 'Password reset successful. You can now login.' });
 });

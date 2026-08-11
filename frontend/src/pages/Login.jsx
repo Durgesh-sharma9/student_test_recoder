@@ -132,6 +132,15 @@ export default function Login() {
                 <Input type="password" className="pl-10" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
             </FormField>
+            <div className="flex justify-end -mt-2">
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
             <Button type="submit" className="mt-2 h-12 w-full text-sm" disabled={loading}>
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>

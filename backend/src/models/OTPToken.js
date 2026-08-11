@@ -6,7 +6,7 @@ const otpTokenSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, // Optional for signup
     type: {
       type: String,
-      enum: ['password_change', 'email_change', 'verification', 'signup'],
+      enum: ['password_change', 'email_change', 'verification', 'signup', 'password_reset'],
       required: true,
     },
     otp: { type: String, required: true },

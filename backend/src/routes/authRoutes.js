@@ -17,7 +17,10 @@ import {
   verifySignupOTP,
   updateSchoolSettings,
   updateSchoolLogo,
-  updateAccountDetails
+  updateAccountDetails,
+  forgotPassword,
+  resetPassword,
+  verifyResetOTP
 } from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 
@@ -26,6 +29,9 @@ const router = Router();
 router.post('/register-school', registerSchool);
 router.post('/login', login);
 router.post('/parent-login', parentLogin);
+router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-otp', verifyResetOTP);
+router.post('/reset-password', resetPassword);
 router.get('/me', protect, getMe);
 router.put('/change-password', protect, changePassword);
 router.put('/school-settings', protect, updateSchoolSettings);

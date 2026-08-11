@@ -38,6 +38,8 @@ const userSchema = new mongoose.Schema(
     lockUntil: { type: Date },
     lastLogin: { type: Date },
     lastPasswordChange: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
 );

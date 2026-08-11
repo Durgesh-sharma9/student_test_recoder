@@ -845,3 +845,90 @@ Test Master Pro Team
 
   return await sendWithRetry(mailOptions, "Signup OTP Email");
 };
+
+export const sendResetPasswordEmail = async (
+  schoolName,
+  adminName,
+  adminEmail,
+  otp
+) => {
+  console.log('[Email Service] Preparing to send reset password OTP email');
+  console.log('[Email Service] Recipient:', adminEmail);
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Password Reset Verification Code - Test Master Pro`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset Verification</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">School Management System</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 20px; font-weight: 600;">Password Reset Verification</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${adminName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              You requested to reset your password for your <strong>${schoolName}</strong> account.
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Please use the following 6-digit verification OTP code to reset your password:
+            </p>
+
+            <!-- OTP Display -->
+            <div style="background-color: #f8f9fa; border: 2px solid #667eea; border-radius: 12px; padding: 30px; margin: 30px 0; text-align: center;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0 0 15px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Verification OTP Code</p>
+              <p style="color: #667eea; font-size: 36px; margin: 0; font-weight: 700; letter-spacing: 8px;">${otp}</p>
+            </div>
+
+            <!-- Validity Notice -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">Important Notice</p>
+              <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
+                This OTP is valid for 10 minutes. If you did not request this password reset, please ignore this email.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 0 0 10px;">
+                Regards,<br>
+                <strong>Test Master Pro Team</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Password Reset Verification Code - Test Master Pro
+
+Hello ${adminName},
+
+You requested to reset your password for your ${schoolName} account.
+
+Your Verification OTP Code: ${otp}
+
+This code is valid for 10 minutes. If you did not request this password reset, please ignore this email.
+
+Regards,
+Test Master Pro Team
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Reset Password Email");
+};

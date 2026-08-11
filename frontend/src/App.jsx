@@ -10,6 +10,7 @@ import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import VerifyEmail from '@/pages/VerifyEmail';
 import AuthCallback from '@/pages/AuthCallback';
+import ForgotPassword from '@/pages/ForgotPassword';
 import SuperDashboard from '@/pages/super/SuperDashboard';
 import SuperSchools from '@/pages/super/SuperSchools';
 import SuperSchoolDetails from '@/pages/super/SuperSchoolDetails';
@@ -107,6 +108,7 @@ export default function App() {
             <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/parent-login" element={<ParentLogin />} />
             <Route path="/signup" element={<Signup />} />
