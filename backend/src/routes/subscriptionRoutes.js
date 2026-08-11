@@ -27,6 +27,8 @@ const upload = multer({
   },
 });
 
+router.get('/public-plans', getPlans);
+
 router.use(protect, requireSchoolActive);
 
 router.get('/plans', getPlans);

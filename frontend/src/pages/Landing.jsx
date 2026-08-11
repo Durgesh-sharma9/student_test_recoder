@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
+import api from "@/lib/api";
 import {
   GraduationCap, BarChart3, Users, BookOpen, Trophy,
   Calendar, ArrowRight, ClipboardList, FileSpreadsheet, 
   Smartphone, Building2, ChevronRight, Star, Zap, Cloud, 
   Lock, TrendingUp, FileText, Play, Check, X, Twitter, 
-  Linkedin, Facebook, Instagram, Mail, Phone, MapPin,
+  Linkedin, Facebook, Instagram, Mail, Phone, MapPin, Gem
 } from "lucide-react";
 
 /* ─── animated counter ─── */
@@ -78,52 +79,126 @@ export default function Landing() {
   ];
 
   const testimonials = [
-    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, St. Xavier’s School",              initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
+    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step School",              initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
     { quote: "The Parent Portal feature has been a game-changer. Parents are now much more involved, and our office staff is no longer overwhelmed with queries.", name: "Rajesh Meena", role: "Administrator, Global Public School", initials: "RM", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
     { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.",  name: "Sunita Reddy", role: "Director, Heritage Academy",          initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
   ];
 
-  const plans = [
+  const [plans, setPlans] = useState([]);
+  const [activeCycle, setActiveCycle] = useState('monthly');
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await api.get('/subscriptions/public-plans');
+        if (response.data?.success) {
+          const filtered = (response.data.plans || []).filter(p => 
+            !p.slug?.toLowerCase().includes('trial') && Number(p.basePrice) > 0
+          );
+          setPlans(filtered);
+        }
+      } catch (err) {
+        console.error("Failed to load plans on landing page:", err);
+      }
+    };
+    fetchPlans();
+  }, []);
+
+  const staticPlans = [
     {
       name: "Starter", price: "₹999", cta: "Sign Up Free", popular: false,
       desc: "Ideal for small schools getting started with digital result management.",
       grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.15)",
-      features: [
-        { text: "Up to 500 students", ok: true },
-        { text: "5 teacher accounts", ok: true },
-        { text: "Daily test module",  ok: true },
-        { text: "Result generation",  ok: true },
-        { text: "Parent portal",      ok: false },
-        { text: "Multi-school",       ok: false },
+      highlights: [
+        "Up to 500 students",
+        "5 teacher accounts",
+        "Daily test module",
+        "Result generation",
       ],
     },
     {
       name: "School", price: "₹2,499", cta: "Start Free Trial", popular: true,
       desc: "Full ERP features and parent access for growing institutions.",
       grad: "linear-gradient(135deg,#2563eb,#7c3aed)", glow: "rgba(37,99,235,.2)",
-      features: [
-        { text: "Up to 2,000 students", ok: true },
-        { text: "Unlimited teachers",   ok: true },
-        { text: "Full ERP modules",     ok: true },
-        { text: "Parent portal",        ok: true },
-        { text: "CSV / XLSX export",    ok: true },
-        { text: "Multi-school",         ok: false },
+      highlights: [
+        "Up to 2,000 students",
+        "Unlimited teachers",
+        "Full ERP modules",
+        "Parent portal",
+        "CSV / XLSX export",
       ],
     },
     {
       name: "Enterprise", price: "Custom", cta: "Contact Sales", popular: false,
       desc: "For school chains needing multi-campus management at scale.",
       grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.15)",
-      features: [
-        { text: "Unlimited students",    ok: true },
-        { text: "Unlimited teachers",    ok: true },
-        { text: "All School features",   ok: true },
-        { text: "Multi-school dashboard", ok: true },
-        { text: "Dedicated support",     ok: true },
-        { text: "Custom integrations",   ok: true },
+      highlights: [
+        "Unlimited students",
+        "Unlimited teachers",
+        "All School features",
+        "Multi-school dashboard",
+        "Dedicated support",
+        "Custom integrations",
       ],
     },
   ];
+
+  const visiblePlans = useMemo(() => {
+    if (plans.length === 0) return staticPlans;
+    
+    const dbPlans = plans
+      .filter(p => (p.billingCycle || 'monthly') === activeCycle)
+      .sort((a, b) => Number(a.basePrice) - Number(b.basePrice))
+      .map((p, idx) => {
+        const isPopular = idx === 1;
+        return {
+          _id: p._id,
+          name: p.name,
+          price: `₹${p.basePrice}`,
+          cta: "Start Free Trial",
+          popular: isPopular,
+          desc: `Ideal for growing schools up to ${p.maxStudents} students`,
+          grad: isPopular ? "linear-gradient(135deg,#2563eb,#7c3aed)" : undefined,
+          glow: isPopular ? "rgba(37,99,235,.2)" : "rgba(99,102,241,.15)",
+          highlights: p.highlights && p.highlights.length > 0 ? p.highlights : [
+            `Up to ${p.maxStudents} students`,
+            `${p.maxTeachers} teacher accounts`,
+            "Daily test module",
+            "Result generation"
+          ]
+        };
+      });
+
+    // Append Enterprise
+    dbPlans.push({
+      name: "Enterprise",
+      price: "Custom",
+      cta: "Contact Sales",
+      popular: false,
+      desc: "For school chains needing multi-campus management at scale.",
+      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)",
+      glow: "rgba(236,72,153,.15)",
+      highlights: [
+        "Unlimited students",
+        "Unlimited teachers",
+        "All School features",
+        "Multi-school dashboard",
+        "Dedicated support",
+        "Custom integrations"
+      ]
+    });
+    
+    return dbPlans;
+  }, [plans, activeCycle]);
+
+  const getTheme = (index) => {
+    const themes = [
+      { border: 'border-slate-200', btn: 'bg-[#0f172a]', icon: <Zap size={22} className="text-blue-500" />, badge: null },
+      { border: 'border-purple-400', btn: 'bg-purple-600', icon: <Star size={22} className="text-purple-600" />, badge: 'MOST POPULAR' },
+      { border: 'border-amber-400', btn: 'bg-[#d97706]', icon: <Gem size={22} className="text-amber-500" />, badge: 'LUXURY TIER' }
+    ];
+    return themes[index] || themes[2];
+  };
 
   const whyCards = [
     { icon: Zap,        title: "Easy to Use",          desc: "Simple interface designed for school administrators and teachers.",  grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
@@ -352,19 +427,19 @@ export default function Landing() {
         .footer-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:44px;margin-bottom:56px}
         .footer-logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;margin-bottom:14px;color:#fff}
         .footer-logo-mark{width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#2563eb);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff}
-        .footer-desc{font-size:13px;color:#64748b;line-height:1.8;max-width:280px}
+        .footer-desc{font-size:13px;color:#cbd5e1;line-height:1.8;max-width:280px}
         .footer-socials{display:flex;gap:10px;margin-top:20px}
-        .fs-btn{width:36px;height:36px;border:1px solid #1e293b;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#64748b;transition:all .2s;cursor:pointer;background:none}
-        .fs-btn:hover{border-color:#6366f1;color:#a5b4fc;background:#1e293b}
+        .fs-btn{width:36px;height:36px;border:1px solid #1e293b;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:all .2s;cursor:pointer;background:none}
+        .fs-btn:hover{border-color:#6366f1;color:#ffffff;background:#1e293b}
         .footer-col h4{font-size:13px;font-weight:700;margin-bottom:18px;color:#e2e8f0}
-        .footer-col a{display:block;font-size:13px;color:#64748b;margin-bottom:11px;transition:color .15s}
-        .footer-col a:hover{color:#e2e8f0}
+        .footer-col a{display:block;font-size:13px;color:#cbd5e1;margin-bottom:11px;transition:color .15s}
+        .footer-col a:hover{color:#ffffff}
         .footer-bottom{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1e293b;padding-top:24px}
-        .footer-copy{font-size:12px;color:#475569}
+        .footer-copy{font-size:12px;color:#94a3b8}
         .footer-legal{display:flex;gap:20px}
-        .footer-legal a{font-size:12px;color:#475569;transition:color .15s}
-        .footer-legal a:hover{color:#94a3b8}
-        .contact-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin-bottom:10px}
+        .footer-legal a{font-size:12px;color:#94a3b8;transition:color .15s}
+        .footer-legal a:hover{color:#ffffff}
+        .contact-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;margin-bottom:10px}
 
         /* ── MOBILE RESPONSIVE RULES ── */
         @media (max-width: 1024px) {
@@ -656,47 +731,71 @@ export default function Landing() {
             <h2>Simple Plans for Every School</h2>
             <p>Choose the plan that best matches your school's student strength.</p>
           </div>
+          <div className="flex justify-center mb-8">
+            <div className="bg-slate-100/80 backdrop-blur-sm p-1 rounded-xl flex shadow-inner border border-slate-200/50">
+              {['monthly', 'yearly'].map((c) => (
+                <button key={c} onClick={() => setActiveCycle(c)} 
+                  className={`px-12 py-2 rounded-lg font-bold capitalize transition-all text-sm ${activeCycle === c ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="pricing-grid">
-            {plans.map(plan => (
-              <div
-                className={`pc${plan.popular ? " popular" : ""}`}
-                key={plan.name}
-                style={plan.popular
-                  ? { background: plan.grad, boxShadow: `0 20px 60px ${plan.glow}` }
-                  : { boxShadow: `0 8px 32px ${plan.glow}` }}
-              >
-                {plan.popular && <div className="pop-badge">🔥 Most popular</div>}
-                <div className="pc-name">{plan.name}</div>
-                <div className="pc-price">{plan.price}{plan.price !== "Custom" && <sub> / month</sub>}</div>
-                <p className="pc-desc">{plan.desc}</p>
-                {plan.name === "Enterprise" ? (
-                  <a href="mailto:support@schoolresult.app"
-                     className="btn btn-outline"
-                     style={{ width: "100%", justifyContent: "center", display: "inline-flex" }}>
-                    {plan.cta}
-                  </a>
-                ) : plan.popular ? (
-                  <Link to="/signup" className="btn btn-white"
-                        style={{ width: "100%", justifyContent: "center" }}>
-                    {plan.cta} <ChevronRight size={15} />
-                  </Link>
-                ) : (
-                  <Link to="/signup" className="btn btn-outline"
-                        style={{ width: "100%", justifyContent: "center" }}>
-                    {plan.cta}
-                  </Link>
-                )}
-                <hr className="pc-divider" />
-                {plan.features.map(f => (
-                  <div className={`pc-feat${f.ok ? "" : " off"}`} key={f.text}>
-                    {f.ok
-                      ? <Check size={15} color={plan.popular ? "#86efac" : "#10b981"} strokeWidth={2.5} />
-                      : <X size={15} color={plan.popular ? "rgba(255,255,255,.3)" : "#cbd5e1"} />}
-                    {f.text}
+            {visiblePlans.map((plan, index) => {
+              const theme = getTheme(index);
+              const isEnterprise = plan.name === "Enterprise";
+              return (
+                <div
+                  className={`bg-white rounded-3xl p-8 flex flex-col relative border-2 ${theme.border} shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 duration-200`}
+                  key={plan.name}
+                >
+                  {theme.badge && (
+                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-bold text-white tracking-widest ${index === 1 ? 'bg-purple-600' : 'bg-amber-600'}`}>
+                      {theme.badge}
+                    </div>
+                  )}
+                  <div className="mb-3 flex justify-start">{theme.icon}</div>
+                  <h3 className="text-xl font-bold text-slate-900 capitalize mb-1 text-left">{plan.name}</h3>
+                  <div className="mb-4 text-left">
+                    <span className="text-4xl font-extrabold text-slate-900">{plan.price}</span>
+                    {plan.price !== "Custom" && (
+                      <span className="text-slate-500 text-sm font-medium ml-1">
+                        {activeCycle === 'yearly' ? '/ year' : '/ month'}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-            ))}
+                  <p className="text-xs text-slate-500 mb-6 text-left">{plan.desc}</p>
+                  
+                  <hr className="border-t border-slate-100 mb-6" />
+
+                  <div className="space-y-3 mb-8 flex-grow text-left">
+                    {plan.highlights?.map((h, i) => (
+                      <div key={i} className="flex items-center gap-2 text-slate-700 text-sm font-medium">
+                        <Check size={16} className="text-emerald-500 shrink-0" />
+                        <span>{h}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {isEnterprise ? (
+                    <a
+                      href="mailto:support@schoolresult.app"
+                      className={`w-full py-3 rounded-xl font-bold text-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors`}
+                    >
+                      {plan.cta}
+                    </a>
+                  ) : (
+                    <Link
+                      to="/signup"
+                      className={`w-full py-3 rounded-xl font-bold text-white text-center hover:opacity-90 transition-opacity ${theme.btn}`}
+                    >
+                      {plan.cta}
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
