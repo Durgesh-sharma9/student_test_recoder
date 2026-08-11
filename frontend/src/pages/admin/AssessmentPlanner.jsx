@@ -1647,9 +1647,8 @@ export default function AssessmentPlanner() {
                 />
               </div>
             </div>
-
             {/* Right Actions */}
-            <div className="flex items-center gap-2 ml-auto sm:ml-0">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
               <div className="h-6 w-px bg-slate-200 hidden sm:block" />
               <Button
                 variant="ghost"
@@ -1667,7 +1666,7 @@ export default function AssessmentPlanner() {
                   skipSpecificDates,
                   status: plannerStatus
                 })}
-                className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200/60 rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="text-red-650 bg-red-50 hover:bg-red-100 border border-red-200/60 rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download PDF
@@ -1708,6 +1707,10 @@ export default function AssessmentPlanner() {
               </div>
             }
           >
+            {/* Mobile swipe indicator banner */}
+            <div className="block sm:hidden text-center text-[10px] text-indigo-500 font-bold bg-indigo-50/50 py-1.5 px-3 border-b border-indigo-150 animate-pulse no-print select-none">
+              ↔ Swipe left/right to scroll the planning grid
+            </div>
 
             {/* Colors Legend Row in Grid Head */}
             <div className="no-print border-b border-slate-100 px-4 py-2 bg-slate-50/20 flex flex-wrap items-center gap-x-4 gap-y-1.5">
