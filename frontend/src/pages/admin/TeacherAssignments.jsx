@@ -65,8 +65,8 @@ export default function TeacherAssignments() {
   // Overview section state
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCards, setExpandedCards] = useState({});
-  const assignSectionRef = React.useRef(null);
   const addAssignmentSectionRef = React.useRef(null);
+  const assignSectionRef = addAssignmentSectionRef;
   const [highlightDropdown, setHighlightDropdown] = useState(false);
   const [expandedSubjects, setExpandedSubjects] = useState({});
 
@@ -451,10 +451,11 @@ export default function TeacherAssignments() {
         </div>
       </ErpSection>
 
-      <ErpSection title="Select Teacher" icon={Users} tone="blue" id="select-teacher-section" ref={assignSectionRef}>
-        {/* Blue tone soft gradient background matching heading */}
-        <div className={cn("p-4 rounded-xl border border-blue-50 bg-gradient-to-br from-blue-50/70 via-transparent to-transparent transition-all duration-500", highlightDropdown && "ring-2 ring-purple-500 ring-offset-2")}>
-          <FormField label="Teacher">
+      <ErpSection title="Add New Assignment" icon={Plus} tone="orange" ref={addAssignmentSectionRef}>
+        {/* Orange tone soft gradient background matching heading */}
+        <div className={cn("p-4 rounded-xl border border-orange-50 bg-gradient-to-br from-orange-50/70 via-transparent to-transparent space-y-4 transition-all duration-500", highlightDropdown && "ring-2 ring-purple-500 ring-offset-2")}>
+          
+          <FormField label="Teacher" required>
             <SearchableTeacherSelect
               value={teacherId}
               onChange={setTeacherId}
@@ -463,150 +464,156 @@ export default function TeacherAssignments() {
               emptyMessage="No teachers available"
             />
           </FormField>
-        </div>
-      </ErpSection>
 
-      <ErpSection title="Add New Assignment" icon={Plus} tone="orange" ref={addAssignmentSectionRef}>
-        {/* Orange tone soft gradient background matching heading */}
-        <div className="p-4 rounded-xl border border-orange-50 bg-gradient-to-br from-orange-50/70 via-transparent to-transparent">
-          <div className="grid gap-4 lg:grid-cols-4 items-end">
-            <FormField label="Class">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="h-9 text-sm bg-white shadow-sm border-slate-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100">
-                  <SelectValue placeholder="Select Class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((cls) => (
-                    <SelectItem key={cls._id} value={cls._id}>
-                      {formatClassName(cls.className)}-{cls.section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
+          {teacherId ? (
+            <>
+              {/* Add Assignment Fields Grid */}
+              <div className="grid gap-4 lg:grid-cols-4 items-end pt-2 border-t border-slate-100/50">
+                <FormField label="Class">
+                  <Select value={selectedClass} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="h-9 text-sm bg-white shadow-sm border-slate-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100">
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((cls) => (
+                        <SelectItem key={cls._id} value={cls._id}>
+                          {formatClassName(cls.className)}-{cls.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
 
-            <FormField label="Subject">
-              <>
-                <Input
-                  list="subjects"
-                  placeholder="Enter Subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm transition-all duration-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
-                />
-                <datalist id="subjects">
-                  {COMMON_SUBJECTS.map((sub) => (
-                    <option key={sub} value={sub} />
-                  ))}
-                </datalist>
-              </>
-            </FormField>
+                <FormField label="Subject">
+                  <>
+                    <Input
+                      list="subjects"
+                      placeholder="Enter Subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm transition-all duration-200 focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
+                    />
+                    <datalist id="subjects">
+                      {COMMON_SUBJECTS.map((sub) => (
+                        <option key={sub} value={sub} />
+                      ))}
+                    </datalist>
+                  </>
+                </FormField>
 
-            <FormField label="Total Chapters">
-              <Input
-                type="number"
-                min="0"
-                placeholder="e.g. 12"
-                value={totalChapters}
-                onChange={(e) => setTotalChapters(e.target.value)}
-                className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
-              />
-            </FormField>
+                <FormField label="Total Chapters">
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 12"
+                    value={totalChapters}
+                    onChange={(e) => setTotalChapters(e.target.value)}
+                    className="h-9 text-sm rounded-md bg-white border-slate-200 shadow-sm focus:border-orange-300 focus:ring-1 focus:ring-orange-100"
+                  />
+                </FormField>
 
-            <Button 
-              onClick={addItem} 
-              className="w-full h-9 text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-sm border-0 transition-all duration-200" 
-              disabled={isArchived}
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Add Assignment
-            </Button>
-          </div>
-        </div>
-      </ErpSection>
-
-      <ErpSection title="Current Assignments" icon={ClipboardList} tone="green">
-        {/* Green tone soft gradient background matching heading */}
-        <div className="p-4 rounded-xl border border-emerald-50 bg-gradient-to-br from-emerald-50/70 via-transparent to-transparent">
-          {items.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center border-2 border-dashed border-emerald-200/60 rounded-xl bg-gradient-to-b from-emerald-50/50 to-white">
-              <div className="h-12 w-12 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-500 mb-3 shadow-sm border border-emerald-100">
-                <ClipboardList className="h-5 w-5" />
+                <Button 
+                  onClick={addItem} 
+                  className="w-full h-9 text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-sm border-0 transition-all duration-200" 
+                  disabled={isArchived}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Add Assignment
+                </Button>
               </div>
-              <h4 className="text-sm font-semibold text-slate-700">Ready to assign subjects?</h4>
-              <p className="text-xs text-slate-500 mt-1">Select the class, subject, and total chapters above, then click "Add Assignment" to begin.</p>
-            </div>
-          ) : (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 w-full">
-              {items.map((item, index) => {
-                const classInfo = classes.find((c) => c._id === item.class);
 
-                return (
-                  <div
-                    key={`${item.class}-${item.subject}-${index}`}
-                    className="relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm overflow-hidden min-h-[130px] hover:shadow-md transition-shadow"
-                  >
-                    {/* Top Color Accent Bar */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+              {/* Current Assignments Divider and Heading */}
+              <div className="border-t border-slate-100 pt-4 mt-2">
+                <div className="flex items-center gap-2 text-slate-800 font-bold text-sm mb-3">
+                  <ClipboardList className="h-4 w-4 text-emerald-600" /> 
+                  <span>Current Assignments ({items.length})</span>
+                </div>
 
-                    {/* Top Layer: Class Info and Icon */}
-                    <div className="flex items-start justify-between mt-1">
-                      <div className="space-y-0.5">
-                        <h4 className="text-sm font-bold text-slate-900 tracking-tight">
-                          {classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : "Class N/A"}
-                        </h4>
-                        <p className="text-[10px] font-medium text-slate-400">Assigned Class</p>
-                      </div>
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 border border-emerald-100/60 shadow-sm">
-                        <BookOpen className="h-3.5 w-3.5" />
-                      </div>
-                    </div>
-
-                    {/* Middle Block: Subject with Color/Gradient Fill */}
-                    <div className="my-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-100/70 p-2 shadow-inner">
-                      <div className="text-[9px] font-bold text-teal-600 uppercase tracking-wider flex justify-between">
-                        <span>Subject</span>
-                        <span>Chapters: {item.totalChapters || 0}</span>
-                      </div>
-                      <div className="text-sm font-extrabold text-emerald-800 tracking-wide uppercase truncate mt-0.5">
-                        {item.subject}
-                      </div>
-                    </div>
-
-                    {/* Bottom Footer: Teacher Name, Status & Action Buttons */}
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-slate-600 truncate max-w-[80px]">
-                          {teachers.find(t => t._id === teacherId)?.name || 'Teacher'}
-                        </span>
-                        <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full w-fit">
-                          Active
-                        </span>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <button
-                          type="button"
-                          disabled={isArchived}
-                          onClick={() => handleEditItem(index)}
-                          className="text-[10px] font-bold text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100/80 hover:to-blue-200/80 active:from-blue-100 active:to-blue-200 border border-blue-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
-                        >
-                          <Edit className="h-3 w-3" />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isArchived}
-                          onClick={() => handleRemoveItem(index, classInfo?.className, item.subject)}
-                          className="text-[10px] font-bold text-red-600 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100/80 hover:to-red-200/80 active:from-red-100 active:to-red-200 border border-red-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Remove
-                        </button>
-                      </div>
-                    </div>
+                {items.length === 0 ? (
+                  <div className="py-8 flex flex-col items-center justify-center text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/30">
+                    <ClipboardList className="h-6 w-6 text-slate-400 mb-2" />
+                    <p className="text-xs font-semibold text-slate-600">No Assignments Yet</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Use the fields above to add assignments for this teacher.</p>
                   </div>
-                );
-              })}
+                ) : (
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 w-full">
+                    {items.map((item, index) => {
+                      const classInfo = classes.find((c) => c._id === item.class);
+                      return (
+                        <div
+                          key={`${item.class}-${item.subject}-${index}`}
+                          className="relative flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm overflow-hidden min-h-[130px] hover:shadow-md transition-shadow"
+                        >
+                          {/* Top Color Accent Bar */}
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+
+                          {/* Top Layer: Class Info and Icon */}
+                          <div className="flex items-start justify-between mt-1">
+                            <div className="space-y-0.5">
+                              <h4 className="text-sm font-bold text-slate-900 tracking-tight">
+                                {classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : "Class N/A"}
+                              </h4>
+                              <p className="text-[10px] font-medium text-slate-400">Assigned Class</p>
+                            </div>
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 border border-emerald-100/60 shadow-sm">
+                              <BookOpen className="h-3.5 w-3.5" />
+                            </div>
+                          </div>
+
+                          {/* Middle Block: Subject with Color/Gradient Fill */}
+                          <div className="my-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50/60 border border-emerald-100/70 p-2 shadow-inner">
+                            <div className="text-[9px] font-bold text-teal-600 uppercase tracking-wider flex justify-between">
+                              <span>Subject</span>
+                              <span>Chapters: {item.totalChapters || 0}</span>
+                            </div>
+                            <div className="text-sm font-extrabold text-emerald-800 tracking-wide uppercase truncate mt-0.5">
+                              {item.subject}
+                            </div>
+                          </div>
+
+                          {/* Bottom Footer: Action Buttons */}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[10px] font-semibold text-slate-600 truncate max-w-[80px]">
+                                {teachers.find(t => t._id === teacherId)?.name || 'Teacher'}
+                              </span>
+                              <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full w-fit">
+                                Active
+                              </span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                disabled={isArchived}
+                                onClick={() => handleEditItem(index)}
+                                className="text-[10px] font-bold text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100/80 hover:to-blue-200/80 active:from-blue-100 active:to-blue-200 border border-blue-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
+                              >
+                                <Edit className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isArchived}
+                                onClick={() => handleRemoveItem(index, classInfo?.className, item.subject)}
+                                className="text-[10px] font-bold text-red-600 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100/80 hover:to-red-200/80 active:from-red-100 active:to-red-200 border border-red-100/70 rounded-md px-2 py-1 transition-all flex items-center gap-1 shadow-sm"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="py-10 flex flex-col items-center justify-center text-center border border-dashed border-orange-200 rounded-xl bg-orange-50/20">
+              <ClipboardList className="h-7 w-7 text-orange-400 mb-2 animate-bounce" />
+              <p className="text-sm font-semibold text-slate-700">No Teacher Selected</p>
+              <p className="text-xs text-slate-500 mt-1">Please search or select a teacher above to view and assign subjects.</p>
             </div>
           )}
         </div>

@@ -487,7 +487,7 @@ export default function ResultManagement() {
             <Button onClick={() => {
               if (!checkAndBlock(() => load())) return;
             }} className="h-9 px-4" disabled={loading}>
-              {loading ? 'Loading...' : 'Apply'}
+              {loading ? 'Loading...' : 'View Result'}
             </Button>
 
             <Button onClick={resetFilters} variant="outline" className="h-9 px-4" disabled={loading}>
