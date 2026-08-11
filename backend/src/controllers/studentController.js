@@ -512,6 +512,7 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         class: classId,
         rollNo: finalRollNo,
         name: row.name,
+        admissionNo: row.admissionNo,
         gender: row.gender,
         parent: parentId,
         admissionDate: row.admissionDate ? new Date(row.admissionDate) : new Date(),

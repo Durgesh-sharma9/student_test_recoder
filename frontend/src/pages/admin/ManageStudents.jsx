@@ -575,9 +575,9 @@ export default function ManageStudents() {
                               admissionNo: s.admissionNo || '',
                               gender: s.gender, 
                               admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                              parentName: s.parentName||'', 
-                              parentPhone: s.parentPhone||'', 
-                              parentEmail: s.parentEmail||'' 
+                              parentName: s.parent?.parentName || s.parentName || '', 
+                              parentPhone: s.parent?.phone || s.parentPhone || '', 
+                              parentEmail: s.parent?.email || s.parentEmail || '' 
                             });
                             setOpen(true);
                           }}
@@ -616,7 +616,7 @@ export default function ManageStudents() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md rounded-xl p-5 shadow-lg border-0">
+        <DialogContent className="sm:max-w-lg rounded-xl p-5 shadow-lg border-0">
           <DialogHeader className="mb-3">
             <DialogTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
               <UserPlus className="h-4 w-4 text-blue-600" />
@@ -626,121 +626,136 @@ export default function ManageStudents() {
 
           <DialogBody>
             <form className="space-y-4" onSubmit={submit}>
-              <FormField label="Admission No" required>
-                <Input
-                  type="text"
-                  placeholder="Enter Admission No"
-                  value={form.admissionNo}
-                  onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
-                  required
-                  className="h-9 rounded-md text-sm"
-                />
-              </FormField>
-              <FormField label="Roll No" required>
-                {/* CSS added to remove up/down arrows from input */}
-                <Input
-                  type="text"
-                  placeholder="Enter Roll No"
-                  value={form.rollNo}
-                  onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
-                  required
-                  className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </FormField>
-              <FormField label="Name" required>
-                <Input
-                  type="text"
-                  placeholder="Enter Student Name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  className="h-9 rounded-md text-sm"
-                />
-              </FormField>
-              <FormField label="Gender" required>
-                <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
-                  <SelectTrigger className="h-9 rounded-md text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="Admission Date" required>
-                <DatePicker
-                  value={form.admissionDate}
-                  onChange={(date) => setForm({ ...form, admissionDate: date })}
-                  required
-                  className="h-9 rounded-md text-sm"
-                />
-              </FormField>
-              
-              <div className="border-t border-slate-100 pt-3 mt-3">
-                <p className="text-xs font-semibold text-slate-600 mb-2">Parent/Guardian Information</p>
+              {/* Student Details Grid */}
+              <div className="space-y-3.5">
+                <div className="grid grid-cols-2 gap-3.5">
+                  <FormField label="Admission No" required>
+                    <Input
+                      type="text"
+                      placeholder="e.g. 001"
+                      value={form.admissionNo}
+                      onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
+                      required
+                      className="h-9 rounded-md text-sm"
+                    />
+                  </FormField>
+                  <FormField label="Roll No" required>
+                    <Input
+                      type="text"
+                      placeholder="e.g. 1"
+                      value={form.rollNo}
+                      onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
+                      required
+                      className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Student Name" required>
+                  <Input
+                    type="text"
+                    placeholder="Enter Student Name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    className="h-9 rounded-md text-sm"
+                  />
+                </FormField>
+
+                <div className="grid grid-cols-2 gap-3.5">
+                  <FormField label="Gender" required>
+                    <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                      <SelectTrigger className="h-9 rounded-md text-sm bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField label="Admission Date" required>
+                    <DatePicker
+                      value={form.admissionDate}
+                      onChange={(date) => setForm({ ...form, admissionDate: date })}
+                      required
+                      className="h-9 rounded-md text-sm"
+                    />
+                  </FormField>
+                </div>
               </div>
               
-              <FormField label="Parent/Guardian Name" required>
-                <Input
-                  type="text"
-                  placeholder="Enter Parent Name"
-                  value={form.parentName}
-                  onChange={(e) => setForm({ ...form, parentName: e.target.value })}
-                  className="h-9 rounded-md text-sm"
-                  required
-                />
-              </FormField>
-              <FormField label="Parent Phone" required>
-                {/* CSS added to remove up/down arrows from input */}
-                <div className="flex gap-2">
-                  <Select
-                    value={parentPhoneCode}
-                    onValueChange={(val) => handleParentPhoneChange(val, parentPhoneNumber)}
-                  >
-                    <SelectTrigger className="w-[100px] h-9 text-xs bg-white border-slate-200">
-                      <span className="flex items-center gap-1.5">
-                        {renderFlag(COUNTRY_CODES.find(c => c.code === parentPhoneCode)?.iso)}
-                        <span>{parentPhoneCode}</span>
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRY_CODES.map((c) => (
-                        <SelectItem key={c.code} value={c.code}>
-                          <span className="flex items-center gap-2">
-                            {renderFlag(c.iso)}
-                            <span>{c.code} ({c.name})</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="tel"
-                    placeholder="Enter Parent Phone"
-                    value={parentPhoneNumber}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '');
-                      handleParentPhoneChange(parentPhoneCode, digits);
-                    }}
-                    required
-                    className="flex-1 h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-              </FormField>
-              <FormField label="Parent Email (Optional)">
-                <Input
-                  type="email"
-                  placeholder="Enter Parent Email"
-                  value={form.parentEmail}
-                  onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
-                  className="h-9 rounded-md text-sm"
-                />
-              </FormField>
+              {/* Parent Details Header */}
+              <div className="border-t border-slate-100 pt-3 mt-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Parent/Guardian Information</p>
+              </div>
               
-              <div className="pt-1">
-                <Button className="w-full h-9 rounded-md text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
+              {/* Parent Details Grid */}
+              <div className="space-y-3.5">
+                <FormField label="Parent/Guardian Name" required>
+                  <Input
+                    type="text"
+                    placeholder="Enter Parent Name"
+                    value={form.parentName}
+                    onChange={(e) => setForm({ ...form, parentName: e.target.value })}
+                    className="h-9 rounded-md text-sm"
+                    required
+                  />
+                </FormField>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <FormField label="Parent Phone" required>
+                    <div className="flex gap-2">
+                      <Select
+                        value={parentPhoneCode}
+                        onValueChange={(val) => handleParentPhoneChange(val, parentPhoneNumber)}
+                      >
+                        <SelectTrigger className="w-[85px] shrink-0 h-9 text-xs bg-white border-slate-200">
+                          <span className="flex items-center gap-1.5">
+                            {renderFlag(COUNTRY_CODES.find(c => c.code === parentPhoneCode)?.iso)}
+                            <span>{parentPhoneCode}</span>
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRY_CODES.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>
+                              <span className="flex items-center gap-2">
+                                {renderFlag(c.iso)}
+                                <span>{c.code}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="tel"
+                        placeholder="Phone No"
+                        value={parentPhoneNumber}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '');
+                          handleParentPhoneChange(parentPhoneCode, digits);
+                        }}
+                        required
+                        className="flex-1 h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    </div>
+                  </FormField>
+                  
+                  <FormField label="Parent Email">
+                    <Input
+                      type="email"
+                      placeholder="e.g. parent@email.com"
+                      value={form.parentEmail}
+                      onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
+                      className="h-9 rounded-md text-sm"
+                    />
+                  </FormField>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <Button className="w-full h-9 rounded-md text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors">
                   {edit ? 'Save Changes' : 'Create Student'}
                 </Button>
               </div>
