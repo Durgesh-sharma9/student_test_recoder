@@ -440,6 +440,25 @@ export const impersonateTeacher = asyncHandler(async (req, res) => {
   sendTokenResponse(teacher, res);
 });
 
+export const impersonateSchoolAdmin = asyncHandler(async (req, res) => {
+  const { schoolId } = req.params;
+  const school = await School.findById(schoolId);
+  if (!school) {
+    throw new ApiError(404, 'School not found.');
+  }
+
+  const schoolAdmin = await User.findOne({
+    school: schoolId,
+    role: { $in: ['school_admin', 'admin'] }
+  });
+
+  if (!schoolAdmin) {
+    throw new ApiError(404, 'School admin user not found.');
+  }
+
+  sendTokenResponse(schoolAdmin, res);
+});
+
 export const parentLogin = asyncHandler(async (req, res) => {
   const { email, phone, password } = req.body;
 

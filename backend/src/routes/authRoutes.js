@@ -7,6 +7,7 @@ import {
   parentLogin, 
   resetTeacherPassword, 
   impersonateTeacher,
+  impersonateSchoolAdmin,
   googleAuth, 
   googleCallback, 
   verifyEmail, 
@@ -32,6 +33,7 @@ router.put('/school-logo', protect, updateSchoolLogo);
 router.put('/update-account', protect, updateAccountDetails);
 router.post('/reset-teacher-password/:userId', protect, authorize('school_admin'), resetTeacherPassword);
 router.post('/impersonate-teacher/:teacherId', protect, authorize('school_admin'), impersonateTeacher);
+router.post('/impersonate-school/:schoolId', protect, authorize('super_admin'), impersonateSchoolAdmin);
 
 // Email Verification Routes
 router.get('/verify-email', verifyEmail);

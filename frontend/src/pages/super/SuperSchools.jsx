@@ -102,6 +102,28 @@ export default function SuperSchools() {
                       <Button size="sm" variant="outline" asChild>
                         <Link to={`/super-admin/schools/${s._id}`}>View</Link>
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-650 border-indigo-200 bg-indigo-50/55 hover:bg-indigo-100/80 shadow-sm"
+                        onClick={async () => {
+                          try {
+                            const res = await api.post(`/auth/impersonate-school/${s._id}`);
+                            if (res.data.token && res.data.user) {
+                              localStorage.setItem('superToken', localStorage.getItem('token') || '');
+                              localStorage.setItem('superUser', localStorage.getItem('user') || '');
+                              localStorage.setItem('token', res.data.token);
+                              localStorage.setItem('user', JSON.stringify(res.data.user));
+                              toast.success(`Logged in as Admin for ${s.schoolName}`);
+                              window.location.href = '/admin';
+                            }
+                          } catch (err) {
+                            toast.error(err.response?.data?.message || 'Failed to login as school admin');
+                          }
+                        }}
+                      >
+                        Login As Admin
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => toggleStatus(s._id, !s.isActive)}>
                         {s.isActive ? 'Deactivate' : 'Activate'}
                       </Button>

@@ -170,7 +170,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300 w-full">
-      {/* Impersonation Banner */}
+      {/* Impersonation Banner for Teacher */}
       {localStorage.getItem('adminToken') && (
         <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2.5 text-sm font-semibold flex items-center justify-between shadow-md z-50">
           <div className="flex items-center gap-2">
@@ -192,6 +192,32 @@ export default function DashboardLayout() {
             className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1 rounded-lg border border-white/30 transition-all cursor-pointer shadow-sm"
           >
             Switch Back to Admin
+          </button>
+        </div>
+      )}
+
+      {/* Impersonation Banner for School Admin */}
+      {localStorage.getItem('superToken') && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-2.5 text-sm font-semibold flex items-center justify-between shadow-md z-50 w-full shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="animate-pulse flex h-2.5 w-2.5 rounded-full bg-white" />
+            <span>You are currently logged in as Admin for <strong className="font-extrabold">{user?.school?.schoolName || 'School'}</strong> (Impersonating School Admin)</span>
+          </div>
+          <button
+            onClick={() => {
+              const superToken = localStorage.getItem('superToken');
+              const superUser = localStorage.getItem('superUser');
+              if (superToken && superUser) {
+                localStorage.setItem('token', superToken);
+                localStorage.setItem('user', superUser);
+                localStorage.removeItem('superToken');
+                localStorage.removeItem('superUser');
+                window.location.href = '/super-admin/schools';
+              }
+            }}
+            className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1 rounded-lg border border-white/30 transition-all cursor-pointer shadow-sm"
+          >
+            Switch Back to Super Admin
           </button>
         </div>
       )}
