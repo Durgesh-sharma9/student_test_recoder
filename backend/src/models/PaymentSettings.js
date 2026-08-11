@@ -8,6 +8,7 @@ const paymentSettingsSchema = new mongoose.Schema(
     razorpayEnabled: { type: Boolean, default: false },
     razorpayKeyId: { type: String, trim: true },
     razorpayKeySecret: { type: String, trim: true },
+    allowTeacherImpersonation: { type: Boolean, default: false },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

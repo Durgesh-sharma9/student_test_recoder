@@ -19,6 +19,7 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
       razorpayEnabled: false,
       razorpayKeyId: '',
       razorpayKeySecret: '',
+      allowTeacherImpersonation: false,
     },
   });
 });
@@ -31,6 +32,7 @@ export const updatePaymentSettings = asyncHandler(async (req, res) => {
     razorpayEnabled,
     razorpayKeyId,
     razorpayKeySecret,
+    allowTeacherImpersonation,
   } = req.body;
 
   if (!upiId) throw new ApiError(400, 'UPI ID is required');
@@ -40,6 +42,7 @@ export const updatePaymentSettings = asyncHandler(async (req, res) => {
     merchantName: String(merchantName || '').trim(),
     qrExpiryMinutes: Number(qrExpiryMinutes || 5),
     razorpayEnabled: Boolean(razorpayEnabled),
+    allowTeacherImpersonation: Boolean(allowTeacherImpersonation),
     updatedBy: req.user._id,
   };
 

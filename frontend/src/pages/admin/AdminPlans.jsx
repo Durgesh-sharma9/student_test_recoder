@@ -53,11 +53,12 @@ export default function AdminPlans() {
     return themes[index] || themes[2];
   };
 
-  // Helper for DD MM YYYY format
+  // Helper for DD MonthName YYYY format
   const formatDate = (dateString) => {
     const d = new Date(dateString);
     const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const month = monthNames[d.getMonth()];
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
   };

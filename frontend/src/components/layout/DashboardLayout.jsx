@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
   CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
-  Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown, MessageSquare,
+  Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown, MessageSquare, X,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -169,7 +169,33 @@ export default function DashboardLayout() {
   const planBadge = getPlanBadge();
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300">
+    <div className="flex flex-col min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300 w-full">
+      {/* Impersonation Banner */}
+      {localStorage.getItem('adminToken') && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2.5 text-sm font-semibold flex items-center justify-between shadow-md z-50">
+          <div className="flex items-center gap-2">
+            <span className="animate-pulse flex h-2.5 w-2.5 rounded-full bg-white" />
+            <span>You are currently logged in as <strong className="font-extrabold">{getDisplayName(user)}</strong> (Impersonating)</span>
+          </div>
+          <button
+            onClick={() => {
+              const adminToken = localStorage.getItem('adminToken');
+              const adminUser = localStorage.getItem('adminUser');
+              if (adminToken && adminUser) {
+                localStorage.setItem('token', adminToken);
+                localStorage.setItem('user', adminUser);
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminUser');
+                window.location.href = '/admin/teachers';
+              }
+            }}
+            className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold px-3 py-1 rounded-lg border border-white/30 transition-all cursor-pointer shadow-sm"
+          >
+            Switch Back to Admin
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 min-w-0">
       {/* Dynamic style to completely hide any scrollbars inside the sidebar */}
       <style dangerouslySetInnerHTML={{__html: `
         .sidebar-no-scrollbar::-webkit-scrollbar {
@@ -198,6 +224,9 @@ export default function DashboardLayout() {
             <p className="text-[13.5px] font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent uppercase leading-none">Test Master</p>
             <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 mt-1 leading-none">Pro Management</p>
           </div>
+          <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
+            <X className="h-5 w-5" />
+          </Button>
         </div>
         
         {/* NAV SECTION */}
@@ -349,6 +378,7 @@ export default function DashboardLayout() {
 
       <AnnouncementModal open={isAnnouncementModalOpen} onOpenChange={setIsAnnouncementModalOpen} role={role} />
       <LockedFeatureDialog open={lockedDialog.open} onOpenChange={(v) => setLockedDialog({...lockedDialog, open: v})} featureLabel={lockedDialog.label} />
+      </div>
     </div>
   );
 }

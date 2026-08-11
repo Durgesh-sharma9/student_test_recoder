@@ -20,6 +20,7 @@ export default function ManageUsers() {
   const { canAddTeacher, usage } = useSubscription();
   const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [teachers, setTeachers] = useState([]);
+  const [allowImpersonation, setAllowImpersonation] = useState(false);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
@@ -52,7 +53,10 @@ export default function ManageUsers() {
   const [credentialsModal, setCredentialsModal] = useState({ open: false, data: null });
 
   useEffect(() => {
-    api.get('/users?role=teacher').then((res) => setTeachers(res.data.users || []));
+    api.get('/users?role=teacher').then((res) => {
+      setTeachers(res.data.users || []);
+      setAllowImpersonation(!!res.data.allowTeacherImpersonation);
+    });
   }, []);
 
   const filtered = useMemo(() => {
@@ -70,6 +74,7 @@ export default function ManageUsers() {
   const refresh = async () => {
     const res = await api.get('/users?role=teacher');
     setTeachers(res.data.users || []);
+    setAllowImpersonation(!!res.data.allowTeacherImpersonation);
   };
 
   const downloadTemplate = async () => {
@@ -427,6 +432,31 @@ export default function ManageUsers() {
                               >
                                 Edit
                               </Button>
+                              {allowImpersonation && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-[10px] px-2 text-indigo-650 border-indigo-200 bg-indigo-50/55 hover:bg-indigo-100/80 shadow-sm"
+                                  disabled={isArchived}
+                                  onClick={async () => {
+                                    try {
+                                      const res = await api.post(`/auth/impersonate-teacher/${t._id}`);
+                                      if (res.data.token && res.data.user) {
+                                        localStorage.setItem('adminToken', localStorage.getItem('token') || '');
+                                        localStorage.setItem('adminUser', localStorage.getItem('user') || '');
+                                        localStorage.setItem('token', res.data.token);
+                                        localStorage.setItem('user', JSON.stringify(res.data.user));
+                                        toast.success(`Logged in as ${res.data.user.name}`);
+                                        window.location.href = '/teacher';
+                                      }
+                                    } catch (err) {
+                                      toast.error(err.response?.data?.message || 'Failed to login as teacher');
+                                    }
+                                  }}
+                                >
+                                  Login As
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 className="h-7 w-7 p-0 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 border-0"

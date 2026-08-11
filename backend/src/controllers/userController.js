@@ -6,6 +6,7 @@ import { parseTeacherImportFile } from '../services/excelService.js';
 import School from '../models/School.js';
 import AcademicSession from '../models/AcademicSession.js';
 import mongoose from 'mongoose';
+import PaymentSettings from '../models/PaymentSettings.js';
 
 const normalizeTeacherAssignments = (user) => {
   if (!user || user.role !== 'teacher') return user;
@@ -108,10 +109,14 @@ export const getUsers = asyncHandler(async (req, res) => {
   
   console.log('=== GET USERS END ===');
 
+  const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
+  const allowTeacherImpersonation = settings?.allowTeacherImpersonation ?? false;
+
   res.json({
     success: true,
     count: normalizedUsers.length,
     users: normalizedUsers,
+    allowTeacherImpersonation,
   });
 
 });

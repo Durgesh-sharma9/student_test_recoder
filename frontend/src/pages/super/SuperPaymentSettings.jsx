@@ -18,6 +18,7 @@ export default function SuperPaymentSettings() {
     razorpayEnabled: false,
     razorpayKeyId: '',
     razorpayKeySecret: '',
+    allowTeacherImpersonation: false,
   });
   const [coupons, setCoupons] = useState([]);
   const [couponDialogOpen, setCouponDialogOpen] = useState(false);
@@ -41,6 +42,7 @@ export default function SuperPaymentSettings() {
       razorpayEnabled: Boolean(res.data.settings?.razorpayEnabled),
       razorpayKeyId: res.data.settings?.razorpayKeyId || '',
       razorpayKeySecret: res.data.settings?.razorpayKeySecret || '',
+      allowTeacherImpersonation: Boolean(res.data.settings?.allowTeacherImpersonation),
     });
   };
 
@@ -69,6 +71,7 @@ export default function SuperPaymentSettings() {
         razorpayEnabled: Boolean(form.razorpayEnabled),
         razorpayKeyId: form.razorpayKeyId,
         razorpayKeySecret: form.razorpayKeySecret,
+        allowTeacherImpersonation: Boolean(form.allowTeacherImpersonation),
       });
       toast.success('Payment settings updated');
       load();
@@ -235,6 +238,48 @@ export default function SuperPaymentSettings() {
             </Button>
           </div>
         </form>
+      </ErpSection>
+
+      <ErpSection title="Global Administrative Settings" icon={Settings} tone="blue">
+        <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/30 p-4 rounded-xl border border-blue-100/50 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-bold text-slate-800">Teacher Impersonation (Login-As)</h4>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-xl">
+              Allow School Admins to log into the portal as any teacher under their school for debugging, troubleshooting, or grade adjustments.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl border border-slate-200/20 shadow-sm shrink-0">
+            <Switch
+              id="allow-teacher-impersonation"
+              checked={form.allowTeacherImpersonation}
+              disabled={loading}
+              onCheckedChange={async (checked) => {
+                setForm(s => ({ ...s, allowTeacherImpersonation: checked }));
+                setLoading(true);
+                try {
+                  await api.put('/super-admin/payment-settings', {
+                    upiId: form.upiId,
+                    merchantName: form.merchantName,
+                    qrExpiryMinutes: Number(form.qrExpiryMinutes || 5),
+                    razorpayEnabled: Boolean(form.razorpayEnabled),
+                    razorpayKeyId: form.razorpayKeyId,
+                    razorpayKeySecret: form.razorpayKeySecret,
+                    allowTeacherImpersonation: checked
+                  });
+                  toast.success(`Teacher impersonation ${checked ? 'enabled' : 'disabled'}`);
+                } catch (err) {
+                  setForm(s => ({ ...s, allowTeacherImpersonation: !checked }));
+                  toast.error(err.response?.data?.message || 'Failed to update setting');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            />
+            <label htmlFor="allow-teacher-impersonation" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+              {form.allowTeacherImpersonation ? "ENABLED" : "DISABLED"}
+            </label>
+          </div>
+        </div>
       </ErpSection>
 
       <ErpSection title="Coupon Management" icon={Plus} tone="green">

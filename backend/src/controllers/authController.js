@@ -13,6 +13,7 @@ import { generateEmailVerificationToken, createOTPToken, verifyOTP, checkOTPRate
 import { createSignupOTP, verifySignupOTP as verifySignupOTPUtil, checkSignupOTPRateLimit, deleteSignupOTP } from '../utils/signupOtpUtils.js';
 import { sendEmailVerificationEmail, sendPasswordChangeOTPEmail, sendEmailChangeOTPEmail, sendSignupOTPEmail } from '../services/emailService.js';
 import bcrypt from 'bcryptjs';
+import PaymentSettings from '../models/PaymentSettings.js';
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -405,6 +406,38 @@ export const resetTeacherPassword = asyncHandler(async (req, res) => {
     success: true, 
     message: 'Password reset successfully. New temporary password has been sent to the teacher.' 
   });
+});
+
+export const impersonateTeacher = asyncHandler(async (req, res) => {
+  const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
+  const allowImpersonation = settings?.allowTeacherImpersonation ?? false;
+  
+  if (!allowImpersonation) {
+    throw new ApiError(403, 'Teacher impersonation (Login-As) is globally disabled by Super Admin.');
+  }
+
+  const { teacherId } = req.params;
+  const teacher = await User.findById(teacherId);
+  if (!teacher) {
+    throw new ApiError(404, 'Teacher not found.');
+  }
+
+  if (teacher.role !== 'teacher') {
+    throw new ApiError(400, 'Impersonation is only allowed for teacher accounts.');
+  }
+
+  if (teacher.status && teacher.status !== 'Active') {
+    throw new ApiError(400, 'Cannot impersonate an inactive teacher.');
+  }
+
+  const adminSchoolId = (req.user.school?._id || req.user.school || '').toString();
+  const teacherSchoolId = (teacher.school?._id || teacher.school || '').toString();
+
+  if (adminSchoolId !== teacherSchoolId) {
+    throw new ApiError(403, 'Not authorized. This teacher does not belong to your school.');
+  }
+
+  sendTokenResponse(teacher, res);
 });
 
 export const parentLogin = asyncHandler(async (req, res) => {
