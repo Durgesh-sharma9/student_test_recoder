@@ -25,7 +25,7 @@ export default function ManageUsers() {
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ teacherName: '', email: '', phoneNo: '' });
+  const [form, setForm] = useState({ teacherName: '', email: '', phoneNo: '+91' });
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [importResults, setImportResults] = useState(null);
@@ -51,6 +51,47 @@ export default function ManageUsers() {
   });
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [credentialsModal, setCredentialsModal] = useState({ open: false, data: null });
+
+  const COUNTRY_CODES = [
+    { code: '+91', iso: 'in', name: 'India' },
+    { code: '+1', iso: 'us', name: 'US' },
+    { code: '+44', iso: 'gb', name: 'UK' },
+    { code: '+971', iso: 'ae', name: 'UAE' },
+    { code: '+966', iso: 'sa', name: 'Saudi' },
+    { code: '+977', iso: 'np', name: 'Nepal' },
+    { code: '+880', iso: 'bd', name: 'Bangladesh' },
+    { code: '+61', iso: 'au', name: 'Australia' },
+  ];
+
+  const renderFlag = (iso) => {
+    if (!iso) return null;
+    return (
+      <img
+        src={`https://flagcdn.com/w20/${iso}.png`}
+        width="18"
+        alt=""
+        className="rounded-sm object-contain"
+      />
+    );
+  };
+
+  const parsePhone = (phoneString) => {
+    const phone = phoneString || '';
+    const match = COUNTRY_CODES.find(c => phone.startsWith(c.code));
+    if (match) {
+      return {
+        countryCode: match.code,
+        number: phone.slice(match.code.length)
+      };
+    }
+    return { countryCode: '+91', number: phone.replace(/^\+/, '') };
+  };
+
+  const { countryCode: teacherPhoneCode, number: teacherPhoneNumber } = parsePhone(form.phoneNo);
+
+  const handleTeacherPhoneChange = (code, num) => {
+    setForm(f => ({ ...f, phoneNo: code + num }));
+  };
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => {
@@ -177,9 +218,17 @@ export default function ManageUsers() {
 
   const submit = async (e) => {
     e.preventDefault();
-    const phoneClean = form.phoneNo.replace(/\D/g, '');
-    if (phoneClean.length !== 10) {
-      toast.error('Phone number must be exactly 10 digits');
+    if (!form.phoneNo.startsWith('+')) {
+      toast.error('Phone number must start with + followed by country code');
+      return;
+    }
+    const digits = form.phoneNo.replace(/\D/g, '');
+    if (form.phoneNo.startsWith('+91') && digits.length !== 12) {
+      toast.error('Indian phone number must be exactly 10 digits after +91');
+      return;
+    }
+    if (digits.length < 10 || digits.length > 15) {
+      toast.error('Phone number must have between 10 and 15 digits total');
       return;
     }
     try {
@@ -188,7 +237,7 @@ export default function ManageUsers() {
         toast.success('Teacher updated');
         setOpen(false);
         setEdit(null);
-        setForm({ teacherName: '', email: '', phoneNo: '' });
+        setForm({ teacherName: '', email: '', phoneNo: '+91' });
         refresh();
       } else {
         const inactiveTeacher = teachers.find(t => t.email === form.email && t.status === 'Inactive');
@@ -198,7 +247,7 @@ export default function ManageUsers() {
           const res = await api.post('/users', { ...form, role: 'teacher' });
           toast.success('Teacher created successfully');
           setOpen(false);
-          setForm({ teacherName: '', email: '', phoneNo: '' });
+          setForm({ teacherName: '', email: '', phoneNo: '+91' });
           refresh();
           
           if (res.data.user?.tempPassword) {
@@ -229,7 +278,7 @@ export default function ManageUsers() {
       toast.success('Teacher reactivated successfully');
       setReactivateDialog({ open: false, teacher: null });
       setOpen(false);
-      setForm({ teacherName: '', email: '', phoneNo: '' });
+      setForm({ teacherName: '', email: '', phoneNo: '+91' });
       refresh();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Reactivation failed');
@@ -598,20 +647,40 @@ export default function ManageUsers() {
                 </FormField>
 
                 <FormField label="Phone No" required>
-                  <Input
-                    type="tel"
-                    pattern="[0-9]{10}"
-                    maxLength={10}
-                    minLength={10}
-                    placeholder="e.g. 9876543210"
-                    value={form.phoneNo}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      setForm({ ...form, phoneNo: value });
-                    }}
-                    className="h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Select
+                      value={teacherPhoneCode}
+                      onValueChange={(val) => handleTeacherPhoneChange(val, teacherPhoneNumber)}
+                    >
+                      <SelectTrigger className="w-[100px] h-9 text-xs bg-white border-slate-200">
+                        <span className="flex items-center gap-1.5">
+                          {renderFlag(COUNTRY_CODES.find(c => c.code === teacherPhoneCode)?.iso)}
+                          <span>{teacherPhoneCode}</span>
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            <span className="flex items-center gap-2">
+                              {renderFlag(c.iso)}
+                              <span>{c.code} ({c.name})</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="tel"
+                      placeholder="e.g. 9876543210"
+                      value={teacherPhoneNumber}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        handleTeacherPhoneChange(teacherPhoneCode, digits);
+                      }}
+                      className="flex-1 h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
+                      required
+                    />
+                  </div>
                 </FormField>
               </div>
 

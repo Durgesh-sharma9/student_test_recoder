@@ -30,7 +30,7 @@ export default function ManageStudents() {
   
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
   const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -47,6 +47,47 @@ export default function ManageStudents() {
   });
   const [importOptionsDialog, setImportOptionsDialog] = useState({ open: false, conflicts: [], onConfirm: null });
   const [limitDialogOpen, setLimitDialogOpen] = useState(false);
+
+  const COUNTRY_CODES = [
+    { code: '+91', iso: 'in', name: 'India' },
+    { code: '+1', iso: 'us', name: 'US' },
+    { code: '+44', iso: 'gb', name: 'UK' },
+    { code: '+971', iso: 'ae', name: 'UAE' },
+    { code: '+966', iso: 'sa', name: 'Saudi' },
+    { code: '+977', iso: 'np', name: 'Nepal' },
+    { code: '+880', iso: 'bd', name: 'Bangladesh' },
+    { code: '+61', iso: 'au', name: 'Australia' },
+  ];
+
+  const renderFlag = (iso) => {
+    if (!iso) return null;
+    return (
+      <img
+        src={`https://flagcdn.com/w20/${iso}.png`}
+        width="18"
+        alt=""
+        className="rounded-sm object-contain"
+      />
+    );
+  };
+
+  const parsePhone = (phoneString) => {
+    const phone = phoneString || '';
+    const match = COUNTRY_CODES.find(c => phone.startsWith(c.code));
+    if (match) {
+      return {
+        countryCode: match.code,
+        number: phone.slice(match.code.length)
+      };
+    }
+    return { countryCode: '+91', number: phone.replace(/^\+/, '') };
+  };
+
+  const { countryCode: parentPhoneCode, number: parentPhoneNumber } = parsePhone(form.parentPhone);
+
+  const handleParentPhoneChange = (code, num) => {
+    setForm(f => ({ ...f, parentPhone: code + num }));
+  };
 
   useEffect(() => {
     api.get('/classes').then((r) => {
@@ -86,9 +127,17 @@ export default function ManageStudents() {
 
   const submit = async (e) => {
     e.preventDefault();
-    const phoneClean = form.parentPhone.replace(/\D/g, '');
-    if (phoneClean.length !== 10) {
-      toast.error('Parent Phone number must be exactly 10 digits');
+    if (!form.parentPhone.startsWith('+')) {
+      toast.error('Parent Phone number must start with + followed by country code');
+      return;
+    }
+    const digits = form.parentPhone.replace(/\D/g, '');
+    if (form.parentPhone.startsWith('+91') && digits.length !== 12) {
+      toast.error('Indian phone number must be exactly 10 digits after +91');
+      return;
+    }
+    if (digits.length < 10 || digits.length > 15) {
+      toast.error('Parent Phone number must have between 10 and 15 digits total');
       return;
     }
     
@@ -112,7 +161,7 @@ export default function ManageStudents() {
                 toast.success('Student updated');
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -162,7 +211,7 @@ export default function ManageStudents() {
                 
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -203,7 +252,7 @@ export default function ManageStudents() {
       }
       setOpen(false); 
       setEdit(null); 
-      setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '', parentEmail: '' });
+      setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
       loadStudents(selectedClass);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -577,6 +626,16 @@ export default function ManageStudents() {
 
           <DialogBody>
             <form className="space-y-4" onSubmit={submit}>
+              <FormField label="Admission No" required>
+                <Input
+                  type="text"
+                  placeholder="Enter Admission No"
+                  value={form.admissionNo}
+                  onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
+                  required
+                  className="h-9 rounded-md text-sm"
+                />
+              </FormField>
               <FormField label="Roll No" required>
                 {/* CSS added to remove up/down arrows from input */}
                 <Input
@@ -586,16 +645,6 @@ export default function ManageStudents() {
                   onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
                   required
                   className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-              </FormField>
-              <FormField label="Admission No" required>
-                <Input
-                  type="text"
-                  placeholder="Enter Admission No"
-                  value={form.admissionNo}
-                  onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
-                  required
-                  className="h-9 rounded-md text-sm"
                 />
               </FormField>
               <FormField label="Name" required>
@@ -645,20 +694,40 @@ export default function ManageStudents() {
               </FormField>
               <FormField label="Parent Phone" required>
                 {/* CSS added to remove up/down arrows from input */}
-                <Input
-                  type="tel"
-                  pattern="[0-9]{10}"
-                  maxLength={10}
-                  minLength={10}
-                  placeholder="Enter Parent Phone"
-                  value={form.parentPhone}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    setForm({ ...form, parentPhone: value });
-                  }}
-                  required
-                  className="h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
+                <div className="flex gap-2">
+                  <Select
+                    value={parentPhoneCode}
+                    onValueChange={(val) => handleParentPhoneChange(val, parentPhoneNumber)}
+                  >
+                    <SelectTrigger className="w-[100px] h-9 text-xs bg-white border-slate-200">
+                      <span className="flex items-center gap-1.5">
+                        {renderFlag(COUNTRY_CODES.find(c => c.code === parentPhoneCode)?.iso)}
+                        <span>{parentPhoneCode}</span>
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRY_CODES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          <span className="flex items-center gap-2">
+                            {renderFlag(c.iso)}
+                            <span>{c.code} ({c.name})</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="tel"
+                    placeholder="Enter Parent Phone"
+                    value={parentPhoneNumber}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      handleParentPhoneChange(parentPhoneCode, digits);
+                    }}
+                    required
+                    className="flex-1 h-9 rounded-md text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
               </FormField>
               <FormField label="Parent Email (Optional)">
                 <Input
