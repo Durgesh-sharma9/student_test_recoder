@@ -12,19 +12,20 @@ import {
   Check,
   Grid,
   HelpCircle,
-  FileText,
   Download,
-  Printer,
   Edit2,
+  Eye,
   X,
   Copy,
   ChevronUp,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clipboard
+  Clipboard,
+  Tag
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { formatClassName } from '@/lib/utils';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
@@ -142,17 +143,21 @@ const getClassFallbackSubjects = (className) => {
 };
 
 export default function AssessmentPlanner() {
+  const { user } = useAuth();
+  const schoolId = user?.school?._id || user?.school || 'default';
+  const storageKey = `testmaster_assessment_planners_${schoolId}`;
+
   // Library State
   const [planners, setPlanners] = useState(() => {
-    const local = localStorage.getItem('testmaster_assessment_planners');
+    const local = localStorage.getItem(`testmaster_assessment_planners_${schoolId}`);
     if (local) {
       try {
         return JSON.parse(local);
       } catch (e) {
-        console.error('Failed to parse planners from localStorage, using mock data:', e);
+        console.error('Failed to parse planners from localStorage:', e);
       }
     }
-    return INITIAL_PLANNERS;
+    return []; // Return empty array so new schools start fresh without mock planners
   });
 
   // Active workspace metadata properties
@@ -188,10 +193,12 @@ export default function AssessmentPlanner() {
   const [skipDays, setSkipDays] = useState([0]); // Default skip Sundays
   const [skipSpecificDateInput, setSkipSpecificDateInput] = useState('');
   const [skipSpecificDates, setSkipSpecificDates] = useState([]);
+  const [customDateLabels, setCustomDateLabels] = useState({}); // { dateStr: 'label text' }
   
   // Generating state
   const [isGenerated, setIsGenerated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [configExpanded, setConfigExpanded] = useState(true);
   
   // Dynamic Workspace Grid Layout States
   const [datesList, setDatesList] = useState([]);
@@ -222,6 +229,23 @@ export default function AssessmentPlanner() {
   const [skipDatesDialogOpen, setSkipDatesDialogOpen] = useState(false);
   const [originalPlanner, setOriginalPlanner] = useState(null);
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
+  // Custom Day Label dialog
+  const [customLabelDialogOpen, setCustomLabelDialogOpen] = useState(false);
+  const [customLabelTargetDate, setCustomLabelTargetDate] = useState(null); // dateStr
+  const [customLabelInput, setCustomLabelInput] = useState('');
+
+  // How to Use guide
+  const [howToUseOpen, setHowToUseOpen] = useState(false);
+
+  // View Note Modal (from View Planner)
+  const [viewNoteOpen, setViewNoteOpen] = useState(false);
+  const [viewingNote, setViewingNote] = useState({ subject: '', note: '' });
+
+  // View Planner Modal
+  const [viewPlannerOpen, setViewPlannerOpen] = useState(false);
+  const [viewingPlanner, setViewingPlanner] = useState(null);
 
   // Sub-selector target references
   const [newDateValue, setNewDateValue] = useState('');
@@ -292,8 +316,10 @@ export default function AssessmentPlanner() {
 
   // Sync planners to LocalStorage
   useEffect(() => {
-    localStorage.setItem('testmaster_assessment_planners', JSON.stringify(planners));
-  }, [planners]);
+    if (schoolId) {
+      localStorage.setItem(storageKey, JSON.stringify(planners));
+    }
+  }, [planners, storageKey, schoolId]);
 
   // Load Classes on mount
   useEffect(() => {
@@ -506,6 +532,7 @@ export default function AssessmentPlanner() {
       setSelectedClassesList(classesItems);
       setIsGenerated(true);
       setIsLoading(false);
+      setConfigExpanded(false);
       
       const initialGrid = {};
       setGridData(initialGrid);
@@ -619,6 +646,7 @@ export default function AssessmentPlanner() {
               gridData,
               skipDays,
               skipSpecificDates,
+              customDateLabels,
               updatedDate: todayString
             };
             setOriginalPlanner(updated);
@@ -628,8 +656,8 @@ export default function AssessmentPlanner() {
         }));
         toast.success(`Planner "${plannerName}" updated successfully!`);
       } else {
-        if (planners.length >= 5) {
-          toast.error('Maximum limit of 5 planners reached. Delete one to save a new planner.');
+        if (planners.length >= 10) {
+          toast.error('Maximum limit of 10 planners reached. Please delete one to save a new planner.');
           setIsLoading(false);
           return;
         }
@@ -649,7 +677,8 @@ export default function AssessmentPlanner() {
           updatedDate: todayString,
           gridData,
           skipDays,
-          skipSpecificDates
+          skipSpecificDates,
+          customDateLabels
         };
 
         setPlanners(prev => [...prev, newPlannerObj]);
@@ -717,10 +746,18 @@ export default function AssessmentPlanner() {
     setGridData({});
     setSavedGridData({});
     setIsGenerated(false);
+    setConfigExpanded(true);
     setCurrentPlannerId(null);
     setPlannerName('');
     setPlannerStatus('Draft');
+    setCustomDateLabels({});
     toast.success('Workspace cleared.');
+  };
+
+  // View planner (read-only preview)
+  const handleViewPlanner = (planner) => {
+    setViewingPlanner(planner);
+    setViewPlannerOpen(true);
   };
 
   // Load from library card
@@ -774,6 +811,7 @@ export default function AssessmentPlanner() {
       setSelectedClassesList(classesItems);
       setIsGenerated(true);
       setIsLoading(false);
+      setConfigExpanded(false);
       
       toast.info(`Loaded planner board "${planner.name}"`);
     }, 400);
@@ -1203,10 +1241,19 @@ export default function AssessmentPlanner() {
 
   return (
     <PageStack className="max-w-full overflow-x-hidden p-1 sm:p-2">
-      <PageHeader 
-        title="Assessment Planning" 
-        description="Design, coordinate, and export student daily tests and main exam schedules in an interactive spreadsheet workspace."
-      />
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <PageHeader 
+          title="Assessment Planning" 
+          description="Design, coordinate, and export student daily tests and main exam schedules in an interactive spreadsheet workspace."
+        />
+        <button
+          onClick={() => setHowToUseOpen(true)}
+          className="no-print flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-xl px-3 py-2 cursor-pointer transition-all hover:scale-[1.02] shrink-0 mt-1"
+        >
+          <Info className="h-3.5 w-3.5" />
+          How to Use
+        </button>
+      </div>
       {/* Dynamic Printing CSS override */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
@@ -1237,19 +1284,38 @@ export default function AssessmentPlanner() {
         }
       `}} />
 
-      {/* CONFIGURATION SETUP CARD (Before Generation) */}
-      {!isGenerated && !isLoading && (
+      {/* CONFIGURATION SETUP CARD */}
+      {!isLoading && (
         <ErpSection
-          title="1. Planner Configuration"
+          title="1. Add Planner"
           icon={Grid}
           tone="orange"
           action={
-            <div className="hidden sm:inline-flex items-center rounded-full bg-orange-50 border border-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-              🛠️ Setup Mode
+            <div className="flex items-center gap-2">
+              {!isGenerated ? null : (
+                <>
+                  <div className="hidden sm:inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    ✓ Configured
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setConfigExpanded(!configExpanded)}
+                    className="h-8 w-8 text-slate-400 hover:text-slate-650 rounded-lg no-print flex items-center justify-center border-slate-200"
+                  >
+                    {configExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           }
           className="no-print border border-slate-200/80 shadow-sm"
         >
+          {configExpanded && (
           <div className="border border-orange-150/70 rounded-2xl p-4 bg-gradient-to-br from-orange-50/70 to-amber-50/30">
             <div className="grid gap-4 md:grid-cols-3">
               {/* Type, Name and Datepicker Row */}
@@ -1431,80 +1497,14 @@ export default function AssessmentPlanner() {
                 className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl shadow-md shadow-orange-500/10 text-xs font-bold flex items-center gap-1.5 border-0 cursor-pointer h-9 px-5 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Grid className="h-4 w-4" />
-                {assessmentType === 'Daily Test' ? 'Generate Daily Test Planner' : 'Generate Main Exam Planner'}
+                {isGenerated 
+                  ? 'Regenerate Planner' 
+                  : (assessmentType === 'Daily Test' ? 'Generate Daily Test Planner' : 'Generate Main Exam Planner')}
               </Button>
             </div>
           </div>
-        </ErpSection>
-      )}
-
-      {/* COMPACT METADATA SUMMARY CARD (After Generation) */}
-      {isGenerated && !isLoading && (
-        <div className="bg-white/70 backdrop-blur-md border border-slate-200/50 shadow-lg shadow-indigo-100/30 rounded-3xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 no-print transition-all duration-300">
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
-                <Calendar className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  {editingPlannerName ? (
-                    <Input
-                      autoFocus
-                      value={plannerName}
-                      onChange={(e) => setPlannerName(e.target.value)}
-                      onBlur={() => setEditingPlannerName(false)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') setEditingPlannerName(false); }}
-                      className="h-8 text-xs font-bold w-48 rounded-xl border-indigo-300 focus:ring-indigo-500/25"
-                    />
-                  ) : (
-                    <span 
-                      onDoubleClick={() => setEditingPlannerName(true)}
-                      className="cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition"
-                      title="Double click to rename planner inline"
-                    >
-                      {plannerName || 'Assessment Planner'}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">Double-click planner name to edit inline</p>
-              </div>
-            </div>
-
-            <div className="h-8 w-px bg-slate-150 hidden md:block" />
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1 text-xs">
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wider">Type</span>
-                <span className="font-bold text-slate-700">
-                  {assessmentType === 'Main Exam' && selectedMainExam ? `Main Exam (${selectedMainExam})` : assessmentType}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wider">Classes Count</span>
-                <span className="font-bold text-slate-700">{selectedClassesList.length} Classes</span>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <span className="text-slate-400 font-medium block text-[10px] uppercase tracking-wider">Date Range</span>
-                <span className="font-bold text-slate-700">
-                  {datesList.length > 0 
-                    ? `${formatDateLabel(datesList[0].dateStr)} - ${formatDateLabel(datesList[datesList.length - 1].dateStr)}`
-                    : 'No dates configured'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <Button
-            onClick={handleOpenEditDetailsDialog}
-            variant="outline"
-            size="sm"
-            className="rounded-xl h-9 px-4 border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold cursor-pointer shrink-0 hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            <Edit2 className="h-3.5 w-3.5 mr-1.5 text-indigo-500" />
-            Edit Details
-          </Button>
-        </div>
+        )}
+      </ErpSection>
       )}
 
       {/* SKELETON LOADER ANIMATION */}
@@ -1535,32 +1535,30 @@ export default function AssessmentPlanner() {
       {isGenerated && !isLoading && (
         <div className="space-y-4" id="print-friendly-area">
           {/* SIMPLIFIED GRID TOOLBAR */}
-          <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between no-print">
+          <div className="bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 p-3 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between no-print">
             {/* Left Actions */}
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={handleOpenAddClassDialog}
                 size="sm"
-                className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 hover:bg-indigo-100 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all border-0"
               >
-                <Plus className="h-3.5 w-3.5 text-indigo-600" />
                 + Class
               </Button>
               <Button
                 onClick={handleOpenAddDateDialog}
                 size="sm"
-                className="bg-indigo-50 border border-indigo-200/60 text-indigo-700 hover:bg-indigo-100 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm shadow-orange-400/20 hover:scale-[1.02] active:scale-[0.98] transition-all border-0"
               >
-                <Plus className="h-3.5 w-3.5 text-indigo-600" />
                 + Date
               </Button>
               <Button
                 onClick={() => setSkipDatesDialogOpen(true)}
                 variant="outline"
                 size="sm"
-                className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                <Calendar className="h-3.5 w-3.5 text-orange-400" />
                 Skip Dates
               </Button>
 
@@ -1573,15 +1571,16 @@ export default function AssessmentPlanner() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter by class..."
-                  className="pl-8.5 h-8.5 text-xs rounded-xl bg-slate-50/50 border-slate-200 w-36"
+                  className="pl-8 h-9 text-xs rounded-xl bg-white border-slate-200 focus:border-indigo-300 w-36"
                 />
               </div>
             </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-2 ml-auto sm:ml-0">
+              <div className="h-6 w-px bg-slate-200 hidden sm:block" />
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => handleDownloadPDF({
                   name: plannerName || 'Assessment Planner',
@@ -1596,24 +1595,25 @@ export default function AssessmentPlanner() {
                   skipSpecificDates,
                   status: plannerStatus
                 })}
-                className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-200/60 rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                <Download className="h-3.5 w-3.5" />
                 Download PDF
               </Button>
+              <div className="h-6 w-px bg-slate-200 hidden sm:block" />
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => window.print()}
-                className="border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+                onClick={() => setResetConfirmOpen(true)}
+                className="text-red-500 bg-red-50 hover:bg-red-100 border border-red-200/60 rounded-xl h-9 text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <Printer className="h-3.5 w-3.5 text-indigo-500" />
-                Print
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset
               </Button>
               <Button
                 onClick={handleSaveAllPlanner}
                 size="sm"
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/10 hover:scale-[1.02] active:scale-[0.98] transition-all border-0"
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl h-9 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all border-0"
               >
                 <Save className="h-3.5 w-3.5" />
                 Save Planner
@@ -1628,11 +1628,11 @@ export default function AssessmentPlanner() {
             tone="indigo"
             contentClassName="p-0 sm:p-0"
             action={
-              <div className="flex items-center gap-2 text-xs font-medium">
-                <span className="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 text-[10px] tracking-wide uppercase">
+              <div className="flex items-center gap-3 text-xs font-medium">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-[10px] tracking-wide uppercase shadow-sm shadow-indigo-500/20">
                   {assessmentType === 'Main Exam' ? `Main Exam: ${selectedMainExam}` : assessmentType}
                 </span>
-                <span className="text-slate-500 font-semibold hidden sm:inline">• Classes: {filteredClassesList.length} • Dates: {datesList.length}</span>
+                <span className="text-slate-400 font-semibold hidden sm:inline text-[11px]">• Classes: {filteredClassesList.length} &nbsp;•&nbsp; Dates: {datesList.length}</span>
               </div>
             }
           >
@@ -1649,7 +1649,7 @@ export default function AssessmentPlanner() {
             </div>
 
             {/* Horizontal Scroll Wrapper */}
-            <div className="overflow-auto max-h-[550px] w-full relative scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-slate-50">
+            <div className="overflow-auto max-h-[550px] w-full relative scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-slate-50 isolate">
               {filteredClassesList.length === 0 ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center">
                   <HelpCircle className="h-12 w-12 text-slate-300 mb-2" />
@@ -1777,34 +1777,57 @@ export default function AssessmentPlanner() {
 
                           // Excluded Date Cell
                           if (dt.isHoliday) {
+                            const customLabel = customDateLabels[dt.dateStr];
                             return (
                               <div
                                 key={cellKey}
-                                className="border-r border-b border-slate-200 bg-slate-100/60 text-slate-400 text-[10px] font-semibold flex items-center justify-center select-none cursor-not-allowed h-10"
-                                title="Holiday - Not Editable"
+                                className={`border-r border-b border-slate-200 text-[10px] font-semibold flex flex-col items-center justify-center select-none cursor-not-allowed h-10 gap-0.5 ${
+                                  customLabel
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'bg-slate-100/60 text-slate-400'
+                                }`}
+                                title={customLabel ? customLabel : 'Holiday - Not Editable'}
                               >
-                                Holiday
+                                {customLabel ? (
+                                  <>
+                                    <span className="text-[9px] font-bold text-amber-600 leading-tight text-center px-1 truncate max-w-[90px]">{customLabel}</span>
+                                    <span className="text-[8px] text-amber-400 font-medium">(No Test)</span>
+                                  </>
+                                ) : (
+                                  'Holiday'
+                                )}
                               </div>
                             );
                           }
 
                           // Active Cell
+                          const hasNote = !!(cell?.notes?.trim());
+                          const notePreview = hasNote
+                            ? cell.notes.length > 18 ? cell.notes.slice(0, 18) + '…' : cell.notes
+                            : null;
+
                           return (
                             <div
                               key={cellKey}
                               onClick={() => handleCellClick(dt, cls)}
-                              title="Click to edit • Ctrl+C/V to copy/paste"
-                              className={`border-r border-b border-slate-100 h-10 flex items-center justify-center hover:bg-slate-50/60 transition-colors select-none relative cursor-pointer ${
+                              title={hasNote ? `${cell.subject} — Notes: ${cell.notes}` : 'Click to edit • Ctrl+C/V to copy/paste'}
+                              className={`border-r border-b border-slate-100 ${hasNote ? 'min-h-[48px] py-1' : 'h-10'} flex flex-col items-center justify-center hover:bg-slate-50/60 transition-colors select-none relative cursor-pointer ${
                                 isSelected ? 'ring-2 ring-indigo-500 ring-inset z-10' : ''
                               }`}
                             >
                               {hasSubject ? (
-                                <span
-                                  className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide border shadow-sm ${colorMeta?.bg || 'bg-slate-100 text-slate-700 border-slate-200'}`}
-                                  title={cell.notes ? `Notes: ${cell.notes}` : ''}
-                                >
-                                  {cell.subject}
-                                </span>
+                                <div className="flex flex-col items-center gap-0.5 px-1 w-full">
+                                  <span
+                                    className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide border shadow-sm ${colorMeta?.bg || 'bg-slate-100 text-slate-700 border-slate-200'}`}
+                                  >
+                                    {cell.subject}
+                                  </span>
+                                  {notePreview && (
+                                    <span className="text-[8.5px] text-slate-500 font-medium text-center leading-tight px-1 truncate max-w-[80px]">
+                                      ({notePreview})
+                                    </span>
+                                  )}
+                                </div>
                               ) : (
                                 <div className="group/cell w-full h-full flex items-center justify-center min-h-[38px] transition-all">
                                   <span className="text-slate-350 font-medium text-xs group-hover/cell:hidden transition-all duration-200 opacity-60">—</span>
@@ -1856,28 +1879,9 @@ export default function AssessmentPlanner() {
             </div>
           </ErpSection>
 
-          {/* BOTTOM STATUS DETAILS BAR */}
-          <div className="no-print bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row gap-3 items-center justify-between text-xs mb-16">
-            <div className="flex items-center gap-1.5 font-semibold text-slate-300">
-              <Info className="h-4.5 w-4.5 text-indigo-400 shrink-0" />
-              <span>
-                {Object.keys(gridData).length} tests scheduled.
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleResetPlanner}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold h-10 rounded-xl cursor-pointer"
-              >
-                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                Reset Layout
-              </Button>
-            </div>
-          </div>
         </div>
       )}
+
 
       {/* WORKSPACE SEPARATOR */}
       <div className="border-t border-slate-200/80 my-4 no-print" />
@@ -1886,6 +1890,7 @@ export default function AssessmentPlanner() {
       <div className="no-print">
         <PlannerLibrary
           planners={planners}
+          onView={handleViewPlanner}
           onEdit={handleEditPlannerFromLibrary}
           onDelete={handleDeleteTrigger}
           onDownloadPDF={handleDownloadPDF}
@@ -1962,6 +1967,20 @@ export default function AssessmentPlanner() {
               >
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
                 Move Right
+              </button>
+              <div className="h-px bg-slate-100 my-1" />
+              <button
+                onClick={() => {
+                  const existing = customDateLabels[contextMenu.target] || '';
+                  setCustomLabelTargetDate(contextMenu.target);
+                  setCustomLabelInput(existing);
+                  setCustomLabelDialogOpen(true);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-amber-50 hover:text-amber-700 rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <Tag className="h-3.5 w-3.5 text-amber-500" />
+                Custom Day Label
               </button>
               <div className="h-px bg-slate-100 my-1" />
               <button
@@ -2146,7 +2165,7 @@ export default function AssessmentPlanner() {
           </DialogHeader>
           <DialogBody className="p-6 text-sm text-slate-600 space-y-2">
             <p>Are you sure you want to delete the planner <strong>{plannerToDelete?.name}</strong>?</p>
-            <p className="text-xs text-slate-400">This action cannot be undone and will remove the saved boards and schedules.</p>
+            <p className="text-xs text-slate-400">This action cannot be undone and will remove the saved schedules.</p>
           </DialogBody>
           <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
             <Button
@@ -2299,22 +2318,31 @@ export default function AssessmentPlanner() {
       {/* ADD DATE MODAL */}
       <Dialog open={addDateDialogOpen} onOpenChange={setAddDateDialogOpen}>
         <DialogContent className="sm:max-w-sm rounded-3xl p-0 overflow-hidden bg-white border-slate-200 shadow-2xl">
-          <DialogHeader className="bg-indigo-50 px-6 py-5 border-b border-indigo-100">
-            <DialogTitle className="text-base font-bold text-indigo-700 flex items-center gap-2">
-              📅 Add Date Column
+          <DialogHeader className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-5 border-b border-orange-400">
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {duplicatingDateStr ? 'Duplicate Date Column' : 'Add Date Column'}
             </DialogTitle>
           </DialogHeader>
           <DialogBody className="p-6 space-y-4">
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                 {duplicatingDateStr ? 'Select Date to Duplicate Into' : 'Choose Date'}
               </label>
-              <DatePicker
-                value={newDateValue}
-                onChange={setNewDateValue}
-                placeholder="Select date to append..."
-                className="w-full h-11 rounded-xl"
-              />
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-400 pointer-events-none" />
+                <input
+                  type="date"
+                  value={newDateValue}
+                  onChange={(e) => setNewDateValue(e.target.value)}
+                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400 transition-all cursor-pointer"
+                />
+              </div>
+              {newDateValue && (
+                <p className="text-xs text-slate-400 font-medium">
+                  Selected: {new Date(newDateValue + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </div>
           </DialogBody>
           <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
@@ -2326,19 +2354,22 @@ export default function AssessmentPlanner() {
                 setInsertIndex(null);
                 setDuplicatingDateStr(null);
               }}
-              className="rounded-xl h-10 px-5 text-sm font-semibold"
+              className="rounded-xl h-10 px-5 text-sm font-semibold cursor-pointer border-slate-200"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAddDateConfirm}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-sm font-bold shadow-sm"
+              disabled={!newDateValue}
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl h-10 px-5 text-sm font-bold shadow-sm border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
+              <Calendar className="h-3.5 w-3.5 mr-1.5" />
               Confirm Date
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* RENAME DATE MODAL */}
       <Dialog open={renameDateDialogOpen} onOpenChange={setRenameDateDialogOpen}>
@@ -2496,34 +2527,507 @@ export default function AssessmentPlanner() {
         </DialogContent>
       </Dialog>
 
-      {/* STICKY BOTTOM BAR FOR UNSAVED CHANGES */}
-      {hasUnsavedChanges && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-800 shadow-2xl py-4 px-6 no-print animate-in slide-in-from-bottom duration-300">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3 items-center justify-between">
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-250">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-              <span>Unsaved Changes in <strong>"{plannerName || 'New Planner'}"</strong></span>
+      {/* RESET CONFIRMATION DIALOG */}
+      <Dialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <DialogContent className="sm:max-w-sm rounded-3xl p-0 overflow-hidden bg-white border-0 shadow-2xl shadow-red-500/10">
+          <DialogHeader className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-5">
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Reset Workspace?
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="p-6 space-y-4">
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200/60 rounded-2xl p-4">
+              <div className="h-8 w-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Info className="h-4 w-4 text-red-600" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-red-800">This will clear everything</p>
+                <p className="text-xs text-red-600 leading-relaxed">
+                  All class rows, date columns, and scheduled subjects will be removed from the workspace. 
+                  Your <strong>saved planners</strong> in the library will <strong>not</strong> be affected.
+                </p>
+              </div>
             </div>
-            
-            <div className="flex items-center gap-3">
+            <p className="text-xs text-slate-500 font-medium text-center">
+              Are you sure you want to reset the current workspace?
+            </p>
+          </DialogBody>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setResetConfirmOpen(false)}
+              className="rounded-xl h-10 px-5 text-sm font-semibold cursor-pointer border-slate-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setResetConfirmOpen(false);
+                handleResetPlanner();
+              }}
+              className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl h-10 px-5 text-sm font-bold shadow-sm border-0 cursor-pointer flex items-center gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Yes, Reset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* CUSTOM DAY LABEL DIALOG */}
+      <Dialog open={customLabelDialogOpen} onOpenChange={setCustomLabelDialogOpen}>
+        <DialogContent className="sm:max-w-sm rounded-3xl p-0 overflow-hidden bg-white border-0 shadow-2xl shadow-amber-500/10">
+          <DialogHeader className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Custom Day Label
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="p-6 space-y-4">
+            <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 space-y-1">
+              <p className="text-xs font-bold text-amber-800">What is this?</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                You can give a custom name to a no-test day — like <strong>Sports Day</strong>, <strong>PTM</strong>, <strong>Annual Function</strong>, etc. School is open but no test is scheduled.
+              </p>
+            </div>
+            {customLabelTargetDate && (
+              <p className="text-[11px] text-slate-500 font-semibold text-center">
+                📅 Date: <strong className="text-slate-700">{formatDateLabel(customLabelTargetDate)}</strong>
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Day Label</label>
+              <input
+                type="text"
+                value={customLabelInput}
+                onChange={(e) => setCustomLabelInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && customLabelInput.trim()) {
+                    setCustomDateLabels(prev => ({ ...prev, [customLabelTargetDate]: customLabelInput.trim() }));
+                    setCustomLabelDialogOpen(false);
+                    toast.success(`Label "${customLabelInput.trim()}" set for ${formatDateLabel(customLabelTargetDate)}`);
+                  }
+                }}
+                placeholder="e.g. Sports Day, PTM, Annual Function..."
+                maxLength={30}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 placeholder:text-slate-300"
+              />
+              <p className="text-[10px] text-slate-400 font-medium">{customLabelInput.length}/30 characters</p>
+            </div>
+          </DialogBody>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-2 justify-between">
+            {customDateLabels[customLabelTargetDate] && (
               <Button
                 variant="ghost"
-                onClick={handleDiscardChanges}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold h-10 rounded-xl cursor-pointer"
+                onClick={() => {
+                  setCustomDateLabels(prev => { const n = { ...prev }; delete n[customLabelTargetDate]; return n; });
+                  setCustomLabelDialogOpen(false);
+                  toast.success('Custom label removed.');
+                }}
+                className="text-red-500 hover:bg-red-50 rounded-xl h-9 text-xs font-semibold cursor-pointer border border-red-200/60 px-3"
               >
-                Discard
+                Remove Label
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                onClick={() => setCustomLabelDialogOpen(false)}
+                className="rounded-xl h-9 px-4 text-sm font-semibold cursor-pointer border-slate-200"
+              >
+                Cancel
               </Button>
               <Button
-                onClick={handleSaveAllPlanner}
-                className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-500/20 text-xs font-bold flex items-center gap-1.5 h-10 px-5 border-0 cursor-pointer"
+                disabled={!customLabelInput.trim()}
+                onClick={() => {
+                  if (!customLabelInput.trim()) return;
+                  setCustomDateLabels(prev => ({ ...prev, [customLabelTargetDate]: customLabelInput.trim() }));
+                  setCustomLabelDialogOpen(false);
+                  toast.success(`Label "${customLabelInput.trim()}" set for ${formatDateLabel(customLabelTargetDate)}`);
+                }}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl h-9 px-5 text-sm font-bold shadow-sm border-0 cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-3.5 w-3.5" />
-                Save Changes
+                <Tag className="h-3.5 w-3.5" />
+                Apply Label
               </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* VIEW PLANNER DIALOG */}
+      <Dialog open={viewPlannerOpen} onOpenChange={setViewPlannerOpen}>
+        <DialogContent className="max-w-6xl w-full rounded-3xl p-0 overflow-hidden border-0 shadow-2xl shadow-indigo-500/10">
+          {viewingPlanner && (() => {
+            // Build dates list for preview
+            const vDates = [];
+            if (viewingPlanner.startDate && viewingPlanner.endDate) {
+              let cur = new Date(viewingPlanner.startDate);
+              const end = new Date(viewingPlanner.endDate);
+              const lim = new Date(cur);
+              lim.setMonth(lim.getMonth() + 3);
+              while (cur <= end && cur <= lim) {
+                const y = cur.getFullYear();
+                const m = String(cur.getMonth() + 1).padStart(2, '0');
+                const d = String(cur.getDate()).padStart(2, '0');
+                const dStr = `${y}-${m}-${d}`;
+                const dow = cur.getDay();
+                const isHol = (viewingPlanner.skipDays || []).includes(dow) || (viewingPlanner.skipSpecificDates || []).includes(dStr);
+                vDates.push({
+                  dateStr: dStr,
+                  isHoliday: isHol,
+                  label: `${cur.getDate()} ${cur.toLocaleDateString('en-US', { month: 'short' })}`,
+                  dayName: cur.toLocaleDateString('en-US', { weekday: 'short' }),
+                });
+                cur.setDate(cur.getDate() + 1);
+              }
+            }
+            const vClasses = availableClasses.filter(c => (viewingPlanner.classes || []).includes(c.id));
+            const gd = viewingPlanner.gridData || {};
+            const examLabel = viewingPlanner.assessmentType === 'Main Exam' && viewingPlanner.selectedMainExam
+              ? `Main Exam · ${viewingPlanner.selectedMainExam}`
+              : viewingPlanner.assessmentType || 'Daily Test';
+
+            return (
+              <>
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Eye className="h-4.5 w-4.5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-white font-bold text-base leading-tight">{viewingPlanner.name}</h2>
+                      <p className="text-indigo-200 text-xs font-medium">{examLabel} · {vClasses.length} Classes · {vDates.filter(d => !d.isHoliday).length} Working Days</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => {
+                        setViewPlannerOpen(false);
+                        setTimeout(() => handleEditPlannerFromLibrary(viewingPlanner), 100);
+                      }}
+                      className="bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-xl h-9 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                      Edit Planner
+                    </Button>
+                    <button
+                      onClick={() => setViewPlannerOpen(false)}
+                      className="h-8 w-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white cursor-pointer transition-all"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Meta Info Strip */}
+                <div className="bg-slate-50 border-b border-slate-100 px-6 py-3 flex flex-wrap gap-x-6 gap-y-1.5 text-xs font-semibold text-slate-600">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-indigo-400" />
+                    {vDates.length > 0 ? `${vDates[0].label} – ${vDates[vDates.length - 1].label}` : 'No dates'}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Grid className="h-3.5 w-3.5 text-orange-400" />
+                    {vClasses.map(c => formatClassName(c.name)).join(', ') || 'No classes'}
+                  </span>
+                  <span className={`ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    viewingPlanner.status === 'Published' ? 'bg-emerald-100 text-emerald-700' :
+                    viewingPlanner.status === 'Finalized' ? 'bg-indigo-100 text-indigo-700' :
+                    'bg-slate-200 text-slate-600'
+                  }`}>
+                    {viewingPlanner.status || 'Draft'}
+                  </span>
+                </div>
+
+                {/* Grid Preview */}
+                <div className="overflow-auto max-h-[65vh] p-4">
+                  {vDates.length === 0 || vClasses.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 text-sm font-semibold">
+                      No planner data to display
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="text-xs w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gradient-to-r from-slate-50 to-indigo-50/40">
+                            <th className="sticky left-0 z-10 bg-slate-100 border border-slate-200 px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 min-w-[7rem]">
+                              Class
+                            </th>
+                            {vDates.map(d => (
+                              <th
+                                key={d.dateStr}
+                                className={`border border-slate-200 px-2 py-1.5 text-center min-w-[68px] ${
+                                  d.isHoliday ? 'bg-red-50/60 text-red-400' : 'text-slate-600'
+                                }`}
+                              >
+                                <div className="font-bold text-[11px]">{d.label}</div>
+                                <div className="text-[9px] font-medium text-slate-400">{d.dayName}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vClasses.map((cls, ri) => (
+                            <tr key={cls.id} className={ri % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                              <td className="sticky left-0 z-10 bg-inherit border border-slate-200 px-3 py-2 font-bold text-slate-700 text-[11px] whitespace-nowrap">
+                                {formatClassName(cls.name)}
+                              </td>
+                              {vDates.map(d => {
+                                const key = `${d.dateStr}_${cls.id}`;
+                                const cell = gd[key];
+                                const vNote = cell?.notes?.trim();
+                                const vNotePreview = vNote ? (vNote.length > 18 ? vNote.slice(0, 18) + '…' : vNote) : null;
+                                const isClickable = !d.isHoliday && cell?.subject && vNote;
+                                return (
+                                  <td
+                                    key={d.dateStr}
+                                    onClick={isClickable ? () => { setViewingNote({ subject: cell.subject, note: vNote }); setViewNoteOpen(true); } : undefined}
+                                    title={vNote ? `Click to view full note` : undefined}
+                                    className={`border border-slate-100 px-1.5 py-1.5 text-center align-middle transition-colors ${
+                                      d.isHoliday ? 'bg-red-50/40' : ''
+                                    } ${isClickable ? 'cursor-pointer hover:bg-indigo-50/60 hover:border-indigo-200' : ''}`}
+                                  >
+                                    {d.isHoliday ? (
+                                      <span className="text-[9px] text-red-400 font-semibold">Holiday</span>
+                                    ) : cell?.subject && cell.subject !== 'No Test' ? (
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <span className={`inline-block text-[9.5px] font-bold rounded-md px-1.5 py-0.5 ${SUBJECT_COLORS[cell.subject]?.bg || 'bg-indigo-50'} ${SUBJECT_COLORS[cell.subject]?.text || 'text-indigo-700'}`}>
+                                          {cell.subject}
+                                        </span>
+                                        {vNotePreview && (
+                                          <span className="flex items-center gap-0.5 text-[8px] text-indigo-500 font-semibold max-w-[80px]">
+                                            <Eye className="h-2.5 w-2.5 shrink-0" />
+                                            <span className="truncate">({vNotePreview})</span>
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-300 text-xs">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="border-t border-slate-100 px-6 py-3 bg-slate-50/60 flex items-center justify-between">
+                  <p className="text-[11px] text-slate-400 font-medium">Read-only view · Click Edit to make changes</p>
+                  <Button
+                    onClick={() => setViewPlannerOpen(false)}
+                    variant="outline"
+                    className="rounded-xl h-8 px-4 text-xs font-semibold cursor-pointer border-slate-200"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* NOTE DETAIL DIALOG */}
+      <Dialog open={viewNoteOpen} onOpenChange={setViewNoteOpen}>
+        <DialogContent className="sm:max-w-xs rounded-3xl p-0 overflow-hidden bg-white border-0 shadow-2xl shadow-indigo-500/10">
+          <DialogHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-4">
+            <DialogTitle className="text-sm font-bold text-white flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Note
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="p-5 space-y-3">
+            {viewingNote.subject && (
+              <span className={`inline-block text-[10px] font-bold rounded-md px-2 py-0.5 ${SUBJECT_COLORS[viewingNote.subject]?.bg || 'bg-indigo-50'} ${SUBJECT_COLORS[viewingNote.subject]?.text || 'text-indigo-700'}`}>
+                {viewingNote.subject}
+              </span>
+            )}
+            <p className="text-sm text-slate-700 font-medium leading-relaxed whitespace-pre-wrap break-words">
+              {viewingNote.note || '—'}
+            </p>
+          </DialogBody>
+          <DialogFooter className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <Button
+              onClick={() => setViewNoteOpen(false)}
+              variant="outline"
+              className="rounded-xl h-8 px-4 text-xs font-semibold cursor-pointer border-slate-200"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* STICKY BOTTOM BAR FOR UNSAVED CHANGES */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 no-print animate-in slide-in-from-bottom duration-300 pb-4 px-4">
+          <div className="max-w-3xl mx-auto rounded-2xl bg-white/95 backdrop-blur-xl border border-indigo-200/50 shadow-2xl shadow-indigo-500/10 py-3 px-5">
+            <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm shadow-amber-400/30 shrink-0">
+                  <span className="flex h-2 w-2 rounded-full bg-white animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Unsaved Changes</p>
+                  <p className="text-[11px] text-slate-400 font-medium">in &ldquo;<span className="text-indigo-600 font-semibold">{plannerName || 'New Planner'}</span>&rdquo;</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={handleDiscardChanges}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 text-xs font-semibold h-9 px-4 rounded-xl cursor-pointer transition-all"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleSaveAllPlanner}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl shadow-md shadow-indigo-500/20 text-xs font-bold flex items-center gap-1.5 h-9 px-5 border-0 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  Save Changes
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* HOW TO USE DIALOG */}
+      <Dialog open={howToUseOpen} onOpenChange={setHowToUseOpen}>
+        <DialogContent className="sm:max-w-2xl w-full rounded-3xl p-0 overflow-hidden bg-white border-0 shadow-2xl shadow-indigo-500/10">
+          <DialogHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              How to Use — Assessment Planner
+            </DialogTitle>
+            <p className="text-indigo-200 text-xs mt-1">Step-by-step guide to plan your tests easily</p>
+          </DialogHeader>
+          <DialogBody className="p-6 overflow-y-auto max-h-[70vh] space-y-5">
+
+            {/* Step 1 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Planner Setup karo (Add Planner)</p>
+                <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                  Sabse pehle upar <strong>"1. Add Planner"</strong> section mein:
+                </p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Planner ka naam likho (jaise: <em>August Weekly Test</em>)</li>
+                  <li>Assessment type chunno — <strong>Daily Test</strong> ya <strong>Main Exam</strong></li>
+                  <li>Start Date aur End Date set karo</li>
+                  <li>Jinhe skip karna hai (Sunday, Saturday) wo days tick karo</li>
+                  <li>Classes chunno jo is planner mein shamil hongi</li>
+                  <li>Sab karne ke baad <strong>"Generate Planner"</strong> dabao</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Step 2 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Grid mein Subject schedule karo</p>
+                <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                  Generate karne ke baad ek <strong>spreadsheet grid</strong> dikhai degi — rows mein classes aur columns mein dates.
+                </p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Kisi bhi cell par <strong>click karo</strong> — subject select karne ka dialog khulega</li>
+                  <li>Subject chunno (Maths, Science, English, etc.) aur <strong>Note bhi likh sakte ho</strong></li>
+                  <li>Cell copy karne ke liye <strong>Ctrl+C</strong>, paste ke liye <strong>Ctrl+V</strong></li>
+                  <li>Cell clear karne ke liye <strong>Ctrl+X / Delete</strong> dabao</li>
+                  <li>Columns aur rows ko <strong>drag karke reorder</strong> kar sakte ho</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Step 3 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Holidays aur Custom Labels</p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li><strong>Date column header par right-click</strong> karo — ek menu aayega</li>
+                  <li>"Mark as Holiday" se us din ko holiday mark karo — cell red ho jayegi (test nahi hoga)</li>
+                  <li><strong>"Custom Day Label"</strong> se us din ka koi custom naam do — jaise <em>Sports Day</em>, <em>PTM</em>, <em>Annual Function</em> etc.</li>
+                  <li>Custom label waale cells amber/orange color mein dikhenge aur "(No Test)" likha hoga</li>
+                  <li>Label hatane ke liye dobara right-click karke "Custom Day Label" → "Remove Label" karo</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Step 4 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">4</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Planner Save karo</p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Upar <strong>"Save Planner"</strong> button dabao — planner library mein save ho jayega</li>
+                  <li>Ek baar save ke baad, agle baar edit karoge to <strong>confirm dialog aayega</strong> — tabhi save hoga</li>
+                  <li>Maximum <strong>10 planners</strong> save kar sakte ho — naya banane ke liye purana delete karna hoga</li>
+                  <li><strong>Reset</strong> button se sirf current workspace saaf hoga — saved planners safe rahenge</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Step 5 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-red-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">5</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">PDF Download karo</p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Toolbar mein <strong>"Download PDF"</strong> (red button) dabao</li>
+                  <li>PDF mein sirf subjects dikhenge — notes PDF mein nahi aate</li>
+                  <li>Library mein bhi har planner card par <strong>PDF</strong> button hoga</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            {/* Step 6 */}
+            <div className="flex gap-3">
+              <div className="h-7 w-7 rounded-full bg-slate-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">6</div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Library se Planner View/Edit karo</p>
+                <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Neeche <strong>"Saved Assessment Planners"</strong> section mein apne planners dikhenge</li>
+                  <li><strong>View</strong> button se read-only preview dekhoge — notes bhi click karke pura padh sakte ho</li>
+                  <li><strong>Edit</strong> button se planner workspace mein load ho jayega</li>
+                  <li><strong>Delete</strong> button se planner library se hata sakte ho</li>
+                </ul>
+              </div>
+            </div>
+
+          </DialogBody>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <Button
+              onClick={() => setHowToUseOpen(false)}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl h-9 px-6 text-sm font-bold shadow-sm border-0 cursor-pointer"
+            >
+              Got it! Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </PageStack>
   );
 }

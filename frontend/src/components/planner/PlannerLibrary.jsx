@@ -8,6 +8,7 @@ import { ErpSection } from '@/components/erp/PagePrimitives';
 
 export default function PlannerLibrary({
   planners = [],
+  onView,
   onEdit,
   onDelete,
   onDownloadPDF,
@@ -43,18 +44,6 @@ export default function PlannerLibrary({
       title="Saved Assessment Planners"
       icon={ClipboardList}
       tone="orange"
-      action={
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Button
-            onClick={onNewPlanner}
-            disabled={maxReached}
-            className="h-8 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl shadow-sm text-xs font-bold flex items-center gap-1.5 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New Planner
-          </Button>
-        </div>
-      }
       className="border border-slate-200/80 shadow-sm"
       contentClassName="p-4"
     >
@@ -114,6 +103,7 @@ export default function PlannerLibrary({
               <PlannerCard
                 key={planner.id}
                 planner={planner}
+                onView={onView}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onDownloadPDF={onDownloadPDF}

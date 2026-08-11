@@ -828,9 +828,10 @@ export default function Landing() {
                 </div>
                 <p className="footer-desc">Test Master Pro is a cloud-based School Result & Daily Test Management Platform that helps schools manage students, teachers, exams, rankings and parent communication efficiently.</p>
                 <div className="footer-socials">
-                  {[Twitter, Linkedin, Facebook, Instagram].map((Icon, i) => (
-                    <button className="fs-btn" key={i}><Icon size={15} /></button>
-                  ))}
+                  <a href="https://x.com/webncodetech" target="_blank" rel="noopener noreferrer" className="fs-btn"><Twitter size={15} /></a>
+                  <a href="https://www.linkedin.com/company/webncodetechnologies" target="_blank" rel="noopener noreferrer" className="fs-btn"><Linkedin size={15} /></a>
+                  <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" className="fs-btn"><Facebook size={15} /></a>
+                  <a href="https://www.instagram.com/webncodetechnologies" target="_blank" rel="noopener noreferrer" className="fs-btn"><Instagram size={15} /></a>
                 </div>
               </div>
               <div className="footer-col">
@@ -852,7 +853,7 @@ export default function Landing() {
               <div className="footer-col">
                 <h4>Contact</h4>
                 <div className="contact-item"><Mail size={13} color="#6366f1" /> support@schoolresult.app</div>
-                <div className="contact-item"><Phone size={13} color="#10b981" /> +91 98765 43210</div>
+                <div className="contact-item"><Phone size={13} color="#10b981" /> +91 8947919195</div>
                 <div className="contact-item"><MapPin size={13} color="#ec4899" /> Jaipur, Rajasthan</div>
               </div>
             </div>

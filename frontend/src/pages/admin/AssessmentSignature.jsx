@@ -86,6 +86,9 @@ const paginateStudents = (studentsList, B) => {
 
 export default function AssessmentSignature() {
   const { user } = useAuth();
+  const schoolId = user?.school?._id || user?.school || 'default';
+  const signatureSheetsKey = `testmaster_signature_sheets_${schoolId}`;
+  const plannersKey = `testmaster_assessment_planners_${schoolId}`;
   
   // Basic states
   const [extraBlankRows, setExtraBlankRows] = useState(2);
@@ -202,7 +205,7 @@ export default function AssessmentSignature() {
   // Load saved configurations from LocalStorage
   const loadSavedSheetsFromStorage = () => {
     try {
-      const stored = localStorage.getItem('testmaster_signature_sheets');
+      const stored = localStorage.getItem(signatureSheetsKey);
       if (stored) {
         setSavedSheets(JSON.parse(stored));
       }
@@ -214,7 +217,7 @@ export default function AssessmentSignature() {
   // Load all planners from LocalStorage
   const loadAllPlannersFromStorage = () => {
     try {
-      const stored = localStorage.getItem('testmaster_assessment_planners');
+      const stored = localStorage.getItem(plannersKey);
       if (stored) {
         setAllPlanners(JSON.parse(stored));
       }
@@ -334,7 +337,7 @@ export default function AssessmentSignature() {
         toast.success('Signature sheet saved successfully');
       }
 
-      localStorage.setItem('testmaster_signature_sheets', JSON.stringify(list));
+      localStorage.setItem(signatureSheetsKey, JSON.stringify(list));
       setSavedSheets(list);
       setCurrentSheetId(newSheet.id);
     } catch (err) {
@@ -359,7 +362,7 @@ export default function AssessmentSignature() {
     e.stopPropagation();
     try {
       const filtered = savedSheets.filter(s => s.id !== id);
-      localStorage.setItem('testmaster_signature_sheets', JSON.stringify(filtered));
+      localStorage.setItem(signatureSheetsKey, JSON.stringify(filtered));
       setSavedSheets(filtered);
       if (currentSheetId === id) {
         setCurrentSheetId(null);

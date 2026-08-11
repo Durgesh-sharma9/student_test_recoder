@@ -260,16 +260,13 @@ export function exportPlannerToPDF(planner, availableClasses) {
         const row = [cls.name];
         datesSubset.forEach(dt => {
           if (dt.isHoliday) {
-            row.push('Holiday');
+            const customLabel = planner.customDateLabels?.[dt.dateStr];
+            row.push(customLabel || 'Holiday');
           } else {
             const cellKey = `${dt.dateStr}_${cls.id}`;
             const cellVal = planner.gridData?.[cellKey];
             if (cellVal && cellVal.subject) {
-              let cellText = cellVal.subject;
-              if (cellVal.notes) {
-                cellText += `\n(${cellVal.notes})`;
-              }
-              row.push(cellText);
+              row.push(cellVal.subject);
             } else {
               row.push('');
             }
@@ -324,12 +321,21 @@ export function exportPlannerToPDF(planner, availableClasses) {
           if (data.section === 'body' && data.column.index > 0) {
             data.cell.styles.halign = 'center';
             const val = data.cell.raw;
+            const dt = datesSubset[data.column.index - 1];
 
-            if (val === 'Holiday') {
-              // Holiday: Light Gray background, italic, centered text
-              data.cell.styles.fillColor = [241, 245, 249];
-              data.cell.styles.textColor = [100, 116, 139];
-              data.cell.styles.fontStyle = 'italic';
+            if (dt && dt.isHoliday) {
+              const customLabel = planner.customDateLabels?.[dt.dateStr];
+              if (customLabel) {
+                // Custom Day Label: Light Amber background, dark amber text
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [180, 83, 9];
+                data.cell.styles.fontStyle = 'bold';
+              } else {
+                // Holiday: Light Gray background, italic, centered text
+                data.cell.styles.fillColor = [241, 245, 249];
+                data.cell.styles.textColor = [100, 116, 139];
+                data.cell.styles.fontStyle = 'italic';
+              }
             } else if (val) {
               // Clear default text to draw premium bordered chips in didDrawCell
               data.cell.text = '';
@@ -357,8 +363,7 @@ export function exportPlannerToPDF(planner, availableClasses) {
             if (val && val !== 'Holiday') {
               const currentDoc = data.doc;
               const cell = data.cell;
-              const lines = val.split('\n');
-              const subject = lines[0];
+              const subject = val;
 
               const color = subjectColorsRGB[subject] || { bg: [248, 250, 252], border: [148, 163, 184], text: [51, 65, 85] };
 
@@ -378,20 +383,12 @@ export function exportPlannerToPDF(planner, availableClasses) {
               currentDoc.setLineWidth(0.22);
               currentDoc.roundedRect(x, y, w, h, 1.2, 1.2, 'D');
 
-              // 3. Draw text centered
+              // 3. Draw subject text centered
               currentDoc.setFont('Helvetica', 'bold');
               currentDoc.setFontSize(6.5);
               currentDoc.setTextColor(color.text[0], color.text[1], color.text[2]);
+              currentDoc.text(subject.toUpperCase(), x + (w / 2), y + (h / 2) + 1.2, { align: 'center' });
 
-              if (lines.length > 1) {
-                currentDoc.text(subject.toUpperCase(), x + (w / 2), y + 4.5, { align: 'center' });
-                currentDoc.setFont('Helvetica', 'normal');
-                currentDoc.setFontSize(5.5);
-                currentDoc.setTextColor(71, 85, 105);
-                currentDoc.text(lines[1], x + (w / 2), y + 8.5, { align: 'center' });
-              } else {
-                currentDoc.text(subject.toUpperCase(), x + (w / 2), y + (h / 2) + 1.2, { align: 'center' });
-              }
             }
           }
         },

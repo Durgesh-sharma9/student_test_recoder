@@ -53,7 +53,9 @@ export function ErpSection({ title, icon: Icon, tone = 'green', children, action
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className={cn('p-4 sm:p-5', contentClassName)}>{children}</div>
+      {children != null && children !== false && (
+        <div className={cn('p-4 sm:p-5', contentClassName)}>{children}</div>
+      )}
     </section>
   );
 }
