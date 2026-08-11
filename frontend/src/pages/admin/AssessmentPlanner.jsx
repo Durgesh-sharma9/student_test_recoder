@@ -567,10 +567,6 @@ export default function AssessmentPlanner() {
 
   // Cell clicks
   const handleCellClick = (dateItem, classItem) => {
-    if (dateItem.isHoliday) {
-      toast.error('Holiday - Not Editable');
-      return;
-    }
 
     const cellKey = `${dateItem.dateStr}_${classItem.id}`;
     setSelectedCellKey(cellKey);
@@ -1241,19 +1237,18 @@ export default function AssessmentPlanner() {
 
   return (
     <PageStack className="max-w-full overflow-x-hidden p-1 sm:p-2">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <PageHeader 
-          title="Assessment Planning" 
-          description="Design, coordinate, and export student daily tests and main exam schedules in an interactive spreadsheet workspace."
-        />
+      <PageHeader 
+        title="Assessment Planning" 
+        description="Design, coordinate, and export student daily tests and main exam schedules in an interactive spreadsheet workspace."
+      >
         <button
           onClick={() => setHowToUseOpen(true)}
-          className="no-print flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-xl px-3 py-2 cursor-pointer transition-all hover:scale-[1.02] shrink-0 mt-1"
+          className="no-print flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-xl px-3.5 py-2 cursor-pointer transition-all hover:scale-[1.02]"
         >
           <Info className="h-3.5 w-3.5" />
           How to Use
         </button>
-      </div>
+      </PageHeader>
       {/* Dynamic Printing CSS override */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
@@ -1685,9 +1680,11 @@ export default function AssessmentPlanner() {
                             ? 'bg-yellow-50 text-yellow-900 border-b-yellow-400 border-b-2 font-bold'
                             : isToday
                               ? 'bg-indigo-50/90 text-indigo-700 font-bold border-b-indigo-400 border-b-2'
-                              : dt.isHoliday
-                                ? 'bg-slate-100/90 text-slate-400 italic'
-                                : 'bg-slate-50 text-slate-600 font-bold'
+                              : customDateLabels[dt.dateStr]
+                                ? 'bg-amber-50/90 text-amber-700 font-bold border-b-amber-400 border-b-2'
+                                : dt.isHoliday
+                                  ? 'bg-slate-100/90 text-slate-400 italic'
+                                  : 'bg-slate-50 text-slate-600 font-bold'
                         }`}
                       >
                         <span 
@@ -1772,21 +1769,25 @@ export default function AssessmentPlanner() {
                           const cellKey = `${dt.dateStr}_${cls.id}`;
                           const cell = gridData?.[cellKey];
                           const hasSubject = cell && cell.subject;
-                          const colorMeta = hasSubject ? (SUBJECT_COLORS[cell.subject] || { bg: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' }) : null;
                           const isSelected = selectedCellKey === cellKey;
+                          const customLabel = customDateLabels[dt.dateStr];
+                          const isHolidayOrCustom = dt.isHoliday || !!customLabel;
+                          const isOverridden = cell && cell.subject && cell.subject !== 'No Test';
 
-                          // Excluded Date Cell
-                          if (dt.isHoliday) {
-                            const customLabel = customDateLabels[dt.dateStr];
+                          // Locked / Holiday Cell (only if NOT overridden by user scheduling)
+                          if (isHolidayOrCustom && !isOverridden) {
                             return (
                               <div
                                 key={cellKey}
-                                className={`border-r border-b border-slate-200 text-[10px] font-semibold flex flex-col items-center justify-center select-none cursor-not-allowed h-10 gap-0.5 ${
+                                onClick={() => handleCellClick(dt, cls)}
+                                title={customLabel ? `${customLabel} - Click to customize class schedule` : 'Holiday - Click to customize class schedule'}
+                                className={`border-r border-b border-slate-200 text-[10px] font-semibold flex flex-col items-center justify-center select-none cursor-pointer h-10 gap-0.5 hover:bg-slate-50/80 transition-colors ${
+                                  isSelected ? 'ring-2 ring-indigo-500 ring-inset z-10' : ''
+                                } ${
                                   customLabel
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'bg-slate-100/60 text-slate-400'
+                                    ? 'bg-amber-50 text-amber-700 font-bold border-amber-100'
+                                    : 'bg-slate-100/60 text-slate-400 font-medium'
                                 }`}
-                                title={customLabel ? customLabel : 'Holiday - Not Editable'}
                               >
                                 {customLabel ? (
                                   <>
@@ -1805,6 +1806,7 @@ export default function AssessmentPlanner() {
                           const notePreview = hasNote
                             ? cell.notes.length > 18 ? cell.notes.slice(0, 18) + '…' : cell.notes
                             : null;
+                          const colorMeta = hasSubject ? (SUBJECT_COLORS[cell.subject] || { bg: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' }) : null;
 
                           return (
                             <div
@@ -1981,6 +1983,33 @@ export default function AssessmentPlanner() {
               >
                 <Tag className="h-3.5 w-3.5 text-amber-500" />
                 Custom Day Label
+              </button>
+              <div className="h-px bg-slate-100 my-1" />
+              <button
+                onClick={() => {
+                  const target = contextMenu.target;
+                  let updated;
+                  if (skipSpecificDates.includes(target)) {
+                    updated = skipSpecificDates.filter(d => d !== target);
+                    toast.success(`Removed holiday for ${formatDateLabel(target)}`);
+                  } else {
+                    updated = [...skipSpecificDates, target];
+                    toast.success(`Marked ${formatDateLabel(target)} as Holiday`);
+                  }
+                  setSkipSpecificDates(updated);
+                  
+                  setDatesList(prev => prev.map(d => {
+                    if (d.dateStr === target) {
+                      return { ...d, isHoliday: skipDays.includes(d.dayOfWeek) || updated.includes(target) };
+                    }
+                    return d;
+                  }));
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-red-50 hover:text-red-700 rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <Lock className="h-3.5 w-3.5 text-red-500" />
+                {skipSpecificDates.includes(contextMenu.target) ? 'Remove Holiday' : 'Mark as Holiday'}
               </button>
               <div className="h-px bg-slate-100 my-1" />
               <button
@@ -2330,12 +2359,11 @@ export default function AssessmentPlanner() {
                 {duplicatingDateStr ? 'Select Date to Duplicate Into' : 'Choose Date'}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-orange-400 pointer-events-none" />
-                <input
-                  type="date"
+                <DatePicker
                   value={newDateValue}
-                  onChange={(e) => setNewDateValue(e.target.value)}
-                  className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400 transition-all cursor-pointer"
+                  onChange={setNewDateValue}
+                  placeholder="DD/MM/YYYY"
+                  className="w-full h-11"
                 />
               </div>
               {newDateValue && (
@@ -2755,17 +2783,21 @@ export default function AssessmentPlanner() {
                             <th className="sticky left-0 z-10 bg-slate-100 border border-slate-200 px-3 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-28 min-w-[7rem]">
                               Class
                             </th>
-                            {vDates.map(d => (
-                              <th
-                                key={d.dateStr}
-                                className={`border border-slate-200 px-2 py-1.5 text-center min-w-[68px] ${
-                                  d.isHoliday ? 'bg-red-50/60 text-red-400' : 'text-slate-600'
-                                }`}
-                              >
-                                <div className="font-bold text-[11px]">{d.label}</div>
-                                <div className="text-[9px] font-medium text-slate-400">{d.dayName}</div>
-                              </th>
-                            ))}
+                            {vDates.map(d => {
+                              const customLabel = viewingPlanner.customDateLabels?.[d.dateStr];
+                              return (
+                                <th
+                                  key={d.dateStr}
+                                  className={`border border-slate-200 px-2 py-1.5 text-center min-w-[68px] ${
+                                    customLabel ? 'bg-amber-50/90 text-amber-750' :
+                                    d.isHoliday ? 'bg-red-50/60 text-red-400' : 'text-slate-600'
+                                  }`}
+                                >
+                                  <div className="font-bold text-[11px]">{d.label}</div>
+                                  <div className="text-[9px] font-medium text-slate-400">{d.dayName}</div>
+                                </th>
+                              );
+                            })}
                           </tr>
                         </thead>
                         <tbody>
@@ -2779,17 +2811,24 @@ export default function AssessmentPlanner() {
                                 const cell = gd[key];
                                 const vNote = cell?.notes?.trim();
                                 const vNotePreview = vNote ? (vNote.length > 18 ? vNote.slice(0, 18) + '…' : vNote) : null;
-                                const isClickable = !d.isHoliday && cell?.subject && vNote;
+                                const customLabel = viewingPlanner.customDateLabels?.[d.dateStr];
+                                const isHolidayOrCustom = d.isHoliday || !!customLabel;
+                                const isClickable = !isHolidayOrCustom && cell?.subject && vNote;
                                 return (
                                   <td
                                     key={d.dateStr}
                                     onClick={isClickable ? () => { setViewingNote({ subject: cell.subject, note: vNote }); setViewNoteOpen(true); } : undefined}
                                     title={vNote ? `Click to view full note` : undefined}
                                     className={`border border-slate-100 px-1.5 py-1.5 text-center align-middle transition-colors ${
-                                      d.isHoliday ? 'bg-red-50/40' : ''
+                                      customLabel ? 'bg-amber-50/40' : d.isHoliday ? 'bg-red-50/40' : ''
                                     } ${isClickable ? 'cursor-pointer hover:bg-indigo-50/60 hover:border-indigo-200' : ''}`}
                                   >
-                                    {d.isHoliday ? (
+                                    {customLabel ? (
+                                      <div className="flex flex-col items-center gap-0.5">
+                                        <span className="text-[9px] font-bold text-amber-600 leading-tight text-center px-1 truncate max-w-[90px]">{customLabel}</span>
+                                        <span className="text-[8px] text-amber-400 font-medium">(No Test)</span>
+                                      </div>
+                                    ) : d.isHoliday ? (
                                       <span className="text-[9px] text-red-400 font-semibold">Holiday</span>
                                     ) : cell?.subject && cell.subject !== 'No Test' ? (
                                       <div className="flex flex-col items-center gap-0.5">
@@ -2917,17 +2956,17 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">1</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Planner Setup karo (Add Planner)</p>
+                <p className="text-sm font-bold text-slate-800">Set Up the Planner (Add Planner)</p>
                 <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                  Sabse pehle upar <strong>"1. Add Planner"</strong> section mein:
+                  Configure the primary parameters in the <strong>"1. Add Planner"</strong> section:
                 </p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li>Planner ka naam likho (jaise: <em>August Weekly Test</em>)</li>
-                  <li>Assessment type chunno — <strong>Daily Test</strong> ya <strong>Main Exam</strong></li>
-                  <li>Start Date aur End Date set karo</li>
-                  <li>Jinhe skip karna hai (Sunday, Saturday) wo days tick karo</li>
-                  <li>Classes chunno jo is planner mein shamil hongi</li>
-                  <li>Sab karne ke baad <strong>"Generate Planner"</strong> dabao</li>
+                  <li>Enter a descriptive planner name (e.g., <em>August Weekly Test</em>)</li>
+                  <li>Choose the assessment type — <strong>Daily Test</strong> or <strong>Main Exam</strong></li>
+                  <li>Set the active date range using Start Date and End Date</li>
+                  <li>Mark weekly rest days to skip (e.g., Sundays or Saturdays)</li>
+                  <li>Select classes that will participate in the test schedule</li>
+                  <li>Click <strong>"Generate Planner"</strong> to build the workspace grid</li>
                 </ul>
               </div>
             </div>
@@ -2938,16 +2977,16 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">2</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Grid mein Subject schedule karo</p>
+                <p className="text-sm font-bold text-slate-800">Schedule Subjects in the Grid</p>
                 <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                  Generate karne ke baad ek <strong>spreadsheet grid</strong> dikhai degi — rows mein classes aur columns mein dates.
+                  Fill subject configurations in the generated <strong>interactive spreadsheet grid</strong>:
                 </p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li>Kisi bhi cell par <strong>click karo</strong> — subject select karne ka dialog khulega</li>
-                  <li>Subject chunno (Maths, Science, English, etc.) aur <strong>Note bhi likh sakte ho</strong></li>
-                  <li>Cell copy karne ke liye <strong>Ctrl+C</strong>, paste ke liye <strong>Ctrl+V</strong></li>
-                  <li>Cell clear karne ke liye <strong>Ctrl+X / Delete</strong> dabao</li>
-                  <li>Columns aur rows ko <strong>drag karke reorder</strong> kar sakte ho</li>
+                  <li><strong>Click on any cell</strong> to open the subject and note scheduler dialog</li>
+                  <li>Select a subject (Maths, Science, etc.) and write an optional note</li>
+                  <li>Use keyboard shortcuts: <strong>Ctrl+C</strong> to copy a cell, and <strong>Ctrl+V</strong> to paste it</li>
+                  <li>Press <strong>Ctrl+X or Delete</strong> to clear the selected cell</li>
+                  <li>Use drag-and-drop handles on headers to **reorder classes and dates** easily</li>
                 </ul>
               </div>
             </div>
@@ -2958,13 +2997,13 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">3</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Holidays aur Custom Labels</p>
+                <p className="text-sm font-bold text-slate-800">Holidays & Custom Day Labels</p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li><strong>Date column header par right-click</strong> karo — ek menu aayega</li>
-                  <li>"Mark as Holiday" se us din ko holiday mark karo — cell red ho jayegi (test nahi hoga)</li>
-                  <li><strong>"Custom Day Label"</strong> se us din ka koi custom naam do — jaise <em>Sports Day</em>, <em>PTM</em>, <em>Annual Function</em> etc.</li>
-                  <li>Custom label waale cells amber/orange color mein dikhenge aur "(No Test)" likha hoga</li>
-                  <li>Label hatane ke liye dobara right-click karke "Custom Day Label" → "Remove Label" karo</li>
+                  <li><strong>Right-click a date column header</strong> to open the actions context menu</li>
+                  <li>Select "Mark as Holiday" to block testing — columns will shade red with "Holiday" label</li>
+                  <li>Select <strong>"Custom Day Label"</strong> to set names for special days (e.g., <em>Sports Day</em>, <em>PTM</em>)</li>
+                  <li>Custom labels are styled in amber/orange and marked as "(No Test)"</li>
+                  <li>To clear a label, right-click the header, select "Custom Day Label", and click "Remove Label"</li>
                 </ul>
               </div>
             </div>
@@ -2975,12 +3014,12 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-emerald-600 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">4</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Planner Save karo</p>
+                <p className="text-sm font-bold text-slate-800">Save Your Progress</p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li>Upar <strong>"Save Planner"</strong> button dabao — planner library mein save ho jayega</li>
-                  <li>Ek baar save ke baad, agle baar edit karoge to <strong>confirm dialog aayega</strong> — tabhi save hoga</li>
-                  <li>Maximum <strong>10 planners</strong> save kar sakte ho — naya banane ke liye purana delete karna hoga</li>
-                  <li><strong>Reset</strong> button se sirf current workspace saaf hoga — saved planners safe rahenge</li>
+                  <li>Click <strong>"Save Planner"</strong> in the toolbar to save the planner to your library</li>
+                  <li>To prevent accidental loss, updates to saved planners will prompt a confirmation dialog</li>
+                  <li>The library accommodates up to <strong>10 saved planners</strong></li>
+                  <li>Use the <strong>Reset</strong> button in the toolbar to clear the workspace grid (saved plans remain safe)</li>
                 </ul>
               </div>
             </div>
@@ -2991,11 +3030,10 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-red-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">5</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">PDF Download karo</p>
+                <p className="text-sm font-bold text-slate-800">Export & Download PDF</p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li>Toolbar mein <strong>"Download PDF"</strong> (red button) dabao</li>
-                  <li>PDF mein sirf subjects dikhenge — notes PDF mein nahi aate</li>
-                  <li>Library mein bhi har planner card par <strong>PDF</strong> button hoga</li>
+                  <li>Click the red <strong>"Download PDF"</strong> button in the toolbar or inside a library card</li>
+                  <li>Note: Generated PDFs include subjects and labels, but automatically omit cell notes for a clean layout</li>
                 </ul>
               </div>
             </div>
@@ -3006,12 +3044,12 @@ export default function AssessmentPlanner() {
             <div className="flex gap-3">
               <div className="h-7 w-7 rounded-full bg-slate-500 text-white text-xs font-black flex items-center justify-center shrink-0 mt-0.5">6</div>
               <div>
-                <p className="text-sm font-bold text-slate-800">Library se Planner View/Edit karo</p>
+                <p className="text-sm font-bold text-slate-800">Manage Saved Planners</p>
                 <ul className="text-xs text-slate-500 mt-1.5 space-y-1 list-disc list-inside leading-relaxed">
-                  <li>Neeche <strong>"Saved Assessment Planners"</strong> section mein apne planners dikhenge</li>
-                  <li><strong>View</strong> button se read-only preview dekhoge — notes bhi click karke pura padh sakte ho</li>
-                  <li><strong>Edit</strong> button se planner workspace mein load ho jayega</li>
-                  <li><strong>Delete</strong> button se planner library se hata sakte ho</li>
+                  <li>View your saved items in the <strong>"Saved Assessment Planners"</strong> catalog at the bottom</li>
+                  <li>Click <strong>View</strong> to open a read-only preview grid (click cells to view full notes)</li>
+                  <li>Click <strong>Edit</strong> to load that planner configuration and grid into the workspace</li>
+                  <li>Click <strong>Delete</strong> to permanently remove a planner from your library</li>
                 </ul>
               </div>
             </div>
