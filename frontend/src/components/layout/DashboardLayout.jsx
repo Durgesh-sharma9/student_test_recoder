@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, School, GraduationCap, ClipboardList, BarChart3,
   CreditCard, LogOut, Menu, Calendar, FileText, Building2, Settings,
   Lock, UserCheck, Bell, Megaphone, FileCheck, ChevronDown, MessageSquare, X,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSession } from '@/context/SessionContext';
@@ -241,15 +242,34 @@ export default function DashboardLayout() {
         />
       )}
 
-      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen', isCollapsed ? 'lg:w-20' : 'lg:w-56 w-56', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
-        <div className="flex h-16 items-center gap-2.5 border-b border-slate-100 px-4 transition-all overflow-hidden whitespace-nowrap">
+      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen relative', isCollapsed ? 'lg:w-20' : 'lg:w-56 w-56', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
+        
+        {/* Floating Desktop Toggle Button on Border Line */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="hidden lg:flex items-center justify-center text-slate-500 hover:text-indigo-650 bg-white border border-slate-200 shadow-md rounded-full h-6 w-6 shrink-0 transition-all absolute right-[-12px] top-[18px] z-50 hover:scale-105"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronLeft className="h-3.5 w-3.5" />
+          )}
+        </Button>
+
+        <div className={cn(
+          "flex h-16 items-center border-b border-slate-100 px-4 transition-all overflow-hidden whitespace-nowrap",
+          isCollapsed ? "lg:justify-center gap-0" : "gap-2.5"
+        )}>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
             <GraduationCap className="h-[17px] w-[17px]" />
           </div>
-          <div className={cn("transition-opacity duration-200", isCollapsed ? "lg:opacity-0" : "opacity-100")}>
+          <div className={cn("transition-opacity duration-200 flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
             <p className="text-[13.5px] font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent uppercase leading-none">Test Master</p>
             <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 mt-1 leading-none">Pro Management</p>
           </div>
+
           <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={() => setOpen(false)}>
             <X className="h-5 w-5" />
           </Button>

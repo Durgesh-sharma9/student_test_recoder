@@ -228,13 +228,13 @@ export default function ManageParents() {
                 <TableRow className="bg-transparent hover:bg-transparent border-b border-slate-100 dark:border-slate-800">
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Student Name</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Roll No</TableHead>
-                  <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Class</TableHead>
+                  <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider whitespace-nowrap">Class & Section</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Father Name</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Phone</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Email</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider">Last Login</TableHead>
                   <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider text-center">Status</TableHead>
-                  <TableHead className="font-bold text-slate-500 dark:text-slate-400 px-5 py-3 text-[11px] uppercase tracking-wider text-right">Actions</TableHead>
+                  <TableHead className="font-bold text-slate-500 dark:text-slate-400 pl-5 pr-7 py-3 text-[11px] uppercase tracking-wider text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -255,9 +255,9 @@ export default function ManageParents() {
                     <TableRow key={student._id} className="hover:bg-orange-50/40 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800">
                       <TableCell className="font-semibold text-slate-800 dark:text-slate-100 px-5 py-3 text-[13px]">{student.studentName}</TableCell>
                       <TableCell className="px-5 py-3 font-mono text-[13px] text-slate-600 dark:text-slate-400">{student.rollNo}</TableCell>
-                      <TableCell className="px-5 py-3">
-                        <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                          Class {student.class} {student.section}
+                      <TableCell className="px-5 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          Class {(student.class || '').replace(/^(class\s*)/i, '')} {student.section}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-3 text-[13px] text-slate-700 dark:text-slate-300">{student.parentName}</TableCell>
@@ -280,7 +280,7 @@ export default function ManageParents() {
                           {student.parentStatus}
                         </span>
                       </TableCell>
-                      <TableCell className="px-5 py-3 text-right">
+                      <TableCell className="pl-5 pr-7 py-3 text-right">
                         {/* Compact Action Buttons */}
                         <div className="flex justify-end gap-1.5">
                           <Button

@@ -1203,3 +1203,32 @@ export const requestFeature = asyncHandler(async (req, res) => {
 
   res.json({ success: true, message: 'Feature request sent successfully to the Super Admin.' });
 });
+
+export const resetSchoolPassword = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    throw new ApiError(403, 'Access denied. Super Administrator privileges required.');
+  }
+
+  const { schoolId } = req.params;
+  const { password } = req.body;
+
+  if (!password || password.trim().length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters long.');
+  }
+
+  // Find the primary school administrator user associated with this school
+  const adminUser = await User.findOne({ school: schoolId, role: 'school_admin' });
+  if (!adminUser) {
+    throw new ApiError(404, 'No school administrator user found for this school.');
+  }
+
+  // Set the new password (which will be automatically hashed on pre-save hooks or save handlers)
+  adminUser.password = password;
+  adminUser.mustChangePassword = true;
+  await adminUser.save();
+
+  res.json({ 
+    success: true, 
+    message: `Password for administrator ${adminUser.name} (${adminUser.email}) has been reset successfully.` 
+  });
+});

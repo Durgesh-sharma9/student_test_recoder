@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Search, Building2 } from 'lucide-react';
+import { Search, Building2, Key } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDisplayDate } from '@/lib/dateFormatter';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
@@ -14,6 +14,9 @@ export default function SuperSchools() {
   const [schools, setSchools] = useState([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  
+  // Password Reset Modal State
+  const [resetModal, setResetModal] = useState({ open: false, schoolId: '', schoolName: '', password: '' });
 
   const load = async () => {
     const params = {};
@@ -124,6 +127,18 @@ export default function SuperSchools() {
                       >
                         Login As Admin
                       </Button>
+                      
+                      {/* Reset School Password */}
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-amber-700 border-amber-200 bg-amber-50/50 hover:bg-amber-100/80 shadow-sm"
+                        onClick={() => setResetModal({ open: true, schoolId: s._id, schoolName: s.schoolName, password: '' })}
+                      >
+                        <Key className="h-3.5 w-3.5 mr-1" />
+                        New Password
+                      </Button>
+
                       <Button size="sm" variant="outline" onClick={() => toggleStatus(s._id, !s.isActive)}>
                         {s.isActive ? 'Deactivate' : 'Activate'}
                       </Button>
@@ -135,6 +150,63 @@ export default function SuperSchools() {
           </Table>
         </div>
       </ErpSection>
+
+      {/* Premium New Password Modal */}
+      {resetModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 w-full max-w-sm mx-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Set New School Password</h3>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                Set a new password for the administrator of <span className="font-bold text-slate-700">{resetModal.schoolName}</span>.
+              </p>
+            </div>
+            <FormField label="Enter New Password">
+              <Input
+                type="text"
+                placeholder="Enter at least 8 characters"
+                value={resetModal.password}
+                onChange={(e) => setResetModal({ ...resetModal, password: e.target.value })}
+                className="rounded-lg h-9 text-xs"
+              />
+            </FormField>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg text-xs"
+                onClick={() => setResetModal({ open: false, schoolId: '', schoolName: '', password: '' })}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="rounded-lg text-xs bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={async () => {
+                  if (resetModal.password.trim().length < 8) {
+                    toast.error('Password must be at least 8 characters long.');
+                    return;
+                  }
+                  
+                  // Confirmation Warning before reset
+                  const confirmed = window.confirm(`Warning: Are you sure you want to change the administrator password for ${resetModal.schoolName}? This will overwrite their current password.`);
+                  if (!confirmed) return;
+
+                  try {
+                    const res = await api.post(`/auth/reset-school-password/${resetModal.schoolId}`, { password: resetModal.password });
+                    toast.success(res.data.message || `Password updated successfully.`);
+                    setResetModal({ open: false, schoolId: '', schoolName: '', password: '' });
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || 'Failed to update password');
+                  }
+                }}
+              >
+                Set New Password
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageStack>
   );
 }
