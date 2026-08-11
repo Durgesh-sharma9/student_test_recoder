@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clipboard,
-  Tag
+  Tag,
+  MoreVertical
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -213,10 +214,15 @@ export default function AssessmentPlanner() {
   // Dialog / Edit Cell variables
   const [editingCell, setEditingCell] = useState(null); // { date, classItem }
   const [cellSubject, setCellSubject] = useState('Maths');
+  const [customSubjectInput, setCustomSubjectInput] = useState('');
   const [cellNotes, setCellNotes] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [classSubjects, setClassSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
+
+  // Column Reordering Warning Dialog states
+  const [reorderDialogOpen, setReorderDialogOpen] = useState(false);
+  const [reorderInfo, setReorderInfo] = useState({ fromIndex: null, toIndex: null });
 
   // Modal Dialogue control states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -567,7 +573,6 @@ export default function AssessmentPlanner() {
 
   // Cell clicks
   const handleCellClick = (dateItem, classItem) => {
-
     const cellKey = `${dateItem.dateStr}_${classItem.id}`;
     setSelectedCellKey(cellKey);
 
@@ -575,10 +580,27 @@ export default function AssessmentPlanner() {
     const existing = gridData[cellKey];
     
     const defaultSubjectsList = getClassFallbackSubjects(classItem.name);
-    setCellSubject(existing?.subject || defaultSubjectsList[0] || 'Maths');
-    setCellNotes(existing?.notes || '');
+    const existingSubject = existing?.subject || '';
+    const isStandard = defaultSubjectsList.includes(existingSubject) || ['Maths','Science','English','Hindi','Computer','SST','GK','No Test'].includes(existingSubject);
     
+    setCellNotes(existing?.notes || '');
     fetchSubjectsForClass(classItem.id, classItem.name);
+
+    if (existingSubject && !isStandard) {
+      setCustomSubjectInput(existingSubject);
+      setCellSubject(''); // Custom subject
+    } else {
+      const colLabel = customDateLabels[dateItem.dateStr] || '';
+      setCustomSubjectInput(existingSubject || colLabel);
+      if (existingSubject) {
+        setCellSubject(existingSubject);
+      } else if (colLabel) {
+        setCellSubject('');
+      } else {
+        setCellSubject(defaultSubjectsList[0] || 'Maths');
+      }
+    }
+    
     setDialogOpen(true);
   };
 
@@ -590,11 +612,12 @@ export default function AssessmentPlanner() {
     
     try {
       const cellKey = `${editingCell.date.dateStr}_${editingCell.classItem.id}`;
+      const finalSubject = customSubjectInput.trim() || cellSubject || 'No Test';
       
       setGridData(prev => {
         const updated = { ...prev };
         updated[cellKey] = {
-          subject: cellSubject,
+          subject: finalSubject,
           notes: cellNotes
         };
         return updated;
@@ -900,21 +923,9 @@ export default function AssessmentPlanner() {
 
   // Shift column left/right
   const handleMoveCol = (index, direction) => {
-    if (plannerStatus === 'Published') {
-      toast.error('Published Planner is Read-Only');
-      return;
-    }
     const targetIdx = index + direction;
     if (targetIdx < 0 || targetIdx >= datesList.length) return;
-    
-    setDatesList(prev => {
-      const updated = [...prev];
-      const temp = updated[index];
-      updated[index] = updated[targetIdx];
-      updated[targetIdx] = temp;
-      return updated;
-    });
-    toast.success('Column reordered successfully');
+    triggerColReorder(index, targetIdx);
   };
 
   // Add class row trigger
@@ -1205,22 +1216,88 @@ export default function AssessmentPlanner() {
 
   const handleColDrop = (dropIndex) => {
     if (draggedColIndex === null || draggedColIndex === dropIndex) return;
+    triggerColReorder(draggedColIndex, dropIndex);
+    setDraggedColIndex(null);
+  };
+
+  const triggerColReorder = (fromIndex, toIndex) => {
+    if (plannerStatus === 'Published') {
+      toast.error('Published Planner is Read-Only');
+      return;
+    }
+    
+    // Warn only if there are active schedules to keep or discard
+    const hasSchedules = Object.keys(gridData).length > 0;
+    if (!hasSchedules) {
+      performColReorder(fromIndex, toIndex, false);
+      return;
+    }
+
+    setReorderInfo({ fromIndex, toIndex });
+    setReorderDialogOpen(true);
+  };
+
+  const performColReorder = (fromIndex, toIndex, keepSchedulesOnDates) => {
+    const date1 = datesList[fromIndex]?.dateStr;
+    const date2 = datesList[toIndex]?.dateStr;
+
+    if (!date1 || !date2) return;
 
     setDatesList(prev => {
       const updated = [...prev];
-      const draggedItem = updated[draggedColIndex];
-      updated.splice(draggedColIndex, 1);
-      updated.splice(dropIndex, 0, draggedItem);
+      const draggedItem = updated[fromIndex];
+      updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, draggedItem);
       return updated;
     });
 
-    setDraggedColIndex(null);
-    toast.success('Column reordered');
+    if (keepSchedulesOnDates) {
+      // Swapping cell data coordinate values in gridData for these two dates
+      setGridData(prev => {
+        const updated = { ...prev };
+        selectedClassesList.forEach(cls => {
+          const key1 = `${date1}_${cls.id}`;
+          const key2 = `${date2}_${cls.id}`;
+          const val1 = updated[key1];
+          const val2 = updated[key2];
+
+          if (val1) {
+            updated[key2] = val1;
+          } else {
+            delete updated[key2];
+          }
+
+          if (val2) {
+            updated[key1] = val2;
+          } else {
+            delete updated[key1];
+          }
+        });
+        return updated;
+      });
+      toast.success('Columns reordered. Schedules kept on original calendar dates.');
+    } else {
+      toast.success('Columns reordered. Schedules moved with the date.');
+    }
+
+    setReorderDialogOpen(false);
+    setReorderInfo({ fromIndex: null, toIndex: null });
   };
 
   // Right-Click Context Menu Trigger
   const handleRightClick = (e, type, target) => {
     e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      type,
+      target
+    });
+  };
+
+  // Left-Click Context Menu Trigger
+  const handleHeaderClick = (e, type, target) => {
+    e.stopPropagation();
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -1675,7 +1752,8 @@ export default function AssessmentPlanner() {
                         onDragOver={handleColDragOver}
                         onDrop={() => handleColDrop(index)}
                         onContextMenu={(e) => handleRightClick(e, 'date', dt.dateStr)}
-                        className={`sticky top-0 z-30 border-b border-r border-slate-200 p-1 text-center flex flex-col justify-center items-center select-none shadow-[0_2px_4px_-1px_rgba(0,0,0,0.02)] min-h-[64px] h-[64px] group relative cursor-grab active:cursor-grabbing ${
+                        onClick={(e) => handleHeaderClick(e, 'date', dt.dateStr)}
+                        className={`sticky top-0 z-30 border-b border-r border-slate-200 p-1 text-center flex flex-col justify-center items-center select-none shadow-[0_2px_4px_-1px_rgba(0,0,0,0.02)] min-h-[64px] h-[64px] group relative cursor-pointer active:scale-[0.99] transition-all ${
                           isToday && highlightToday
                             ? 'bg-yellow-50 text-yellow-900 border-b-yellow-400 border-b-2 font-bold'
                             : isToday
@@ -1687,14 +1765,23 @@ export default function AssessmentPlanner() {
                                   : 'bg-slate-50 text-slate-600 font-bold'
                         }`}
                       >
+                        {/* More actions edit button/icon on hover */}
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                          <span className="p-0.5 rounded bg-slate-100/50 hover:bg-slate-200/80 text-slate-500 hover:text-indigo-650 block transition shadow-sm border border-slate-200/40">
+                            <MoreVertical className="h-3 w-3" />
+                          </span>
+                        </div>
+
                         <span 
                           onDoubleClick={() => handleRenameTrigger(dt)}
-                          className="text-[15px] font-bold text-slate-800 leading-tight block hover:bg-slate-200/50 rounded px-1 cursor-pointer transition"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[14px] font-bold text-slate-800 leading-tight block hover:bg-slate-200/50 rounded px-1 cursor-text transition"
                           title="Double click to rename column date"
                         >
                           {dt.label}
                         </span>
-                        <span className="text-[12px] font-medium text-slate-400 block leading-tight mt-0.5">{dt.dayName}</span>
+                        <span className="text-[11px] font-medium text-slate-400 block leading-tight mt-0.5">{dt.dayName}</span>
+
 
                         {/* HOVER DATE COLOUMN INSERTION TRIGGER (Notion-style vertical separator) */}
                         <div className="absolute right-0 top-0 bottom-0 w-1.5 group/col-insert hover:w-3 cursor-pointer flex justify-center items-center z-30 no-print">
@@ -2110,11 +2197,41 @@ export default function AssessmentPlanner() {
               )}
             </div>
           </DialogHeader>
-
           <DialogBody className="p-6 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                Custom Event / Subject Name
+              </label>
+              <input
+                type="text"
+                value={customSubjectInput}
+                onChange={(e) => {
+                  setCustomSubjectInput(e.target.value);
+                  setCellSubject(''); // Clear standard selected subject button
+                }}
+                placeholder="e.g. Sports Day, PTM, Annual Exam..."
+                className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-705 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-350"
+              />
+              {editingCell && customDateLabels[editingCell.date.dateStr] && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-[10px] text-slate-400 font-medium">Column Default:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomSubjectInput(customDateLabels[editingCell.date.dateStr]);
+                      setCellSubject('');
+                    }}
+                    className="text-[10px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg px-2 py-0.5 border border-amber-200/50 cursor-pointer transition-all"
+                  >
+                    Apply "{customDateLabels[editingCell.date.dateStr]}"
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Select Subject ({editingCell?.classItem?.name})
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                Select Standard Subject ({editingCell?.classItem?.name})
               </label>
 
               {loadingSubjects ? (
@@ -2128,13 +2245,16 @@ export default function AssessmentPlanner() {
                     <p className="text-sm text-slate-400 italic col-span-2 text-center py-4">No subjects configured</p>
                   ) : (
                     classSubjects.map((sub) => {
-                      const isSelected = cellSubject === sub;
+                      const isSelected = cellSubject === sub && !customSubjectInput;
                       const colorMeta = SUBJECT_COLORS[sub] || SUBJECT_COLORS['No Test'];
                       return (
                         <button
                           key={sub}
                           type="button"
-                          onClick={() => setCellSubject(sub)}
+                          onClick={() => {
+                            setCellSubject(sub);
+                            setCustomSubjectInput(''); // Clear custom input
+                          }}
                           className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-left text-sm font-semibold transition-all cursor-pointer ${
                             isSelected
                               ? `${colorMeta.bg} ring-2 ring-indigo-500/15 shadow-sm`
@@ -2513,6 +2633,58 @@ export default function AssessmentPlanner() {
               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 text-sm font-bold shadow-sm border-0"
             >
               Apply Configurations
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DATE COLUMN REORDERING WARNING DIALOG */}
+      <Dialog open={reorderDialogOpen} onOpenChange={setReorderDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-3xl p-0 overflow-hidden bg-white border-slate-200 shadow-2xl">
+          <DialogHeader className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-5">
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Reorder Date Column?
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="p-6 space-y-4">
+            <p className="text-sm text-slate-700 leading-relaxed font-semibold">
+              You are reordering the date columns in your planner. How would you like to handle your scheduled assessments and tests?
+            </p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => performColReorder(reorderInfo.fromIndex, reorderInfo.toIndex, true)}
+                className="w-full text-left p-3.5 rounded-2xl border border-indigo-100 hover:border-indigo-300 bg-indigo-50/20 hover:bg-indigo-50/50 cursor-pointer transition-all"
+              >
+                <p className="text-xs font-bold text-indigo-950">Option A: Keep Schedules at Original Dates</p>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  Schedules will stay pinned to the original calendar dates (e.g. tests on 22nd Aug stay on 22nd Aug). Only the visual columns shift.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => performColReorder(reorderInfo.fromIndex, reorderInfo.toIndex, false)}
+                className="w-full text-left p-3.5 rounded-2xl border border-slate-200 hover:border-indigo-300 bg-white hover:bg-slate-50/50 cursor-pointer transition-all"
+              >
+                <p className="text-xs font-bold text-slate-800">Option B: Move Schedules with the Dates (Default)</p>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  Schedules move visual positions along with their dates (e.g. tests on 23rd Aug shift to the new position along with the date).
+                </p>
+              </button>
+            </div>
+          </DialogBody>
+          <DialogFooter className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReorderDialogOpen(false);
+                setReorderInfo({ fromIndex: null, toIndex: null });
+              }}
+              className="rounded-xl h-10 px-5 text-sm font-semibold cursor-pointer border-slate-200 bg-white"
+            >
+              Cancel Reordering
             </Button>
           </DialogFooter>
         </DialogContent>
