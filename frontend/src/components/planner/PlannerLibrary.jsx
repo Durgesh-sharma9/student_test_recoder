@@ -19,7 +19,7 @@ export default function PlannerLibrary({
   const [typeFilter, setTypeFilter] = useState('all'); // all, daily, main
 
   const safePlanners = Array.isArray(planners) ? planners : [];
-  const maxReached = safePlanners.length >= 5;
+  const maxReached = safePlanners.length >= 10;
 
   // Filter planners list
   const filteredPlanners = safePlanners.filter(p => {
@@ -55,7 +55,7 @@ export default function PlannerLibrary({
             <div className="space-y-0.5">
               <p className="font-bold">Planner Storage Limit Reached</p>
               <p className="text-[10px] text-amber-700 leading-relaxed">
-                You have reached the maximum limit of 5 planners. Delete an existing planner from your library to create a new one.
+                You have reached the maximum limit of 10 planners. Delete an existing planner from your library to create a new one.
               </p>
             </div>
           </div>

@@ -258,11 +258,21 @@ export default function AssessmentSignature() {
         const [dateStr, classId] = parts;
         if (classId === selectedClassId || (fallbackName && classId.toLowerCase() === fallbackName)) {
           const cell = planner.gridData[key];
-          if (cell && cell.subject && cell.subject.toLowerCase() !== 'no test') {
-            entries.push({
-              date: dateStr, // YYYY-MM-DD
-              subject: cell.subject
-            });
+          if (cell && cell.subject) {
+            const subjectLower = cell.subject.toLowerCase().trim();
+            const customLabels = Object.values(planner.customDateLabels || {}).map(v => v.toLowerCase().trim());
+            const isExcluded =
+              subjectLower === 'no test' ||
+              subjectLower === 'holiday' ||
+              subjectLower === 'nothing' ||
+              customLabels.includes(subjectLower);
+
+            if (!isExcluded) {
+              entries.push({
+                date: dateStr, // YYYY-MM-DD
+                subject: cell.subject
+              });
+            }
           }
         }
       }
