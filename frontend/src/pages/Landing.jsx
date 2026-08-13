@@ -8,7 +8,7 @@ import {
   Lock, TrendingUp, FileText, Play, Check, X, Twitter, 
   Linkedin, Facebook, Instagram, Mail, Phone, MapPin, Gem
 } from "lucide-react";
-
+// my landing page
 /* ─── animated counter ─── */
 function useCounter(target, duration = 1400, start = false) {
   const [v, setV] = useState(0);
