@@ -66,6 +66,7 @@ export const authorize = (...roles) => {
   return (req, res, next) => {
     const role = req.user.role === 'admin' ? 'school_admin' : req.user.role;
     if (!allowed.includes(role)) {
+      console.log('[AUTHORIZE REJECTION]: User:', req.user.email, 'Role:', role, 'Allowed roles:', allowed);
       throw new ApiError(403, 'You do not have permission to perform this action.');
     }
     next();
