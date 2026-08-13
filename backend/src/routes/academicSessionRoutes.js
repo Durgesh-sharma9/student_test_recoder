@@ -11,16 +11,15 @@ import { protect, authorize } from '../middleware/auth.js';
 const router = express.Router();
 
 router.use(protect);
-router.use(authorize('school_admin', 'admin'));
 
 router.route('/')
-  .get(getSessions)
-  .post(createSession);
+  .get(authorize('school_admin', 'admin', 'teacher'), getSessions)
+  .post(authorize('school_admin', 'admin'), createSession);
 
-router.get('/active', getActiveSession);
+router.get('/active', authorize('school_admin', 'admin', 'teacher'), getActiveSession);
 
 router.route('/:id')
-  .get(getSessionById)
-  .put(updateSession);
+  .get(authorize('school_admin', 'admin', 'teacher'), getSessionById)
+  .put(authorize('school_admin', 'admin'), updateSession);
 
 export default router;
