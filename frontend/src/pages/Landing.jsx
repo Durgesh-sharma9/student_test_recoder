@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import {
   GraduationCap, BarChart3, Users, BookOpen, Trophy,
-  Calendar, ArrowRight, ClipboardList, FileSpreadsheet, 
-  Smartphone, Building2, ChevronRight, Star, Zap, Cloud, 
-  Lock, TrendingUp, FileText, Play, Check, X, Twitter, 
+  Calendar, ArrowRight, ClipboardList, FileSpreadsheet,
+  Smartphone, Building2, ChevronRight, Star, Zap, Cloud,
+  Lock, TrendingUp, FileText, Play, Check, X, Twitter,
   Linkedin, Facebook, Instagram, Mail, Phone, MapPin, Gem
 } from "lucide-react";
 // my landing page
@@ -42,7 +42,7 @@ function StatCard({ value, suffix, label, icon: Icon, gradient, delay, inView })
 
 export default function Landing() {
   const [statsVisible, setStatsVisible] = useState(false);
-  const [scrolled, setScrolled]         = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const statsRef = useRef(null);
 
@@ -59,29 +59,29 @@ export default function Landing() {
   }, []);
 
   const features = [
-    { icon: Users,          title: "Student Management",      desc: "Manage admissions, student records, academic history and class allocation from one place.",        grad: "linear-gradient(135deg,#6366f1,#3b82f6)", shadow: "rgba(99,102,241,.35)" },
-    { icon: Users,          title: "Teacher Management",      desc: "Manage teachers, subject assignments, attendance and performance with ease.",                   grad: "linear-gradient(135deg,#10b981,#06b6d4)", shadow: "rgba(16,185,129,.35)" },
-    { icon: BookOpen,       title: "Daily Test Management",   desc: "Conduct daily tests, enter marks and monitor student performance continuously.",                 grad: "linear-gradient(135deg,#f59e0b,#f97316)", shadow: "rgba(245,158,11,.35)" },
-    { icon: Trophy,         title: "Main Exam Management",    desc: "Create exams, enter marks, calculate percentages and generate final results.",                   grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", shadow: "rgba(236,72,153,.35)" },
-    { icon: BarChart3,      title: "Smart Result Analytics",  desc: "Track rankings, toppers, percentages and academic growth through visual reports.",               grad: "linear-gradient(135deg,#f97316,#ef4444)", shadow: "rgba(249,115,22,.35)" },
-    { icon: ClipboardList,  title: "Class Reports",           desc: "Generate class-wise reports, topper lists and printable result sheets instantly.",               grad: "linear-gradient(135deg,#14b8a6,#10b981)", shadow: "rgba(20,184,166,.35)" },
-    { icon: FileSpreadsheet,title: "Excel Export",            desc: "Export reports and student data to Excel for offline analysis and printing.",                     grad: "linear-gradient(135deg,#3b82f6,#06b6d4)", shadow: "rgba(59,130,246,.35)" },
-    { icon: Smartphone,     title: "Parent Portal",           desc: "Parents can securely view results, rankings, notices and student progress anytime.",             grad: "linear-gradient(135deg,#a855f7,#ec4899)", shadow: "rgba(168,85,247,.35)" },
-    { icon: Building2,      title: "Multi School Ready",      desc: "Designed for single schools as well as multi-school organizations.",                             grad: "linear-gradient(135deg,#f59e0b,#84cc16)", shadow: "rgba(245,158,11,.35)" },
-    { icon: Calendar,       title: "Academic Sessions",       desc: "Manage multiple academic sessions while keeping previous records secure.",                       grad: "linear-gradient(135deg,#06b6d4,#6366f1)", shadow: "rgba(6,182,212,.35)" },
+    { icon: Users, title: "Student Management", desc: "Manage admissions, student records, academic history and class allocation from one place.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", shadow: "rgba(99,102,241,.35)" },
+    { icon: Users, title: "Teacher Management", desc: "Manage teachers, subject assignments, attendance and performance with ease.", grad: "linear-gradient(135deg,#10b981,#06b6d4)", shadow: "rgba(16,185,129,.35)" },
+    { icon: BookOpen, title: "Daily Test Management", desc: "Conduct daily tests, enter marks and monitor student performance continuously.", grad: "linear-gradient(135deg,#f59e0b,#f97316)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Trophy, title: "Main Exam Management", desc: "Create exams, enter marks, calculate percentages and generate final results.", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", shadow: "rgba(236,72,153,.35)" },
+    { icon: BarChart3, title: "Smart Result Analytics", desc: "Track rankings, toppers, percentages and academic growth through visual reports.", grad: "linear-gradient(135deg,#f97316,#ef4444)", shadow: "rgba(249,115,22,.35)" },
+    { icon: ClipboardList, title: "Class Reports", desc: "Generate class-wise reports, topper lists and printable result sheets instantly.", grad: "linear-gradient(135deg,#14b8a6,#10b981)", shadow: "rgba(20,184,166,.35)" },
+    { icon: FileSpreadsheet, title: "Excel Export", desc: "Export reports and student data to Excel for offline analysis and printing.", grad: "linear-gradient(135deg,#3b82f6,#06b6d4)", shadow: "rgba(59,130,246,.35)" },
+    { icon: Smartphone, title: "Parent Portal", desc: "Parents can securely view results, rankings, notices and student progress anytime.", grad: "linear-gradient(135deg,#a855f7,#ec4899)", shadow: "rgba(168,85,247,.35)" },
+    { icon: Building2, title: "Multi School Ready", desc: "Designed for single schools as well as multi-school organizations.", grad: "linear-gradient(135deg,#f59e0b,#84cc16)", shadow: "rgba(245,158,11,.35)" },
+    { icon: Calendar, title: "Academic Sessions", desc: "Manage multiple academic sessions while keeping previous records secure.", grad: "linear-gradient(135deg,#06b6d4,#6366f1)", shadow: "rgba(6,182,212,.35)" },
   ];
 
   const steps = [
-    { num: "01", icon: Building2, title: "Create Your School",         desc: "Register your school and complete the initial setup.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.4)"  },
-    { num: "02", icon: Users,     title: "Add Teachers & Students",    desc: "Import data or add records manually.",                                           grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.4)" },
-    { num: "03", icon: BookOpen,  title: "Conduct Tests & Exams",      desc: "Create assessments, enter marks and monitor progress.",                          grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.4)" },
-    { num: "04", icon: Trophy,    title: "Publish Results",            desc: "Generate rankings, report cards and allow parents to view results instantly.",    grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.4)" },
+    { num: "01", icon: Building2, title: "Create Your School", desc: "Register your school and complete the initial setup.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.4)" },
+    { num: "02", icon: Users, title: "Add Teachers & Students", desc: "Import data or add records manually.", grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.4)" },
+    { num: "03", icon: BookOpen, title: "Conduct Tests & Exams", desc: "Create assessments, enter marks and monitor progress.", grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.4)" },
+    { num: "04", icon: Trophy, title: "Publish Results", desc: "Generate rankings, report cards and allow parents to view results instantly.", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.4)" },
   ];
 
   const testimonials = [
-    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step School",              initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
+    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step", initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
     { quote: "The Parent Portal feature has been a game-changer. Parents are now much more involved, and our office staff is no longer overwhelmed with queries.", name: "Rajesh Meena", role: "Administrator, Global Public School", initials: "RM", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
-    { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.",  name: "Sunita Reddy", role: "Director, Heritage Academy",          initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
+    { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.", name: "Sunita Reddy", role: "Director, Heritage Academy", initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
   ];
 
   const [plans, setPlans] = useState([]);
@@ -92,7 +92,7 @@ export default function Landing() {
       try {
         const response = await api.get('/subscriptions/public-plans');
         if (response.data?.success) {
-          const filtered = (response.data.plans || []).filter(p => 
+          const filtered = (response.data.plans || []).filter(p =>
             !p.slug?.toLowerCase().includes('trial') && Number(p.basePrice) > 0
           );
           setPlans(filtered);
@@ -145,7 +145,7 @@ export default function Landing() {
 
   const visiblePlans = useMemo(() => {
     if (plans.length === 0) return staticPlans;
-    
+
     const dbPlans = plans
       .filter(p => (p.billingCycle || 'monthly') === activeCycle)
       .sort((a, b) => Number(a.basePrice) - Number(b.basePrice))
@@ -187,7 +187,7 @@ export default function Landing() {
         "Custom integrations"
       ]
     });
-    
+
     return dbPlans;
   }, [plans, activeCycle]);
 
@@ -201,12 +201,12 @@ export default function Landing() {
   };
 
   const whyCards = [
-    { icon: Zap,        title: "Easy to Use",          desc: "Simple interface designed for school administrators and teachers.",  grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
-    { icon: TrendingUp, title: "Fast Result Generation", desc: "Generate rankings and report cards within seconds.",              grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.12)" },
-    { icon: Cloud,      title: "Cloud Based",          desc: "Access your school anytime from any device.",                        grad: "linear-gradient(135deg,#3b82f6,#6366f1)", glow: "rgba(59,130,246,.12)" },
-    { icon: Lock,       title: "Secure Data",          desc: "School data remains private, secure and isolated.",                  grad: "linear-gradient(135deg,#ec4899,#ef4444)", glow: "rgba(236,72,153,.12)" },
-    { icon: Building2,  title: "Scalable Platform",     desc: "Perfect for schools of every size.",                                  grad: "linear-gradient(135deg,#8b5cf6,#a855f7)", glow: "rgba(139,92,246,.12)" },
-    { icon: FileText,   title: "Professional Reports",  desc: "Generate clean printable reports with one click.",                  grad: "linear-gradient(135deg,#14b8a6,#84cc16)", glow: "rgba(20,184,166,.12)" },
+    { icon: Zap, title: "Easy to Use", desc: "Simple interface designed for school administrators and teachers.", grad: "linear-gradient(135deg,#f59e0b,#f97316)", glow: "rgba(245,158,11,.12)" },
+    { icon: TrendingUp, title: "Fast Result Generation", desc: "Generate rankings and report cards within seconds.", grad: "linear-gradient(135deg,#10b981,#06b6d4)", glow: "rgba(16,185,129,.12)" },
+    { icon: Cloud, title: "Cloud Based", desc: "Access your school anytime from any device.", grad: "linear-gradient(135deg,#3b82f6,#6366f1)", glow: "rgba(59,130,246,.12)" },
+    { icon: Lock, title: "Secure Data", desc: "School data remains private, secure and isolated.", grad: "linear-gradient(135deg,#ec4899,#ef4444)", glow: "rgba(236,72,153,.12)" },
+    { icon: Building2, title: "Scalable Platform", desc: "Perfect for schools of every size.", grad: "linear-gradient(135deg,#8b5cf6,#a855f7)", glow: "rgba(139,92,246,.12)" },
+    { icon: FileText, title: "Professional Reports", desc: "Generate clean printable reports with one click.", grad: "linear-gradient(135deg,#14b8a6,#84cc16)", glow: "rgba(20,184,166,.12)" },
   ];
 
   return (
@@ -502,13 +502,13 @@ export default function Landing() {
         <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div className="logo"><div className="logo-mark"><GraduationCap size={18} /></div> Test Master Pro</div>
-            <button onClick={() => setMobileMenuOpen(false)} style={{background:'none', border:'none', cursor:'pointer'}}><X size={28}/></button>
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={28} /></button>
           </div>
           <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
           <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#about" onClick={() => setMobileMenuOpen(false)}>About</a>
           <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
-          <div style={{borderTop: '1px solid #f1f5f9', margin: '5px 0'}}></div>
+          <div style={{ borderTop: '1px solid #f1f5f9', margin: '5px 0' }}></div>
           <Link to="/login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Staff Login</Link>
           <Link to="/parent-login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Parent Login</Link>
           <Link to="/signup" className="btn btn-primary" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
@@ -534,7 +534,7 @@ export default function Landing() {
               <button className="btn btn-outline btn-lg"><Play size={15} /> Watch Demo</button>
             </div>
             <div className="hero-checks">
-              {["Student Management","Teacher Management","Daily Test System","Parent Portal","Smart Reports","Cloud Based Platform"].map(t => (
+              {["Student Management", "Teacher Management", "Daily Test System", "Parent Portal", "Smart Reports", "Cloud Based Platform"].map(t => (
                 <div className="hc" key={t}>
                   <div className="hc-dot"><Check size={11} color="#fff" strokeWidth={3} /></div>
                   {t}
@@ -551,10 +551,10 @@ export default function Landing() {
             </div>
             <div className="dash-kpis">
               {[
-                { lbl:"STUDENTS",  val:"12,540", delta:"↑ 4.2%", bar:"linear-gradient(90deg,#6366f1,#3b82f6)" },
-                { lbl:"TESTS DONE",val:"1,250",  delta:"↑ 12%",  bar:"linear-gradient(90deg,#10b981,#06b6d4)" },
-                { lbl:"TOP RANK",  val:"#1",     delta:"Class A", bar:"linear-gradient(90deg,#f59e0b,#f97316)" },
-                { lbl:"UPTIME",    val:"99.9%",  delta:"30 days", bar:"linear-gradient(90deg,#ec4899,#8b5cf6)" },
+                { lbl: "STUDENTS", val: "12,540", delta: "↑ 4.2%", bar: "linear-gradient(90deg,#6366f1,#3b82f6)" },
+                { lbl: "TESTS DONE", val: "1,250", delta: "↑ 12%", bar: "linear-gradient(90deg,#10b981,#06b6d4)" },
+                { lbl: "TOP RANK", val: "#1", delta: "Class A", bar: "linear-gradient(90deg,#f59e0b,#f97316)" },
+                { lbl: "UPTIME", val: "99.9%", delta: "30 days", bar: "linear-gradient(90deg,#ec4899,#8b5cf6)" },
               ].map(k => (
                 <div className="kpi" key={k.lbl}>
                   <div className="kpi-bar" style={{ background: k.bar }} />
@@ -568,16 +568,16 @@ export default function Landing() {
               <div className="chart-ttl">Results Generated</div>
               <div className="bars">
                 {[
-                  {h:42,c:"#c7d2fe"},{h:58,c:"#c7d2fe"},{h:51,c:"#a5b4fc"},
-                  {h:72,c:"#818cf8"},{h:65,c:"#a5b4fc"},
-                  {h:92,c:"linear-gradient(0deg,#4f46e5,#6366f1)"},
-                  {h:78,c:"#c7d2fe"},
-                ].map((bar,i)=>(
-                  <div key={i} className="b" style={{height:`${bar.h}%`,background:bar.c}} />
+                  { h: 42, c: "#c7d2fe" }, { h: 58, c: "#c7d2fe" }, { h: 51, c: "#a5b4fc" },
+                  { h: 72, c: "#818cf8" }, { h: 65, c: "#a5b4fc" },
+                  { h: 92, c: "linear-gradient(0deg,#4f46e5,#6366f1)" },
+                  { h: 78, c: "#c7d2fe" },
+                ].map((bar, i) => (
+                  <div key={i} className="b" style={{ height: `${bar.h}%`, background: bar.c }} />
                 ))}
               </div>
               <div className="blabels">
-                {["Oct","Nov","Dec","Jan","Feb","Mar","Apr"].map(m=><span key={m}>{m}</span>)}
+                {["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"].map(m => <span key={m}>{m}</span>)}
               </div>
             </div>
           </div>
@@ -587,10 +587,10 @@ export default function Landing() {
       {/* ── STATS ── */}
       <div className="stats-section" ref={statsRef}>
         <div className="stats-inner">
-          <StatCard value={100}   suffix="+" label="Schools"           icon={Building2}    gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0}   inView={statsVisible} />
-          <StatCard value={15000} suffix="" label="Students"          icon={Users}        gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80}  inView={statsVisible} />
-          <StatCard value={800}   suffix="+" label="Teachers"          icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
-          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText}       gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
+          <StatCard value={100} suffix="+" label="Schools" icon={Building2} gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0} inView={statsVisible} />
+          <StatCard value={15000} suffix="" label="Students" icon={Users} gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80} inView={statsVisible} />
+          <StatCard value={800} suffix="+" label="Teachers" icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
+          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText} gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
         </div>
       </div>
 
@@ -645,9 +645,9 @@ export default function Landing() {
             <p>Parents receive secure access to monitor results, rankings, academic progress and important school updates from anywhere.</p>
             <div className="portal-feats">
               {[
-                { icon: FileText,   title: "View Results",       desc: "Access subject-wise marks and overall performance.",    grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
-                { icon: Trophy,     title: "View Rankings",      desc: "Check class rank and overall academic position.",       grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
-                { icon: TrendingUp, title: "Track Progress",     desc: "Monitor performance trends throughout the academic session.",    grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+                { icon: FileText, title: "View Results", desc: "Access subject-wise marks and overall performance.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+                { icon: Trophy, title: "View Rankings", desc: "Check class rank and overall academic position.", grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+                { icon: TrendingUp, title: "Track Progress", desc: "Monitor performance trends throughout the academic session.", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
               ].map(pf => (
                 <div className="pf" key={pf.title}>
                   <div className="pf-icon" style={{ background: pf.grad, boxShadow: `0 6px 18px rgba(0,0,0,.15)` }}>
@@ -664,10 +664,10 @@ export default function Landing() {
               <p>Academic year 2025–26</p>
             </div>
             {[
-              { icon: FileText,  title: "Math — Unit Test 3", sub: "92/100 · Rank 3rd in class",  grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
-              { icon: BarChart3, title: "Overall percentage", sub: "88.4% · Grade A",            grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
-              { icon: Trophy,    title: "Semester rank",      sub: "5th out of 42 students",      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
-              { icon: TrendingUp, title: "Progress trend",    sub: "+6.2% vs last term",          grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
+              { icon: FileText, title: "Math — Unit Test 3", sub: "92/100 · Rank 3rd in class", grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+              { icon: BarChart3, title: "Overall percentage", sub: "88.4% · Grade A", grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
+              { icon: Trophy, title: "Semester rank", sub: "5th out of 42 students", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
+              { icon: TrendingUp, title: "Progress trend", sub: "+6.2% vs last term", grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
             ].map(pc => (
               <div className="p-card" key={pc.title}>
                 <div className="p-card-icon" style={{ background: pc.grad }}><pc.icon size={16} color="#fff" /></div>
@@ -709,7 +709,7 @@ export default function Landing() {
           {testimonials.map(t => (
             <div className="tc" key={t.name} style={{ background: t.bg, border: "1.5px solid rgba(0,0,0,.06)" }}>
               <div className="tc-bar" style={{ background: t.grad }} />
-              <div className="tc-stars">{[...Array(5)].map((_,i) => <Star key={i} size={14} />)}</div>
+              <div className="tc-stars">{[...Array(5)].map((_, i) => <Star key={i} size={14} />)}</div>
               <p className="tc-quote">"{t.quote}"</p>
               <div className="tc-author">
                 <div className="tc-avatar" style={{ background: t.grad }}>{t.initials}</div>
@@ -734,7 +734,7 @@ export default function Landing() {
           <div className="flex justify-center mb-8">
             <div className="bg-slate-100/80 backdrop-blur-sm p-1 rounded-xl flex shadow-inner border border-slate-200/50">
               {['monthly', 'yearly'].map((c) => (
-                <button key={c} onClick={() => setActiveCycle(c)} 
+                <button key={c} onClick={() => setActiveCycle(c)}
                   className={`px-12 py-2 rounded-lg font-bold capitalize transition-all text-sm ${activeCycle === c ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
                   {c}
                 </button>
@@ -766,7 +766,7 @@ export default function Landing() {
                     )}
                   </div>
                   <p className="text-xs text-slate-500 mb-6 text-left">{plan.desc}</p>
-                  
+
                   <hr className="border-t border-slate-100 mb-6" />
 
                   <div className="space-y-3 mb-8 flex-grow text-left">
