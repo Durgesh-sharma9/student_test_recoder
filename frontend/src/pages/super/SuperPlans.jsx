@@ -81,7 +81,7 @@ export default function SuperPlans() {
 
   // Log plans state whenever it changes
   useEffect(() => {
-    console.log('[SuperPlans] plans state updated:', plans.length, 'plans');
+    
     console.table(plans.map(p => ({
       slug: p.slug,
       planType: p.planType,
@@ -101,18 +101,7 @@ export default function SuperPlans() {
       list.push(p);
       map.set(type, list);
     }
-    console.log('[SuperPlans] groupedByType:', Array.from(map.entries()).map(([k, v]) => ({
-      type: k,
-      count: v.length,
-      plans: v.map(p => ({
-        slug: p.slug,
-        planType: p.planType,
-        billingCycle: p.billingCycle,
-        basePrice: p.basePrice,
-        finalPrice: p.finalPrice,
-        price: p.price
-      }))
-    })));
+    
     return map;
   }, [plans]);
 
@@ -128,7 +117,7 @@ export default function SuperPlans() {
         });
       })
       .filter(Boolean);
-    console.log('[SuperPlans] visiblePlans for activeCycle', activeCycle, ':', result);
+    
     return result;
   }, [groupedByType, activeCycle]);
 

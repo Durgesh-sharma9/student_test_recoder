@@ -14,7 +14,7 @@ export function SubscriptionProvider({ children }) {
     setLoading(true);
     try {
       const res = await api.get('/subscriptions/status');
-      console.log('[SubscriptionContext] API Response:', res.data);
+      
       setSubscription(res.data.subscription);
     } finally {
       setLoading(false);

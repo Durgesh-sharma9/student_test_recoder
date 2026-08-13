@@ -1,13 +1,5 @@
 import nodemailer from "nodemailer";
 
-// Log SMTP configuration on load
-console.log('[Email Service] Initializing email service...');
-console.log('[Email Service] SMTP_HOST:', process.env.SMTP_HOST ? 'SET' : 'MISSING');
-console.log('[Email Service] SMTP_PORT:', process.env.SMTP_PORT || '587 (default)');
-console.log('[Email Service] SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'MISSING');
-console.log('[Email Service] SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'MISSING');
-console.log('[Email Service] MAIL_FROM:', process.env.MAIL_FROM || process.env.SMTP_USER || 'NOT SET');
-
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.error('[Email Service] CRITICAL: Missing required SMTP configuration!');
   console.error('[Email Service] Email delivery will fail. Please check your .env file.');
@@ -41,13 +33,13 @@ const logEmailError = (error, context, retryAttempt = 0) => {
 };
 
 const logEmailSuccess = (context, recipient, retryAttempt = 0) => {
-  console.log(`[Email Success - ${context}]: Email sent successfully to ${recipient}${retryAttempt > 0 ? ` (after ${retryAttempt} retry attempts)` : ''}`);
+  
 };
 
 export const verifyTransporter = async () => {
   try {
     await transporter.verify();
-    console.log('[Email Service] SMTP connection verified successfully');
+    
     return true;
   } catch (error) {
     console.error('[Email Service] SMTP connection verification failed:', error.message);
@@ -61,7 +53,7 @@ const sendWithRetry = async (mailOptions, context, maxRetries = 3) => {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`[Email Service - ${context}] Retry attempt ${attempt}/${maxRetries}...`);
+        
         // Add delay before retry (exponential backoff)
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -96,14 +88,14 @@ export const sendTeacherCreationEmail = async (
   password,
   loginUrl
 ) => {
-  console.log('[Email Service] Preparing to send teacher creation email');
-  console.log('[Email Service] Recipient:', teacherEmail);
-  console.log('[Email Service] School:', schoolName);
-  console.log('[Email Service] Teacher:', teacherName);
-  console.log('[Email Service] MAIL_FROM:', MAIL_FROM);
-  console.log('[Email Service] SMTP_HOST:', process.env.SMTP_HOST);
-  console.log('[Email Service] SMTP_PORT:', process.env.SMTP_PORT);
-  console.log('[Email Service] SMTP_USER:', process.env.SMTP_USER);
+  
+  
+  
+  
+  
+  
+  
+  
 
   // Verify SMTP configuration before sending
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -255,10 +247,10 @@ export const sendEmailVerificationEmail = async (
   verificationToken,
   frontendUrl
 ) => {
-  console.log('[Email Service] Preparing to send email verification email');
-  console.log('[Email Service] Recipient:', adminEmail);
-  console.log('[Email Service] School:', schoolName);
-  console.log('[Email Service] Admin:', adminName);
+  
+  
+  
+  
 
   const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
@@ -357,8 +349,8 @@ export const sendPasswordChangeOTPEmail = async (
   adminEmail,
   otp
 ) => {
-  console.log('[Email Service] Preparing to send password change OTP email');
-  console.log('[Email Service] Recipient:', adminEmail);
+  
+  
 
   const mailOptions = {
     from: MAIL_FROM,
@@ -448,8 +440,8 @@ export const sendEmailChangeOTPEmail = async (
   newEmail,
   otp
 ) => {
-  console.log('[Email Service] Preparing to send email change OTP email');
-  console.log('[Email Service] Recipient:', adminEmail);
+  
+  
 
   const mailOptions = {
     from: MAIL_FROM,
@@ -540,10 +532,10 @@ export const sendTeacherAssignmentEmail = async (
   schoolName = 'Your School',
   loginUrl = ''
 ) => {
-  console.log('[Email Service] Preparing to send teacher assignment email');
-  console.log('[Email Service] Recipient:', teacherEmail);
-  console.log('[Email Service] Teacher:', teacherName);
-  console.log('[Email Service] School:', schoolName);
+  
+  
+  
+  
 
   const classesList = assignedClasses
     .map((c) => `<li style="color: #212529; font-size: 15px; margin: 8px 0; padding-left: 20px; position: relative;">• ${c}</li>`)
@@ -658,10 +650,10 @@ export const sendParentCreationEmail = async (
   password,
   loginUrl
 ) => {
-  console.log('[Email Service] Preparing to send parent creation email');
-  console.log('[Email Service] Recipient:', parentEmail);
-  console.log('[Email Service] School:', schoolName);
-  console.log('[Email Service] Parent:', parentName);
+  
+  
+  
+  
 
   const mailOptions = {
     from: MAIL_FROM,
@@ -767,10 +759,10 @@ export const sendSignupOTPEmail = async (
   adminEmail,
   otp
 ) => {
-  console.log('[Email Service] Preparing to send signup OTP email');
-  console.log('[Email Service] Recipient:', adminEmail);
-  console.log('[Email Service] Admin:', adminName);
-  console.log('[Email Service] OTP:', otp);
+  
+  
+  
+  
 
   const mailOptions = {
     from: MAIL_FROM,
@@ -852,8 +844,8 @@ export const sendResetPasswordEmail = async (
   adminEmail,
   otp
 ) => {
-  console.log('[Email Service] Preparing to send reset password OTP email');
-  console.log('[Email Service] Recipient:', adminEmail);
+  
+  
 
   const mailOptions = {
     from: MAIL_FROM,

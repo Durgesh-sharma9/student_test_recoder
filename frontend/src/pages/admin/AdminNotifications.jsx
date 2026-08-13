@@ -78,25 +78,19 @@ export default function AdminNotifications() {
       setLoading(true);
       const res = await api.get('/notifications');
       const items = res.data.notifications || [];
-      console.log('[fetchNotifications] API response notifications:', items);
-      console.log('[fetchNotifications] Number of notifications:', items.length);
+      
+      
       const userId = localStorage.getItem('userId');
-      console.log('[fetchNotifications] Current user ID:', userId);
+      
       
       items.forEach((n, idx) => {
-        console.log(`[fetchNotifications] Notification ${idx}:`, {
-          _id: n._id,
-          title: n.title,
-          readBy: n.readBy,
-          readByIncludesUser: n.readBy?.includes(userId),
-          isUnread: !n.readBy?.includes(userId)
-        });
+        
       });
       
       setNotifications(items);
       // derive unread count from the same source of truth
       const derivedUnread = items.filter((it) => !it.readBy?.includes(userId)).length;
-      console.log('[fetchNotifications] Derived unread count:', derivedUnread);
+      
       setUnreadCount(derivedUnread);
     } catch (error) {
       console.error('[fetchNotifications] Error:', error);
@@ -117,9 +111,9 @@ export default function AdminNotifications() {
 
   const markAsRead = async (notificationId) => {
     try {
-      console.log('[markAsRead] Marking notification as read:', notificationId);
+      
       const res = await api.put(`/notifications/${notificationId}/mark-read`);
-      console.log('[markAsRead] API response:', res.data);
+      
       // Refresh notifications from server to ensure persistence
       await fetchNotifications();
     } catch (error) {
@@ -130,9 +124,9 @@ export default function AdminNotifications() {
 
   const markAllAsRead = async () => {
     try {
-      console.log('[markAllAsRead] Marking all notifications as read');
+      
       const res = await api.put('/notifications/mark-all-read');
-      console.log('[markAllAsRead] API response:', res.data);
+      
       // Refresh notifications from server to ensure persistence
       await fetchNotifications();
     } catch (error) {

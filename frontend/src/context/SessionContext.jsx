@@ -16,20 +16,20 @@ export function SessionProvider({ children }) {
       // Check if user is authenticated by checking for token
       const token = localStorage.getItem('token');
       if (!token) {
-        console.log('[SessionContext] No token found, skipping session fetch (public route)');
+        
         setLoading(false);
         return;
       }
 
       // Parents don't need academic sessions - skip fetching
       if (user?.role === 'parent') {
-        console.log('[SessionContext] Parent user, skipping session fetch');
+        
         setLoading(false);
         return;
       }
 
       try {
-        console.log('[SessionContext] Fetching sessions with valid token');
+        
         const res = await api.get('/academic-sessions');
         setAllSessions(res.data.sessions || []);
         

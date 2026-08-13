@@ -100,11 +100,11 @@ export default function TeacherPerformance() {
   // Load teacher assignments when teacher is selected
   useEffect(() => {
     if (teacherId) {
-      console.log('[TeacherPerformance] Teacher selected:', teacherId);
+      
       api.get(`/users/${teacherId}`)
         .then((res) => {
           const assignments = res.data.user?.assignments || [];
-          console.log('[TeacherPerformance] Teacher assignments loaded:', assignments);
+          
           setTeacherAssignments(assignments);
         })
         .catch((err) => {
@@ -113,7 +113,7 @@ export default function TeacherPerformance() {
         });
     } else {
       // Reset when teacher is set to All Teachers
-      console.log('[TeacherPerformance] Teacher reset to All Teachers');
+      
       setTeacherAssignments([]);
       setSubject('');
       setClassId('');
@@ -152,11 +152,11 @@ export default function TeacherPerformance() {
 
   // Filter subjects based on teacher's assignments and selected class
   const filteredSubjects = useMemo(() => {
-    console.log('[TeacherPerformance] Filtering subjects - teacherId:', teacherId, 'classId:', classId, 'teacherAssignments:', teacherAssignments);
+    
     
     if (!teacherId) {
       // Show all subjects when no teacher selected
-      console.log('[TeacherPerformance] No teacher selected, showing all subjects:', subjects.length);
+      
       // Normalize subjects to strings to avoid [object Object] rendering
       return subjects.map(s => {
         if (typeof s === 'string') return s;
@@ -169,7 +169,7 @@ export default function TeacherPerformance() {
     
     // If teacher is selected, derive subjects from assignments directly
     if (teacherAssignments.length === 0) {
-      console.log('[TeacherPerformance] No assignments found for teacher, returning empty subjects');
+      
       return [];
     }
     
@@ -178,15 +178,15 @@ export default function TeacherPerformance() {
       const classAssignments = teacherAssignments.filter(a => 
         (a.class?._id === classId) || (a.class === classId)
       );
-      console.log('[TeacherPerformance] Class assignments for classId', classId, ':', classAssignments);
+      
       const classSubjects = new Set(classAssignments.map(a => a.subject));
-      console.log('[TeacherPerformance] Unique subjects for class:', Array.from(classSubjects));
+      
       return Array.from(classSubjects);
     }
     
     // If only teacher selected (no class), show all unique subjects assigned to that teacher
     const assignedSubjects = new Set(teacherAssignments.map(a => a.subject));
-    console.log('[TeacherPerformance] Unique subjects for teacher:', Array.from(assignedSubjects));
+    
     return Array.from(assignedSubjects);
   }, [subjects, teacherId, teacherAssignments, classId]);
 
@@ -239,8 +239,8 @@ export default function TeacherPerformance() {
     setError('');
     try {
       const res = await api.get('/teacher-performance', { params });
-      console.log('Teacher Performance API Response', res?.data);
-      console.log('Rows', res?.data?.rows);
+      
+      
 
       const nextRows = res?.data?.rows || res?.data?.data?.rows || [];
       setRows(Array.isArray(nextRows) ? nextRows : []);

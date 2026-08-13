@@ -18,7 +18,7 @@ export const processScheduledDowngrades = async () => {
       scheduledDowngradeDate: { $lte: now },
     }).populate('plan').populate('scheduledDowngradePlan');
 
-    console.log(`[processScheduledDowngrades] Found ${schoolsToDowngrade.length} schools to downgrade`);
+    
 
     for (const school of schoolsToDowngrade) {
       const previousPlan = school.plan;
@@ -62,7 +62,7 @@ export const processScheduledDowngrades = async () => {
         });
       }
 
-      console.log(`[processScheduledDowngrades] Downgraded school ${school.schoolName} from ${previousPlan.name} to ${newPlan.name}`);
+      
     }
 
     return { success: true, processed: schoolsToDowngrade.length };

@@ -183,27 +183,11 @@ export const registerSchool = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  console.log('[Login] Login attempt for email:', email);
-
   if (!email || !password) {
     throw new ApiError(400, 'Email and password are required.');
   }
 
   const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-
-  console.log('[Login] User found:', !!user);
-  if (user) {
-    console.log('[Login] User details:', {
-      _id: user._id,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive,
-      isEmailVerified: user.isEmailVerified,
-      passwordExists: !!user.password,
-      passwordLength: user.password?.length,
-      authProvider: user.authProvider,
-    });
-  }
 
   if (!user) {
     throw new ApiError(401, 'Invalid email or password.');
@@ -242,7 +226,6 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   const passwordMatch = await user.comparePassword(password);
-  console.log('[Login] Password match:', passwordMatch);
 
   if (!passwordMatch) {
     // Increment failed login attempts
@@ -313,26 +296,19 @@ export const changePassword = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const userId = req.user._id;
 
-  console.log('[changePassword] User role:', role);
-  console.log('[changePassword] User ID:', userId);
-
   let user;
   
   if (role === 'parent') {
     user = await Parent.findById(userId).select('+password');
-    console.log('[changePassword] Parent found:', !!user);
   } else {
     user = await User.findById(userId).select('+password');
-    console.log('[changePassword] User found:', !!user);
   }
 
   if (!user) {
     throw new ApiError(404, 'User not found.');
   }
 
-  console.log('[changePassword] Comparing password...');
   const isPasswordValid = await user.comparePassword(currentPassword);
-  console.log('[changePassword] Password valid:', isPasswordValid);
 
   if (!isPasswordValid) {
     throw new ApiError(400, 'Current password is incorrect.');
@@ -484,16 +460,10 @@ export const parentLogin = asyncHandler(async (req, res) => {
   }
 
   if (!parent) {
-    console.log('Parent not found for email:', email, 'phone:', phone);
     throw new ApiError(401, 'Invalid credentials.');
   }
 
-  console.log('Parent found:', parent._id, 'email:', parent.email, 'phone:', parent.phone);
-  console.log('Parent _id type:', typeof parent._id);
-  console.log('Parent _id value:', parent._id.toString());
-  console.log('Password comparison...');
   const isPasswordValid = await parent.comparePassword(password);
-  console.log('Password valid:', isPasswordValid);
 
   if (!isPasswordValid) {
     throw new ApiError(401, 'Invalid credentials.');
@@ -526,9 +496,7 @@ export const parentLogin = asyncHandler(async (req, res) => {
     authProvider: parent.authProvider || 'local',
   };
 
-  console.log('userObj._id:', userObj._id, 'type:', typeof userObj._id);
   const token = signToken(parent._id.toString());
-  console.log('Token generated successfully for parent:', parent._id.toString());
 
   res.status(200).json({
     success: true,
@@ -756,13 +724,7 @@ export const sendPasswordChangeOTP = asyncHandler(async (req, res) => {
 export const sendSignupOTP = asyncHandler(async (req, res) => {
   const { schoolName, adminName, email, password, phone, planId, planExpiresAt } = req.body;
 
-  console.log('[sendSignupOTP] Received signup request');
-  console.log('[sendSignupOTP] Email:', email);
-  console.log('[sendSignupOTP] School:', schoolName);
-  console.log('[sendSignupOTP] Admin Name:', adminName);
-  console.log('[sendSignupOTP] Phone:', phone);
-  console.log('[sendSignupOTP] Plan ID:', planId);
-  console.log('[sendSignupOTP] Plan Expires At:', planExpiresAt);
+
 
   // Validate required fields
   if (!schoolName || !adminName || !email || !password || !phone) {
@@ -802,9 +764,7 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
     finalPlanExpiresAt = new Date();
     finalPlanExpiresAt.setDate(finalPlanExpiresAt.getDate() + trialPlan.durationDays);
     
-    console.log('[sendSignupOTP] Using trial plan:', trialPlan.name);
-    console.log('[sendSignupOTP] Plan ID:', finalPlanId);
-    console.log('[sendSignupOTP] Plan Expires At:', finalPlanExpiresAt);
+
   }
 
   // Hash password before storing in signupData
@@ -820,27 +780,14 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
     planExpiresAt: finalPlanExpiresAt,
   };
 
-  console.log('[sendSignupOTP] Saving OTP signupData:', {
-    schoolName,
-    adminName,
-    email: email.toLowerCase(),
-    phone,
-    password: '[PLAIN - will be hashed by User model]',
-    planId: finalPlanId,
-    planExpiresAt: finalPlanExpiresAt,
-  });
 
-  console.log('[sendSignupOTP] Signup Data to store:', signupData);
 
   // Generate OTP and store signup data with hashed password
   const otp = await createSignupOTP(email, signupData);
 
-  console.log('[sendSignupOTP] OTP generated:', otp);
-
   // Send OTP email
   try {
     await sendSignupOTPEmail(adminName, email.toLowerCase(), otp);
-    console.log('[sendSignupOTP] OTP email sent successfully to:', email.toLowerCase());
   } catch (emailError) {
     console.error('[Email Error] Failed to send OTP email:', emailError.message);
     throw new ApiError(500, 'Failed to send OTP. Please try again.');
@@ -855,9 +802,7 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
 export const verifySignupOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
 
-  console.log('[verifySignupOTP] Received verification request');
-  console.log('[verifySignupOTP] Email from request:', email);
-  console.log('[verifySignupOTP] OTP from request:', otp);
+
 
   if (!email || !otp) {
     throw new ApiError(400, 'Email and OTP are required.');
@@ -869,11 +814,7 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
     throw new ApiError(400, otpResult.message);
   }
 
-  console.log('[verifySignupOTP] OTP verified successfully');
-  console.log('[verifySignupOTP] OTP Record:', otpResult.signupOTP);
-  console.log('[verifySignupOTP] OTP Record signupData:', otpResult.signupOTP.signupData);
-  console.log('[verifySignupOTP] Email from signupData:', otpResult.signupOTP.signupData?.email);
-  console.log('[verifySignupOTP] Admin Name from signupData:', otpResult.signupOTP.signupData?.adminName);
+
 
   // Retrieve signup data from SignupOTP
   const signupData = otpResult.signupOTP.signupData;
@@ -883,20 +824,8 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Signup data not found. Please try again.');
   }
 
-  console.log('[verifySignupOTP] Retrieved signup data:', signupData);
-
   // Mark OTP as used
   await otpResult.signupOTP.markAsUsed();
-
-  // Create school and admin account
-  console.log('[verifySignupOTP] School payload:', {
-    email: signupData?.email,
-    adminName: signupData?.adminName,
-    schoolName: signupData?.schoolName,
-    phone: signupData?.phone,
-    plan: signupData?.planId,
-    planExpiresAt: signupData?.planExpiresAt,
-  });
 
   try {
     const school = await School.create({
@@ -909,22 +838,7 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
       isActive: true,
     });
 
-    console.log('[verifySignupOTP] School created with ID:', school._id);
 
-    console.log('[verifySignupOTP] Creating admin with data:', {
-      school: school._id,
-      name: signupData.adminName,
-      email: signupData.email,
-      phoneNo: signupData.phone,
-    });
-
-    console.log('[verifySignupOTP] Signup Data:', signupData);
-    console.log('[verifySignupOTP] Creating User:', {
-      email: signupData.email,
-      role: 'school_admin',
-      passwordExists: !!signupData.password,
-      passwordLength: signupData.password?.length,
-    });
 
     const admin = await User.create({
       school: school._id,
@@ -936,31 +850,15 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
       isEmailVerified: true, // Mark as verified since OTP was verified
     });
 
-    console.log('[verifySignupOTP] Created User:', {
-      _id: admin._id,
-      email: admin.email,
-      role: admin.role,
-      passwordExists: !!admin.password,
-      passwordLength: admin.password?.length,
-      isEmailVerified: admin.isEmailVerified,
-    });
 
-    console.log('[verifySignupOTP] Admin created with ID:', admin._id);
 
     // Auto-create current academic session
     await ensureActiveSession(school._id);
-
-    console.log('[verifySignupOTP] Account created successfully');
 
     // Delete OTP record after successful verification
     await deleteSignupOTP(email);
 
     admin.password = undefined;
-    console.log('[verifySignupOTP] Sending token response with user:', {
-      _id: admin._id,
-      email: admin.email,
-      role: admin.role,
-    });
     sendTokenResponse(admin, res, 201);
   } catch (error) {
     console.error('[verifySignupOTP] Error creating account:', error);

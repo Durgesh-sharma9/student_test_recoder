@@ -8,61 +8,43 @@ export const generateOTP = () => {
 
 // Create signup OTP token in database
 export const createSignupOTP = async (email, signupData) => {
-  console.log('[createSignupOTP] Creating OTP for email:', email);
-  console.log('[createSignupOTP] Signup Data received:', signupData);
-
   // Invalidate any existing OTP tokens for this email
   await SignupOTP.deleteMany({ email: email.toLowerCase(), isUsed: false });
 
   const otp = generateOTP();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  const signupOTP = await SignupOTP.create({
+  await SignupOTP.create({
     email: email.toLowerCase(),
     otp,
     expiresAt,
     signupData,
   });
 
-  console.log('[createSignupOTP] OTP created successfully');
-  console.log('[createSignupOTP] OTP Record ID:', signupOTP._id);
-  console.log('[createSignupOTP] OTP Record signupData:', signupOTP.signupData);
   return otp; // Return plain OTP for sending in email
 };
 
 // Verify signup OTP
 export const verifySignupOTP = async (email, candidateOTP) => {
-  console.log('[verifySignupOTP] Verifying OTP for email:', email);
-  console.log('[verifySignupOTP] Candidate OTP:', candidateOTP);
-
   const signupOTP = await SignupOTP.findOne({
     email: email.toLowerCase(),
     isUsed: false,
   });
 
-  console.log('[verifySignupOTP] Found OTP Record:', signupOTP);
-  console.log('[verifySignupOTP] OTP Record signupData:', signupOTP?.signupData);
-  console.log('[verifySignupOTP] Email from signupData:', signupOTP?.signupData?.email);
-  console.log('[verifySignupOTP] Admin Name from signupData:', signupOTP?.signupData?.adminName);
-
   if (!signupOTP) {
-    console.log('[verifySignupOTP] OTP not found');
     return { valid: false, message: 'OTP not found or expired' };
   }
 
   if (signupOTP.expiresAt < new Date()) {
-    console.log('[verifySignupOTP] OTP expired');
     return { valid: false, message: 'OTP expired' };
   }
 
   const isValid = await signupOTP.verifyOTP(candidateOTP);
   
   if (!isValid) {
-    console.log('[verifySignupOTP] Invalid OTP, attempts:', signupOTP.attempts);
     return { valid: false, message: 'Invalid OTP' };
   }
 
-  console.log('[verifySignupOTP] OTP verified successfully');
   return { valid: true, signupOTP, message: 'OTP verified successfully' };
 };
 
@@ -86,5 +68,4 @@ export const checkSignupOTPRateLimit = async (email) => {
 // Delete signup OTP after successful verification
 export const deleteSignupOTP = async (email) => {
   await SignupOTP.deleteOne({ email: email.toLowerCase() });
-  console.log('[deleteSignupOTP] OTP deleted for email:', email);
 };

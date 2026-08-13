@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 const sendTeacherMail = async (email, password, name) => {
   try {
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.log(`[mail-disabled] Teacher credentials for ${email}: ${password}`);
+      
       return;
     }
 

@@ -79,9 +79,9 @@ export const getUsers = asyncHandler(async (req, res) => {
 
   const schoolFilter = req.user.role === 'super_admin' ? {} : { school: req.user.school };
   
-  console.log('=== GET USERS START ===');
-  console.log('Role filter:', role);
-  console.log('School filter:', schoolFilter);
+  
+  
+  
   
   const users = await User.find({ ...filter, ...schoolFilter, isActive: true })
     .select('-password')
@@ -91,23 +91,15 @@ export const getUsers = asyncHandler(async (req, res) => {
 
   const normalizedUsers = users.map(normalizeTeacherAssignments);
 
-  console.log('Total users found:', normalizedUsers.length);
+  
   
   if (role === 'teacher') {
     normalizedUsers.forEach((user, idx) => {
-      console.log(`Teacher ${idx}:`, {
-        _id: user._id,
-        name: user.teacherName || user.name,
-        hasAssignments: !!user.assignments,
-        assignmentsCount: user.assignments?.length || 0,
-        assignmentClass: user.assignments?.[0]?.class,
-        assignmentSubject: user.assignments?.[0]?.subject,
-        assignments: user.assignments
-      });
+      
     });
   }
   
-  console.log('=== GET USERS END ===');
+  
 
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
   const allowTeacherImpersonation = settings?.allowTeacherImpersonation ?? false;
@@ -128,7 +120,7 @@ export const getUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid user ID');
   }
 
-  console.log('[getUser] Fetching user with ID:', id);
+  
 
   const user = await User.findById(id)
     .select('-password')
@@ -141,10 +133,10 @@ export const getUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found.');
   }
 
-  console.log('[getUser] User found:', user.name || user.teacherName);
-  console.log('[getUser] User role:', user.role);
-  console.log('[getUser] Assignments count:', user.assignments?.length || 0);
-  console.log('[getUser] Assignments:', JSON.stringify(user.assignments, null, 2));
+  
+  
+  
+  
 
   res.json({
     success: true,
@@ -156,9 +148,9 @@ export const getUser = asyncHandler(async (req, res) => {
 const schoolIdFromUser = (user) => user.school?._id ?? user.school;
 
 export const createUser = asyncHandler(async (req, res) => {
-  console.log('[User Controller] Creating new user');
-  console.log('[User Controller] Request body:', JSON.stringify(req.body));
-  console.log('[User Controller] req.user:', JSON.stringify(req.user));
+  
+  
+  
   
   const {
     teacherName,
@@ -172,11 +164,11 @@ export const createUser = asyncHandler(async (req, res) => {
   } = req.body;
 
   const schoolId = schoolIdFromUser(req.user);
-  console.log('[User Controller] schoolId:', schoolId);
+  
   if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
 
   const userRole = role || 'teacher';
-  console.log('[User Controller] userRole:', userRole);
+  
 
   // Check only active users in the same school
   const existing = await User.findOne({
@@ -186,7 +178,7 @@ export const createUser = asyncHandler(async (req, res) => {
   });
 
   if (existing) {
-    console.log('[User Controller] Email already in use:', email);
+    
     throw new ApiError(400, 'Email already in use.');
   }
 
@@ -208,9 +200,9 @@ export const createUser = asyncHandler(async (req, res) => {
     mustChangePassword = true;
   }
 
-  console.log('[User Controller] Creating user with role:', userRole);
-  console.log('[User Controller] Email:', email);
-  console.log('[User Controller] generatedPassword length:', generatedPassword?.length);
+  
+  
+  
 
   try {
     // Create user
@@ -227,21 +219,21 @@ export const createUser = asyncHandler(async (req, res) => {
       mustChangePassword,
     });
 
-    console.log('[User Controller] User created successfully:', user._id);
+    
 
     // Send email only to teachers using Resend
     let emailSent = false;
     let emailError = null;
 
     if (userRole === 'teacher') {
-      console.log('[User Controller] Attempting to send teacher creation email');
+      
       try {
         const school = await School.findById(schoolId);
         const schoolName = school?.schoolName || 'Your School';
         
         const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
-        console.log('[User Controller] Sending email to:', email);
-        console.log('[User Controller] School:', schoolName);
+        
+        
 
         const emailResult = await sendTeacherCreationEmail(
           schoolName,
@@ -252,10 +244,10 @@ export const createUser = asyncHandler(async (req, res) => {
         );
 
         if (emailResult.success) {
-          console.log('[User Controller] Teacher creation email sent successfully to:', email);
+          
           emailSent = true;
         } else {
-          console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+          
           emailError = emailResult.error || emailResult.message;
         }
       } catch (emailError) {
@@ -292,7 +284,7 @@ export const createUser = asyncHandler(async (req, res) => {
 });
 
 export const bulkImportTeachers = asyncHandler(async (req, res) => {
-  console.log('[User Controller] Starting bulk teacher import');
+  
   if (!req.file) {
     throw new ApiError(400, 'No file uploaded.');
   }
@@ -301,7 +293,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
   if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
 
   const records = parseTeacherImportFile(req.file.buffer, req.file.originalname);
-  console.log('[User Controller] Parsed', records.length, 'teacher records');
+  
   const emailsSeen = new Set();
   const errors = [];
   let imported = 0;
@@ -331,8 +323,8 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
     inactiveByEmail.set(user.email, user);
   });
 
-  console.log('[User Controller] Found', existingUsers.length, 'active users');
-  console.log('[User Controller] Found', inactiveUsers.length, 'inactive users');
+  
+  
 
   for (const row of records) {
     const { rowNumber, teacherName, email, password, phoneNo } = row;
@@ -379,7 +371,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
     // Check for inactive teacher - REACTIVATE AND SEND EMAIL
     const inactive = inactiveByEmail.get(email);
     if (inactive) {
-      console.log('[User Controller] Reactivating inactive teacher:', email);
+      
       
       // Auto-generate new password for reactivated teacher
       const generatedPassword = password || generateSecurePassword();
@@ -401,7 +393,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           { new: true }
         );
 
-        console.log('[User Controller] Teacher reactivated successfully:', teacher._id);
+        
 
         // Send email to reactivated teacher
         try {
@@ -409,7 +401,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           const schoolName = school?.schoolName || 'Your School';
           const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
 
-          console.log('[User Controller] Sending reactivation email to:', email);
+          
 
           const emailResult = await sendTeacherCreationEmail(
             schoolName,
@@ -420,9 +412,9 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           );
 
           if (emailResult.success) {
-            console.log('[User Controller] Reactivation email sent successfully to:', email);
+            
           } else {
-            console.log(`[User Controller] Email Failed] Reactivation email for ${email}: ${emailResult.error || emailResult.message}`);
+            
           }
         } catch (emailError) {
           console.error('[User Controller] Email Error] Failed to send reactivation email:', emailError.message);
@@ -452,14 +444,14 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
         mustChangePassword,
       });
 
-      console.log('[User Controller] Teacher created successfully:', teacher._id);
+      
 
       try {
         const school = await School.findById(schoolId);
         const schoolName = school?.schoolName || 'Your School';
         const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
 
-        console.log('[User Controller] Sending creation email to:', email);
+        
 
         const emailResult = await sendTeacherCreationEmail(
           schoolName,
@@ -470,9 +462,9 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
         );
 
         if (emailResult.success) {
-          console.log('[User Controller] Teacher creation email sent successfully to:', email);
+          
         } else {
-          console.log(`[User Controller] Email Failed] Teacher creation email for ${email}: ${emailResult.error || emailResult.message}`);
+          
         }
       } catch (emailError) {
         console.error('[User Controller] Email Error] Failed to send teacher creation email:', emailError.message);
@@ -485,7 +477,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
     }
   }
 
-  console.log('[User Controller] Bulk import completed. Imported:', imported, 'Reactivated:', reactivated, 'Errors:', errors.length);
+  
 
   res.json({
     success: true,
@@ -563,9 +555,9 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { assignedClasses = [], assignments = [] } = req.body;
 
-  console.log('[assignTeacherWorkload] id received:', id);
-  console.log('[assignTeacherWorkload] id type:', typeof id);
-  console.log('[assignTeacherWorkload] request body:', req.body);
+  
+  
+  
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     console.error('[assignTeacherWorkload] Invalid ObjectId:', id);
@@ -612,7 +604,7 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
     );
 
     if (!emailResult.success) {
-      console.log(`[Email Failed] Teacher assignment email for ${teacher.email}: ${emailResult.error || emailResult.message}`);
+      
     }
   } catch (emailError) {
     console.error('[Email Error] Failed to send teacher assignment email:', emailError.message);
@@ -635,7 +627,7 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
   const teacher = await User.findById(id);
   if (!teacher || teacher.role !== 'teacher') throw new ApiError(404, 'Teacher not found.');
 
-  console.log('[User Controller] Resending credentials for teacher:', teacher.email);
+  
 
   // Generate new temporary password
   const generatedPassword = generateSecurePassword();
@@ -643,7 +635,7 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
   teacher.mustChangePassword = true;
   await teacher.save();
 
-  console.log('[User Controller] New password generated for teacher:', teacher._id);
+  
 
   // Send email
   let emailSent = false;
@@ -654,7 +646,7 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
     const schoolName = school?.schoolName || 'Your School';
     const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
 
-    console.log('[User Controller] Sending credentials email to:', teacher.email);
+    
 
     const emailResult = await sendTeacherCreationEmail(
       schoolName,
@@ -665,10 +657,10 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
     );
 
     if (emailResult.success) {
-      console.log('[User Controller] Credentials email sent successfully to:', teacher.email);
+      
       emailSent = true;
     } else {
-      console.log(`[User Controller] Email Failed] Credentials email for ${teacher.email}: ${emailResult.error || emailResult.message}`);
+      
       emailError = emailResult.error || emailResult.message;
     }
   } catch (emailError) {

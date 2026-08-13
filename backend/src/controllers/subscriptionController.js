@@ -41,32 +41,14 @@ export const getPlans = asyncHandler(async (req, res) => {
 
   const plans = await Plan.find(filter).sort('planType billingCycle name');
   
-  console.log('[getPlans] Raw plans from database:', JSON.stringify(plans.map(p => ({
-    _id: p._id,
-    slug: p.slug,
-    planType: p.planType,
-    billingCycle: p.billingCycle,
-    basePrice: p.basePrice,
-    finalPrice: p.finalPrice,
-    price: p.price,
-    tax: p.tax,
-  })), null, 2));
+  
   
   const normalized = plans.map((p) => {
     const obj = p.toObject({ virtuals: true });
     return { ...obj, ...normalizePlanPricing(obj) };
   });
   
-  console.log('[getPlans] Normalized plans:', JSON.stringify(normalized.map(p => ({
-    _id: p._id,
-    slug: p.slug,
-    planType: p.planType,
-    billingCycle: p.billingCycle,
-    basePrice: p.basePrice,
-    finalPrice: p.finalPrice,
-    price: p.price,
-    tax: p.tax,
-  })), null, 2));
+  
   
   res.json({ success: true, plans: normalized });
 });
@@ -78,16 +60,7 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
   const plan = await Plan.findById(id);
   if (!plan || !plan.isActive) throw new ApiError(404, 'Plan not found');
 
-  console.log('[getPlanDetails] Raw plan from database:', JSON.stringify(plan.toObject({
-    _id: plan._id,
-    slug: plan.slug,
-    planType: plan.planType,
-    billingCycle: plan.billingCycle,
-    basePrice: plan.basePrice,
-    finalPrice: plan.finalPrice,
-    price: plan.price,
-    tax: plan.tax,
-  }), null, 2));
+  
 
   const siblings = await Plan.find({ isActive: true, planType: plan.planType }).sort('billingCycle');
 
@@ -97,16 +70,7 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
     return { ...obj, ...normalizePlanPricing(obj) };
   });
 
-  console.log('[getPlanDetails] Normalized plan:', JSON.stringify({
-    _id: normalizedPlan._id,
-    slug: normalizedPlan.slug,
-    planType: normalizedPlan.planType,
-    billingCycle: normalizedPlan.billingCycle,
-    basePrice: normalizedPlan.basePrice,
-    finalPrice: normalizedPlan.finalPrice,
-    price: normalizedPlan.price,
-    tax: normalizedPlan.tax,
-  }, null, 2));
+  
 
   const monthly = normalizedSiblings.find((p) => p.billingCycle === 'monthly');
   const comparison = cycleMeta.map((meta) => {
@@ -121,7 +85,7 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
     };
   });
 
-  console.log('[getPlanDetails] Comparison:', JSON.stringify(comparison, null, 2));
+  
 
   res.json({
     success: true,
@@ -504,14 +468,7 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
   const school = await School.findById(req.user.school).populate('plan').populate('scheduledDowngradePlan');
   if (!school) throw new ApiError(404, 'School not found');
 
-  console.log('[getSubscriptionStatus] School data:', {
-    schoolId: school._id,
-    plan: school.plan,
-    planExpiresAt: school.planExpiresAt,
-    isActive: school.isActive,
-    scheduledDowngradePlan: school.scheduledDowngradePlan,
-    scheduledDowngradeDate: school.scheduledDowngradeDate,
-  });
+  
 
   const pendingRequest = await SubscriptionRequest.findOne({
     school: school._id,
@@ -545,11 +502,7 @@ export const getSubscriptionStatus = asyncHandler(async (req, res) => {
     },
   };
 
-  console.log('[getSubscriptionStatus] Response:', {
-    currentPlan: response.subscription.currentPlan,
-    planExpiresAt: response.subscription.planExpiresAt,
-    scheduledDowngradePlan: response.subscription.scheduledDowngradePlan,
-  });
+  
 
   res.json(response);
 });

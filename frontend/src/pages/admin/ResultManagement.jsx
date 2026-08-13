@@ -98,26 +98,26 @@ export default function ResultManagement() {
   useEffect(() => {
     // Load classes assigned to selected teacher
     if (filters.teacher) {
-      console.log('=== ADMIN FILTER DEBUG ===');
-      console.log('Loading classes for teacher:', filters.teacher);
+      
+      
       api.get(`/users/${filters.teacher}`).then(res => {
         const user = res.data.user;
-        console.log('Teacher User Data:', user);
+        
         const assignments = user?.assignments || [];
-        console.log('Teacher Assignments:', assignments);
+        
         
         // Extract class objects directly from assignments
         const assignedClasses = assignments
           .map(a => a.class)
           .filter(c => c && c._id && c.className && c.section);
         
-        console.log('Assigned Classes from assignments:', assignedClasses);
+        
         
         // Deduplicate classes by _id
         const uniqueClasses = assignedClasses.filter((c, index, self) =>
           index === self.findIndex((t) => t._id === c._id)
         );
-        console.log('Deduplicated Classes:', uniqueClasses);
+        
         
         setTeacherClasses(uniqueClasses);
       }).catch(err => {
@@ -132,17 +132,17 @@ export default function ResultManagement() {
   useEffect(() => {
     // Load subjects assigned to selected teacher for selected class
     if (filters.teacher && filters.classId) {
-      console.log('=== ADMIN FILTER DEBUG ===');
-      console.log('Loading subjects for teacher:', filters.teacher, 'and class:', filters.classId);
+      
+      
       api.get(`/users/${filters.teacher}`).then(res => {
         const assignments = res.data.user?.assignments || [];
-        console.log('Teacher Assignments:', assignments);
+        
         const subjects = assignments
           .filter(a => (a.class?._id || a.class) === filters.classId)
           .map(a => a.subject)
           .filter(Boolean);
         const uniqueSubjects = [...new Set(subjects)];
-        console.log('Available Subjects:', uniqueSubjects);
+        
         setTeacherSubjects(uniqueSubjects);
       }).catch(err => {
         console.error('Failed to load teacher subjects:', err);
@@ -171,10 +171,10 @@ export default function ResultManagement() {
       setLoading(true);
       setError(null);
       
-      console.log('=== ADMIN RESULTS LOAD DEBUG ===');
-      console.log('Current Filters:', filters);
-      console.log('View:', view);
-      console.log('Date Filter Type:', dateFilterType);
+      
+      
+      
+      
       
       // Build params with only non-empty values
       const params = {
@@ -190,15 +190,7 @@ export default function ResultManagement() {
       if (filters.dateTo) params.dateTo = filters.dateTo;
       if (filters.sortBy) params.sortBy = filters.sortBy;
 
-      console.log('Request Payload:', {
-        teacher: params.teacher,
-        classId: params.classId,
-        subject: params.subject,
-        dateFilterType: dateFilterType,
-        fromDate: params.dateFrom,
-        toDate: params.dateTo,
-        testDate: params.testDate
-      });
+      
 
       if (view === 'daily') params.category = 'daily';
 
@@ -206,7 +198,7 @@ export default function ResultManagement() {
 
       const res = await api.get('/results', { params });
 
-      console.log('API Response:', res.data);
+      
 
       // Check if response has the new format with tests array
       if (res.data.tests) {
@@ -320,8 +312,8 @@ export default function ResultManagement() {
             <FormField label="Teacher">
 
               <Select value={filters.teacher} onValueChange={(v) => {
-                console.log('=== ADMIN FILTER DEBUG ===');
-                console.log('Selected Teacher:', v);
+                
+                
                 setFilters({ ...filters, teacher: v, classId: '', subject: '' });
               }}>
 
@@ -336,8 +328,8 @@ export default function ResultManagement() {
             <FormField label="Class">
 
               <Select value={filters.classId} onValueChange={(v) => {
-                console.log('Selected Class:', v);
-                console.log('Available Classes:', teacherClasses);
+                
+                
                 setFilters({ ...filters, classId: v, subject: '' });
               }}>
 
@@ -364,8 +356,8 @@ export default function ResultManagement() {
             <FormField label="Subject">
 
               <Select value={filters.subject} onValueChange={(v) => {
-                console.log('Selected Subject:', v);
-                console.log('Available Subjects:', teacherSubjects);
+                
+                
                 setFilters({ ...filters, subject: v });
               }}>
 

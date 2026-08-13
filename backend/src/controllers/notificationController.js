@@ -14,9 +14,9 @@ export const getNotifications = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
-  console.log('[getNotifications] userId:', userId);
-  console.log('[getNotifications] role:', role);
-  console.log('[getNotifications] schoolId:', schoolId);
+  
+  
+  
 
   let filter = {};
 
@@ -63,7 +63,7 @@ export const getNotifications = asyncHandler(async (req, res) => {
     };
   }
 
-  console.log('[getNotifications] filter:', JSON.stringify(filter, null, 2));
+  
 
   const notifications = await Notification.find(filter)
     .populate('senderId', 'name email')
@@ -93,14 +93,14 @@ export const getNotifications = asyncHandler(async (req, res) => {
     return notificationObj;
   });
 
-  console.log('[getNotifications] notifications found:', notifications.length);
+  
 
   const unreadCount = await Notification.countDocuments({
     recipientIds: userId,
     readBy: { $ne: userId },
   });
 
-  console.log('[getNotifications] unreadCount:', unreadCount);
+  
 
   res.json({
     success: true,
@@ -158,15 +158,15 @@ export const createNotification = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
-  console.log('[createNotification] req.body.recipientIds:', recipientIds);
-  console.log('[createNotification] typeof recipientIds:', typeof recipientIds);
+  
+  
 
   // Parse recipientIds if it's a string (from FormData)
   let parsedRecipientIds = recipientIds;
   if (typeof recipientIds === 'string') {
     try {
       parsedRecipientIds = JSON.parse(recipientIds);
-      console.log('[createNotification] Parsed recipientIds:', parsedRecipientIds);
+      
     } catch (parseError) {
       console.error('[createNotification] Failed to parse recipientIds:', parseError);
       parsedRecipientIds = [];
@@ -233,25 +233,25 @@ export const createNotification = asyncHandler(async (req, res) => {
     // School admin can send to teachers or parents of their school
     if (targetRole === 'parent') {
       // Send to parents
-      console.log('[createNotification] Sending to parents, isBroadcast:', isBroadcast, 'classId:', classId);
+      
       if (isBroadcast) {
         // Send to all parents of the school
         const parents = await Parent.find({ school: schoolId, status: 'Active' });
-        console.log('[createNotification] Found parents for broadcast:', parents.length);
+        
         finalRecipientIds = parents.map((p) => p._id);
       } else if (classId) {
         // Send to parents of a specific class
         const students = await Student.find({ classId, school: schoolId, isActive: true });
-        console.log('[createNotification] Found students for class:', students.length);
+        
         const parentIds = students.map((s) => s.parentId).filter(Boolean);
-        console.log('[createNotification] Parent IDs from students:', parentIds);
+        
         const parents = await Parent.find({ _id: { $in: parentIds }, school: schoolId, status: 'Active' });
-        console.log('[createNotification] Found parents for class:', parents.length);
+        
         finalRecipientIds = parents.map((p) => p._id);
       } else {
         throw new ApiError(400, 'For parent notifications, either broadcast to all parents or specify a class.');
       }
-      console.log('[createNotification] Final parent recipient IDs:', finalRecipientIds);
+      
     } else {
       // Send to teachers
       if (isBroadcast) {
@@ -316,10 +316,10 @@ export const markAsRead = asyncHandler(async (req, res) => {
 
   const userId = req.user._id;
 
-  console.log('[markAsRead] Notification ID:', id);
-  console.log('[markAsRead] User ID:', userId);
-  console.log('[markAsRead] Before update - readBy:', notification.readBy);
-  console.log('[markAsRead] Before update - readBy includes user:', notification.readBy.includes(userId));
+  
+  
+  
+  
 
   // Check if user is a recipient
   if (!notification.recipientIds.some((r) => r.toString() === userId.toString())) {
@@ -330,10 +330,10 @@ export const markAsRead = asyncHandler(async (req, res) => {
   if (!notification.readBy.includes(userId)) {
     notification.readBy.push(userId);
     const saved = await notification.save();
-    console.log('[markAsRead] After save - readBy:', saved.readBy);
-    console.log('[markAsRead] After save - readBy includes user:', saved.readBy.includes(userId));
+    
+    
   } else {
-    console.log('[markAsRead] User already in readBy, skipping update');
+    
   }
 
   res.json({
@@ -348,8 +348,8 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
   const role = req.user.role;
   const schoolId = req.user.school;
 
-  console.log('[markAllAsRead] User ID:', userId);
-  console.log('[markAllAsRead] School ID:', schoolId);
+  
+  
 
   let filter = {
     recipientIds: userId,
@@ -360,14 +360,14 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
     filter.schoolId = schoolId;
   }
 
-  console.log('[markAllAsRead] Filter:', JSON.stringify(filter, null, 2));
+  
 
   const result = await Notification.updateMany(filter, {
     $addToSet: { readBy: userId },
   });
 
-  console.log('[markAllAsRead] Update result:', result);
-  console.log('[markAllAsRead] Modified count:', result.modifiedCount);
+  
+  
 
   res.json({
     success: true,
@@ -405,14 +405,14 @@ export const deleteNotification = asyncHandler(async (req, res) => {
 
 // Get unread count
 export const getUnreadCount = asyncHandler(async (req, res) => {
-  console.log('[getUnreadCount] Starting');
-  console.log('[getUnreadCount] req.user:', req.user);
+  
+  
   
   const userId = req.user._id;
   const schoolId = req.user.school;
 
-  console.log('[getUnreadCount] userId:', userId);
-  console.log('[getUnreadCount] schoolId:', schoolId);
+  
+  
 
   if (!userId) {
     console.error('[getUnreadCount] userId is undefined');
@@ -428,11 +428,11 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
     filter.schoolId = schoolId;
   }
 
-  console.log('[getUnreadCount] filter:', filter);
+  
 
   try {
     const count = await Notification.countDocuments(filter);
-    console.log('[getUnreadCount] count:', count);
+    
 
     res.json({
       success: true,

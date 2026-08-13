@@ -49,9 +49,9 @@ export const getFeedback = asyncHandler(async (req, res) => {
   const user = req.user;
   const schoolId = user.school;
 
-  console.log('=== GET FEEDBACK START ===');
-  console.log('User role:', user.role);
-  console.log('School ID:', schoolId);
+  
+  
+  
 
   let filter = { school: schoolId };
 
@@ -125,19 +125,11 @@ export const getFeedback = asyncHandler(async (req, res) => {
     return ticketObj;
   }));
 
-  console.log('Total tickets found:', tickets.length);
+  
   ticketsWithCreator.forEach((ticket, idx) => {
-    console.log(`Ticket ${idx} (${ticket.ticketId}):`, {
-      hasAttachments: !!ticket.attachments,
-      attachmentsCount: ticket.attachments?.length || 0,
-      attachments: ticket.attachments,
-      messagesCount: ticket.messages?.length || 0,
-      firstMessageAttachments: ticket.messages[0]?.attachments,
-      createdByRole: ticket.createdByRole,
-      createdByName: ticket.createdByName
-    });
+    
   });
-  console.log('=== GET FEEDBACK END ===');
+  
 
   res.json({ success: true, feedback: ticketsWithCreator });
 });
@@ -154,17 +146,17 @@ export const createFeedback = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Title and description are required.');
   }
 
-  console.log('=== CREATE FEEDBACK START ===');
-  console.log('User role:', user.role);
-  console.log('req.files:', req.files);
-  console.log('Number of files:', req.files?.length || 0);
-  console.log('recipientType:', recipientType);
-  console.log('recipientTeacherId:', recipientTeacherId);
+  
+  
+  
+  
+  
+  
 
   const attachments = await buildAttachmentData(req.files || []);
 
-  console.log('Uploaded attachments:', attachments);
-  console.log('Number of uploaded attachments:', attachments.length);
+  
+  
 
   let parent = null;
   let student = null;
@@ -273,9 +265,9 @@ export const createFeedback = asyncHandler(async (req, res) => {
     ],
   });
 
-  console.log('Feedback created with attachments:', feedback.attachments);
-  console.log('Feedback messages attachments:', feedback.messages[0].attachments);
-  console.log('=== CREATE FEEDBACK END ===');
+  
+  
+  
 
   // NOTIFICATIONS
   const adminUsers = await User.find({ role: 'school_admin', school: user.school, isActive: true }).select('_id');
@@ -324,7 +316,7 @@ export const createFeedback = asyncHandler(async (req, res) => {
       : teacherIds;
     
     if (recipients.length > 0) {
-      console.log('[createFeedback] Notifying teachers:', recipients);
+      
       await Notification.create({
         title: `New Feedback: ${title}`,
         message: `${user.role === 'parent' ? 'Parent' : user.role === 'teacher' ? 'Teacher' : 'Admin'} ${user.role === 'parent' ? 'tagged you in' : 'sent you'} feedback: ${description.substring(0, 100)}${description.length > 100 ? '...' : ''}`,

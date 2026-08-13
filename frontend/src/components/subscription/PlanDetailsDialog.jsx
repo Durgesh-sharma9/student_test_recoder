@@ -83,7 +83,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       }
       
       const plan = planRes.data.plan;
-      console.log('DETAIL PLAN');
+      
       console.table([{
         slug: plan.slug,
         basePrice: plan.basePrice,

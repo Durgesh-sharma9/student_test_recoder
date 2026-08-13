@@ -223,11 +223,7 @@ export const saveMarksEntry = asyncHandler(async (req, res) => {
     );
 
     // DEBUG LOG
-    console.log({
-      studentId: entry.studentId,
-      status: entry.status || 'present',
-      marksObtained: marks
-    });
+    
 
     await MarkEntry.findOneAndUpdate(
       { session: session._id, student: entry.studentId },
@@ -285,11 +281,7 @@ export const saveMarks = asyncHandler(async (req, res) => {
     const percentage = round2((marksObtained / session.maxMarks) * 100);
 
     // DEBUG LOG
-    console.log({
-      studentId: entry.studentId,
-      status: entry.status || 'present',
-      marksObtained
-    });
+    
 
     await MarkEntry.findOneAndUpdate(
       { session: session._id, student: entry.studentId },
@@ -527,57 +519,57 @@ export const getResults = asyncHandler(async (req, res) => {
     sFilter.category = 'daily';
 
     // DEBUG LOGS - Detailed
-    console.log('=== TEACHER RESULTS DEBUG ===');
-    console.log('Teacher ID:', req.user._id);
-    console.log('Teacher Name:', req.user.name);
-    console.log('Class ID:', classId);
-    console.log('Subject:', subject);
-    console.log('Subject (normalized):', normalizeSubject(subject));
-    console.log('Date From:', dateFrom);
-    console.log('Date To:', dateTo);
-    console.log('Test Date (specific):', testDate);
-    console.log('Filter Object:', JSON.stringify(sFilter, null, 2));
-    console.log('User Role:', req.user.role);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     // Handle date filtering - prioritize date range over specific date
     if (dateFrom || dateTo) {
       sFilter.testDate = {};
       if (dateFrom) {
         sFilter.testDate.$gte = startOfDay(dateFrom);
-        console.log('Date From filter:', startOfDay(dateFrom));
+        
       }
       if (dateTo) {
         sFilter.testDate.$lte = endOfDay(dateTo);
-        console.log('Date To filter:', endOfDay(dateTo));
+        
       }
     } else if (testDate) {
       sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
-      console.log('Using specific date filter:', sFilter.testDate);
+      
     } else if (!dateFrom && !dateTo) {
       const today = new Date();
       sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
-      console.log('Using today filter:', sFilter.testDate);
+      
     }
 
-    console.log('Final Filter:', JSON.stringify(sFilter, null, 2));
+    
 
     // Fetch all matching test sessions - NO LIMIT, NO findOne
-    console.log('Executing query to find ALL matching sessions...');
+    
     const sessions = await ResultSession.find(sFilter)
       .populate('class', 'className section')
       .populate('teacher', 'name')
       .sort({ testDate: 1 })
       .lean();
 
-    console.log('Tests Found Count:', sessions.length);
-    console.log('TEST DATES:');
+    
+    
     sessions.forEach((t, idx) => {
-      console.log(`  ${idx + 1}. ${t.testDate} - ${t.subject} - Teacher: ${t.teacher?.name}`);
+      
     });
-    console.log('Full Tests Array:', JSON.stringify(sessions, null, 2));
+    
 
     if (!sessions.length) {
-      console.log('No tests found, returning empty result');
+      
       return res.json({ 
         success: true, 
         results: [], 
@@ -597,13 +589,13 @@ export const getResults = asyncHandler(async (req, res) => {
       isActive: true 
     }).sort('rollNo').lean();
     
-    console.log('Students Count:', students.length);
+    
     
     // Get all mark entries for these sessions
     const sessionIds = sessions.map(s => s._id);
     const entries = await MarkEntry.find({ session: { $in: sessionIds } }).lean();
     
-    console.log('Mark Entries Count:', entries.length);
+    
     
     // Build test info array
     const tests = sessions.map(s => ({
@@ -614,7 +606,7 @@ export const getResults = asyncHandler(async (req, res) => {
       teacherName: s.teacher?.name || 'Unknown'
     }));
 
-    console.log('Tests Array for Response:', JSON.stringify(tests, null, 2));
+    
 
     // Build student results with test marks
     const results = students.map(student => {
@@ -680,9 +672,9 @@ export const getResults = asyncHandler(async (req, res) => {
       sortedResults = [...ranked].sort((a, b) => a.rank - b.rank);
     }
 
-    console.log('Final Results Count:', sortedResults.length);
-    console.log('Tests in Response:', tests.length);
-    console.log('=== END DEBUG ===');
+    
+    
+    
 
     return res.json({
       success: true,
@@ -706,16 +698,16 @@ export const getResults = asyncHandler(async (req, res) => {
 });
 
 export const downloadResults = asyncHandler(async (req, res) => {
-  console.log('[Export Request] User:', req.user);
-  console.log('[Export Request] Role:', req.user.role);
-  console.log('[Export Request] Query:', req.query);
+  
+  
+  
   
   const format = req.query.format || 'csv';
   const view = req.query.view || req.query.category;
   
-  console.log('[Export Request] Format:', format);
-  console.log('[Export Request] View:', view);
-  console.log('[Export Request] Category:', req.query.category);
+  
+  
+  
 
   // For daily test view with the new layout, export all tests in range
   if (view === 'daily' || req.query.category === 'daily') {
