@@ -242,7 +242,7 @@ export default function DashboardLayout() {
         />
       )}
 
-      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen relative', isCollapsed ? 'lg:w-20' : 'lg:w-56 w-56', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200/80 bg-white shadow-sm shadow-slate-100 transition-all duration-300 lg:sticky lg:top-0 lg:h-screen', isCollapsed ? 'lg:w-20' : 'lg:w-56 w-56', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
         
         {/* Floating Desktop Toggle Button on Border Line */}
         <Button 
