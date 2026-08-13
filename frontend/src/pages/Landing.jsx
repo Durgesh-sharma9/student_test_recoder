@@ -79,7 +79,7 @@ export default function Landing() {
   ];
 
   const testimonials = [
-    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step", initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
+    { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step School", initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
     { quote: "The Parent Portal feature has been a game-changer. Parents are now much more involved, and our office staff is no longer overwhelmed with queries.", name: "Rajesh Meena", role: "Administrator, Global Public School", initials: "RM", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
     { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.", name: "Sunita Reddy", role: "Director, Heritage Academy", initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
   ];
