@@ -8,11 +8,13 @@ export function SessionProvider({ children }) {
   const [selectedSession, setSelectedSession] = useState(null);
   const [allSessions, setAllSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchSessions = async () => {
+      if (authLoading) return;
+
       // Check if user is authenticated by checking for token
       const token = localStorage.getItem('token');
       if (!token) {
@@ -64,7 +66,7 @@ export function SessionProvider({ children }) {
       }
     };
     fetchSessions();
-  }, [isAdmin, user?.role, user]);
+  }, [isAdmin, user?.role, user, authLoading]);
 
   const selectSession = (session) => {
     if (!isAdmin) return; // Teachers cannot switch sessions
