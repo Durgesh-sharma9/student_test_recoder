@@ -14,7 +14,9 @@ import {
   BookOpen,
   CalendarCheck,
   ShieldCheck,
-  Bell
+  Bell,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export default function ParentLogin() {
@@ -22,6 +24,7 @@ export default function ParentLogin() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { parentLogin } = useAuth();
@@ -144,7 +147,21 @@ export default function ParentLogin() {
             <FormField label="Password">
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <Input type="password" className="pl-10" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <Input 
+                  type={showPassword ? "text" : "password"} 
+                  className="pl-10 pr-10" 
+                  placeholder="Enter your password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </FormField>
             <Button type="submit" className="mt-2 h-12 w-full text-sm" disabled={loading}>
