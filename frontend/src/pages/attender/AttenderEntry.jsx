@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { PageHeader, ErpSection, PageStack } from '@/components/erp/PagePrimitives';
 
 export default function AttenderEntry() {
@@ -144,17 +145,18 @@ export default function AttenderEntry() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">Select Class</label>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500"
-            >
-              {classes.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.className} - {c.section}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedClass} onValueChange={(val) => setSelectedClass(val)}>
+              <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50 font-bold text-slate-800">
+                <SelectValue placeholder="Select Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    Class {c.className} - {c.section}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

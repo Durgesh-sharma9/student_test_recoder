@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, Fragment } from 'react';
 import { toast } from 'sonner';
 import {
   UserCheck,
@@ -14,11 +14,14 @@ import {
   Filter,
   RefreshCw,
   School,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
@@ -30,7 +33,14 @@ export default function AdminAttendance() {
   const [classes, setClasses] = useState([]);
   const [attenders, setAttenders] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [studentCountMap, setStudentCountMap] = useState({});
+  const [expandedUserId, setExpandedUserId] = useState(null);
+  const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const toggleExpandUser = (userId) => {
+    setExpandedUserId((prev) => (prev === userId ? null : userId));
+  };
 
   // Attender Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -170,22 +180,43 @@ export default function AdminAttendance() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [classRes, userRes] = await Promise.all([
+      const [classRes, userRes, studentRes] = await Promise.all([
         api.get('/classes'),
         api.get('/attendance/attenders'),
+        api.get('/students'),
       ]);
-      setClasses(classRes.data.classes || []);
+      const clsList = classRes.data.classes || [];
+      setClasses(clsList);
       setAttenders(userRes.data.attenders || []);
       setTeachers(userRes.data.teachers || []);
 
-      if (classRes.data.classes?.length > 0) {
-        setSelectedClass(classRes.data.classes[0]._id);
+      const countMap = {};
+      (studentRes.data.students || []).forEach((st) => {
+        const cid = typeof st.class === 'object' ? st.class?._id : st.class;
+        if (cid) {
+          countMap[String(cid)] = (countMap[String(cid)] || 0) + 1;
+        }
+      });
+      setStudentCountMap(countMap);
+
+      if (clsList.length > 0) {
+        setSelectedClass(clsList[0]._id);
       }
     } catch (err) {
       toast.error('Failed to load attendance data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const resolveAssignedClasses = (assignedList) => {
+    if (!assignedList || assignedList.length === 0) {
+      return classes; // All classes assigned
+    }
+    return assignedList.map((c) => {
+      if (typeof c === 'object' && c._id) return c;
+      return classes.find((cls) => String(cls._id) === String(c)) || { _id: c, className: String(c), section: '' };
+    });
   };
 
   useEffect(() => {
@@ -416,55 +447,144 @@ export default function AdminAttendance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {attenders.map((att) => (
-                      <TableRow key={att._id} className="hover:bg-slate-50/80 transition-colors">
-                        <TableCell className="font-bold text-slate-900">{att.name}</TableCell>
-                        <TableCell className="text-slate-600 font-medium">{att.email}</TableCell>
-                        <TableCell className="text-slate-600 font-medium">{att.phoneNo || '-'}</TableCell>
-                        <TableCell>
-                          {att.assignedClasses?.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-[280px]">
-                              {att.assignedClasses.slice(0, 4).map((c) => (
-                                <span key={typeof c === 'object' ? c._id : c} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100">
-                                  {typeof c === 'object' ? `${c.className}-${c.section}` : c}
-                                </span>
-                              ))}
-                              {att.assignedClasses.length > 4 && (
-                                <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                                  +{att.assignedClasses.length - 4} more
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-semibold">All Classes</span>
+                    {attenders.map((att) => {
+                      const isExpanded = expandedUserId === att._id;
+                      const resolvedList = resolveAssignedClasses(att.assignedClasses);
+                      const totalManagedStudents = resolvedList.reduce(
+                        (acc, cls) => acc + (studentCountMap[String(cls._id)] || 0),
+                        0
+                      );
+
+                      return (
+                        <React.Fragment key={att._id}>
+                          <TableRow className="hover:bg-slate-50/80 transition-colors">
+                            <TableCell className="font-bold text-slate-900">{att.name}</TableCell>
+                            <TableCell className="text-slate-600 font-medium">{att.email}</TableCell>
+                            <TableCell className="text-slate-600 font-medium">{att.phoneNo || '-'}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {resolvedList.length > 3 ? (
+                                  <>
+                                    {resolvedList.slice(0, 3).map((c) => (
+                                      <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
+                                        {c.className}-{c.section}
+                                      </span>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandUser(att._id)}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-extrabold text-xs transition-all cursor-pointer shadow-2xs ${
+                                        isExpanded
+                                          ? 'bg-purple-600 text-white shadow-xs'
+                                          : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80'
+                                      }`}
+                                    >
+                                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                      {isExpanded ? 'Close' : `+${resolvedList.length - 3} More`}
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    {resolvedList.map((c) => (
+                                      <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
+                                        Class {c.className}-{c.section}
+                                      </span>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandUser(att._id)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
+                                    >
+                                      {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                      {isExpanded ? 'Hide' : 'Students'}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 border border-emerald-200">
+                                <span className="h-2 w-2 rounded-full bg-emerald-600"></span>
+                                Active Attender
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openClassEditModal(att)}
+                                className="text-xs font-bold text-indigo-700 hover:text-indigo-900 border-slate-200 rounded-xl"
+                              >
+                                Edit Classes
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+
+                          {/* EXPANDABLE ACCORDION ROW FOR ATTENDER */}
+                          {isExpanded && (
+                            <TableRow className="bg-slate-50/90 border-b-2 border-indigo-100">
+                              <TableCell colSpan={6} className="p-4 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-purple-50/30">
+                                <div className="space-y-3 bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs">
+                                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+                                      <School className="h-4 w-4 text-indigo-600" />
+                                      <span>Assigned Classes & Student Count Breakdown ({resolvedList.length} Classes)</span>
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                                      Total Students Managed: <span className="font-black text-indigo-700 text-sm ml-1">{totalManagedStudents}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-1">
+                                    {resolvedList.map((clsObj) => {
+                                      const count = studentCountMap[String(clsObj._id)] || 0;
+                                      return (
+                                        <div key={clsObj._id} className="rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white p-3 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between border-l-4 border-l-indigo-600">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black text-slate-900">Class {clsObj.className}-{clsObj.section}</span>
+                                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                          </div>
+                                          <div className="flex items-center justify-between text-xs font-extrabold text-indigo-700 mt-2.5">
+                                            <span className="flex items-center gap-1.5">
+                                              <Users className="h-3.5 w-3.5 text-indigo-500" />
+                                              {count} Students
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-extrabold text-emerald-800 border border-emerald-200">
-                            <span className="h-2 w-2 rounded-full bg-emerald-600"></span>
-                            Active Attender
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openClassEditModal(att)}
-                            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 border-slate-200 rounded-xl"
-                          >
-                            Edit Classes
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
             )}
           </ErpSection>
 
-          <ErpSection title="Teacher Attendance Duty Permissions" icon={ShieldCheck} tone="purple">
+          <ErpSection
+            title="Teacher Attendance Duty Permissions"
+            icon={ShieldCheck}
+            tone="purple"
+            action={
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search teacher by name, email..."
+                  value={teacherSearchQuery}
+                  onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 h-8 text-xs rounded-xl border-slate-200 focus:ring-2 focus:ring-purple-500 bg-white"
+                />
+              </div>
+            }
+          >
             <p className="text-xs text-slate-500 mb-4 font-medium">
               Toggle Attendance Duty Permission for teachers. When enabled, teachers will see the <strong>Attendance tab</strong> in their portal sidebar.
             </p>
@@ -479,57 +599,142 @@ export default function AdminAttendance() {
                     <TableHead className="text-right font-bold text-slate-800">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {teachers.map((t) => (
-                    <TableRow key={t._id} className="hover:bg-slate-50/80 transition-colors">
-                      <TableCell className="font-bold text-slate-900">{t.name || t.teacherName}</TableCell>
-                      <TableCell className="text-slate-600 font-medium">{t.email}</TableCell>
-                      <TableCell>
-                        {t.assignedClasses?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[280px]">
-                            {t.assignedClasses.slice(0, 4).map((c) => (
-                              <span key={typeof c === 'object' ? c._id : c} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100">
-                                {typeof c === 'object' ? `${c.className}-${c.section}` : c}
-                              </span>
-                            ))}
-                            {t.assignedClasses.length > 4 && (
-                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-600">
-                                +{t.assignedClasses.length - 4} more
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-semibold">All Classes</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <Switch
-                            id={`perm-${t._id}`}
-                            checked={Boolean(t.canTakeAttendance)}
-                            onCheckedChange={() => handleTogglePermission(t, Boolean(t.canTakeAttendance))}
-                          />
-                          <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                            t.canTakeAttendance ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {t.canTakeAttendance ? 'Enabled' : 'Disabled'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openClassEditModal(t)}
-                          className="text-xs font-bold text-indigo-700 hover:text-indigo-900 border-slate-200 rounded-xl"
-                        >
-                          Edit Classes
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                  <TableBody>
+                    {teachers
+                      .filter((t) => {
+                        if (!teacherSearchQuery.trim()) return true;
+                        const q = teacherSearchQuery.toLowerCase();
+                        const name = (t.name || t.teacherName || '').toLowerCase();
+                        const email = (t.email || '').toLowerCase();
+                        const classesStr = (t.assignedClasses || [])
+                          .map((c) => (typeof c === 'object' ? `${c.className}-${c.section}` : String(c)))
+                          .join(' ')
+                          .toLowerCase();
+                        return name.includes(q) || email.includes(q) || classesStr.includes(q);
+                      })
+                      .map((t) => {
+                      const isExpanded = expandedUserId === t._id;
+                      const resolvedList = resolveAssignedClasses(t.assignedClasses);
+                      const totalManagedStudents = resolvedList.reduce(
+                        (acc, cls) => acc + (studentCountMap[String(cls._id)] || 0),
+                        0
+                      );
+
+                      return (
+                        <React.Fragment key={t._id}>
+                          <TableRow className="hover:bg-slate-50/80 transition-colors">
+                            <TableCell className="font-bold text-slate-900">{t.name || t.teacherName}</TableCell>
+                            <TableCell className="text-slate-600 font-medium">{t.email}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {resolvedList.length > 3 ? (
+                                  <>
+                                    {resolvedList.slice(0, 3).map((c) => (
+                                      <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
+                                        {c.className}-{c.section}
+                                      </span>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandUser(t._id)}
+                                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md font-extrabold text-xs transition-all cursor-pointer shadow-2xs ${
+                                        isExpanded
+                                          ? 'bg-purple-600 text-white shadow-xs'
+                                          : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/80'
+                                      }`}
+                                    >
+                                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                      {isExpanded ? 'Close' : `+${resolvedList.length - 3} More`}
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    {resolvedList.map((c) => (
+                                      <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
+                                        Class {c.className}-{c.section}
+                                      </span>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleExpandUser(t._id)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
+                                    >
+                                      {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                      {isExpanded ? 'Hide' : 'Students'}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Switch
+                                  id={`perm-${t._id}`}
+                                  checked={Boolean(t.canTakeAttendance)}
+                                  onCheckedChange={() => handleTogglePermission(t, Boolean(t.canTakeAttendance))}
+                                />
+                                <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full ${
+                                  t.canTakeAttendance ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'
+                                }`}>
+                                  {t.canTakeAttendance ? 'Enabled' : 'Disabled'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openClassEditModal(t)}
+                                className="text-xs font-bold text-indigo-700 hover:text-indigo-900 border-slate-200 rounded-xl"
+                              >
+                                Edit Classes
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+
+                          {/* EXPANDABLE ACCORDION ROW FOR TEACHER */}
+                          {isExpanded && (
+                            <TableRow className="bg-slate-50/90 border-b-2 border-indigo-100">
+                              <TableCell colSpan={6} className="p-4 bg-gradient-to-r from-slate-50 via-indigo-50/30 to-purple-50/30">
+                                <div className="space-y-3 bg-white p-4 rounded-2xl border border-indigo-100 shadow-xs">
+                                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                                    <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+                                      <School className="h-4 w-4 text-indigo-600" />
+                                      <span>Assigned Classes & Student Count Breakdown ({resolvedList.length} Classes)</span>
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                                      Total Students Managed: <span className="font-black text-indigo-700 text-sm ml-1">{totalManagedStudents}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-1">
+                                    {resolvedList.map((clsObj) => {
+                                      const count = studentCountMap[String(clsObj._id)] || 0;
+                                      return (
+                                        <div key={clsObj._id} className="rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white p-3 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between border-l-4 border-l-indigo-600">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black text-slate-900">Class {clsObj.className}-{clsObj.section}</span>
+                                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                          </div>
+                                          <div className="flex items-center justify-between text-xs font-extrabold text-indigo-700 mt-2.5">
+                                            <span className="flex items-center gap-1.5">
+                                              <Users className="h-3.5 w-3.5 text-indigo-500" />
+                                              {count} Students
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </TableBody>
               </Table>
             </div>
           </ErpSection>
@@ -540,35 +745,38 @@ export default function AdminAttendance() {
       {activeTab === 'mark' && (
         <div className="space-y-6">
           <ErpSection title="Select Class & Date" icon={Calendar} tone="blue">
-            <div className="grid gap-4 sm:grid-cols-3 items-end">
-              <FormField label="Class & Section">
-                <select
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
-                >
-                  {classes.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.className} - {c.section}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+            <div className="grid gap-3 sm:grid-cols-12 items-end">
+              <div className="sm:col-span-6">
+                <FormField label="Class & Section">
+                  <Select value={selectedClass} onValueChange={(val) => setSelectedClass(val)}>
+                    <SelectTrigger className="rounded-xl border-slate-200 font-bold text-slate-900 bg-white">
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map((c) => (
+                        <SelectItem key={c._id} value={c._id}>
+                          Class {c.className} - {c.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              </div>
 
-              <FormField label="Date">
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </FormField>
+              <div className="sm:col-span-5">
+                <FormField label="Date">
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="rounded-xl border-slate-200 font-semibold"
+                  />
+                </FormField>
+              </div>
 
-              <div className="flex gap-2">
-                <Button onClick={markAllPresent} variant="outline" className="w-full text-xs font-bold text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100">
-                  Mark All Present
-                </Button>
-                <Button onClick={loadPreview} variant="ghost" size="icon" title="Refresh">
-                  <RefreshCw className="h-4 w-4" />
+              <div className="sm:col-span-1 flex justify-end">
+                <Button onClick={loadPreview} variant="outline" size="icon" title="Refresh Student List" className="h-[42px] w-[42px] rounded-xl border-slate-200">
+                  <RefreshCw className="h-4 w-4 text-slate-600" />
                 </Button>
               </div>
             </div>
@@ -742,18 +950,18 @@ export default function AdminAttendance() {
               <div className="grid gap-3 sm:grid-cols-12 items-end">
                 <div className="sm:col-span-4">
                   <FormField label="Select Class">
-                    <select
-                      value={reportClass}
-                      onChange={(e) => setReportClass(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-purple-500 bg-white"
-                    >
-                      <option value="">-- Choose a Class --</option>
-                      {classes.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          Class {c.className} - {c.section}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={reportClass} onValueChange={(val) => setReportClass(val)}>
+                      <SelectTrigger className="rounded-xl border-slate-200 font-bold text-slate-900 bg-white">
+                        <SelectValue placeholder="-- Choose a Class --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((c) => (
+                          <SelectItem key={c._id} value={c._id}>
+                            Class {c.className} - {c.section}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormField>
                 </div>
 
