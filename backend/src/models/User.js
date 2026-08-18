@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: false, minlength: 6, select: false },
     role: {
       type: String,
-      enum: ['super_admin', 'school_admin', 'teacher', 'admin', 'parent'],
+      enum: ['super_admin', 'school_admin', 'teacher', 'admin', 'parent', 'attender'],
       required: true,
     },
     phoneNo: { type: String, trim: true },
@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema(
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
     assignedClasses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Class' }],
     assignments: [teacherAssignmentSchema],
+    canTakeAttendance: { type: Boolean, default: false },
     mustChangePassword: { type: Boolean, default: false },
     googleId: { type: String, trim: true },
     authProvider: { type: String, enum: ['local', 'google'], default: 'local' },

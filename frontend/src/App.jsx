@@ -65,6 +65,8 @@ import CheckingProgress from '@/pages/teacher/CheckingProgress';
 import NotebookAnalytics from '@/pages/admin/NotebookAnalytics';
 import NotebookProgress from '@/pages/parent/NotebookProgress';
 import ParentNotebookAnalytics from '@/pages/parent/NotebookAnalytics';
+import AdminAttendance from '@/pages/admin/AdminAttendance';
+import AttenderEntry from '@/pages/attender/AttenderEntry';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -91,8 +93,10 @@ function HomeRoute() {
     return <Navigate to="/admin" replace />;
   }
   if (role === 'parent') {
-    
     return <Navigate to="/parent/dashboard" replace />;
+  }
+  if (role === 'attender') {
+    return <Navigate to="/attender" replace />;
   }
   
   return <Navigate to="/teacher" replace />;
@@ -115,7 +119,7 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent']}><DashboardLayout /></ProtectedRoute>}>
+            <Route element={<ProtectedRoute roles={['super_admin', 'school_admin', 'admin', 'teacher', 'parent', 'attender']}><DashboardLayout /></ProtectedRoute>}>
               <Route path="/super-admin" element={<ProtectedRoute roles={['super_admin']}><SuperDashboard /></ProtectedRoute>} />
               <Route path="/super-admin/notifications" element={<ProtectedRoute roles={['super_admin']}><SuperNotifications /></ProtectedRoute>} /> {/* YEH NAYI LINE ADD KI HAI */}
               <Route path="/super-admin/schools" element={<ProtectedRoute roles={['super_admin']}><SuperSchools /></ProtectedRoute>} />
@@ -134,6 +138,7 @@ export default function App() {
               <Route path="/admin/classes" element={<ProtectedRoute roles={['school_admin', 'admin']}><ManageClasses /></ProtectedRoute>} />
               <Route path="/admin/students" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="student_portal" label="Student Portal"><ManageStudents /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/parents" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ManageParents /></RequireFeature></ProtectedRoute>} />
+              <Route path="/admin/attendance" element={<ProtectedRoute roles={['school_admin', 'admin']}><AdminAttendance /></ProtectedRoute>} />
               <Route path="/admin/assignments" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><TeacherAssignments /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/results" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><ResultManagement /></RequireFeature></ProtectedRoute>} />
               <Route path="/admin/class-results" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><ClassResults /></RequireFeature></ProtectedRoute>} />
@@ -148,6 +153,7 @@ export default function App() {
               <Route path="/admin/notebook-analytics" element={<ProtectedRoute roles={['school_admin', 'admin']}><RequireFeature featureKey="reports" label="Reports"><NotebookAnalytics /></RequireFeature></ProtectedRoute>} />
 
               <Route path="/teacher" element={<ProtectedRoute roles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
+              <Route path="/teacher/attendance" element={<ProtectedRoute roles={['teacher']}><AttenderEntry /></ProtectedRoute>} />
               <Route path="/teacher/notifications" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="notifications" label="Notifications"><TeacherNotifications /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/classes" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><TeacherClasses /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/daily-test" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="daily_test" label="Daily Test"><DailyTestEntry /></RequireFeature></ProtectedRoute>} />
@@ -158,6 +164,9 @@ export default function App() {
               <Route path="/teacher/marks-entry" element={<Navigate to="/teacher/daily-test" replace />} />
               <Route path="/teacher/notebook-checking" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><NotebookChecking /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/checking-progress" element={<ProtectedRoute roles={['teacher']}><CheckingProgress /></ProtectedRoute>} />
+
+              <Route path="/attender" element={<ProtectedRoute roles={['attender']}><AttenderEntry /></ProtectedRoute>} />
+              <Route path="/attender/settings" element={<ProtectedRoute roles={['attender']}><TeacherSettings /></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/notebook-progress" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><NotebookProgress /></RequireFeature></ProtectedRoute>} />

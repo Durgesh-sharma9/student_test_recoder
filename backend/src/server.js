@@ -32,6 +32,7 @@ import couponRoutes from './routes/couponRoutes.js';
 import notebookRoutes from './routes/notebookRoutes.js';
 import pollRoutes from './routes/pollRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
+import attendanceRoutes from './routes/attendanceRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,6 +86,7 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/notebook', notebookRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 app.use(errorHandler);
 

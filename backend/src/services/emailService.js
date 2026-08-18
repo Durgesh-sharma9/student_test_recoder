@@ -924,3 +924,88 @@ Test Master Pro Team
 
   return await sendWithRetry(mailOptions, "Reset Password Email");
 };
+
+export const sendAttenderCreationEmail = async (
+  schoolName,
+  attenderName,
+  attenderEmail,
+  password,
+  loginUrl
+) => {
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: attenderEmail,
+    subject: `Welcome to ${schoolName} - Your Attender Account Credentials`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to ${schoolName}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0 0 5px; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0;">Attendance Portal Access</p>
+          </div>
+
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333333; font-size: 24px; margin: 0 0 20px; font-weight: 600;">Attender Account Created</h2>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              Hello <strong>${attenderName}</strong>,
+            </p>
+            <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
+              You have been registered as an **Attendance Marker / Attender** for <strong>${schoolName}</strong>. Below are your login credentials to access the portal and mark student attendance.
+            </p>
+
+            <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 25px; margin: 25px 0;">
+              <h3 style="color: #333333; font-size: 16px; margin: 0 0 20px; font-weight: 600;">Login Details</h3>
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Email</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${attenderEmail}</p>
+              </div>
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Password</p>
+                <p style="color: #059669; font-size: 18px; margin: 0; font-weight: 700; letter-spacing: 1px;">${password}</p>
+              </div>
+              <div>
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">School</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${schoolName}</p>
+              </div>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">Login & Mark Attendance</a>
+            </div>
+
+            <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #666666; font-size: 15px; margin: 0 0 10px;">Regards,<br><strong>${schoolName}</strong></p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Welcome to ${schoolName} - Your Attender Account Credentials
+
+Hello ${attenderName},
+
+You have been registered as an Attendance Marker / Attender for ${schoolName}.
+
+Login Details:
+Email: ${attenderEmail}
+Password: ${password}
+School: ${schoolName}
+
+Login & Mark Attendance: ${loginUrl}
+
+Regards,
+${schoolName}
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Attender Creation Email");
+};
