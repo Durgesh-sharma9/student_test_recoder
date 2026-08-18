@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import Student from '../models/Student.js';
 import ResultSession from '../models/ResultSession.js';
 import AcademicSession from '../models/AcademicSession.js';
@@ -64,7 +67,23 @@ const syncSuperAdmin = async () => {
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/school-daily-test';
-  await mongoose.connect(uri);
+  
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 15000,
+      });
+      break;
+    } catch (err) {
+      retries -= 1;
+      console.warn(`[DB] MongoDB Atlas connection attempt failed (${err.message}). Retrying... (${retries} attempts left)`);
+      if (retries === 0) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
 
   // Keep DB indexes aligned with current schemas (drops stale unique indexes).
   await Student.syncIndexes();
