@@ -1,3 +1,4 @@
+// Plans seeded on testmasterpro: Monthly Basic, Standard, Elite
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
