@@ -13,6 +13,7 @@ import {
   Search,
   Filter,
   RefreshCw,
+  School,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
@@ -95,6 +96,70 @@ export default function AdminAttendance() {
   const [endDate, setEndDate] = useState('');
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [datePreset, setDatePreset] = useState('week'); // 'today', 'week', 'month', 'custom'
+  const [reportViewMode, setReportViewMode] = useState('matrix'); // 'matrix', 'history'
+
+  const applyDatePreset = (preset) => {
+    setDatePreset(preset);
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
+    if (preset === 'today') {
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    } else if (preset === 'week') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 6);
+      setStartDate(d.toISOString().split('T')[0]);
+      setEndDate(todayStr);
+    } else if (preset === 'month') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      setStartDate(firstDay.toISOString().split('T')[0]);
+      setEndDate(todayStr);
+    }
+  };
+
+  const buildMatrixData = () => {
+    if (!reportData?.reports || reportData.reports.length === 0) return null;
+
+    const datesSet = new Set();
+    reportData.reports.forEach((rep) => {
+      datesSet.add(rep.dateString);
+    });
+    const sortedDates = Array.from(datesSet).sort();
+
+    const studentMap = new Map();
+    reportData.reports.forEach((rep) => {
+      if (rep.records) {
+        rep.records.forEach((rec) => {
+          const sId = String(rec.student?._id || rec.student);
+          const sName = rec.student?.name || 'Student';
+          const sRoll = rec.student?.rollNo || '';
+
+          if (!studentMap.has(sId)) {
+            studentMap.set(sId, {
+              id: sId,
+              name: sName,
+              rollNo: sRoll,
+              attendanceByDate: {},
+            });
+          }
+
+          const stObj = studentMap.get(sId);
+          stObj.attendanceByDate[rep.dateString] = rec.status;
+        });
+      }
+    });
+
+    const students = Array.from(studentMap.values()).sort((a, b) => {
+      const numA = parseInt(a.rollNo, 10);
+      const numB = parseInt(b.rollNo, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
+    });
+
+    return { sortedDates, students };
+  };
 
   // Load Classes & Users
   const loadData = async () => {
@@ -130,7 +195,16 @@ export default function AdminAttendance() {
       const res = await api.get('/attendance/preview', {
         params: { classId: selectedClass, date: selectedDate },
       });
-      setPreviewData(res.data);
+      const data = res.data;
+      if (data?.records) {
+        data.records.sort((a, b) => {
+          const numA = parseInt(a.rollNo, 10);
+          const numB = parseInt(b.rollNo, 10);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
+        });
+      }
+      setPreviewData(data);
     } catch (err) {
       toast.error('Failed to fetch class attendance list');
     } finally {
@@ -174,11 +248,10 @@ export default function AdminAttendance() {
     }
   };
 
-  // Toggle Student Status in Marking Mode
+  // Toggle Student Status in Marking Mode (2-State Present <-> Absent)
   const toggleStudentStatus = (studentId, currentStatus) => {
     if (!previewData) return;
-    const nextMap = { present: 'absent', absent: 'leave', leave: 'present' };
-    const nextStatus = nextMap[currentStatus] || 'present';
+    const nextStatus = currentStatus === 'present' ? 'absent' : 'present';
 
     setPreviewData((prev) => {
       const updatedRecords = prev.records.map((r) =>
@@ -186,7 +259,6 @@ export default function AdminAttendance() {
       );
       const totalPresent = updatedRecords.filter((r) => r.status === 'present').length;
       const totalAbsent = updatedRecords.filter((r) => r.status === 'absent').length;
-      const totalLeave = updatedRecords.filter((r) => r.status === 'leave').length;
 
       return {
         ...prev,
@@ -195,7 +267,6 @@ export default function AdminAttendance() {
           ...prev.summary,
           totalPresent,
           totalAbsent,
-          totalLeave,
         },
       };
     });
@@ -211,7 +282,6 @@ export default function AdminAttendance() {
         totalStudents: prev.records.length,
         totalPresent: prev.records.length,
         totalAbsent: 0,
-        totalLeave: 0,
       },
     }));
     toast.info('All students set to Present');
@@ -257,9 +327,12 @@ export default function AdminAttendance() {
 
   useEffect(() => {
     if (activeTab === 'reports') {
+      if (!startDate && !endDate) {
+        applyDatePreset('week');
+      }
       loadReports();
     }
-  }, [activeTab]);
+  }, [activeTab, startDate, endDate, reportClass]);
 
   return (
     <PageStack className="pb-10">
@@ -516,33 +589,32 @@ export default function AdminAttendance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewData.records.map((st) => (
-                      <TableRow key={st.studentId} className="hover:bg-slate-50/80 transition-colors">
-                        <TableCell className="font-bold text-slate-700">{st.rollNo || '-'}</TableCell>
-                        <TableCell className="font-semibold text-slate-900">{st.name}</TableCell>
-                        <TableCell className="text-slate-500">{st.fatherName || '-'}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => toggleStudentStatus(st.studentId, st.status)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 ${
-                                st.status === 'present'
-                                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-600/30'
-                                  : st.status === 'absent'
-                                  ? 'bg-rose-600 text-white ring-2 ring-rose-600/30'
-                                  : 'bg-amber-500 text-white ring-2 ring-amber-500/30'
-                              }`}
-                            >
-                              {st.status === 'present' && <CheckCircle2 className="h-3.5 w-3.5" />}
-                              {st.status === 'absent' && <XCircle className="h-3.5 w-3.5" />}
-                              {st.status === 'leave' && <Clock className="h-3.5 w-3.5" />}
-                              <span className="uppercase">{st.status}</span>
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {previewData.records.map((st) => {
+                      const isPresent = st.status === 'present';
+                      return (
+                        <TableRow key={st.studentId} className="hover:bg-slate-50/80 transition-colors">
+                          <TableCell className="font-bold text-slate-700">{st.rollNo || '-'}</TableCell>
+                          <TableCell className="font-semibold text-slate-900">{st.name}</TableCell>
+                          <TableCell className="text-slate-500">{st.fatherName || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => toggleStudentStatus(st.studentId, st.status)}
+                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 uppercase ${
+                                  isPresent
+                                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-600/30'
+                                    : 'bg-rose-600 text-white ring-2 ring-rose-600/30'
+                                }`}
+                              >
+                                {isPresent ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                                <span>{isPresent ? 'Present' : 'Absent'}</span>
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -560,112 +632,321 @@ export default function AdminAttendance() {
         </div>
       )}
 
-      {/* TAB 3: ATTENDANCE REPORTS */}
+      {/* TAB 3: ATTENDANCE REPORTS & MATRIX REGISTER */}
       {activeTab === 'reports' && (
         <div className="space-y-6">
-          <ErpSection title="Filter Attendance Reports" icon={Filter} tone="purple">
-            <div className="grid gap-4 sm:grid-cols-3 items-end">
-              <FormField label="Filter by Class">
-                <select
-                  value={reportClass}
-                  onChange={(e) => setReportClass(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">All Classes</option>
-                  {classes.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.className} - {c.section}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+          <ErpSection title="Filter Attendance Reports & Matrix Register" icon={Filter} tone="purple">
+            <div className="space-y-4">
+              {/* DATE PRESETS & CLASS SELECTOR ROW */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider mr-1">Quick Range:</span>
+                  <Button
+                    type="button"
+                    variant={datePreset === 'today' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyDatePreset('today')}
+                    className="h-8 text-xs font-bold rounded-lg"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={datePreset === 'week' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyDatePreset('week')}
+                    className="h-8 text-xs font-bold rounded-lg"
+                  >
+                    This Week
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={datePreset === 'month' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => applyDatePreset('month')}
+                    className="h-8 text-xs font-bold rounded-lg"
+                  >
+                    This Month
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={datePreset === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDatePreset('custom')}
+                    className="h-8 text-xs font-bold rounded-lg"
+                  >
+                    Custom Range
+                  </Button>
+                </div>
 
-              <FormField label="Start Date">
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </FormField>
+                {/* VIEW MODE TOGGLE BUTTONS */}
+                <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setReportViewMode('matrix')}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                      reportViewMode === 'matrix'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    📊 Register Matrix
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportViewMode('history')}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                      reportViewMode === 'history'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    📜 Daily History Log
+                  </button>
+                </div>
+              </div>
 
-              <FormField label="End Date">
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </FormField>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button onClick={loadReports} disabled={reportLoading} className="gap-2">
-                Apply Filters
-              </Button>
+              {/* FILTER INPUTS */}
+              <div className="grid gap-3 sm:grid-cols-3 items-end">
+                <FormField label="Filter by Class">
+                  <select
+                    value={reportClass}
+                    onChange={(e) => setReportClass(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-purple-500 bg-white"
+                  >
+                    <option value="">-- Select Class --</option>
+                    {classes.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.className} - {c.section}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <FormField label="Start Date">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setDatePreset('custom');
+                    }}
+                    className="rounded-xl border-slate-200"
+                  />
+                </FormField>
+
+                <FormField label="End Date">
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setDatePreset('custom');
+                    }}
+                    className="rounded-xl border-slate-200"
+                  />
+                </FormField>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <Button onClick={loadReports} disabled={reportLoading || !reportClass} className="gap-2 font-bold rounded-xl px-6">
+                  <Filter className="h-4 w-4" />
+                  Apply Filters
+                </Button>
+              </div>
             </div>
           </ErpSection>
 
-          {/* REPORT SUMMARY STATS */}
-          {reportData?.stats && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {/* REPORT SUMMARY KPI STATS */}
+          {reportClass && reportData?.stats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
               <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm">
-                <div className="text-xs text-slate-500 font-semibold">Days Marked</div>
-                <div className="text-xl font-bold text-slate-900">{reportData.stats.totalDaysMarked}</div>
+                <div className="text-xs text-slate-500 font-semibold uppercase">Days Marked</div>
+                <div className="text-xl font-bold text-slate-900 mt-1">{reportData.stats.totalDaysMarked}</div>
               </div>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 shadow-sm">
-                <div className="text-xs text-emerald-700 font-semibold">Total Present</div>
-                <div className="text-xl font-bold text-emerald-800">{reportData.stats.grandTotalPresent}</div>
+                <div className="text-xs text-emerald-700 font-semibold uppercase">Total Present</div>
+                <div className="text-xl font-bold text-emerald-800 mt-1">{reportData.stats.grandTotalPresent}</div>
               </div>
               <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-3.5 shadow-sm">
-                <div className="text-xs text-rose-700 font-semibold">Total Absent</div>
-                <div className="text-xl font-bold text-rose-800">{reportData.stats.grandTotalAbsent}</div>
+                <div className="text-xs text-rose-700 font-semibold uppercase">Total Absent</div>
+                <div className="text-xl font-bold text-rose-800 mt-1">{reportData.stats.grandTotalAbsent}</div>
               </div>
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 shadow-sm">
-                <div className="text-xs text-amber-700 font-semibold">Total Leave</div>
-                <div className="text-xl font-bold text-amber-800">{reportData.stats.grandTotalLeave}</div>
-              </div>
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3.5 shadow-sm col-span-2 sm:col-span-1">
-                <div className="text-xs text-indigo-700 font-semibold">Overall Attendance %</div>
-                <div className="text-xl font-bold text-indigo-900">{reportData.stats.overallPercentage}%</div>
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3.5 shadow-sm">
+                <div className="text-xs text-indigo-700 font-semibold uppercase">Overall Attendance %</div>
+                <div className="text-xl font-bold text-indigo-900 mt-1">{reportData.stats.overallPercentage}%</div>
               </div>
             </div>
           )}
 
-          {/* REPORT TABLE */}
-          {reportLoading ? (
-            <div className="py-12 text-center text-slate-500">Loading attendance reports...</div>
-          ) : reportData?.reports?.length > 0 ? (
-            <ErpSection title="Marked Attendance History" icon={Calendar} tone="emerald">
-              <div className="rounded-xl border border-slate-200 overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Class</TableHead>
-                      <TableHead>Marked By</TableHead>
-                      <TableHead className="text-center">Total Students</TableHead>
-                      <TableHead className="text-center text-emerald-700">Present</TableHead>
-                      <TableHead className="text-center text-rose-700">Absent</TableHead>
-                      <TableHead className="text-center text-amber-700">Leave</TableHead>
-                      <TableHead className="text-right">Attendance %</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reportData.reports.map((rep) => {
-                      const pct = rep.totalStudents > 0 ? Math.round((rep.totalPresent / rep.totalStudents) * 100) : 0;
-                      return (
-                        <TableRow key={rep._id}>
-                          <TableCell className="font-bold text-slate-800">{rep.dateString}</TableCell>
-                          <TableCell className="font-semibold text-slate-700">
-                            {rep.class ? `${rep.class.className} - ${rep.class.section}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-slate-600 font-medium">
-                            {rep.recordedBy ? (rep.recordedBy.name || rep.recordedBy.teacherName) : 'Admin'}
-                          </TableCell>
-                          <TableCell className="text-center font-semibold">{rep.totalStudents}</TableCell>
-                          <TableCell className="text-center font-bold text-emerald-700">{rep.totalPresent}</TableCell>
-                          <TableCell className="text-center font-bold text-rose-700">{rep.totalAbsent}</TableCell>
-                          <TableCell className="text-center font-bold text-amber-700">{rep.totalLeave}</TableCell>
-                          <TableCell className="text-right font-bold text-indigo-700">{pct}%</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+          {/* VIEW RENDERER */}
+          {!reportClass ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-100 text-purple-600 shadow-sm mb-4">
+                <School className="h-7 w-7" />
               </div>
-            </ErpSection>
+              <h3 className="text-base font-extrabold text-slate-800">Please Select a Class</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Choose a specific class from the dropdown above to load its detailed daily attendance matrix and stats.
+              </p>
+            </div>
+          ) : reportLoading ? (
+            <div className="py-12 text-center text-slate-500 font-medium">Loading attendance register...</div>
+          ) : reportViewMode === 'matrix' ? (
+            (() => {
+              const matrix = buildMatrixData();
+              const selectedClsObj = classes.find((c) => String(c._id) === String(reportClass));
+              const classTitle = selectedClsObj ? `${selectedClsObj.className} - ${selectedClsObj.section}` : 'Class';
+
+              if (!matrix || matrix.students.length === 0) {
+                return (
+                  <div className="py-12 text-center text-slate-400 font-medium">
+                    No attendance records found for {classTitle} in the selected date range.
+                  </div>
+                );
+              }
+
+              return (
+                <ErpSection title={`${classTitle} Attendance Register Matrix`} icon={Calendar} tone="emerald">
+                  <div className="rounded-xl border border-slate-200 overflow-x-auto bg-white shadow-xs">
+                    <Table className="min-w-full text-xs">
+                      <TableHeader className="bg-slate-50">
+                        <TableRow>
+                          <TableHead className="w-12 font-black text-slate-700 text-center sticky left-0 bg-slate-50 border-r z-10">
+                            Roll
+                          </TableHead>
+                          <TableHead className="w-48 font-black text-slate-700 sticky left-12 bg-slate-50 border-r z-10">
+                            Student Name
+                          </TableHead>
+
+                          {/* DATE COLUMNS */}
+                          {matrix.sortedDates.map((dStr) => {
+                            const dateObj = new Date(dStr);
+                            const dayNum = dateObj.getDate();
+                            const monthShort = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                            return (
+                              <TableHead key={dStr} className="text-center font-bold text-slate-700 px-2 min-w-[52px]">
+                                <div className="font-extrabold text-slate-900">{dayNum}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">{monthShort}</div>
+                              </TableHead>
+                            );
+                          })}
+
+                          <TableHead className="text-center font-extrabold text-emerald-800 bg-emerald-50/60">Present</TableHead>
+                          <TableHead className="text-center font-extrabold text-rose-800 bg-rose-50/60">Absent</TableHead>
+                          <TableHead className="text-center font-extrabold text-indigo-900 bg-indigo-50/60">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {matrix.students.map((st) => {
+                          let pCount = 0;
+                          let aCount = 0;
+
+                          matrix.sortedDates.forEach((dStr) => {
+                            const stt = st.attendanceByDate[dStr];
+                            if (stt === 'present') pCount++;
+                            if (stt === 'absent') aCount++;
+                          });
+
+                          const totalMarkedDays = pCount + aCount;
+                          const stPct = totalMarkedDays > 0 ? Math.round((pCount / totalMarkedDays) * 100) : 0;
+                          const pctColor =
+                            stPct >= 80
+                              ? 'text-emerald-700 bg-emerald-50/50'
+                              : stPct >= 60
+                              ? 'text-amber-700 bg-amber-50/50'
+                              : 'text-rose-700 bg-rose-50/50';
+
+                          return (
+                            <TableRow key={st.id} className="hover:bg-slate-50/80 transition-colors">
+                              <TableCell className="font-bold text-slate-700 text-center sticky left-0 bg-white border-r">
+                                {st.rollNo || '-'}
+                              </TableCell>
+                              <TableCell className="font-bold text-slate-900 truncate max-w-[180px] sticky left-12 bg-white border-r">
+                                {st.name}
+                              </TableCell>
+
+                              {/* DAILY STATUS CELLS */}
+                              {matrix.sortedDates.map((dStr) => {
+                                const status = st.attendanceByDate[dStr];
+                                return (
+                                  <TableCell key={dStr} className="text-center p-1.5 border-r border-slate-100">
+                                    {status === 'present' ? (
+                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-emerald-600 text-white font-black text-[11px] shadow-2xs" title="Present">
+                                        P
+                                      </span>
+                                    ) : status === 'absent' ? (
+                                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-rose-600 text-white font-black text-[11px] shadow-2xs" title="Absent">
+                                        A
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300 font-bold">-</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
+
+                              <TableCell className="text-center font-black text-emerald-700 bg-emerald-50/20">
+                                {pCount}
+                              </TableCell>
+                              <TableCell className="text-center font-black text-rose-700 bg-rose-50/20">
+                                {aCount}
+                              </TableCell>
+                              <TableCell className={`text-center font-black ${pctColor}`}>
+                                {stPct}%
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </ErpSection>
+              );
+            })()
           ) : (
-            <div className="py-12 text-center text-slate-400">No attendance reports found for selected filters</div>
+            /* DAILY HISTORY LOG VIEW */
+            reportData?.reports?.length > 0 ? (
+              <ErpSection title="Marked Attendance History Log" icon={Calendar} tone="emerald">
+                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-xs">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Class</TableHead>
+                        <TableHead>Marked By</TableHead>
+                        <TableHead className="text-center">Total Students</TableHead>
+                        <TableHead className="text-center text-emerald-700">Present</TableHead>
+                        <TableHead className="text-center text-rose-700">Absent</TableHead>
+                        <TableHead className="text-right">Attendance %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.reports.map((rep) => {
+                        const pct = rep.totalStudents > 0 ? Math.round((rep.totalPresent / rep.totalStudents) * 100) : 0;
+                        return (
+                          <TableRow key={rep._id} className="hover:bg-slate-50 transition-colors">
+                            <TableCell className="font-bold text-slate-800">{rep.dateString}</TableCell>
+                            <TableCell className="font-semibold text-slate-700">
+                              {rep.class ? `${rep.class.className} - ${rep.class.section}` : '-'}
+                            </TableCell>
+                            <TableCell className="text-slate-600 font-medium">
+                              {rep.recordedBy ? (rep.recordedBy.name || rep.recordedBy.teacherName) : 'Admin'}
+                            </TableCell>
+                            <TableCell className="text-center font-semibold">{rep.totalStudents}</TableCell>
+                            <TableCell className="text-center font-bold text-emerald-700">{rep.totalPresent}</TableCell>
+                            <TableCell className="text-center font-bold text-rose-700">{rep.totalAbsent}</TableCell>
+                            <TableCell className="text-right font-bold text-indigo-700">{pct}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ErpSection>
+            ) : (
+              <div className="py-12 text-center text-slate-400 font-medium">No attendance reports found for selected class</div>
+            )
           )}
         </div>
       )}

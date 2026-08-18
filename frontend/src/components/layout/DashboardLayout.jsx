@@ -112,7 +112,8 @@ const navByRole = {
   ],
 
   attender: [
-    { to: '/attender', label: 'Mark Attendance', icon: UserCheck, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100', end: true },
+    { to: '/attender', label: 'Dashboard', icon: LayoutDashboard, iconColor: 'text-indigo-600', boxBg: 'bg-indigo-50 group-hover:bg-indigo-100', end: true },
+    { to: '/attender/entry', label: 'Mark Attendance', icon: UserCheck, iconColor: 'text-emerald-600', boxBg: 'bg-emerald-50 group-hover:bg-emerald-100' },
     { to: '/attender/settings', label: 'Settings', icon: Settings, iconColor: 'text-slate-600', boxBg: 'bg-slate-50 group-hover:bg-slate-100' },
   ],
 

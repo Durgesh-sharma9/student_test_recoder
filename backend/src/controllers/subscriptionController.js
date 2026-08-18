@@ -465,6 +465,22 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
 });
 
 export const getSubscriptionStatus = asyncHandler(async (req, res) => {
+  if (!req.user?.school) {
+    return res.json({
+      success: true,
+      subscription: {
+        schoolId: null,
+        currentPlan: { name: 'Unlimited', features: {} },
+        planExpiresAt: null,
+        isActive: true,
+        pendingRequest: null,
+        scheduledDowngradePlan: null,
+        scheduledDowngradeDate: null,
+        usage: { teachers: 0, students: 0, teacherLimit: null, studentLimit: null },
+      },
+    });
+  }
+
   const school = await School.findById(req.user.school).populate('plan').populate('scheduledDowngradePlan');
   if (!school) throw new ApiError(404, 'School not found');
 

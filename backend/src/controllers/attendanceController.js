@@ -132,8 +132,16 @@ export const getAttendancePreview = asyncHandler(async (req, res) => {
   if (!targetClass) throw new ApiError(404, 'Class not found');
 
   const students = await Student.find({ school: schoolId, class: classId, isActive: true })
-    .sort('rollNo name')
-    .select('name rollNo fatherName studentPhone avatar');
+    .select('name rollNo parent')
+    .populate('parent', 'parentName phone');
+
+  // Sort students by rollNo numerically (1, 2, 3... 10, 11) instead of lexicographically ("1", "10", "2")
+  students.sort((a, b) => {
+    const numA = parseInt(a.rollNo, 10);
+    const numB = parseInt(b.rollNo, 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
+  });
 
   const existingAttendance = await Attendance.findOne({
     school: schoolId,
@@ -155,7 +163,7 @@ export const getAttendancePreview = asyncHandler(async (req, res) => {
       studentId: s._id,
       name: s.name,
       rollNo: s.rollNo,
-      fatherName: s.fatherName,
+      fatherName: s.parent?.parentName || '',
       status: existing ? existing.status : 'present', // Default PRESENT if new
       remarks: existing ? existing.remarks : '',
     };
@@ -258,7 +266,8 @@ export const getAttendanceReport = asyncHandler(async (req, res) => {
   const reports = await Attendance.find(filter)
     .sort('-dateString')
     .populate('class', 'className section')
-    .populate('recordedBy', 'name role teacherName');
+    .populate('recordedBy', 'name role teacherName')
+    .populate('records.student', 'name rollNo');
 
   let grandTotalStudents = 0;
   let grandTotalPresent = 0;

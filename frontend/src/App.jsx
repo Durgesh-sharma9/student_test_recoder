@@ -45,6 +45,7 @@ import TeacherResults from '@/pages/teacher/TeacherResults';
 import TeacherNotifications from '@/pages/teacher/Notifications';
 import TeacherFeedback from '@/pages/teacher/Feedback';
 import TeacherSettings from '@/pages/teacher/TeacherSettings';
+import AttenderDashboard from '@/pages/attender/AttenderDashboard';
 import ParentDashboard from '@/pages/parent/Dashboard';
 import ParentSettings from '@/pages/parent/ParentSettings';
 import ParentNotifications from '@/pages/parent/ParentNotifications';
@@ -165,7 +166,8 @@ export default function App() {
               <Route path="/teacher/notebook-checking" element={<ProtectedRoute roles={['teacher']}><RequireFeature featureKey="teacher_portal" label="Teacher Portal"><NotebookChecking /></RequireFeature></ProtectedRoute>} />
               <Route path="/teacher/checking-progress" element={<ProtectedRoute roles={['teacher']}><CheckingProgress /></ProtectedRoute>} />
 
-              <Route path="/attender" element={<ProtectedRoute roles={['attender']}><AttenderEntry /></ProtectedRoute>} />
+              <Route path="/attender" element={<ProtectedRoute roles={['attender']}><AttenderDashboard /></ProtectedRoute>} />
+              <Route path="/attender/entry" element={<ProtectedRoute roles={['attender']}><AttenderEntry /></ProtectedRoute>} />
               <Route path="/attender/settings" element={<ProtectedRoute roles={['attender']}><TeacherSettings /></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
