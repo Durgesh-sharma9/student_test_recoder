@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Settings2, ClipboardList, Download, Save } from 'lucide-react';
+import { SlidersHorizontal, ClipboardList, ClipboardCheck, Save } from 'lucide-react';
 import api from '@/lib/api';
-import { formatClassName } from '@/lib/utils';
+import { formatClassName, cn } from '@/lib/utils';
 import { useSubjects } from '@/hooks/useSubjects';
 import SubjectSelect from '@/components/SubjectSelect';
 import { PageHeader, ErpSection, FormField, PageStack } from '@/components/erp/PagePrimitives';
@@ -205,116 +205,133 @@ export default function MarksEntryForm({ category, title }) {
     }
   };
 
-  const download = () => {
-    if (!loaded) return toast.error('Load the test before downloading');
-    const csv = ['Roll No,Name,Marks,Date'];
-    const dateCol = isDaily ? form.testDate : form.examDate;
-    rows.forEach((r) => csv.push(`${r.rollNo},${r.name},${r.marksObtained ?? ''},${dateCol}`));
-    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${category}_marks.csv`;
-    a.click();
-  };
-
   const loadButtonLabel = isDaily ? 'Load Daily Test' : 'Load Main Exam';
 
   return (
     <PageStack>
       <PageHeader title={title} description={`Enter and save ${isDaily ? 'daily test' : 'main exam'} marks for your students.`} />
 
-      <ErpSection title="Session Setup" icon={Settings2} tone="orange">
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <FormField label="Class">
-            <Select
-              value={form.classId || undefined}
-              onValueChange={(v) => {
-                setForm({ ...form, classId: v, subject: '' });
-                clearLoadedData();
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="Class" /></SelectTrigger>
-              <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>{formatClassName(c.className)} {c.section}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-
-          <FormField label="Subject">
-            <SubjectSelect
-              value={form.subject}
-              onChange={(subject) => {
-                setForm((f) => ({ ...f, subject }));
-                clearLoadedData();
-              }}
-              subjects={subjectOptions}
-              loading={subjectsLoading}
-              allowCustom={allowCustom}
-              canAddSubjects={canAddSubjects}
-              onRegisterSubject={registerSubject}
-              emptyMessage={emptyMessage}
-              placeholder="Search assigned subject"
-            />
-          </FormField>
-
-          {isDaily ? (
-            <FormField label="Test Date">
-              <Input
-                type="date"
-                value={form.testDate}
-                onChange={(e) => {
-                  setForm({ ...form, testDate: e.target.value });
+      <ErpSection title="Session Setup" icon={SlidersHorizontal} tone={isDaily ? 'orange' : 'indigo'} className="relative z-20">
+        <div className="rounded-2xl border border-orange-200/60 p-4 sm:p-5 bg-white space-y-4">
+          <div className={`grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 ${isDaily ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+            <FormField label="Class">
+              <Select
+                value={form.classId || undefined}
+                onValueChange={(v) => {
+                  setForm({ ...form, classId: v, subject: '' });
                   clearLoadedData();
                 }}
+              >
+                <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"><SelectValue placeholder="Class" /></SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c._id} value={c._id} className="text-xs sm:text-sm">{formatClassName(c.className)} {c.section}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
+            <FormField label="Subject">
+              <SubjectSelect
+                value={form.subject}
+                onChange={(subject) => {
+                  setForm((f) => ({ ...f, subject }));
+                  clearLoadedData();
+                }}
+                subjects={subjectOptions}
+                loading={subjectsLoading}
+                allowCustom={allowCustom}
+                canAddSubjects={canAddSubjects}
+                onRegisterSubject={registerSubject}
+                emptyMessage={emptyMessage}
+                placeholder="Search assigned subject"
               />
             </FormField>
-          ) : (
-            <>
-              <FormField label="Exam Type">
-                <Select
-                  value={form.examType}
-                  onValueChange={(v) => {
-                    setForm({ ...form, examType: v });
-                    clearLoadedData();
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Exam Type" /></SelectTrigger>
-                  <SelectContent>
-                    {MAIN_EXAMS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="Exam Date">
+
+            {isDaily ? (
+              <FormField label="Test Date">
                 <Input
                   type="date"
-                  value={form.examDate}
+                  className="h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"
+                  value={form.testDate}
                   onChange={(e) => {
-                    setForm({ ...form, examDate: e.target.value });
+                    setForm({ ...form, testDate: e.target.value });
                     clearLoadedData();
                   }}
                 />
               </FormField>
-            </>
-          )}
+            ) : (
+              <>
+                <FormField label="Exam Type">
+                  <Select
+                    value={form.examType}
+                    onValueChange={(v) => {
+                      setForm({ ...form, examType: v });
+                      clearLoadedData();
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"><SelectValue placeholder="Exam Type" /></SelectTrigger>
+                    <SelectContent>
+                      {MAIN_EXAMS.map((e) => <SelectItem key={e} value={e} className="text-xs sm:text-sm">{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField label="Exam Date">
+                  <Input
+                    type="date"
+                    className="h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"
+                    value={form.examDate}
+                    onChange={(e) => {
+                      setForm({ ...form, examDate: e.target.value });
+                      clearLoadedData();
+                    }}
+                  />
+                </FormField>
+              </>
+            )}
 
-          <FormField label="Max Marks">
-            <Input
-              type="number"
-              placeholder="Max Marks"
-              value={form.maxMarks}
-              onChange={(e) => setForm({ ...form, maxMarks: e.target.value })}
-            />
-          </FormField>
+            <FormField label="Max Marks">
+              <Input
+                type="number"
+                placeholder="Max Marks"
+                className="h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"
+                value={form.maxMarks}
+                onChange={(e) => setForm({ ...form, maxMarks: e.target.value })}
+              />
+            </FormField>
+          </div>
 
-          <div className="flex items-end sm:col-span-2 lg:col-span-1">
-            <Button type="button" onClick={loadEntry} disabled={loadingStudents} className="w-full">
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              onClick={loadEntry}
+              disabled={loadingStudents}
+              className={cn(
+                'h-10 px-7 text-xs sm:text-sm font-bold rounded-xl text-white shadow-md transition-all cursor-pointer hover:opacity-95 active:scale-[0.98]',
+                isDaily
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 shadow-orange-500/25'
+                  : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 shadow-indigo-500/25'
+              )}
+            >
               {loadingStudents ? 'Loading...' : loadButtonLabel}
             </Button>
           </div>
         </div>
       </ErpSection>
+
+      {!loaded && (
+        <div className="flex flex-col items-center justify-center p-6 sm:p-10 rounded-xl border border-dashed border-orange-200 bg-orange-50/20 text-center shadow-xs">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-orange-500 mb-2.5 shadow-xs">
+            <ClipboardCheck className="h-5.5 w-5.5" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-800 mb-0.5">
+            Ready to enter marks?
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md">
+            Select {isDaily ? 'the class, subject, and date' : 'class, subject, and exam details'} above, then click &quot;{loadButtonLabel}&quot; to begin.
+          </p>
+        </div>
+      )}
 
       {loaded && rows.length > 0 && (
         <ErpSection
@@ -333,33 +350,33 @@ export default function MarksEntryForm({ category, title }) {
             ) : null
           }
         >
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
               <Input
                 placeholder="Search by name or roll number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:max-w-xs"
+                className="h-8.5 text-xs w-full sm:max-w-xs rounded-lg"
               />
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <Table className="min-w-[480px]">
-                <TableHeader className="bg-slate-50">
+                <TableHeader className="bg-slate-50 border-b border-slate-200">
                   <TableRow>
-                    <TableHead className="w-16">Roll</TableHead>
-                    <TableHead className="min-w-[140px]">Name</TableHead>
-                    <TableHead className="w-28 sm:w-36">Marks</TableHead>
-                    <TableHead className="w-16">Rank</TableHead>
+                    <TableHead className="w-16 py-2 px-3 text-[11px] font-bold text-slate-600 uppercase">Roll</TableHead>
+                    <TableHead className="min-w-[140px] py-2 px-3 text-[11px] font-bold text-slate-600 uppercase">Name</TableHead>
+                    <TableHead className="w-28 sm:w-36 py-2 px-3 text-[11px] font-bold text-slate-600 uppercase text-center">Marks</TableHead>
+                    <TableHead className="w-16 py-2 px-3 text-[11px] font-bold text-slate-600 uppercase text-center">Rank</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRows.map((r, idx) => {
+                  {filteredRows.map((r) => {
                     const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
                     return (
-                      <TableRow key={r.studentId}>
-                        <TableCell className="font-mono text-xs text-slate-600">{r.rollNo}</TableCell>
-                        <TableCell className="font-medium text-slate-800">{r.name}</TableCell>
-                        <TableCell>
+                      <TableRow key={r.studentId} className="hover:bg-slate-50/80 transition-colors">
+                        <TableCell className="py-1.5 px-3 font-mono text-xs text-slate-600">{r.rollNo}</TableCell>
+                        <TableCell className="py-1.5 px-3 text-xs font-medium text-slate-800">{r.name}</TableCell>
+                        <TableCell className="py-1.5 px-3 text-center">
                           <Input
                             data-index={originalIdx}
                             type="number"
@@ -383,30 +400,30 @@ export default function MarksEntryForm({ category, title }) {
                                 }
                               }
                             }}
-                            className={`h-9 text-base sm:text-sm ${errorFields.includes(originalIdx) ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                            className={`h-8 text-xs font-medium text-slate-900 text-center rounded-lg border-slate-200 focus:ring-1 focus:ring-orange-500 mx-auto w-20 sm:w-24 ${errorFields.includes(originalIdx) ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'bg-white'}`}
                           />
                         </TableCell>
-                        <TableCell className="font-semibold text-indigo-600">{r.rankSubject || '-'}</TableCell>
+                        <TableCell className="py-1.5 px-3 text-center text-xs font-semibold text-indigo-600">
+                          {r.rankSubject || '-'}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <Button onClick={save} disabled={saving} variant="success" className="w-full sm:w-auto">
-                <Save className="mr-2 h-4 w-4" />
+            <div className="flex flex-col sm:flex-row justify-start gap-2 pt-1">
+              <Button
+                onClick={save}
+                disabled={saving}
+                className="h-9 px-5 text-xs sm:text-sm font-medium rounded-lg text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-sm cursor-pointer w-full sm:w-auto"
+              >
+                <Save className="mr-1.5 h-4 w-4" />
                 {saving ? 'Saving...' : session ? 'Update Marks' : 'Save Marks'}
               </Button>
             </div>
           </div>
         </ErpSection>
-      )}
-
-      {!loaded && (
-        <p className="text-sm text-slate-500">
-          Select class, subject, and {isDaily ? 'date' : 'exam details'}, then click &quot;{loadButtonLabel}&quot;.
-        </p>
       )}
     </PageStack>
   );
