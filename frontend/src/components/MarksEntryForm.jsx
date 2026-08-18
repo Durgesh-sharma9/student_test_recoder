@@ -224,7 +224,7 @@ export default function MarksEntryForm({ category, title }) {
       <PageHeader title={title} description={`Enter and save ${isDaily ? 'daily test' : 'main exam'} marks for your students.`} />
 
       <ErpSection title="Session Setup" icon={Settings2} tone="orange">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <FormField label="Class">
             <Select
               value={form.classId || undefined}
@@ -308,7 +308,7 @@ export default function MarksEntryForm({ category, title }) {
             />
           </FormField>
 
-          <div className="flex items-end">
+          <div className="flex items-end sm:col-span-2 lg:col-span-1">
             <Button type="button" onClick={loadEntry} disabled={loadingStudents} className="w-full">
               {loadingStudents ? 'Loading...' : loadButtonLabel}
             </Button>
@@ -333,67 +333,68 @@ export default function MarksEntryForm({ category, title }) {
             ) : null
           }
         >
-          <div className="space-y-4 overflow-x-auto">
+          <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Input
                 placeholder="Search by name or roll number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-xs"
+                className="w-full sm:max-w-xs"
               />
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Roll</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Marks</TableHead>
-                  <TableHead>Rank</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.map((r, idx) => {
-                  const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
-                  return (
-                    <TableRow key={r.studentId}>
-                      <TableCell>{r.rollNo}</TableCell>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell>
-                        <Input
-                          data-index={originalIdx}
-                          type="number"
-                          min="0"
-                          max={form.maxMarks}
-                          value={r.marksObtained}
-                          onChange={(e) => {
-                            setRows((prev) =>
-                              prev.map((x, i) => (i === originalIdx ? { ...x, marksObtained: e.target.value } : x))
-                            );
-                            // Clear error for this field when user starts typing
-                            if (errorFields.includes(originalIdx)) {
-                              setErrorFields((prev) => prev.filter((i) => i !== originalIdx));
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const nextInput = document.querySelector(`input[data-index="${originalIdx + 1}"]`);
-                              if (nextInput) {
-                                nextInput.focus();
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <Table className="min-w-[480px]">
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead className="w-16">Roll</TableHead>
+                    <TableHead className="min-w-[140px]">Name</TableHead>
+                    <TableHead className="w-28 sm:w-36">Marks</TableHead>
+                    <TableHead className="w-16">Rank</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRows.map((r, idx) => {
+                    const originalIdx = rows.findIndex(row => row.studentId === r.studentId);
+                    return (
+                      <TableRow key={r.studentId}>
+                        <TableCell className="font-mono text-xs text-slate-600">{r.rollNo}</TableCell>
+                        <TableCell className="font-medium text-slate-800">{r.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            data-index={originalIdx}
+                            type="number"
+                            min="0"
+                            max={form.maxMarks}
+                            value={r.marksObtained}
+                            onChange={(e) => {
+                              setRows((prev) =>
+                                prev.map((x, i) => (i === originalIdx ? { ...x, marksObtained: e.target.value } : x))
+                              );
+                              if (errorFields.includes(originalIdx)) {
+                                setErrorFields((prev) => prev.filter((i) => i !== originalIdx));
                               }
-                            }
-                          }}
-                          className={errorFields.includes(originalIdx) ? 'border-red-500 ring-1 ring-red-500' : ''}
-                        />
-                      </TableCell>
-                      <TableCell>{r.rankSubject || '-'}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={save} disabled={saving} variant="success">
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const nextInput = document.querySelector(`input[data-index="${originalIdx + 1}"]`);
+                                if (nextInput) {
+                                  nextInput.focus();
+                                }
+                              }
+                            }}
+                            className={`h-9 text-base sm:text-sm ${errorFields.includes(originalIdx) ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-semibold text-indigo-600">{r.rankSubject || '-'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button onClick={save} disabled={saving} variant="success" className="w-full sm:w-auto">
                 <Save className="mr-2 h-4 w-4" />
                 {saving ? 'Saving...' : session ? 'Update Marks' : 'Save Marks'}
               </Button>

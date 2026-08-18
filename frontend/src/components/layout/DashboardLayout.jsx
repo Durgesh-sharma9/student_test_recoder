@@ -403,17 +403,17 @@ export default function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 shadow-sm backdrop-blur-md sm:px-6">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)}>
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-3 sm:px-6 shadow-sm backdrop-blur-md">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="lg:hidden shrink-0 h-9 w-9" onClick={() => setOpen(!open)}>
               <Menu className="h-5 w-5" />
             </Button>
             
             {/* School Logo & Name on Left */}
             {user?.school && (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
                 {user.school.logo ? (
-                  <div className="h-9 w-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden p-1 shadow-sm shrink-0">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden p-1 shadow-sm shrink-0">
                     <img 
                       src={user.school.logo} 
                       alt="School Logo" 
@@ -421,16 +421,16 @@ export default function DashboardLayout() {
                     />
                   </div>
                 ) : (
-                  <div className="h-9 w-9 rounded-lg border border-slate-200 bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm shrink-0">
-                    <School className="h-5 w-5" />
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg border border-slate-200 bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm shrink-0">
+                    <School className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 )}
-                <div className="hidden sm:flex flex-col min-w-0 leading-tight">
-                  <span className="font-bold text-slate-800 text-sm tracking-tight truncate max-w-[200px] md:max-w-[250px]">
+                <div className="flex flex-col min-w-0 leading-tight">
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm tracking-tight truncate max-w-[110px] xs:max-w-[160px] sm:max-w-[220px] md:max-w-[280px]">
                     {user.school.schoolName}
                   </span>
                   {user.school.address && (
-                    <span className="text-[10px] text-slate-500 font-medium truncate max-w-[200px] md:max-w-[250px]">
+                    <span className="hidden sm:block text-[10px] text-slate-500 font-medium truncate max-w-[200px] md:max-w-[250px]">
                       {user.school.address}
                     </span>
                   )}
@@ -439,21 +439,24 @@ export default function DashboardLayout() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-1.5 sm:gap-3 ml-auto shrink-0">
             {isAdmin && planBadge && (
               <button
                 onClick={() => navigate('/admin/plans')}
-                className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-3 py-1 text-xs font-bold text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all"
+                className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-bold text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all"
               >
                 {planBadge}
               </button>
             )}
             {(isSuperAdmin || isAdmin || role === 'teacher' || role === 'parent') && <NotificationPanel />}
-            {(isSuperAdmin || isAdmin) && <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-5 w-5" /></Button>}
-            <Button variant="outline" className="rounded-xl" onClick={() => { logout(); navigate('/login'); }}><LogOut className="mr-2 h-4 w-4" /> Logout</Button>
+            {(isSuperAdmin || isAdmin) && <Button className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white h-9 px-3" onClick={() => setIsAnnouncementModalOpen(true)}><Megaphone className="h-4 w-4" /></Button>}
+            <Button variant="outline" size="sm" className="rounded-xl h-9 px-2.5 sm:px-3.5" onClick={() => { logout(); navigate('/login'); }}>
+              <LogOut className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
           </div>
         </header>
-        <main className="flex-1 py-2.5 px-4 sm:py-3.5 sm:px-6 lg:py-4 lg:px-8"><Outlet /></main>
+        <main className="flex-1 py-2 px-2.5 sm:py-3.5 sm:px-6 lg:py-4 lg:px-8"><Outlet /></main>
       </div>
 
       <AnnouncementModal open={isAnnouncementModalOpen} onOpenChange={setIsAnnouncementModalOpen} role={role} />

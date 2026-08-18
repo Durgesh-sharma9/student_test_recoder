@@ -332,30 +332,30 @@ export default function ParentViewResults() {
         <>
           {/* SECTION 1: Student Information */}
           <ErpSection title="Student Information" icon={User} tone="blue">
-            <div className="p-6">
-              <div className="flex flex-col md:flex-row items-start gap-6">
-                <div className="h-24 w-24 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                <div className="h-16 w-16 sm:h-24 sm:w-24 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl sm:text-3xl font-bold shadow-lg">
                   {student.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-2">{student.name}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 truncate">{student.name}</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-3">
                     <div>
-                      <div className="text-sm text-slate-500">Class</div>
-                      <div className="text-lg font-semibold text-slate-900">{student.className} {student.section ? `(${student.section})` : ''}</div>
+                      <div className="text-xs sm:text-sm text-slate-500">Class</div>
+                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{student.className} {student.section ? `(${student.section})` : ''}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-500">Roll No</div>
-                      <div className="text-lg font-semibold text-slate-900">{student.rollNo}</div>
+                      <div className="text-xs sm:text-sm text-slate-500">Roll No</div>
+                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{student.rollNo}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-500">Rank</div>
-                      <div className="text-lg font-semibold text-slate-900">{summary?.currentRank || 'N/A'}</div>
-                      <div className="text-xs text-slate-500">Out of {totalStudents || results.length} Students</div>
+                      <div className="text-xs sm:text-sm text-slate-500">Rank</div>
+                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{summary?.currentRank || 'N/A'}</div>
+                      <div className="text-[10px] sm:text-xs text-slate-500">Out of {totalStudents || results.length} Students</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-500">Overall %</div>
-                      <div className="text-lg font-semibold text-slate-900">{formatPercentageSafe(summary?.averagePercentage)}</div>
+                      <div className="text-xs sm:text-sm text-slate-500">Overall %</div>
+                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{formatPercentageSafe(summary?.averagePercentage)}</div>
                     </div>
                   </div>
                 </div>
@@ -366,30 +366,30 @@ export default function ParentViewResults() {
           {/* SECTION 2: Performance Summary */}
           {summary && (
             <ErpSection title="Performance Summary" icon={Trophy} tone="green">
-              <div className="p-4 md:p-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-                  <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 md:p-4 border border-blue-200 overflow-hidden">
-                    <div className="text-xs md:text-sm font-medium text-blue-700 mb-1 truncate">Overall %</div>
-                    <div className="text-xl md:text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
+              <div className="p-3.5 sm:p-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+                  <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 border border-blue-200 overflow-hidden">
+                    <div className="text-xs sm:text-sm font-medium text-blue-700 mb-0.5 truncate">Overall %</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 md:p-4 border border-purple-200 overflow-hidden">
-                    <div className="text-xs md:text-sm font-medium text-purple-700 mb-1 truncate">Rank</div>
-                    <div className="text-xl md:text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
-                    <div className="text-[10px] md:text-xs text-purple-600 truncate">Out of {totalStudents || results.length} Students</div>
+                  <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 border border-purple-200 overflow-hidden">
+                    <div className="text-xs sm:text-sm font-medium text-purple-700 mb-0.5 truncate">Rank</div>
+                    <div className="text-lg sm:text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
+                    <div className="text-[10px] sm:text-xs text-purple-600 truncate">Out of {totalStudents || results.length} Students</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-3 md:p-4 border border-green-200 overflow-hidden">
-                    <div className="text-xs md:text-sm font-medium text-green-700 mb-1 truncate">Total Tests</div>
-                    <div className="text-xl md:text-2xl font-bold text-green-900">{summary.totalTests}</div>
+                  <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-3 sm:p-4 border border-green-200 overflow-hidden">
+                    <div className="text-xs sm:text-sm font-medium text-green-700 mb-0.5 truncate">Total Tests</div>
+                    <div className="text-lg sm:text-2xl font-bold text-green-900">{summary.totalTests}</div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 md:p-4 border border-emerald-200 overflow-hidden">
-                    <div className="text-xs md:text-sm font-medium text-emerald-700 mb-1 truncate">Best Subject</div>
-                    <div className="text-xl md:text-2xl font-bold text-emerald-900 truncate" title={bestSubject?.subject || 'N/A'}>
+                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 sm:p-4 border border-emerald-200 overflow-hidden">
+                    <div className="text-xs sm:text-sm font-medium text-emerald-700 mb-0.5 truncate">Best Subject</div>
+                    <div className="text-base sm:text-2xl font-bold text-emerald-900 truncate" title={bestSubject?.subject || 'N/A'}>
                       {bestSubject?.subject || 'N/A'}
                     </div>
                   </div>
-                  <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 md:p-4 border border-red-200 overflow-hidden">
-                    <div className="text-xs md:text-sm font-medium text-red-700 mb-1 truncate">Weak Subject</div>
-                    <div className="text-xl md:text-2xl font-bold text-red-900 truncate" title={weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}>
+                  <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 sm:p-4 border border-red-200 overflow-hidden col-span-2 sm:col-span-1">
+                    <div className="text-xs sm:text-sm font-medium text-red-700 mb-0.5 truncate">Weak Subject</div>
+                    <div className="text-base sm:text-2xl font-bold text-red-900 truncate" title={weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}>
                       {weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}
                     </div>
                   </div>
@@ -400,9 +400,9 @@ export default function ParentViewResults() {
 
           {/* SECTION 3: Results History */}
           <ErpSection title="Results History" icon={BookOpen} tone="blue">
-            <div className="p-6 space-y-4">
+            <div className="p-3.5 sm:p-6 space-y-4">
               {/* Filters */}
-              <div className="flex flex-col md:flex-row flex-wrap items-start md:items-end gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex flex-col md:flex-row flex-wrap items-start md:items-end gap-3 p-3.5 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <input
@@ -412,9 +412,9 @@ export default function ParentViewResults() {
                       value="range"
                       checked={filterMode === 'range'}
                       onChange={(e) => setFilterMode(e.target.value)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 text-indigo-600"
                     />
-                    <label htmlFor="range" className="text-sm font-medium text-slate-700">Date Range</label>
+                    <label htmlFor="range" className="text-xs sm:text-sm font-medium text-slate-700">Date Range</label>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -424,17 +424,17 @@ export default function ParentViewResults() {
                       value="specific"
                       checked={filterMode === 'specific'}
                       onChange={(e) => setFilterMode(e.target.value)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 text-indigo-600"
                     />
-                    <label htmlFor="specific" className="text-sm font-medium text-slate-700">Specific Date</label>
+                    <label htmlFor="specific" className="text-xs sm:text-sm font-medium text-slate-700">Specific Date</label>
                   </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-end gap-4 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-end gap-3 w-full md:w-auto">
                   {filterMode === 'range' ? (
                     <>
                       <div className="w-full sm:w-auto">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">From</label>
+                        <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">From</label>
                         <DatePicker
                           value={dateFrom}
                           onChange={setDateFrom}
@@ -442,7 +442,7 @@ export default function ParentViewResults() {
                         />
                       </div>
                       <div className="w-full sm:w-auto">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">To</label>
+                        <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">To</label>
                         <DatePicker
                           value={dateTo}
                           onChange={setDateTo}
@@ -452,7 +452,7 @@ export default function ParentViewResults() {
                     </>
                   ) : (
                     <div className="w-full sm:w-auto">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                      <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1">Date</label>
                       <DatePicker
                         value={specificDate}
                         onChange={setSpecificDate}
@@ -461,7 +461,7 @@ export default function ParentViewResults() {
                     </div>
                   )}
                   
-                  <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                  <div className="flex gap-2 w-full sm:w-auto mt-1 sm:mt-0">
                     <Button onClick={applyFilters} size="sm" className="flex-1 sm:flex-none">Apply</Button>
                     <Button variant="outline" onClick={clearFilters} size="sm" className="flex-1 sm:flex-none">Clear</Button>
                   </div>
@@ -475,7 +475,7 @@ export default function ParentViewResults() {
                   placeholder="Search by subject or exam type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10 text-sm"
                 />
               </div>
 
@@ -486,7 +486,7 @@ export default function ParentViewResults() {
                 <div className="p-8 text-center text-slate-500">No results found. Try adjusting your filters.</div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-slate-200">
-                  <table className="w-full">
+                  <table className="w-full min-w-[550px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
                         <th className="whitespace-nowrap px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>

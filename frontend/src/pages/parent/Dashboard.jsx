@@ -143,29 +143,29 @@ export default function ParentDashboard() {
                     <div
                       key={selectedStudent._id}
                       onClick={() => navigate(`/parent/student/${selectedStudent._id}/results`)}
-                      className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                      className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                     >
-                      <div className="mb-6 flex items-start gap-6">
-                        <div className="h-20 w-20 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                      <div className="mb-5 flex items-center gap-3 sm:gap-6">
+                        <div className="h-14 w-14 sm:h-20 sm:w-20 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg">
                           {selectedStudent.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-2xl font-bold text-slate-900 truncate">{selectedStudent.name}</h3>
-                          <p className="text-base text-slate-500">{selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}</p>
+                          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{selectedStudent.name}</h3>
+                          <p className="text-xs sm:text-base text-slate-500">{selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Roll No</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.rollNo}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Rank</div><div className="text-2xl font-bold text-slate-900">#{selectedStudent.rank || '-'}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Total Students</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.totalStudents || '-'}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-4"><div className="text-sm font-medium text-slate-500 mb-1">Overall %</div><div className="text-2xl font-bold text-slate-900">{selectedStudent.percentage}%</div></div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
+                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Roll No</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.rollNo}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Rank</div><div className="text-lg sm:text-2xl font-bold text-slate-900">#{selectedStudent.rank || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Total Students</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.totalStudents || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Overall %</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.percentage}%</div></div>
                       </div>
 
                       {trendData.length > 0 && (
-                        <div className="mb-6 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-5">
-                          <div className="flex items-center gap-2 mb-3"><TrendingUp className="h-5 w-5 text-indigo-600" /><span className="text-sm font-medium text-indigo-600">Performance Trend</span></div>
-                          <div className="w-full h-[150px] md:h-[120px]">
+                        <div className="mb-5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-3.5 sm:p-5">
+                          <div className="flex items-center gap-2 mb-3"><TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" /><span className="text-xs sm:text-sm font-medium text-indigo-600">Performance Trend</span></div>
+                          <div className="w-full h-[130px] sm:h-[150px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -179,13 +179,13 @@ export default function ParentDashboard() {
                       )}
 
                       {subjectPerformance.length > 0 && (
-                        <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-                          <div className="flex items-center gap-2 mb-3"><BookOpen className="h-5 w-5 text-slate-600" /><span className="text-sm font-medium text-slate-600">Subject-wise Performance</span></div>
+                        <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-5">
+                          <div className="flex items-center gap-2 mb-3"><BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" /><span className="text-xs sm:text-sm font-medium text-slate-600">Subject-wise Performance</span></div>
                           <div className="space-y-2">
                             {subjectPerformance.slice(0, 4).map((sp, idx) => (
                               <div key={idx} className="flex items-center justify-between">
-                                <span className="text-sm text-slate-700">{sp.subject}</span>
-                                <span className={`text-sm font-semibold ${parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' : parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' : 'text-red-600'}`}>{sp.averagePercentage}%</span>
+                                <span className="text-xs sm:text-sm text-slate-700">{sp.subject}</span>
+                                <span className={`text-xs sm:text-sm font-semibold ${parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' : parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' : 'text-red-600'}`}>{sp.averagePercentage}%</span>
                               </div>
                             ))}
                           </div>
@@ -193,8 +193,8 @@ export default function ParentDashboard() {
                       )}
 
                       {weakSubjects.length > 0 && (
-                        <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
-                          <div className="flex items-start gap-2"><AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" /><div><p className="text-sm font-medium text-amber-800">Needs Attention</p><p className="text-sm text-amber-700 mt-1">{weakSubjects.map(s => s.subject).join(', ')}</p></div></div>
+                        <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 p-3.5 sm:p-4">
+                          <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mt-0.5 shrink-0" /><div><p className="text-xs sm:text-sm font-medium text-amber-800">Needs Attention</p><p className="text-xs sm:text-sm text-amber-700 mt-1">{weakSubjects.map(s => s.subject).join(', ')}</p></div></div>
                         </div>
                       )}
                     </div>
