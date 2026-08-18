@@ -6,63 +6,55 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
-    if (!stored || stored === 'undefined' || stored === 'null') return null;
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error('[AuthContext] Error parsing stored user on init:', e);
-      localStorage.removeItem('user');
-      return null;
-    }
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [cachedUser, setCachedUser] = useState(() => {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    
+    console.log('[AuthContext] useEffect triggered');
     const token = localStorage.getItem('token');
-    
+    console.log('[AuthContext] Token from localStorage:', token ? 'exists' : 'none');
     
     if (!token) { 
-      
+      console.log('[AuthContext] No token, setting loading to false');
       setLoading(false); 
       return; 
     }
     
-    // If we already have user data from localStorage, use it immediately
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        
-      } catch (e) {
-        console.error('[AuthContext] Error parsing stored user:', e);
-      }
-    }
-    
-    
+    console.log('[AuthContext] Calling /auth/me');
     api.get('/auth/me')
       .then((res) => {
-        
+        console.log('[AuthContext] /auth/me success:', res.data.user);
         setUser(res.data.user);
+        setCachedUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));
       })
       .catch((err) => {
-        
-        // Only clear localStorage if it's a 401 (unauthorized) error
-        // This prevents clearing user data on network errors or server issues
+        console.log('[AuthContext] /auth/me error:', err);
+        // Only clear user if it's a 401 error (invalid token)
         if (err.response?.status === 401) {
-          
+          console.log('[AuthContext] 401 error, clearing user');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
+          setCachedUser(null);
         } else {
-          
-          // Keep the user from localStorage if API call fails for other reasons
+          // For other errors, keep the cached user from localStorage
+          console.log('[AuthContext] Non-401 error, keeping cached user');
+          const stored = localStorage.getItem('user');
+          if (stored) {
+            const parsedUser = JSON.parse(stored);
+            setUser(parsedUser);
+            setCachedUser(parsedUser);
+          }
         }
       })
       .finally(() => {
-        
+        console.log('[AuthContext] Setting loading to false');
         setLoading(false);
       });
   }, []);
@@ -72,6 +64,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('user', JSON.stringify(res.data.user));
     setUser(res.data.user);
+    setCachedUser(res.data.user);
     return res.data.user;
   };
 
@@ -80,6 +73,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('user', JSON.stringify(res.data.user));
     setUser(res.data.user);
+    setCachedUser(res.data.user);
     return res.data.user;
   };
 
@@ -87,10 +81,11 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setCachedUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, parentLogin, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user: user || cachedUser, loading, login, parentLogin, logout, isAuthenticated: !!(user || cachedUser) }}>
       {children}
     </AuthContext.Provider>
   );

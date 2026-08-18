@@ -876,7 +876,23 @@ export const downloadResults = asyncHandler(async (req, res) => {
     const filename = `teacher-results.${format === 'pdf' ? 'pdf' : format === 'xlsx' ? 'xlsx' : 'csv'}`;
     
     if (format === 'pdf') {
-      return sendPdfTable(res, filename, 'Teacher Results Report', [headers, headerRow, dataHeaders], dataRows);
+      const exportData = {
+        meta: {
+          schoolName: school?.name || 'N/A',
+          classLabel: `Class ${classDoc?.className || ''} ${classDoc?.section || ''}`,
+          subject: subject || 'All',
+          generatedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          dateFrom: dateFrom ? new Date(dateFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          dateTo: dateTo ? new Date(dateTo).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          testDate: testDate ? new Date(testDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          totalStudents: students.length
+        },
+        mode: dateFrom || dateTo ? 'range' : 'single',
+        headers: dataHeaders,
+        rows: dataRows,
+        filename: 'teacher-results'
+      };
+      return sendDailyTestPdf(res, exportData);
     }
     
     if (format === 'xlsx') {
