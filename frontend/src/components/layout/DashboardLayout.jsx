@@ -123,7 +123,7 @@ const navByRole = {
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
-  const { isFeatureEnabled, currentPlan } = useSubscription();
+  const { isFeatureEnabled, currentPlan, isSubscriptionExpired } = useSubscription();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -135,6 +135,13 @@ export default function DashboardLayout() {
   const navItems = navByRole[role] || [];
   const isAdmin = role === 'school_admin';
   const isSuperAdmin = role === 'super_admin';
+
+  // Auto-redirect to /admin/plans if plan is expired
+  useEffect(() => {
+    if (isSubscriptionExpired && !isSuperAdmin && location.pathname !== '/admin/plans') {
+      navigate('/admin/plans', { replace: true });
+    }
+  }, [isSubscriptionExpired, isSuperAdmin, location.pathname, navigate]);
 
   // State to manage expanded parent menus
   const [expandedMenus, setExpandedMenus] = useState({});
@@ -324,7 +331,8 @@ export default function DashboardLayout() {
                         <div className="absolute left-[1.125rem] top-1.5 bottom-2.5 w-px bg-slate-200" />
                         
                         {item.children.map(child => {
-                           const childLocked = child.featureKey ? !isFeatureEnabled(child.featureKey) : false;
+                           const isChildPlan = child.to === '/admin/plans';
+                           const childLocked = isSubscriptionExpired ? !isChildPlan : (child.featureKey ? !isFeatureEnabled(child.featureKey) : false);
                            const childLabel = child.lockLabel || child.label;
                            
                            const childClass = ({ isActive }) => cn(
@@ -367,7 +375,8 @@ export default function DashboardLayout() {
             }
 
             // Standard Single Links
-            const locked = item.featureKey ? !isFeatureEnabled(item.featureKey) : false;
+            const isPlanItem = item.to === '/admin/plans';
+            const locked = isSubscriptionExpired ? !isPlanItem : (item.featureKey ? !isFeatureEnabled(item.featureKey) : false);
             const label = item.lockLabel || item.label;
             const baseClass = ({ isActive }) => cn(
               'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-semibold transition-all duration-200 group overflow-hidden whitespace-nowrap', 

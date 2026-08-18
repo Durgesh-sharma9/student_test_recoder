@@ -12,14 +12,14 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
   res.json({
     success: true,
-    settings: settings || {
-      upiId: '',
-      merchantName: '',
-      qrExpiryMinutes: 5,
-      razorpayEnabled: false,
-      razorpayKeyId: '',
-      razorpayKeySecret: '',
-      allowTeacherImpersonation: false,
+    settings: {
+      upiId: settings?.upiId || '',
+      merchantName: settings?.merchantName || '',
+      qrExpiryMinutes: settings?.qrExpiryMinutes || 5,
+      razorpayEnabled: settings ? Boolean(settings.razorpayEnabled) : Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
+      razorpayKeyId: settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '',
+      razorpayKeySecret: settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '',
+      allowTeacherImpersonation: settings?.allowTeacherImpersonation || false,
     },
   });
 });
@@ -30,8 +30,6 @@ export const updatePaymentSettings = asyncHandler(async (req, res) => {
     merchantName,
     qrExpiryMinutes,
     razorpayEnabled,
-    razorpayKeyId,
-    razorpayKeySecret,
     allowTeacherImpersonation,
   } = req.body;
 
@@ -46,15 +44,11 @@ export const updatePaymentSettings = asyncHandler(async (req, res) => {
     updatedBy: req.user._id,
   };
 
-  if (razorpayKeyId !== undefined) {
-    updateFields.razorpayKeyId = String(razorpayKeyId || '').trim();
-  }
-  if (razorpayKeySecret !== undefined) {
-    updateFields.razorpayKeySecret = String(razorpayKeySecret || '').trim();
-  }
+  const effectiveKeyId = process.env.RAZORPAY_KEY_ID;
+  const effectiveKeySecret = process.env.RAZORPAY_KEY_SECRET;
 
-  if (updateFields.razorpayEnabled && (!updateFields.razorpayKeyId || !updateFields.razorpayKeySecret)) {
-    throw new ApiError(400, 'Razorpay Key ID and Secret are required when Razorpay is enabled');
+  if (updateFields.razorpayEnabled && (!effectiveKeyId || !effectiveKeySecret)) {
+    throw new ApiError(400, 'Razorpay keys are missing in backend .env environment variables');
   }
 
   const updated = await PaymentSettings.findOneAndUpdate(

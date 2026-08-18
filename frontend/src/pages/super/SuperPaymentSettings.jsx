@@ -205,32 +205,23 @@ export default function SuperPaymentSettings() {
 
       <ErpSection title="Razorpay Settings" icon={Settings} tone="purple">
         <form className="grid gap-4 md:grid-cols-2" onSubmit={save}>
-          <div className="flex items-center gap-2 md:col-span-2">
+          <div className="flex items-center justify-between md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div className="space-y-0.5">
+              <label className="text-sm font-bold text-slate-800">Enable Razorpay Instant Payments</label>
+              <p className="text-xs text-slate-500">Allow schools to pay instantly online using Razorpay checkout.</p>
+            </div>
             <Switch
               checked={form.razorpayEnabled}
               onCheckedChange={(checked) => setForm((s) => ({ ...s, razorpayEnabled: checked }))}
             />
-            <label className="text-sm font-semibold text-slate-700">Enable Razorpay Instant Payments</label>
           </div>
 
-          <FormField label="Razorpay Key ID">
-            <Input
-              placeholder="rzp_test_..."
-              value={form.razorpayKeyId}
-              onChange={(e) => setForm((s) => ({ ...s, razorpayKeyId: e.target.value }))}
-              required={form.razorpayEnabled}
-            />
-          </FormField>
-
-          <FormField label="Razorpay Key Secret">
-            <Input
-              type="password"
-              placeholder="Enter Razorpay Key Secret"
-              value={form.razorpayKeySecret}
-              onChange={(e) => setForm((s) => ({ ...s, razorpayKeySecret: e.target.value }))}
-              required={form.razorpayEnabled}
-            />
-          </FormField>
+          <div className="md:col-span-2 rounded-xl bg-purple-50/70 border border-purple-100 p-3.5 text-xs text-purple-900 flex items-center gap-2">
+            <Settings className="h-4 w-4 text-purple-600 shrink-0" />
+            <span>
+              Razorpay API Keys are securely managed via backend environment variables (<code className="font-mono bg-purple-100 px-1 py-0.5 rounded text-purple-800">.env</code>).
+            </span>
+          </div>
 
           <div className="flex items-end justify-end md:col-span-2">
             <Button type="submit" variant="success" disabled={loading}>

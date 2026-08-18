@@ -1,4 +1,4 @@
-// Plans seeded on testmasterpro: Monthly Basic, Standard, Elite
+// Razorpay keys automatically fallback to .env if DB settings are empty
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';

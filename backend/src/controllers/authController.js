@@ -215,9 +215,6 @@ export const login = asyncHandler(async (req, res) => {
   if (user.role !== 'super_admin' && user.school) {
     const school = await School.findById(user.school);
     if (!school?.isActive) throw new ApiError(403, 'School account is deactivated.');
-    if (school.planExpiresAt && new Date() > school.planExpiresAt) {
-      throw new ApiError(403, 'School plan has expired.');
-    }
     
     // Auto-create current academic session for school admin
     if (user.role === 'school_admin' || user.role === 'admin') {

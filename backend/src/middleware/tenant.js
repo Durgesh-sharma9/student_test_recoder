@@ -22,9 +22,6 @@ export const requireSchoolActive = asyncHandler(async (req, res, next) => {
   const school = await School.findById(req.user.school).populate('plan');
   if (!school) throw new ApiError(404, 'School not found.');
   if (!school.isActive) throw new ApiError(403, 'School account is deactivated.');
-  if (school.planExpiresAt && new Date() > school.planExpiresAt) {
-    throw new ApiError(403, 'School plan has expired. Please contact support.');
-  }
 
   req.school = school;
   next();
