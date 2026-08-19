@@ -50,7 +50,7 @@ const COMMON_SUBJECTS = [
 
 export default function TeacherAssignments() {
   const { isArchived } = useSession();
-  const { isSubscriptionExpiry, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
+  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [teacherId, setTeacherId] = useState("");
@@ -288,10 +288,23 @@ export default function TeacherAssignments() {
 
   return (
     <PageStack className="bg-gradient-to-b from-[#f8fbff] via-[#f5f8ff] via-[#f8faff] via-[#fcfdff] to-white">
-      <PageHeader
-        title="Assign Subjects"
-        description="Manage teacher classes and subjects"
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <PageHeader
+          title="Assign Subjects"
+          description="Manage teacher classes and subjects"
+        />
+        <Button
+          onClick={() => {
+            addAssignmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setHighlightDropdown(true);
+            setTimeout(() => setHighlightDropdown(false), 800);
+          }}
+          className="h-9 px-4 text-xs font-bold bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl shadow-md shadow-orange-500/20 cursor-pointer self-start sm:self-auto transition-all active:scale-[0.98]"
+        >
+          <Plus className="mr-1.5 h-4 w-4" />
+          Add Assignment
+        </Button>
+      </div>
 
       {/* Teacher Assignment Overview Section */}
       <ErpSection title="Teacher Assignment Overview" icon={User} tone="indigo">
