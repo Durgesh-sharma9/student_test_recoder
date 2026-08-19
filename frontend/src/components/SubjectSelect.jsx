@@ -16,6 +16,7 @@ export default function SubjectSelect({
   includeAllOption = false,
   allLabel = 'All Subjects',
   className,
+  inputClassName,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value || '');
@@ -65,7 +66,10 @@ export default function SubjectSelect({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
-          className="pl-9 pr-9 h-10 text-xs sm:text-sm rounded-xl border-orange-200/70 focus:border-orange-500 focus:ring-orange-500/20"
+          className={cn(
+            'pl-9 pr-9 h-10 text-xs sm:text-sm rounded-xl bg-white shadow-xs',
+            inputClassName || 'border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+          )}
           placeholder={loading ? 'Loading subjects...' : placeholder}
           value={query}
           disabled={loading}
