@@ -6,6 +6,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import api from '@/lib/api';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
 import { formatDisplayDate } from '@/lib/dateFormatter';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const getExamTypeColor = (examType) => {
   if (examType === 'Daily Test') return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -79,58 +80,59 @@ export default function ParentDashboard() {
   const selectedStudent = students.find(s => s._id === selectedStudentId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <PageHeader title="Parent Dashboard" description={`Session: ${sessionName}`} />
 
       {students.length === 0 ? (
         <ErpSection title="My Children" icon={Users} tone="blue">
-          <div className="p-8 text-center text-slate-500">
-            <GraduationCap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-            <p>No children linked to your account yet.</p>
+          <div className="p-6 sm:p-8 text-center text-slate-500">
+            <GraduationCap className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-xs sm:text-sm">No children linked to your account yet.</p>
           </div>
         </ErpSection>
       ) : (
         <>
           {students.length > 1 && (
             <ErpSection title="Select Child" icon={Users} tone="blue">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {students.map((student) => (
-                  <div
-                    key={student._id}
-                    onClick={() => setSelectedStudentId(student._id)}
-                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all duration-200 ${
-                      selectedStudentId === student._id ? 'border-blue-500 bg-blue-50 shadow-md' : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
-                        {student.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-slate-900 truncate">{student.name}</h3>
-                        <p className="text-sm text-slate-500">{student.className} {student.section && `(${student.section})`}</p>
-                        <p className="text-xs text-slate-400">Roll No: {student.rollNo}</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="rounded-lg bg-white p-2 text-center border border-slate-200">
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider">Rank</p>
-                        <p className="text-sm font-bold text-slate-900">#{student.rank || '-'}</p>
-                      </div>
-                      <div className="rounded-lg bg-white p-2 text-center border border-slate-200">
-                        <p className="text-[10px] text-slate-500 uppercase tracking-wider">Overall %</p>
-                        <p className="text-sm font-bold text-slate-900">{student.percentage}%</p>
-                      </div>
-                    </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 border border-blue-200/80 p-3 sm:p-4 rounded-xl shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm sm:text-lg shadow-sm">
+                    {selectedStudent?.name?.charAt(0).toUpperCase() || 'S'}
                   </div>
-                ))}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">{selectedStudent?.name}</h3>
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2 py-0.5 rounded-full border border-indigo-200">
+                        Active Child
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      {selectedStudent?.className} {selectedStudent?.section && `(${selectedStudent.section})`} • Roll No: {selectedStudent?.rollNo} • Rank: #{selectedStudent?.rank || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-full sm:w-64 shrink-0">
+                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                    <SelectTrigger className="h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-blue-200 shadow-xs focus:ring-2 focus:ring-blue-500/20">
+                      <SelectValue placeholder="Switch Child" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map((s) => (
+                        <SelectItem key={s._id} value={s._id} className="text-xs sm:text-sm font-semibold">
+                          {s.name} ({s.className} {s.section && `-${s.section}`})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </ErpSection>
           )}
 
           {selectedStudent && (
             <ErpSection title={`${selectedStudent.name}'s Performance`} icon={GraduationCap} tone="blue">
-              <div className="grid gap-8">
+              <div className="grid gap-4 sm:gap-8">
                 {(() => {
                   const subjectPerformance = calculateSubjectPerformance(selectedStudent.recentResults);
                   const weakSubjects = getWeakSubjects(subjectPerformance);
@@ -143,34 +145,34 @@ export default function ParentDashboard() {
                     <div
                       key={selectedStudent._id}
                       onClick={() => navigate(`/parent/student/${selectedStudent._id}/results`)}
-                      className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                      className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 sm:p-8 shadow-xs hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                     >
-                      <div className="mb-5 flex items-center gap-3 sm:gap-6">
-                        <div className="h-14 w-14 sm:h-20 sm:w-20 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg">
+                      <div className="mb-3 sm:mb-5 flex items-center gap-2.5 sm:gap-6">
+                        <div className="h-10 w-10 sm:h-20 sm:w-20 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm sm:text-2xl font-bold shadow-md">
                           {selectedStudent.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{selectedStudent.name}</h3>
-                          <p className="text-xs sm:text-base text-slate-500">{selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}</p>
+                          <h3 className="text-base sm:text-2xl font-bold text-slate-900 truncate leading-tight">{selectedStudent.name}</h3>
+                          <p className="text-xs sm:text-base text-slate-500 leading-tight">{selectedStudent.className} {selectedStudent.section && `(${selectedStudent.section})`}</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5">
-                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Roll No</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.rollNo}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Rank</div><div className="text-lg sm:text-2xl font-bold text-slate-900">#{selectedStudent.rank || '-'}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Total Students</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.totalStudents || '-'}</div></div>
-                        <div className="rounded-xl bg-slate-50 p-3 sm:p-4"><div className="text-xs sm:text-sm font-medium text-slate-500 mb-0.5">Overall %</div><div className="text-lg sm:text-2xl font-bold text-slate-900">{selectedStudent.percentage}%</div></div>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-5">
+                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-4"><div className="text-[11px] sm:text-sm font-semibold text-slate-500 mb-0.5">Roll No</div><div className="text-base sm:text-2xl font-extrabold text-slate-900">{selectedStudent.rollNo}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-4"><div className="text-[11px] sm:text-sm font-semibold text-slate-500 mb-0.5">Rank</div><div className="text-base sm:text-2xl font-extrabold text-slate-900">#{selectedStudent.rank || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-4"><div className="text-[11px] sm:text-sm font-semibold text-slate-500 mb-0.5">Total Students</div><div className="text-base sm:text-2xl font-extrabold text-slate-900">{selectedStudent.totalStudents || '-'}</div></div>
+                        <div className="rounded-xl bg-slate-50 p-2.5 sm:p-4"><div className="text-[11px] sm:text-sm font-semibold text-slate-500 mb-0.5">Overall %</div><div className="text-base sm:text-2xl font-extrabold text-slate-900">{selectedStudent.percentage}%</div></div>
                       </div>
 
                       {trendData.length > 0 && (
-                        <div className="mb-5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-3.5 sm:p-5">
-                          <div className="flex items-center gap-2 mb-3"><TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" /><span className="text-xs sm:text-sm font-medium text-indigo-600">Performance Trend</span></div>
-                          <div className="w-full h-[130px] sm:h-[150px]">
+                        <div className="mb-3 sm:mb-5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 p-2.5 sm:p-5">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3"><TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" /><span className="text-xs sm:text-sm font-bold text-indigo-600">Performance Trend</span></div>
+                          <div className="w-full h-[110px] sm:h-[150px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                 <XAxis dataKey="date" hide />
-                                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }} formatter={(value) => [`${value.toFixed(1)}%`, 'Score']} />
+                                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px' }} formatter={(value) => [`${value.toFixed(1)}%`, 'Score']} />
                                 <Line type="monotone" dataKey="percentage" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', strokeWidth: 2, r: 3 }} />
                               </LineChart>
                             </ResponsiveContainer>
@@ -179,13 +181,13 @@ export default function ParentDashboard() {
                       )}
 
                       {subjectPerformance.length > 0 && (
-                        <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-5">
-                          <div className="flex items-center gap-2 mb-3"><BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" /><span className="text-xs sm:text-sm font-medium text-slate-600">Subject-wise Performance</span></div>
-                          <div className="space-y-2">
+                        <div className="mb-3 sm:mb-5 rounded-xl border border-slate-200/80 bg-slate-50 p-2.5 sm:p-5">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3"><BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-slate-600" /><span className="text-xs sm:text-sm font-bold text-slate-700">Subject-wise Performance</span></div>
+                          <div className="space-y-1.5 sm:space-y-2">
                             {subjectPerformance.slice(0, 4).map((sp, idx) => (
-                              <div key={idx} className="flex items-center justify-between">
-                                <span className="text-xs sm:text-sm text-slate-700">{sp.subject}</span>
-                                <span className={`text-xs sm:text-sm font-semibold ${parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' : parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' : 'text-red-600'}`}>{sp.averagePercentage}%</span>
+                              <div key={idx} className="flex items-center justify-between py-0.5">
+                                <span className="text-xs sm:text-sm font-semibold text-slate-700">{sp.subject}</span>
+                                <span className={`text-xs sm:text-sm font-bold ${parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' : parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' : 'text-red-600'}`}>{sp.averagePercentage}%</span>
                               </div>
                             ))}
                           </div>
@@ -193,8 +195,8 @@ export default function ParentDashboard() {
                       )}
 
                       {weakSubjects.length > 0 && (
-                        <div className="mb-5 rounded-xl bg-amber-50 border border-amber-200 p-3.5 sm:p-4">
-                          <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mt-0.5 shrink-0" /><div><p className="text-xs sm:text-sm font-medium text-amber-800">Needs Attention</p><p className="text-xs sm:text-sm text-amber-700 mt-1">{weakSubjects.map(s => s.subject).join(', ')}</p></div></div>
+                        <div className="mb-1 rounded-xl bg-amber-50 border border-amber-200/80 p-2.5 sm:p-4">
+                          <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mt-0.5 shrink-0" /><div><p className="text-xs sm:text-sm font-bold text-amber-800">Needs Attention</p><p className="text-xs sm:text-sm text-amber-700 mt-0.5">{weakSubjects.map(s => s.subject).join(', ')}</p></div></div>
                         </div>
                       )}
                     </div>

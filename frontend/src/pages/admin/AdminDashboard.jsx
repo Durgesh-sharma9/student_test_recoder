@@ -101,25 +101,25 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <PageStack className="gap-5 bg-slate-50/30 min-h-screen">
+    <PageStack className="gap-3 sm:gap-5 bg-slate-50/30 min-h-screen">
       <PageHeader
         title="Admin Dashboard"
         description="Overview of your school's teachers, students, classes, and recent activity."
       />
 
       {hasPendingVerification && (
-        <div className="relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3.5 shadow-sm">
+        <div className="relative overflow-hidden rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50 px-3 py-2.5 sm:px-4 sm:py-3.5 shadow-xs">
           <div className="absolute -right-4 -top-4 opacity-10">
-            <Clock className="h-24 w-24 text-amber-500" />
+            <Clock className="h-20 w-20 sm:h-24 sm:w-24 text-amber-500" />
           </div>
-          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-amber-100 p-1.5 text-amber-600">
-                <AlertCircle className="h-4 w-4" />
+          <div className="relative flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 rounded-full bg-amber-100 p-1 text-amber-600">
+                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-amber-900 tracking-tight">Subscription Status: Pending Verification</p>
-                <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-amber-700/90 sm:max-w-md">
+                <p className="text-xs sm:text-[13px] font-bold text-amber-900 tracking-tight">Subscription Status: Pending Verification</p>
+                <p className="mt-0.5 text-[10.5px] sm:text-[11px] font-medium leading-relaxed text-amber-700/90 sm:max-w-md">
                   Your payment request is received and under review. Access will be updated within 12 hours.
                 </p>
               </div>
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
             <button
               type="button"
               onClick={() => navigate('/admin/plans')}
-              className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl bg-amber-600 px-4 py-2 text-[12px] font-bold text-white shadow-sm hover:bg-amber-700 transition-colors shrink-0"
+              className="inline-flex w-full sm:w-auto items-center justify-center rounded-lg bg-amber-600 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition-colors shrink-0 cursor-pointer"
             >
               View Plans
             </button>
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         {stats.map((s) => (
           <StatsCard key={s.title} title={s.title} value={s.value} themeIndex={s.themeIndex} />
         ))}
@@ -143,26 +143,26 @@ export default function AdminDashboard() {
 
       <ErpSection title="Class Strength Overview" icon={GraduationCap} tone="indigo">
         {classStrengthData.length === 0 ? (
-          <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <BarChart3 className="h-6 w-6" />
+          <div className="flex min-h-[160px] sm:min-h-[220px] flex-col items-center justify-center gap-2 text-center">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <p className="text-[13px] font-medium text-slate-500 mt-1">No class data available yet</p>
+            <p className="text-xs sm:text-[13px] font-medium text-slate-500 mt-1">No class data available yet</p>
           </div>
         ) : (
-          <div className="mt-2 w-full">
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={classStrengthData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+          <div className="mt-1 sm:mt-2 w-full h-[180px] sm:h-[240px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={classStrengthData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }} 
+                  tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
                   axisLine={false} 
                   tickLine={false}
-                  dy={5} 
+                  dy={4} 
                 />
                 <YAxis 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }} 
+                  tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
                   axisLine={false} 
                   tickLine={false} 
                   dx={-5}
@@ -170,8 +170,8 @@ export default function AdminDashboard() {
                 <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} content={<ClassStrengthTooltip />} />
                 <Bar 
                   dataKey="value" 
-                  radius={[6, 6, 0, 0]} 
-                  maxBarSize={42} 
+                  radius={[5, 5, 0, 0]} 
+                  maxBarSize={36} 
                   className="cursor-pointer transition-opacity hover:opacity-80"
                   onClick={(data) => handleClassClick(data)}
                 >
@@ -185,30 +185,30 @@ export default function AdminDashboard() {
 
       <ErpSection title="Recent Activities" icon={Activity} tone="emerald">
         {(data.recentActivities || []).length === 0 ? (
-          <div className="py-6 text-center text-[13px] font-medium text-slate-500">
+          <div className="py-4 sm:py-6 text-center text-xs sm:text-[13px] font-medium text-slate-500">
             No recent activities found.
           </div>
         ) : (
-          <div className="relative ml-2 py-2 pl-4 md:pl-5 border-l-2 border-slate-100 dark:border-slate-800 space-y-5">
+          <div className="relative ml-2 py-1 pl-3.5 md:pl-5 border-l-2 border-slate-100 dark:border-slate-800 space-y-3 sm:space-y-5">
             {data.recentActivities.map((a) => (
               <div className="relative group" key={a._id}>
-                <div className="absolute -left-[21px] md:-left-[25px] top-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-white transition-transform group-hover:scale-125 dark:ring-slate-900" />
+                <div className="absolute -left-[19px] md:-left-[25px] top-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-white transition-transform group-hover:scale-125 dark:ring-slate-900" />
                 
-                <div className="flex flex-col gap-1">
-                  <p className="text-[13px] md:text-sm font-semibold text-slate-800 leading-tight">
+                <div className="flex flex-col gap-0.5 sm:gap-1">
+                  <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-tight">
                     {a.action}
                   </p>
                   
-                  <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px] md:text-[11px] font-medium">
-                    <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5 text-[10px] sm:text-[11px] font-medium text-slate-500">
+                    <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-slate-600 font-semibold">
                       by {a.actor?.name || 'Unknown'}
                     </span>
                     <span className="hidden sm:inline text-slate-300">•</span>
-                    <span className="inline-flex items-center text-slate-500">
+                    <span className="inline-flex items-center">
                       {formatDisplayDate(a.createdAt)}
                     </span>
                     <span className="text-slate-300">•</span>
-                    <span className="inline-flex items-center text-slate-500">
+                    <span className="inline-flex items-center">
                       {new Date(a.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}
                     </span>
                   </div>
