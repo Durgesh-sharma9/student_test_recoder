@@ -446,21 +446,21 @@ export default function ParentAttendance() {
                 </div>
 
                 {/* 7-DAY CALENDAR GRID */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-3.5 shadow-2xs">
+                <div className="rounded-2xl border border-slate-200/90 bg-white p-1 sm:p-3.5 shadow-2xs overflow-x-auto">
                   {/* WEEKDAY HEADERS */}
-                  <div className="grid grid-cols-7 gap-1 text-center border-b border-slate-100 pb-1.5 mb-1.5">
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1.5 text-center border-b border-slate-100 pb-1 mb-1 min-w-[270px]">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
-                      <div key={d} className={`text-[10px] sm:text-xs font-black uppercase ${i === 0 ? 'text-rose-500' : 'text-slate-500'}`}>
+                      <div key={d} className={`text-[9px] sm:text-xs font-black uppercase ${i === 0 ? 'text-rose-500' : 'text-slate-500'}`}>
                         {d}
                       </div>
                     ))}
                   </div>
 
                   {/* CALENDAR DAY CELLS */}
-                  <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1.5 min-w-[270px]">
                     {calendarGrid.map((item, idx) => {
                       if (!item) {
-                        return <div key={`blank-${idx}`} className="h-10 sm:h-14 rounded-xl bg-transparent" />;
+                        return <div key={`blank-${idx}`} className="h-9 sm:h-14 rounded-lg sm:rounded-xl bg-transparent" />;
                       }
 
                       const { day, isSunday, record } = item;
@@ -479,10 +479,10 @@ export default function ParentAttendance() {
                       return (
                         <div
                           key={item.dateString}
-                          className={`h-10 sm:h-14 p-1 sm:p-2 rounded-xl border transition-all duration-150 flex flex-col justify-between ${cellBg}`}
+                          className={`h-9 sm:h-14 p-0.5 sm:p-1.5 rounded-lg sm:rounded-xl border transition-all duration-150 flex flex-col justify-between ${cellBg}`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs font-black ${isSunday ? 'text-rose-500' : 'text-slate-900'}`}>
+                            <span className={`text-[10px] sm:text-xs font-black ${isSunday ? 'text-rose-500' : 'text-slate-900'}`}>
                               {day}
                             </span>
                           </div>
@@ -491,7 +491,7 @@ export default function ParentAttendance() {
                           {record ? (
                             <div className="mt-auto">
                               <span
-                                className={`inline-flex items-center justify-center w-full px-1 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase shadow-2xs ${
+                                className={`inline-flex items-center justify-center w-full px-0.5 py-0.5 rounded-md text-[8px] sm:text-[10px] font-black uppercase shadow-2xs ${
                                   isPresent ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
                                 }`}
                               >
@@ -500,9 +500,9 @@ export default function ParentAttendance() {
                               </span>
                             </div>
                           ) : isSunday ? (
-                            <span className="text-[8px] font-bold text-slate-400 text-center mt-auto">Holiday</span>
+                            <span className="text-[7px] sm:text-[8px] font-bold text-slate-400 text-center mt-auto">Off</span>
                           ) : (
-                            <span className="text-[8px] text-slate-300 text-center mt-auto">-</span>
+                            <span className="text-[7px] sm:text-[8px] text-slate-300 text-center mt-auto">-</span>
                           )}
                         </div>
                       );
