@@ -583,8 +583,7 @@ export default function ParentAttendance() {
                         <TableHead className="font-bold text-slate-800 text-xs py-2.5">Date</TableHead>
                         <TableHead className="font-bold text-slate-800 text-xs py-2.5">Day</TableHead>
                         <TableHead className="text-center font-bold text-slate-800 text-xs py-2.5">Status</TableHead>
-                        <TableHead className="font-bold text-slate-800 text-xs py-2.5">Recorded By</TableHead>
-                        <TableHead className="text-right font-bold text-slate-800 text-xs py-2.5">Remarks</TableHead>
+                        <TableHead className="text-right font-bold text-slate-800 text-xs py-2.5">Recorded By</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -615,11 +614,8 @@ export default function ParentAttendance() {
                                 <span>{isPresent ? 'PRESENT' : 'ABSENT'}</span>
                               </span>
                             </TableCell>
-                            <TableCell className="text-slate-600 font-medium text-xs py-2">
+                            <TableCell className="text-right text-slate-600 font-medium text-xs py-2">
                               {h.recordedBy}
-                            </TableCell>
-                            <TableCell className="text-right text-slate-500 font-medium text-xs py-2">
-                              {h.remarks || '-'}
                             </TableCell>
                           </TableRow>
                         );
