@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../services/emailService.js';
+import { sendTeacherWhatsAppCredentials } from '../services/whatsappService.js';
 import { parseTeacherImportFile } from '../services/excelService.js';
 import School from '../models/School.js';
 import AcademicSession from '../models/AcademicSession.js';
@@ -242,6 +243,18 @@ export const createUser = asyncHandler(async (req, res) => {
           generatedPassword,
           loginUrl
         );
+
+        // Also send WhatsApp message to Teacher if phone number is provided
+        if (phoneNo) {
+          sendTeacherWhatsAppCredentials({
+            phoneNo,
+            teacherName: teacherName || name || 'Teacher',
+            email,
+            password: generatedPassword,
+            schoolName,
+            loginUrl,
+          }).catch((err) => console.error('[WhatsApp Service Error]:', err));
+        }
 
         if (emailResult.success) {
           
@@ -655,6 +668,18 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
       generatedPassword,
       loginUrl
     );
+
+    // Also send WhatsApp message to Teacher
+    if (teacher.phoneNo) {
+      sendTeacherWhatsAppCredentials({
+        phoneNo: teacher.phoneNo,
+        teacherName: teacher.teacherName || teacher.name,
+        email: teacher.email,
+        password: generatedPassword,
+        schoolName,
+        loginUrl,
+      }).catch((err) => console.error('[WhatsApp Service Error]:', err));
+    }
 
     if (emailResult.success) {
       
