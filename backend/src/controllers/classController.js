@@ -149,7 +149,7 @@ export const getClassStudents = asyncHandler(async (req, res) => {
     filter.academicSession = req.query.academicSession;
   }
 
-  const students = await Student.find(filter);
+  const students = await Student.find(filter).populate('parent', 'parentName phone');
 
   // Numeric sorting of roll numbers
   students.sort(

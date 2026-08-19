@@ -55,7 +55,7 @@ export const buildMarksRows = async (session, classId, schoolId, testDateOverrid
     class: classId,
     school: schoolId,
     isActive: true,
-  }).sort('rollNo');
+  }).populate('parent', 'parentName phone').sort('rollNo');
   students.sort((a, b) => Number(a.rollNo) - Number(b.rollNo));
 
   const marksMap = new Map();
@@ -74,11 +74,13 @@ export const buildMarksRows = async (session, classId, schoolId, testDateOverrid
     // Check if student was admitted on or before test date
     const admissionDate = s.admissionDate ? new Date(s.admissionDate) : null;
     const isNotAdmittedYet = testDateObj && admissionDate && admissionDate > testDateObj;
+    const fatherName = s.parent?.parentName || s.fatherName || '';
 
     return {
       studentId: s._id,
       rollNo: s.rollNo,
       name: s.name,
+      fatherName,
       gender: s.gender,
       admissionDate: s.admissionDate,
       marksObtained: m?.marksObtained ?? '',

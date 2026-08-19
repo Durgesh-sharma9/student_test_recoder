@@ -421,7 +421,7 @@ export default function DashboardLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-3 sm:px-6 shadow-sm backdrop-blur-md">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200/60 bg-white/80 px-3 sm:px-6 shadow-sm backdrop-blur-md">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button variant="ghost" size="icon" className="lg:hidden shrink-0 h-9 w-9" onClick={() => setOpen(!open)}>
               <Menu className="h-5 w-5" />

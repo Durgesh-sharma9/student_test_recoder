@@ -48,6 +48,10 @@ export default function NotificationPanel() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
   const markAsRead = async (notificationId) => {
     try {
       await api.put(`/notifications/${notificationId}/mark-read`);
