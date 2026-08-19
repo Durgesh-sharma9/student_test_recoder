@@ -292,111 +292,96 @@ export default function ParentViewResults() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
+    <div className="space-y-3 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <PageHeader
           title="View Results"
           description="View detailed performance reports and results history"
         />
-        {results && results.length > 0 && (
-          <Button onClick={generatePDF} className="flex items-center justify-center gap-2 w-full md:w-auto">
-            <Download className="h-4 w-4" />
-            Download Report Card
-          </Button>
-        )}
+        
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {students.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200/90 px-2.5 py-1 rounded-xl shadow-xs">
+              <User className="h-3.5 w-3.5 text-indigo-600 shrink-0" />
+              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                <SelectTrigger className="h-6 text-xs font-bold border-none shadow-none focus:ring-0 focus:outline-hidden bg-transparent p-0 gap-1 min-w-[120px] sm:min-w-[140px]">
+                  <SelectValue placeholder="Select Child" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {students.map((s) => (
+                    <SelectItem key={s._id} value={s._id} className="text-xs font-bold">
+                      {s.name} ({s.className} {s.section ? `-${s.section}` : ''})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {results && results.length > 0 && (
+            <Button
+              onClick={generatePDF}
+              className="h-8.5 px-3 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Download Report Card</span>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Child Selector */}
-      {students.length > 1 && (
-        <ErpSection title="Select Child" icon={User} tone="blue">
-          <div className="p-4">
-            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-              <SelectTrigger className="w-full md:w-96">
-                <SelectValue placeholder="Select a child" />
-              </SelectTrigger>
-              <SelectContent>
-                {students.map((s) => (
-                  <SelectItem key={s._id} value={s._id}>
-                    {s.name} - {s.className} {s.section ? `(${s.section})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </ErpSection>
-      )}
-
       {loading && !student ? (
-        <div className="p-8 text-center text-slate-500">Loading...</div>
+        <div className="p-8 text-center text-slate-500 text-xs sm:text-sm">Loading...</div>
       ) : student ? (
         <>
-          {/* SECTION 1: Student Information */}
-          <ErpSection title="Student Information" icon={User} tone="blue">
-            <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                <div className="h-16 w-16 sm:h-24 sm:w-24 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl sm:text-3xl font-bold shadow-lg">
+          {/* Combined Student Performance Overview */}
+          <ErpSection title="Student Performance Overview" icon={User} tone="blue">
+            <div className="p-2.5 sm:p-4">
+              <div className="flex items-center gap-2.5 sm:gap-4 mb-2.5 sm:mb-3">
+                <div className="h-9 w-9 sm:h-12 sm:w-12 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs sm:text-base font-bold shadow-sm">
                   {student.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 truncate">{student.name}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-3">
-                    <div>
-                      <div className="text-xs sm:text-sm text-slate-500">Class</div>
-                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{student.className} {student.section ? `(${student.section})` : ''}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs sm:text-sm text-slate-500">Roll No</div>
-                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{student.rollNo}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs sm:text-sm text-slate-500">Rank</div>
-                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{summary?.currentRank || 'N/A'}</div>
-                      <div className="text-[10px] sm:text-xs text-slate-500">Out of {totalStudents || results.length} Students</div>
-                    </div>
-                    <div>
-                      <div className="text-xs sm:text-sm text-slate-500">Overall %</div>
-                      <div className="text-sm sm:text-lg font-semibold text-slate-900">{formatPercentageSafe(summary?.averagePercentage)}</div>
-                    </div>
+                  <h2 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate">{student.name}</h2>
+                  <p className="text-[11px] sm:text-xs text-slate-500 leading-tight mt-0.5">
+                    Class {student.className} {student.section ? `(${student.section})` : ''} • Roll No: <span className="font-bold text-slate-800">{student.rollNo}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1.5 sm:gap-2.5">
+                <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-2 sm:p-3 border border-blue-200/80">
+                  <div className="text-[10px] sm:text-xs font-semibold text-blue-700 mb-0.5 truncate">Overall %</div>
+                  <div className="text-sm sm:text-lg font-extrabold text-blue-900">{formatPercentageSafe(summary?.averagePercentage)}</div>
+                </div>
+
+                <div className="rounded-xl bg-gradient-to-br from-purple-50 to-fuchsia-50 p-2 sm:p-3 border border-purple-200/80">
+                  <div className="text-[10px] sm:text-xs font-semibold text-purple-700 mb-0.5 truncate">Rank</div>
+                  <div className="text-sm sm:text-lg font-extrabold text-purple-900">#{summary?.currentRank || '-'}</div>
+                  <div className="text-[9px] sm:text-[10px] text-purple-600 font-medium">Out of {totalStudents || results.length}</div>
+                </div>
+
+                <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 p-2 sm:p-3 border border-emerald-200/80">
+                  <div className="text-[10px] sm:text-xs font-semibold text-emerald-700 mb-0.5 truncate">Total Tests</div>
+                  <div className="text-sm sm:text-lg font-extrabold text-emerald-900">{summary?.totalTests || results.length}</div>
+                </div>
+
+                <div className="rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 p-2 sm:p-3 border border-teal-200/80">
+                  <div className="text-[10px] sm:text-xs font-semibold text-teal-700 mb-0.5 truncate">Best Subject</div>
+                  <div className="text-xs sm:text-base font-bold text-teal-900 truncate" title={bestSubject?.subject || 'N/A'}>
+                    {bestSubject?.subject || 'N/A'}
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 p-2 sm:p-3 border border-amber-200/80 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] sm:text-xs font-semibold text-amber-700 mb-0.5 truncate">Weak Subject</div>
+                  <div className="text-xs sm:text-base font-bold text-amber-900 truncate" title={weakSubjects.length > 0 ? weakSubjects[0].subject : 'None'}>
+                    {weakSubjects.length > 0 ? weakSubjects[0].subject : 'None'}
                   </div>
                 </div>
               </div>
             </div>
           </ErpSection>
-
-          {/* SECTION 2: Performance Summary */}
-          {summary && (
-            <ErpSection title="Performance Summary" icon={Trophy} tone="green">
-              <div className="p-3.5 sm:p-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
-                  <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 sm:p-4 border border-blue-200 overflow-hidden">
-                    <div className="text-xs sm:text-sm font-medium text-blue-700 mb-0.5 truncate">Overall %</div>
-                    <div className="text-lg sm:text-2xl font-bold text-blue-900">{formatPercentageSafe(summary.averagePercentage)}</div>
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 sm:p-4 border border-purple-200 overflow-hidden">
-                    <div className="text-xs sm:text-sm font-medium text-purple-700 mb-0.5 truncate">Rank</div>
-                    <div className="text-lg sm:text-2xl font-bold text-purple-900">{summary.currentRank || 'N/A'}</div>
-                    <div className="text-[10px] sm:text-xs text-purple-600 truncate">Out of {totalStudents || results.length} Students</div>
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-3 sm:p-4 border border-green-200 overflow-hidden">
-                    <div className="text-xs sm:text-sm font-medium text-green-700 mb-0.5 truncate">Total Tests</div>
-                    <div className="text-lg sm:text-2xl font-bold text-green-900">{summary.totalTests}</div>
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 p-3 sm:p-4 border border-emerald-200 overflow-hidden">
-                    <div className="text-xs sm:text-sm font-medium text-emerald-700 mb-0.5 truncate">Best Subject</div>
-                    <div className="text-base sm:text-2xl font-bold text-emerald-900 truncate" title={bestSubject?.subject || 'N/A'}>
-                      {bestSubject?.subject || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-3 sm:p-4 border border-red-200 overflow-hidden col-span-2 sm:col-span-1">
-                    <div className="text-xs sm:text-sm font-medium text-red-700 mb-0.5 truncate">Weak Subject</div>
-                    <div className="text-base sm:text-2xl font-bold text-red-900 truncate" title={weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}>
-                      {weakSubjects.length > 0 ? weakSubjects[0].subject : 'N/A'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ErpSection>
-          )}
 
           {/* SECTION 3: Results History */}
           <ErpSection title="Results History" icon={BookOpen} tone="blue">
@@ -580,13 +565,16 @@ export default function ParentViewResults() {
           {/* SECTION 5: Subject-wise Performance */}
           {subjectPerformance.length > 0 && (
             <ErpSection title="Subject-wise Performance" icon={BookOpen} tone="blue">
-              <div className="p-6">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="p-2.5 sm:p-4">
+                <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {subjectPerformance.map((sp, idx) => (
-                    <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-slate-900">{sp.subject}</span>
-                        <span className={`text-lg font-bold ${
+                    <div key={idx} className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-2.5 sm:p-3 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <span className="text-xs sm:text-sm font-bold text-slate-800 truncate block">{sp.subject}</span>
+                          <span className="text-[10px] sm:text-xs font-medium text-slate-400">{sp.count} tests</span>
+                        </div>
+                        <span className={`text-xs sm:text-sm font-extrabold shrink-0 ${
                           parseFloat(sp.averagePercentage) >= 75 ? 'text-green-600' :
                           parseFloat(sp.averagePercentage) >= 50 ? 'text-orange-600' :
                           'text-red-600'
@@ -594,8 +582,7 @@ export default function ParentViewResults() {
                           {sp.averagePercentage}%
                         </span>
                       </div>
-                      <div className="text-sm text-slate-500">{sp.count} tests</div>
-                      <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="mt-1.5 h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
                         <div 
                           className={`h-full rounded-full ${
                             parseFloat(sp.averagePercentage) >= 75 ? 'bg-green-500' :

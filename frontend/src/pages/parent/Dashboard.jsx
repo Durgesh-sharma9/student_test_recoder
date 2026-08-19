@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { GraduationCap, Users, TrendingUp, AlertTriangle, BookOpen } from 'lucide-react';
+import { GraduationCap, Users, TrendingUp, AlertTriangle, BookOpen, User } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import api from '@/lib/api';
 import { PageHeader, ErpSection } from '@/components/erp/PagePrimitives';
@@ -81,7 +81,27 @@ export default function ParentDashboard() {
 
   return (
     <div className="space-y-3 sm:space-y-6">
-      <PageHeader title="Parent Dashboard" description={`Session: ${sessionName}`} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <PageHeader title="Parent Dashboard" description={`Session: ${sessionName}`} />
+
+        {students.length > 1 && (
+          <div className="flex items-center self-start sm:self-auto bg-white border border-slate-200/90 hover:border-indigo-300 px-3.5 py-1.5 rounded-full shadow-xs transition-all cursor-pointer">
+            <User className="h-4 w-4 text-indigo-600 mr-2 shrink-0" />
+            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <SelectTrigger className="h-7 text-xs sm:text-sm font-extrabold text-slate-800 border-none shadow-none focus:ring-0 focus:outline-hidden bg-transparent p-0 gap-2">
+                <SelectValue placeholder="Select Child" />
+              </SelectTrigger>
+              <SelectContent align="end" className="rounded-2xl">
+                {students.map((s) => (
+                  <SelectItem key={s._id} value={s._id} className="text-xs sm:text-sm font-bold">
+                    {s.name} ({s.className} {s.section ? `-${s.section}` : ''})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
 
       {students.length === 0 ? (
         <ErpSection title="My Children" icon={Users} tone="blue">
@@ -90,48 +110,8 @@ export default function ParentDashboard() {
             <p className="text-xs sm:text-sm">No children linked to your account yet.</p>
           </div>
         </ErpSection>
-      ) : (
-        <>
-          {students.length > 1 && (
-            <ErpSection title="Select Child" icon={Users} tone="blue">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 border border-blue-200/80 p-3 sm:p-4 rounded-xl shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm sm:text-lg shadow-sm">
-                    {selectedStudent?.name?.charAt(0).toUpperCase() || 'S'}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">{selectedStudent?.name}</h3>
-                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/90 px-2 py-0.5 rounded-full border border-indigo-200">
-                        Active Child
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      {selectedStudent?.className} {selectedStudent?.section && `(${selectedStudent.section})`} • Roll No: {selectedStudent?.rollNo} • Rank: #{selectedStudent?.rank || '-'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full sm:w-64 shrink-0">
-                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                    <SelectTrigger className="h-9 text-xs sm:text-sm font-semibold rounded-xl bg-white border-blue-200 shadow-xs focus:ring-2 focus:ring-blue-500/20">
-                      <SelectValue placeholder="Switch Child" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students.map((s) => (
-                        <SelectItem key={s._id} value={s._id} className="text-xs sm:text-sm font-semibold">
-                          {s.name} ({s.className} {s.section && `-${s.section}`})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </ErpSection>
-          )}
-
-          {selectedStudent && (
-            <ErpSection title={`${selectedStudent.name}'s Performance`} icon={GraduationCap} tone="blue">
+      ) : selectedStudent ? (
+        <ErpSection title={`${selectedStudent.name}'s Performance`} icon={GraduationCap} tone="blue">
               <div className="grid gap-4 sm:gap-8">
                 {(() => {
                   const subjectPerformance = calculateSubjectPerformance(selectedStudent.recentResults);
@@ -204,9 +184,7 @@ export default function ParentDashboard() {
                 })()}
               </div>
             </ErpSection>
-          )}
-        </>
-      )}
+      ) : null}
     </div>
   );
 }

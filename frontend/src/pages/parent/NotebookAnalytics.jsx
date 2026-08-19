@@ -113,193 +113,156 @@ export default function NotebookAnalytics() {
   const sortedRecentActivity = recentActivity.slice(-5).reverse();
 
   return (
-    <PageStack className="bg-gradient-to-b from-[#f8fbff] via-[#f5f8ff] via-[#f8faff] via-[#fcfdff] to-white">
-      <PageHeader title="Notebook Analytics" description="Track your child's notebook checking progress across all subjects" />
+    <PageStack className="gap-3 sm:gap-6 bg-gradient-to-b from-[#f8fbff] via-[#f5f8ff] via-[#f8faff] via-[#fcfdff] to-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <PageHeader title="Notebook Analytics" description="Track your child's notebook checking progress across all subjects" />
+
+        {students.length > 1 && (
+          <div className="flex items-center self-start sm:self-auto bg-white border border-slate-200/90 hover:border-indigo-300 px-3.5 py-1.5 rounded-full shadow-xs transition-all cursor-pointer">
+            <User className="h-4 w-4 text-indigo-600 mr-2 shrink-0" />
+            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <SelectTrigger className="h-7 text-xs sm:text-sm font-extrabold text-slate-800 border-none shadow-none focus:ring-0 focus:outline-hidden bg-transparent p-0 gap-2">
+                <SelectValue placeholder="Select Child" />
+              </SelectTrigger>
+              <SelectContent align="end" className="rounded-2xl">
+                {students.map((s) => (
+                  <SelectItem key={s._id} value={s._id} className="text-xs sm:text-sm font-bold">
+                    {s.name} ({s.className}{s.section && `-${s.section}`})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
 
       {students.length === 0 ? (
         <ErpSection title="My Children" icon={User} tone="blue">
-          <div className="p-8 text-center text-slate-500">
-            <BookOpen className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-            <p>No children linked to your account yet.</p>
+          <div className="p-6 sm:p-8 text-center text-slate-500">
+            <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-slate-300" />
+            <p className="text-xs sm:text-sm">No children linked to your account yet.</p>
           </div>
         </ErpSection>
       ) : (
-        <>
-          {/* Student Switcher for multiple children */}
-          {students.length > 1 && (
-            <ErpSection title="Select Child" icon={User} tone="blue">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                    <SelectTrigger className="h-10 pl-10 bg-white border-slate-200 rounded-xl">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <SelectValue placeholder="Select child" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student._id} value={student._id}>
-                          {student.name} ({student.className}{student.section && `-${student.section}`})
-                        </SelectItem>
-                      )
-                      )}
-                    </SelectContent>
-                  </Select>
+        selectedStudent && progressData && (
+          <>
+            {/* Streamlined Notebook Progress Hero Card */}
+            <ErpSection title="Notebook Progress Overview" icon={TrendingUp} tone="blue">
+              <div className="p-3 sm:p-5">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="rounded-xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/70 to-purple-50/70 p-2.5 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-indigo-600" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-600">Overall Completion</span>
+                    </div>
+                    <div className="text-base sm:text-2xl font-extrabold text-indigo-950">{overallCompletion}%</div>
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/70 to-green-50/70 p-2.5 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-600">Checked Chapters</span>
+                    </div>
+                    <div className="text-base sm:text-2xl font-extrabold text-emerald-950">
+                      {progressData.subjectProgress.reduce((acc, s) => acc + s.checked, 0)}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 to-orange-50/70 p-2.5 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Clock className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-600">Pending Chapters</span>
+                    </div>
+                    <div className="text-base sm:text-2xl font-extrabold text-amber-950">{totalPending}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50/70 to-sky-50/70 p-2.5 sm:p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <BookOpen className="h-3.5 w-3.5 text-blue-600" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-600">Total Subjects</span>
+                    </div>
+                    <div className="text-base sm:text-2xl font-extrabold text-blue-950">{totalSubjects}</div>
+                  </div>
                 </div>
               </div>
             </ErpSection>
-          )}
 
-          {selectedStudent && progressData && (
-            <>
-              {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-4 w-4 text-indigo-600" />
-                    <span className="text-xs font-medium text-slate-600">Overall Completion</span>
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{overallCompletion}%</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BookOpen className="h-4 w-4 text-blue-600" />
-                    <span className="text-xs font-medium text-slate-600">Subjects</span>
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{totalSubjects}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                    <span className="text-xs font-medium text-slate-600">Pending Chapters</span>
-                  </div>
-                  <div className="text-2xl font-bold text-slate-900">{totalPending}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 shadow-sm p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4 text-emerald-600" />
-                    <span className="text-xs font-medium text-slate-600">Last Checked</span>
-                  </div>
-                  <div className="text-sm font-bold text-slate-900">Today</div>
-                </div>
-              </div>
-
-              {/* Overall Progress Card */}
-              <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-[#FBFCFF] to-[#F7F9FF] shadow-sm hover:shadow-md transition-all duration-200 p-5 relative overflow-hidden">
-                {/* Subtle background decoration */}
-                <div className="absolute inset-0 bg-gradient-radial from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
-                
-                <div className="text-center mb-3 relative z-10">
-                  <h3 className="text-lg font-bold text-slate-900">Overall Notebook Progress</h3>
-                  <p className="text-xs text-slate-500">Notebook checking summary</p>
-                </div>
-                
-                <div className="flex flex-col md:flex-row items-center justify-center gap-4 relative z-10">
-                  {/* Left: Progress Ring */}
-                  <div className="flex-shrink-0">
-                    <div className="relative">
-                      <div className="h-36 w-36 rounded-full flex items-center justify-center shadow-lg">
-                        {/* Background track */}
-                        <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="42"
-                            fill="none"
-                            stroke="#E8ECF7"
-                            strokeWidth="10"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        {/* Progress gradient */}
-                        <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
-                          <defs>
-                            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#4F46E5" />
-                              <stop offset="100%" stopColor="#7C3AED" />
-                            </linearGradient>
-                          </defs>
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="42"
-                            fill="none"
-                            stroke="url(#progressGradient)"
-                            strokeWidth="10"
-                            strokeLinecap="round"
-                            className="animate-progress"
-                            strokeDasharray={`${overallCompletion * 2.64} 264`}
-                            style={{ animation: 'progressAnimation 1s ease-out forwards' }}
-                          />
-                        </svg>
-                        <div className="flex flex-col items-center">
-                          <span className="text-4xl font-bold text-[#111827]">{overallCompletion}%</span>
-                          <span className="text-xs text-slate-500">Completion</span>
-                        </div>
+            {/* Overall Progress Ring Chart */}
+            <ErpSection title="Overall Notebook Progress" icon={TrendingUp} tone="purple">
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-8">
+                  {/* Left: Progress Ring SVG Graph */}
+                  <div className="shrink-0 flex flex-col items-center">
+                    <div className="relative h-28 w-28 sm:h-36 sm:w-36 rounded-full flex items-center justify-center shadow-md">
+                      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="#E8ECF7" strokeWidth="10" strokeLinecap="round" />
+                      </svg>
+                      <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+                        <defs>
+                          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#4F46E5" />
+                            <stop offset="100%" stopColor="#7C3AED" />
+                          </linearGradient>
+                        </defs>
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="42"
+                          fill="none"
+                          stroke="url(#progressGradient)"
+                          strokeWidth="10"
+                          strokeLinecap="round"
+                          strokeDasharray={`${overallCompletion * 2.64} 264`}
+                        />
+                      </svg>
+                      <div className="flex flex-col items-center">
+                        <span className="text-2xl sm:text-3xl font-extrabold text-[#111827]">{overallCompletion}%</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-slate-500">Completion</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right: Statistic Cards */}
-                  <div className="flex-1 w-full max-w-xs space-y-2.5">
-                    <div className="rounded-xl bg-gradient-to-r from-[#ECFDF5] to-[#D1FAE5] border border-[#86EFAC] p-2.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 animate-fade-up" style={{ animationDelay: '100ms' }}>
-                      <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                  {/* Right: Chapter Breakdown */}
+                  <div className="flex-1 w-full max-w-xs space-y-2">
+                    <div className="rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-2.5 flex items-center gap-3 shadow-2xs">
+                      <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xl font-bold text-emerald-700">
+                        <div className="text-base font-extrabold text-emerald-800">
                           {progressData.subjectProgress.reduce((acc, s) => acc + s.checked, 0)}
                         </div>
-                        <div className="text-xs font-medium text-emerald-600">Checked Chapters</div>
+                        <div className="text-[11px] font-semibold text-emerald-600">Checked Chapters</div>
                       </div>
                     </div>
-                    
-                    <div className="rounded-xl bg-gradient-to-r from-[#FFF7ED] to-[#FFEDD5] border border-[#FDBA74] p-2.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 animate-fade-up" style={{ animationDelay: '200ms' }}>
-                      <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                        <Clock className="h-4.5 w-4.5 text-orange-600" />
+
+                    <div className="rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-2.5 flex items-center gap-3 shadow-2xs">
+                      <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                        <Clock className="h-4 w-4 text-amber-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xl font-bold text-orange-700">{totalPending}</div>
-                        <div className="text-xs font-medium text-orange-600">Pending Chapters</div>
+                        <div className="text-base font-extrabold text-amber-800">{totalPending}</div>
+                        <div className="text-[11px] font-semibold text-amber-600">Pending Chapters</div>
                       </div>
                     </div>
-                    
-                    <div className="rounded-xl bg-gradient-to-r from-[#EFF6FF] to-[#DBEAFE] border border-[#93C5FD] p-2.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 animate-fade-up" style={{ animationDelay: '300ms' }}>
-                      <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <BookOpen className="h-4.5 w-4.5 text-blue-600" />
+
+                    <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-2.5 flex items-center gap-3 shadow-2xs">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <BookOpen className="h-4 w-4 text-blue-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xl font-bold text-blue-700">
+                        <div className="text-base font-extrabold text-blue-800">
                           {progressData.subjectProgress.reduce((acc, s) => acc + s.checked, 0) + totalPending}
                         </div>
-                        <div className="text-xs font-medium text-blue-600">Total Chapters</div>
+                        <div className="text-[11px] font-semibold text-blue-600">Total Chapters</div>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <style jsx>{`
-                  @keyframes progressAnimation {
-                    from { stroke-dasharray: 0 264; }
-                    to { stroke-dasharray: ${overallCompletion * 2.64} 264; }
-                  }
-                  @keyframes fadeUp {
-                    from {
-                      opacity: 0;
-                      transform: translateY(10px);
-                    }
-                    to {
-                      opacity: 1;
-                      transform: translateY(0);
-                    }
-                  }
-                  .animate-fade-up {
-                    animation: fadeUp 0.3s ease-out forwards;
-                    opacity: 0;
-                  }
-                `}</style>
               </div>
+            </ErpSection>
 
-              {/* Subject Grid */}
+            {/* Subject Grid */}
               <ErpSection title="Subject Progress" icon={BookOpen} tone="blue">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {progressData.subjectProgress.map((subject) => (
@@ -420,8 +383,7 @@ export default function NotebookAnalytics() {
                 </ErpSection>
               )}
             </>
-          )}
-        </>
+          )
       )}
 
       {/* View Details Modal */}
