@@ -123,10 +123,15 @@ export default function MarksEntryForm({ category, title }) {
 
       if (res.data.existing) {
         toast.info(res.data.message || (isDaily ? 'Existing Daily Test Loaded' : 'Existing Main Exam Loaded'));
-      } else if (isDaily) {
-        toast.success('Students loaded. Enter marks and click Save to create the Daily Test.');
       } else {
-        toast.success('Students loaded. Enter marks and click Save.');
+        const syncedAbsentCount = (res.data.rows || []).filter((r) => r.status === 'absent').length;
+        if (syncedAbsentCount > 0) {
+          toast.success(`Students loaded! ${syncedAbsentCount} student(s) auto-marked absent from Daily Attendance.`);
+        } else if (isDaily) {
+          toast.success('Students loaded. Enter marks and click Save to create the Daily Test.');
+        } else {
+          toast.success('Students loaded. Enter marks and click Save.');
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to load');

@@ -1,6 +1,7 @@
 import ResultSession from '../models/ResultSession.js';
 import Student from '../models/Student.js';
 import MarkEntry from '../models/MarkEntry.js';
+import Attendance from '../models/Attendance.js';
 import { normalizeSubject } from './subjectAccess.js';
 
 export const startOfDay = (d) => {
@@ -64,9 +65,25 @@ export const buildMarksRows = async (session, classId, schoolId, testDateOverrid
     marks.forEach((m) => marksMap.set(m.student.toString(), m));
   }
 
-  // Get test date for admission comparison - use override if provided, otherwise from session
+  // Get test date for admission comparison and attendance lookup - use override if provided, otherwise from session
   const testDate = testDateOverride || session?.testDate || session?.examDate;
   const testDateObj = testDate ? new Date(testDate) : null;
+  const dateString = testDateObj ? testDateObj.toISOString().split('T')[0] : null;
+
+  // Fetch Daily Attendance record for this school + class + dateString
+  const attendanceMap = new Map();
+  if (dateString) {
+    const attendanceDoc = await Attendance.findOne({
+      school: schoolId,
+      class: classId,
+      dateString,
+    });
+    if (attendanceDoc && attendanceDoc.records) {
+      attendanceDoc.records.forEach((rec) => {
+        attendanceMap.set(rec.student.toString(), rec.status);
+      });
+    }
+  }
 
   return students.map((s) => {
     const m = marksMap.get(s._id.toString());
@@ -75,6 +92,19 @@ export const buildMarksRows = async (session, classId, schoolId, testDateOverrid
     const admissionDate = s.admissionDate ? new Date(s.admissionDate) : null;
     const isNotAdmittedYet = testDateObj && admissionDate && admissionDate > testDateObj;
     const fatherName = s.parent?.parentName || s.fatherName || '';
+
+    // Lookup attendance status for this student on test date
+    const attStatus = attendanceMap.get(s._id.toString());
+
+    // Determine initial marks entry status:
+    // 1. If existing MarkEntry status exists, preserve it.
+    // 2. If NO existing MarkEntry, sync from Daily Attendance (if marked absent or leave -> default to 'absent').
+    let defaultStatus = 'present';
+    if (m?.status) {
+      defaultStatus = m.status;
+    } else if (attStatus === 'absent' || attStatus === 'leave') {
+      defaultStatus = 'absent';
+    }
 
     return {
       studentId: s._id,
@@ -86,8 +116,9 @@ export const buildMarksRows = async (session, classId, schoolId, testDateOverrid
       marksObtained: m?.marksObtained ?? '',
       rankSubject: m?.rankSubject ?? null,
       percentage: m?.percentage ?? null,
-      status: m?.status ?? 'present',
+      status: defaultStatus,
       isNotAdmittedYet,
+      attendanceStatus: attStatus || null,
     };
   });
 };
