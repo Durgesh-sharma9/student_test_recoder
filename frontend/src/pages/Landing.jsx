@@ -106,18 +106,18 @@ export default function Landing() {
 
   const staticPlans = [
     {
-      name: "Starter", price: "₹999", cta: "Sign Up Free", popular: false,
+      name: "Starter", price: "₹499", cta: "Start Free Trial", popular: false,
       desc: "Ideal for small schools getting started with digital result management.",
       grad: "linear-gradient(135deg,#6366f1,#3b82f6)", glow: "rgba(99,102,241,.15)",
       highlights: [
         "Up to 500 students",
-        "5 teacher accounts",
+        "10 teacher accounts",
         "Daily test module",
         "Result generation",
       ],
     },
     {
-      name: "School", price: "₹2,499", cta: "Start Free Trial", popular: true,
+      name: "Pro School", price: "₹1,499", cta: "Start Free Trial", popular: true,
       desc: "Full ERP features and parent access for growing institutions.",
       grad: "linear-gradient(135deg,#2563eb,#7c3aed)", glow: "rgba(37,99,235,.2)",
       highlights: [
@@ -128,25 +128,12 @@ export default function Landing() {
         "CSV / XLSX export",
       ],
     },
-    {
-      name: "Enterprise", price: "Custom", cta: "Contact Sales", popular: false,
-      desc: "For school chains needing multi-campus management at scale.",
-      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", glow: "rgba(236,72,153,.15)",
-      highlights: [
-        "Unlimited students",
-        "Unlimited teachers",
-        "All School features",
-        "Multi-school dashboard",
-        "Dedicated support",
-        "Custom integrations",
-      ],
-    },
   ];
 
   const visiblePlans = useMemo(() => {
     if (plans.length === 0) return staticPlans;
 
-    const dbPlans = plans
+    return plans
       .filter(p => (p.billingCycle || 'monthly') === activeCycle)
       .sort((a, b) => Number(a.basePrice) - Number(b.basePrice))
       .map((p, idx) => {
@@ -168,27 +155,6 @@ export default function Landing() {
           ]
         };
       });
-
-    // Append Enterprise
-    dbPlans.push({
-      name: "Enterprise",
-      price: "Custom",
-      cta: "Contact Sales",
-      popular: false,
-      desc: "For school chains needing multi-campus management at scale.",
-      grad: "linear-gradient(135deg,#ec4899,#8b5cf6)",
-      glow: "rgba(236,72,153,.15)",
-      highlights: [
-        "Unlimited students",
-        "Unlimited teachers",
-        "All School features",
-        "Multi-school dashboard",
-        "Dedicated support",
-        "Custom integrations"
-      ]
-    });
-
-    return dbPlans;
   }, [plans, activeCycle]);
 
   const getTheme = (index) => {
@@ -252,29 +218,29 @@ export default function Landing() {
         .nav-links a:hover{color:var(--text)}
         .nav-actions{display:flex;gap:10px;align-items:center}
         
-        .mobile-menu-btn { display: none; background: none; font-size: 24px; padding: 10px; border: none; cursor: pointer; }
+        .mobile-menu-btn { display: none; background: none; font-size: 24px; padding: 10px; border: none; cursor: pointer; color: var(--text); }
         .mobile-menu { 
           display: none; 
           background: #fff; 
-          padding: 24px; 
+          padding: 18px 24px 24px; 
           border-radius: 0 0 20px 20px;
           border-bottom: 1px solid var(--border); 
           flex-direction: column; 
-          gap: 20px; 
+          gap: 12px; 
           text-align: left; 
-          position: fixed; 
+          position: absolute; 
           width: 100%; 
           left: 0; 
           top: 66px; 
           z-index: 2000; 
-          box-shadow: 0 20px 50px rgba(0,0,0,0.1); 
+          box-shadow: 0 20px 50px rgba(0,0,0,0.12); 
         }
         .mobile-menu.open { display: flex !important; }
-        .mobile-menu a { font-weight: 600; color: var(--text-2); font-size: 16px; }
+        .mobile-menu a { font-weight: 600; color: var(--text-2); font-size: 15px; padding: 4px 0; }
         .mobile-menu .btn { width: 100%; justify-content: center; }
 
         /* ── HERO ── */
-        .hero-wrap{max-width:1160px;margin:0 auto;padding:88px 32px 72px}
+        .hero-wrap{max-width:1160px;margin:0 auto;padding:28px 32px 48px}
         .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
         .hero-pill{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#eef2ff,#fdf4ff);color:#4f46e5;font-size:12px;font-weight:700;padding:7px 18px;border-radius:40px;border:1.5px solid #c7d2fe;margin-bottom:24px;letter-spacing:.02em}
         .pill-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);flex-shrink:0;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
@@ -441,33 +407,110 @@ export default function Landing() {
         .footer-legal a:hover{color:#ffffff}
         .contact-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;margin-bottom:10px}
 
-        /* ── MOBILE RESPONSIVE RULES ── */
+        /* ── MOBILE RESPONSIVE RULES (ONLY FOR MOBILE, DESKTOP UNTOUCHED) ── */
         @media (max-width: 1024px) {
-          .hero-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+          .hero-grid { grid-template-columns: 1fr; gap: 32px; text-align: center; }
           .hero-actions { justify-content: center; }
           .hero-sub { margin-left: auto; margin-right: auto; }
           .hero-checks { justify-content: center; }
-          .feat-grid, .steps-grid, .why-grid, .testi-grid, .pricing-grid { grid-template-columns: 1fr; }
-          .portal-grid { grid-template-columns: 1fr; gap: 40px; }
+          .portal-grid { grid-template-columns: 1fr; gap: 32px; }
           .footer-top { grid-template-columns: 1fr 1fr; }
         }
 
         @media (max-width: 768px) {
-          .nav-inner { padding: 0 20px; }
+          .nav-inner { padding: 0 16px; height: 58px; }
+          .mobile-menu { top: 58px; }
           .nav-links, .nav-actions { display: none; }
           .mobile-menu-btn { display: block; }
-          .stats-inner { grid-template-columns: 1fr 1fr; }
-          .section { padding: 60px 20px; }
-          .cta-box { padding: 40px 20px; }
-          .footer-top { grid-template-columns: 1fr; text-align: center; }
-          .footer-desc { margin: 0 auto; }
-          .footer-socials { justify-content: center; }
-          .footer-bottom { flex-direction: column; gap: 16px; }
+
+          .hero-wrap { padding: 24px 16px 32px; }
+          h1.hero-h1 { font-size: 32px; line-height: 1.22; letter-spacing: -.02em; }
+          .hero-pill { font-size: 11px; padding: 6px 16px; margin-bottom: 16px; }
+          .hero-sub { font-size: 14px; line-height: 1.6; margin: 14px auto 24px; }
+          .hero-actions { margin-bottom: 28px; gap: 12px; }
+          .hero-actions .btn { font-size: 14px; padding: 12px 20px; width: 100%; justify-content: center; }
+
+          /* HERO CHECKS 1 COLUMN CLEAN */
+          .hero-checks { grid-template-columns: 1fr !important; gap: 10px !important; max-width: 280px; margin: 0 auto; text-align: left; }
+          .hc { font-size: 13px !important; }
+
+          .dash { padding: 16px; border-radius: 20px; }
+          .dash-kpis { gap: 10px; }
+          .kpi { padding: 12px; }
+          .kpi-val { font-size: 20px; }
+
+          .section { padding: 44px 16px; }
+          .section-head { margin-bottom: 28px; text-align: center; }
+          .section-head h2 { font-size: 24px; letter-spacing: -.02em; }
+          .section-head p { font-size: 13px; margin-top: 6px; }
+
+          /* STATS 2 PER ROW */
+          .stats-section { padding: 32px 0; }
+          .stats-inner { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 0 16px !important; }
+          .stat-card { padding: 18px 12px !important; border-radius: 16px !important; }
+          .stat-icon-bg { width: 40px !important; height: 40px !important; border-radius: 12px !important; margin-bottom: 10px !important; }
+          .stat-num { font-size: 26px !important; font-weight: 800 !important; }
+          .stat-lbl { font-size: 12px !important; margin-top: 4px !important; }
+
+          /* FEATURES, STEPS & WHY US IN 1 CLEAN COLUMN FOR MOBILE */
+          .feat-grid, .steps-grid, .why-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+
+          /* PRICING HORIZONTAL SCROLL SLIDER */
+          .pricing-bg { padding: 44px 0 !important; }
+          .pricing-inner { padding: 0 16px !important; }
+          .pricing-grid {
+            display: flex !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory !important;
+            gap: 16px !important;
+            padding: 8px 4px 16px !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          .pricing-grid::-webkit-scrollbar { display: none !important; }
+          .pricing-grid > div {
+            flex: 0 0 88% !important;
+            max-width: 320px !important;
+            scroll-snap-align: center !important;
+            padding: 24px 20px !important;
+            border-radius: 24px !important;
+          }
+
+          /* TESTIMONIALS HORIZONTAL SCROLL SLIDER */
+          .testi-grid {
+            display: flex !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory !important;
+            gap: 16px !important;
+            padding-bottom: 12px !important;
+          }
+          .testi-grid::-webkit-scrollbar { display: none !important; }
+          .tc {
+            flex: 0 0 88% !important;
+            max-width: 320px !important;
+            scroll-snap-align: center !important;
+            padding: 20px 16px !important;
+            border-radius: 20px !important;
+          }
+
+          .cta-box { padding: 40px 20px; border-radius: 24px; }
+          .cta-box h2 { font-size: 24px; }
+          .cta-box p { font-size: 14px; margin-bottom: 28px; }
+
+          .footer { padding: 36px 16px 20px !important; text-align: left !important; }
+          .footer-top { grid-template-columns: 1fr 1fr !important; gap: 24px 16px !important; margin-bottom: 32px !important; text-align: left !important; }
+          .footer-brand { grid-column: span 2 !important; }
+          .footer-logo { justify-content: flex-start !important; }
+          .footer-desc { margin: 0 !important; max-width: 100% !important; font-size: 12px !important; line-height: 1.6 !important; }
+          .footer-socials { justify-content: flex-start !important; margin-top: 14px !important; }
+          .contact-col { grid-column: span 2 !important; }
+          .contact-item { justify-content: flex-start !important; font-size: 12px !important; gap: 8px !important; margin-bottom: 8px !important; }
+          .footer-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; text-align: left !important; border-top: 1px solid #1e293b !important; padding-top: 20px !important; }
+          .footer-copy { font-size: 11px !important; }
+          .footer-legal { font-size: 11px !important; gap: 16px !important; }
         }
 
         @media (max-width: 480px) {
-          h1.hero-h1 { font-size: 36px; }
-          .stats-inner { grid-template-columns: 1fr; }
+          h1.hero-h1 { font-size: 28px; }
           .pc-price { font-size: 32px; }
         }
 
@@ -489,7 +532,7 @@ export default function Landing() {
             <a href="#contact">Contact</a>
           </div>
           <div className="nav-actions">
-            <Link to="/login" className="btn btn-ghost">Staff Login</Link>
+            <Link to="/login" className="btn btn-ghost">Login</Link>
             <Link to="/parent-login" className="btn btn-ghost">Parent Login</Link>
             <Link to="/signup" className="btn btn-primary">Sign Up <ArrowRight size={15} /></Link>
           </div>
@@ -500,16 +543,12 @@ export default function Landing() {
 
         {/* Mobile Dropdown */}
         <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div className="logo"><div className="logo-mark"><GraduationCap size={18} /></div> Test Master Pro</div>
-            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={28} /></button>
-          </div>
           <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
           <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#about" onClick={() => setMobileMenuOpen(false)}>About</a>
           <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
-          <div style={{ borderTop: '1px solid #f1f5f9', margin: '5px 0' }}></div>
-          <Link to="/login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Staff Login</Link>
+          <div style={{ borderTop: '1px solid #f1f5f9', margin: '4px 0' }}></div>
+          <Link to="/login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Login</Link>
           <Link to="/parent-login" className="btn btn-ghost" onClick={() => setMobileMenuOpen(false)}>Parent Login</Link>
           <Link to="/signup" className="btn btn-primary" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
         </div>
@@ -778,24 +817,29 @@ export default function Landing() {
                     ))}
                   </div>
 
-                  {isEnterprise ? (
-                    <a
-                      href="mailto:support@schoolresult.app"
-                      className={`w-full py-3 rounded-xl font-bold text-center border-2 border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors`}
-                    >
-                      {plan.cta}
-                    </a>
-                  ) : (
-                    <Link
-                      to="/signup"
-                      className={`w-full py-3 rounded-xl font-bold text-white text-center hover:opacity-90 transition-opacity ${theme.btn}`}
-                    >
-                      {plan.cta}
-                    </Link>
-                  )}
+                  <Link
+                    to="/signup"
+                    className={`w-full py-3 rounded-xl font-bold text-white text-center hover:opacity-90 transition-opacity ${theme.btn}`}
+                  >
+                    {plan.cta}
+                  </Link>
                 </div>
               );
             })}
+          </div>
+
+          {/* CUSTOM PLAN CALLOUT BANNER BELOW PRICING CARDS */}
+          <div className="mt-10 p-6 bg-slate-900 text-white rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto border border-slate-800 shadow-xl">
+            <div className="text-center sm:text-left">
+              <h4 className="text-lg font-extrabold text-white">Need a Custom Plan for Large Schools & Chains?</h4>
+              <p className="text-xs text-slate-400 mt-1">Get tailored student capacity, multi-campus management, and dedicated account support.</p>
+            </div>
+            <Link
+              to="/signup"
+              className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shrink-0 inline-block text-center"
+            >
+              Contact Sales for Custom Plan
+            </Link>
           </div>
         </div>
       </div>
@@ -821,7 +865,7 @@ export default function Landing() {
         <footer className="footer">
           <div className="footer-inner">
             <div className="footer-top">
-              <div>
+              <div className="footer-brand">
                 <div className="footer-logo">
                   <div className="footer-logo-mark"><GraduationCap size={16} /></div>
                   Test Master Pro
@@ -850,7 +894,7 @@ export default function Landing() {
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms & Conditions</a>
               </div>
-              <div className="footer-col">
+              <div className="footer-col contact-col">
                 <h4>Contact</h4>
                 <div className="contact-item"><Mail size={13} color="#6366f1" /> support@schoolresult.app</div>
                 <div className="contact-item"><Phone size={13} color="#10b981" /> +91 8947919195</div>
