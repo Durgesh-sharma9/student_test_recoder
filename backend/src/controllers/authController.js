@@ -187,7 +187,34 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Email and password are required.');
   }
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  let user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+
+  if (!user) {
+    const parentDoc = await Parent.findOne({ email: email.toLowerCase() }).select('+password');
+    if (parentDoc) {
+      user = {
+        _id: parentDoc._id,
+        name: parentDoc.parentName,
+        parentName: parentDoc.parentName,
+        email: parentDoc.email,
+        role: 'parent',
+        school: parentDoc.school,
+        isActive: parentDoc.status === 'Active',
+        status: parentDoc.status,
+        comparePassword: (pwd) => parentDoc.comparePassword(pwd),
+        toObject: () => ({
+          _id: parentDoc._id,
+          name: parentDoc.parentName,
+          parentName: parentDoc.parentName,
+          email: parentDoc.email,
+          role: 'parent',
+          school: parentDoc.school,
+          isActive: parentDoc.status === 'Active',
+          status: parentDoc.status,
+        }),
+      };
+    }
+  }
 
   if (!user) {
     throw new ApiError(401, 'Invalid email or password.');
@@ -450,24 +477,35 @@ export const parentLogin = asyncHandler(async (req, res) => {
   }
 
   let parent;
-  
-  // Try to find parent by email first
+  let isPasswordValid = false;
+
+  // 1. Try Parent model by email first
   if (email) {
     parent = await Parent.findOne({ email: email.toLowerCase(), status: 'Active' }).select('+password');
   }
-  
-  // If not found by email, try by phone
+
+  // 2. If not found by email, try by phone
   if (!parent && phone) {
     parent = await Parent.findOne({ phone: phone.trim(), status: 'Active' }).select('+password');
   }
 
-  if (!parent) {
-    throw new ApiError(401, 'Invalid credentials.');
+  if (parent && parent.password) {
+    isPasswordValid = await parent.comparePassword(password);
   }
 
-  const isPasswordValid = await parent.comparePassword(password);
+  // 3. Fallback: If Parent collection check fails or invalid, try User collection with role: 'parent'
+  if (!isPasswordValid && email) {
+    const parentUser = await User.findOne({ email: email.toLowerCase(), role: 'parent' }).select('+password');
+    if (parentUser) {
+      const userPwdValid = await parentUser.comparePassword(password);
+      if (userPwdValid) {
+        parentUser.password = undefined;
+        return sendTokenResponse(parentUser, res);
+      }
+    }
+  }
 
-  if (!isPasswordValid) {
+  if (!parent || !isPasswordValid) {
     throw new ApiError(401, 'Invalid credentials.');
   }
 
