@@ -11,28 +11,29 @@ const THEMES = [
 
 let cardCounter = 0;
 
-export default function StatsCard({ title, value, icon: Icon, description, themeIndex }) {
+export default function StatsCard({ title, value, icon: Icon, description, themeIndex, className }) {
   const theme = THEMES[(themeIndex ?? cardCounter++) % THEMES.length];
 
   return (
     <div
       className={cn(
-        'rounded-xl border bg-white p-5 shadow-sm transition-shadow hover:shadow-md',
-        theme.wrap
+        'rounded-xl border bg-white p-3 sm:p-5 shadow-xs transition-all hover:shadow-md',
+        theme.wrap,
+        className
       )}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <p className={cn('text-xs font-semibold uppercase tracking-wide', theme.accent)}>{title}</p>
+      <div className="mb-1.5 sm:mb-3 flex items-center justify-between gap-2">
+        <p className={cn('text-[10px] sm:text-xs font-bold uppercase tracking-wider', theme.accent)}>{title}</p>
         {Icon ? (
-          <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', theme.icon)}>
-            <Icon className="h-5 w-5" />
+          <div className={cn('flex h-7 sm:h-10 w-7 sm:w-10 items-center justify-center rounded-lg', theme.icon)}>
+            <Icon className="h-3.5 sm:h-5 w-3.5 sm:w-5" />
           </div>
         ) : null}
       </div>
-      <p className="text-3xl font-bold tracking-tight text-slate-900">{value}</p>
+      <p className="text-xl sm:text-3xl font-extrabold tracking-tight text-slate-900">{value}</p>
       {description ? (
-        <p className={cn('mt-2 flex items-center gap-1 text-xs font-medium', theme.accent)}>
-          <TrendingUp className="h-3.5 w-3.5" />
+        <p className={cn('mt-1 sm:mt-2 flex items-center gap-1 text-[11px] sm:text-xs font-medium', theme.accent)}>
+          <TrendingUp className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
           {description}
         </p>
       ) : null}

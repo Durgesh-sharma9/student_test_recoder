@@ -107,31 +107,6 @@ export default function TeacherNotifications() {
 
       <PageHeader title="Notifications" description="View notifications from School Admin." />
 
-      <div className="mb-4 flex justify-end">
-        <Button variant="outline" size="sm" onClick={openPollAnalytics} className="rounded-lg">
-          Poll Analytics
-        </Button>
-      </div>
-
-      {analyticsOpen && analyticsData && (
-        <ErpSection title="Poll Analytics" icon={Bell} tone="red">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg bg-slate-50 p-3">
-              <div className="text-xs uppercase text-slate-500">Responses</div>
-              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.responsesReceived || 0}</div>
-            </div>
-            <div className="rounded-lg bg-slate-50 p-3">
-              <div className="text-xs uppercase text-slate-500">Pending</div>
-              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.pendingResponses || 0}</div>
-            </div>
-            <div className="rounded-lg bg-slate-50 p-3">
-              <div className="text-xs uppercase text-slate-500">Completion</div>
-              <div className="text-xl font-semibold text-slate-900">{analyticsData.summary?.completionPercent || 0}%</div>
-            </div>
-          </div>
-        </ErpSection>
-      )}
-
       <ErpSection className="soft-red-grad" title="Received Notifications" icon={Bell} tone="red">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
           <div className="text-sm font-medium text-slate-600 px-1">

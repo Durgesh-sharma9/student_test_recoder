@@ -111,41 +111,41 @@ export default function TeacherDashboard() {
       )}
 
       {/* Responsive Stats Grid - Fixed inline gradients */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatsCard className="bg-gradient-to-br from-yellow-50 to-orange-50/60 border-yellow-100" title="Assigned Classes" value={s.assignedClasses || 0} />
-        <StatsCard className="bg-gradient-to-br from-blue-50 to-indigo-50/60 border-blue-100" title="Assigned Subjects" value={s.assignedSubjects || 0} />
-        <StatsCard className="bg-gradient-to-br from-emerald-50 to-teal-50/60 border-emerald-100" title="Total Students" value={s.students || 0} />
-        <StatsCard className="bg-gradient-to-br from-orange-50 to-red-50/60 border-orange-100" title="Tests Conducted" value={s.testsConducted || 0} />
+      <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-4">
+        <StatsCard className="bg-gradient-to-br from-yellow-50 via-amber-50/40 to-orange-50/60 border-yellow-100/90" title="Assigned Classes" value={s.assignedClasses || 0} />
+        <StatsCard className="bg-gradient-to-br from-blue-50 via-indigo-50/40 to-blue-50/60 border-blue-100/90" title="Assigned Subjects" value={s.assignedSubjects || 0} />
+        <StatsCard className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-emerald-50/60 border-emerald-100/90" title="Total Students" value={s.students || 0} />
+        <StatsCard className="bg-gradient-to-br from-orange-50 via-amber-50/40 to-red-50/60 border-orange-100/90" title="Tests Conducted" value={s.testsConducted || 0} />
       </div>
 
       <ErpSection className="bg-gradient-to-br from-blue-50/80 to-indigo-50/30" title="Assigned Subjects" icon={BookOpen} tone="blue">
         {assignments.length === 0 ? (
-          <p className="text-sm text-slate-500 py-2">No subjects assigned yet.</p>
+          <p className="text-xs sm:text-sm text-slate-500 py-2">No subjects assigned yet.</p>
         ) : (
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
             {assignments.map((a, i) => (
               <div
                 key={`${a.classId}-${a.subject}-${i}`}
-                className="group flex flex-col justify-center rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-3.5 shadow-sm transition-all hover:border-blue-300 hover:shadow"
+                className="group flex flex-col justify-center rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-white to-indigo-50/70 p-2.5 sm:p-3.5 shadow-xs transition-all hover:border-blue-300 hover:shadow-sm"
               >
-                <div className="text-sm font-semibold text-slate-900">{formatClassName(a.className)} {a.section}</div>
-                <div className="text-xs font-medium text-indigo-600 mt-0.5">{a.subject}</div>
+                <div className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">{formatClassName(a.className)} {a.section}</div>
+                <div className="text-[11px] sm:text-xs font-semibold text-indigo-600 mt-0.5 leading-tight">{a.subject}</div>
               </div>
             ))}
           </div>
         )}
       </ErpSection>
 
-      <div className="grid gap-5 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-5 grid-cols-1 lg:grid-cols-2">
         <ErpSection className="bg-gradient-to-br from-emerald-50/80 to-teal-50/30" title="Recent Activities" icon={Activity} tone="green">
           {(data.recentActivities || []).length === 0 ? (
-            <p className="text-sm text-slate-500 py-2">No recent activities.</p>
+            <p className="text-xs sm:text-sm text-slate-500 py-2">No recent activities.</p>
           ) : (
-            <div className="flex flex-col gap-1 -mx-2">
+            <div className="flex flex-col gap-1 -mx-1">
               {data.recentActivities.map((a) => (
-                <div className="flex flex-col gap-0.5 px-3 py-2 rounded-md hover:bg-emerald-50 transition-colors" key={a._id}>
-                  <p className="text-sm font-medium text-slate-800">{a.action}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="flex flex-col gap-0.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg hover:bg-emerald-50/80 transition-colors" key={a._id}>
+                  <p className="text-xs sm:text-sm font-semibold text-slate-800 leading-tight">{a.action}</p>
+                  <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs text-slate-500">
                     <span className="font-medium text-slate-600">{a.actor?.name}</span>
                     <span className="text-slate-300">•</span>
                     <span>{formatDisplayDate(a.createdAt)}</span>
@@ -157,66 +157,66 @@ export default function TeacherDashboard() {
         </ErpSection>
 
         <ErpSection className="bg-gradient-to-br from-amber-50/80 to-yellow-50/30" title="Low Academic Performance Analysis" icon={AlertTriangle} tone="yellow">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 border border-amber-100 p-3.5 rounded-lg">
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col gap-2.5 sm:gap-3 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 border border-amber-200/80 p-2.5 sm:p-3.5 rounded-xl shadow-xs">
+              <div className="grid gap-2 sm:gap-3 grid-cols-2">
                 <FormField label="Class">
                   <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setSelectedSubject(''); }}>
-                    <SelectTrigger className="rounded-md h-9 bg-white"><SelectValue placeholder="Select Class" /></SelectTrigger>
+                    <SelectTrigger className="rounded-lg h-8 sm:h-9 text-xs bg-white"><SelectValue placeholder="Class" /></SelectTrigger>
                     <SelectContent>
                       {[...new Map(assignments.map(a => [a.classId, a])).values()].map((a) => (
-                        <SelectItem key={a.classId} value={a.classId}>{formatClassName(a.className)} {a.section}</SelectItem>
+                        <SelectItem key={a.classId} value={a.classId} className="text-xs">{formatClassName(a.className)} {a.section}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </FormField>
                 <FormField label="Subject">
                   <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="rounded-md h-9 bg-white"><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                    <SelectTrigger className="rounded-md h-8 sm:h-9 text-xs bg-white"><SelectValue placeholder="Subject" /></SelectTrigger>
                     <SelectContent>
                       {[...new Set(assignments.filter(a => selectedClass ? a.classId === selectedClass : true).map(a => a.subject))].map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                        <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </FormField>
               </div>
               
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+              <div className="grid gap-2 sm:gap-3 grid-cols-2">
                 <FormField label="Date Type">
                   <Select value={dateType} onValueChange={setDateType}>
-                    <SelectTrigger className="rounded-md h-9 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="rounded-md h-8 sm:h-9 text-xs bg-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="specific">Specific Date</SelectItem>
-                      <SelectItem value="range">Date Range</SelectItem>
+                      <SelectItem value="specific" className="text-xs">Specific Date</SelectItem>
+                      <SelectItem value="range" className="text-xs">Date Range</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormField>
                 <FormField label="Top Count">
                   <Select value={topCount} onValueChange={setTopCount}>
-                    <SelectTrigger className="rounded-md h-9 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="rounded-md h-8 sm:h-9 text-xs bg-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {['5', '10', '15', '20'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                      {['5', '10', '15', '20'].map(n => <SelectItem key={n} value={n} className="text-xs">{n}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </FormField>
               </div>
 
               {dateType === 'specific' ? (
-                <FormField label="Date"><DatePicker value={specificDate} onChange={setSpecificDate} className="rounded-md h-9 bg-white" /></FormField>
+                <FormField label="Date"><DatePicker value={specificDate} onChange={setSpecificDate} className="rounded-md h-8 sm:h-9 text-xs bg-white" /></FormField>
               ) : (
-                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-                  <FormField label="From"><DatePicker value={dateFrom} onChange={setDateFrom} className="rounded-md h-9 bg-white" /></FormField>
-                  <FormField label="To"><DatePicker value={dateTo} onChange={setDateTo} className="rounded-md h-9 bg-white" /></FormField>
+                <div className="grid gap-2 sm:gap-3 grid-cols-2">
+                  <FormField label="From"><DatePicker value={dateFrom} onChange={setDateFrom} className="rounded-md h-8 sm:h-9 text-xs bg-white" /></FormField>
+                  <FormField label="To"><DatePicker value={dateTo} onChange={setDateTo} className="rounded-md h-8 sm:h-9 text-xs bg-white" /></FormField>
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2 mt-1">
+              <div className="flex flex-col sm:flex-row gap-2 pt-0.5">
                 <Button 
                   size="sm"
                   onClick={() => { if (!checkAndBlock(() => fetchWeakStudents())) return; }} 
                   disabled={loadingWeakStudents} 
-                  className="rounded-md bg-yellow-600 hover:bg-yellow-700 w-full sm:flex-1 shadow-sm"
+                  className="rounded-lg h-8 sm:h-9 text-xs bg-yellow-600 hover:bg-yellow-700 w-full sm:flex-1 shadow-xs cursor-pointer"
                 >
                   {loadingWeakStudents ? 'Loading...' : 'Generate Report'}
                 </Button>
@@ -224,7 +224,7 @@ export default function TeacherDashboard() {
                   size="sm" 
                   onClick={clearWeakStudentFilters} 
                   variant="outline" 
-                  className="rounded-md w-full sm:w-auto bg-white"
+                  className="rounded-lg h-8 sm:h-9 text-xs w-full sm:w-auto bg-white border-slate-200 cursor-pointer"
                 >
                   Clear
                 </Button>
@@ -232,15 +232,15 @@ export default function TeacherDashboard() {
             </div>
 
             {weakStudentsData.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-gradient-to-b from-amber-50 to-white overflow-hidden shadow-sm">
+              <div className="rounded-xl border border-amber-200/80 bg-gradient-to-b from-amber-50 to-white overflow-hidden shadow-xs">
                 <div className="divide-y divide-amber-100">
                   {weakStudentsData.map((w, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 hover:bg-amber-100/50 transition-colors">
-                      <div className="flex items-center gap-3 overflow-hidden">
+                    <div key={i} className="flex items-center justify-between p-2 sm:p-2.5 hover:bg-amber-100/50 transition-colors">
+                      <div className="flex items-center gap-2.5 overflow-hidden">
                         <span className="text-xs font-semibold text-slate-400 w-5">#{w.rank}</span>
-                        <span className="text-sm font-medium text-slate-800 truncate">{w.studentName}</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-800 truncate">{w.studentName}</span>
                       </div>
-                      <span className="text-sm font-semibold text-slate-700 shrink-0">
+                      <span className="text-xs sm:text-sm font-bold text-slate-700 shrink-0">
                         {w.status === 'absent' ? <AbsentBadge /> : `${w.percentage}%`}
                       </span>
                     </div>

@@ -4,7 +4,7 @@ import api from "@/lib/api";
 import { formatClassName, cn } from "@/lib/utils";
 import { useSession } from '@/context/SessionContext';
 import { useSubscriptionExpiry } from '@/hooks/useSubscriptionExpiry';
-import { Users, ClipboardList, Plus, Save, BookOpen, Trash2, Edit, X, Search, ChevronDown, ChevronUp, User, ArrowRight, Book } from "lucide-react";
+import { Users, ClipboardList, Plus, Save, BookOpen, Trash2, Edit, X, Search, ChevronDown, ChevronUp, User, ArrowRight, Book, LayoutGrid, List } from "lucide-react";
 import {
   PageHeader,
   ErpSection,
@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import SearchableTeacherSelect from "@/components/SearchableTeacherSelect";
 import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
 
@@ -42,7 +50,7 @@ const COMMON_SUBJECTS = [
 
 export default function TeacherAssignments() {
   const { isArchived } = useSession();
-  const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
+  const { isSubscriptionExpiry, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
   const [teachers, setTeachers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [teacherId, setTeacherId] = useState("");
@@ -64,6 +72,7 @@ export default function TeacherAssignments() {
 
   // Overview section state
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // 'table' or 'grid'
   const [expandedCards, setExpandedCards] = useState({});
   const addAssignmentSectionRef = React.useRef(null);
   const assignSectionRef = addAssignmentSectionRef;
@@ -267,6 +276,16 @@ export default function TeacherAssignments() {
     });
   };
 
+  const filteredTeachers = teachers
+    .filter(teacher => teacher.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const aHasAssignments = (a.assignments || []).length > 0;
+      const bHasAssignments = (b.assignments || []).length > 0;
+      if (aHasAssignments && !bHasAssignments) return -1;
+      if (!aHasAssignments && bHasAssignments) return 1;
+      return 0;
+    });
+
   return (
     <PageStack className="bg-gradient-to-b from-[#f8fbff] via-[#f5f8ff] via-[#f8faff] via-[#fcfdff] to-white">
       <PageHeader
@@ -277,39 +296,154 @@ export default function TeacherAssignments() {
       {/* Teacher Assignment Overview Section */}
       <ErpSection title="Teacher Assignment Overview" icon={User} tone="indigo">
         <div className="space-y-4">
-          {/* Subtitle */}
           <p className="text-sm text-slate-600">Quickly view which classes and subjects are assigned to each teacher.</p>
 
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search by teacher name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9 text-sm bg-white border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 shadow-sm"
-            />
+          {/* Search Box & View Mode Toggle */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search by teacher name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-9 text-sm bg-white border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 shadow-sm"
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                className={cn("h-7 px-3 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer", viewMode === 'table' ? "bg-white shadow-xs text-indigo-700" : "text-slate-600 hover:text-slate-900")}
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-3.5 w-3.5" /> List View
+              </button>
+              <button
+                type="button"
+                className={cn("h-7 px-3 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer", viewMode === 'grid' ? "bg-white shadow-xs text-indigo-700" : "text-slate-600 hover:text-slate-900")}
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Grid View
+              </button>
+            </div>
           </div>
 
-          {/* Teacher Cards Grid */}
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-            {teachers
-              .filter(teacher => 
-                teacher.name?.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .sort((a, b) => {
-                const aHasAssignments = (a.assignments || []).length > 0;
-                const bHasAssignments = (b.assignments || []).length > 0;
-                if (aHasAssignments && !bHasAssignments) return -1;
-                if (!aHasAssignments && bHasAssignments) return 1;
-                return 0;
-              })
-              .map((teacher) => {
+          {/* TABLE LIST VIEW */}
+          {viewMode === 'table' ? (
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs">
+              <Table>
+                <TableHeader className="bg-slate-50/80 border-b border-slate-200">
+                  <TableRow>
+                    <TableHead className="font-bold text-slate-700 py-3 px-4 text-xs">Teacher Name</TableHead>
+                    <TableHead className="font-bold text-slate-700 py-3 px-4 text-xs">Assigned Classes & Subjects</TableHead>
+                    <TableHead className="font-bold text-slate-700 py-3 px-4 text-xs text-center">Summary</TableHead>
+                    <TableHead className="font-bold text-slate-700 py-3 px-4 text-xs text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTeachers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-xs text-slate-500">
+                        No teachers found matching &quot;{searchQuery}&quot;
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTeachers.map((teacher) => {
+                      const assignments = teacher.assignments || [];
+                      const hasAssignments = assignments.length > 0;
+                      
+                      const groupedByClass = assignments.reduce((acc, assignment) => {
+                        const classId = assignment.class?._id || assignment.class;
+                        const classInfo = classes.find(c => c._id === classId);
+                        const className = classInfo ? `${formatClassName(classInfo.className)}-${classInfo.section}` : 'Unknown Class';
+                        if (!acc[className]) acc[className] = [];
+                        acc[className].push(assignment.subject);
+                        return acc;
+                      }, {});
+
+                      const classEntries = Object.entries(groupedByClass).sort();
+                      const totalClasses = classEntries.length;
+                      const totalSubjects = assignments.length;
+
+                      return (
+                        <TableRow key={teacher._id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+                          <TableCell className="py-3 px-4 font-semibold text-xs text-slate-900 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center shrink-0 shadow-xs">
+                                <User className="h-4.5 w-4.5 text-indigo-600" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-900 text-sm block">{teacher.name}</span>
+                                <span className="text-[10px] text-slate-500 font-medium">{teacher.email || 'Teacher'}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+
+                          <TableCell className="py-3 px-4">
+                            {hasAssignments ? (
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {classEntries.map(([clsName, subs]) => (
+                                  <div key={clsName} className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 px-2.5 py-1 rounded-xl">
+                                    <span className="text-xs font-bold text-slate-800">{clsName}:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {subs.map((s, idx) => (
+                                        <span key={idx} className={cn("px-2 py-0.5 text-[10.5px] font-semibold rounded-full border", getSubjectColor(s))}>
+                                          {s}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic font-medium">No subjects assigned yet</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="py-3 px-4 text-center whitespace-nowrap">
+                            {hasAssignments ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100 shadow-xs">
+                                {totalClasses} Classes • {totalSubjects} Subjects
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-400 font-medium">0 Assignments</span>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="py-3 px-4 text-right whitespace-nowrap">
+                            <Button
+                              size="sm"
+                              className="h-8 px-3 text.5 text-xs font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-full shadow-xs cursor-pointer"
+                              onClick={() => {
+                                setTeacherId(teacher._id);
+                                setHighlightDropdown(true);
+                                setTimeout(() => {
+                                  assignSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                  setTimeout(() => {
+                                    const teacherInput = document.querySelector('input[placeholder*="Search or select teacher"]');
+                                    if (teacherInput) teacherInput.focus();
+                                  }, 400);
+                                }, 100);
+                                setTimeout(() => setHighlightDropdown(false), 600);
+                              }}
+                            >
+                              Manage <ArrowRight className="h-3 w-3 ml-1" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            /* GRID CARDS VIEW */
+            <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTeachers.map((teacher) => {
                 const assignments = teacher.assignments || [];
                 const hasAssignments = assignments.length > 0;
                 const isExpanded = expandedCards[teacher._id];
                 
-                // Group assignments by class
                 const groupedByClass = assignments.reduce((acc, assignment) => {
                   const classId = assignment.class?._id || assignment.class;
                   const classInfo = classes.find(c => c._id === classId);
@@ -334,7 +468,6 @@ export default function TeacherAssignments() {
                     className="border border-slate-200 rounded-2xl bg-gradient-to-br from-white via-white to-slate-50 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-300 hover:bg-gradient-to-br hover:from-white hover:to-purple-50 transition-all duration-250 cursor-pointer overflow-hidden h-full flex flex-col"
                     onClick={() => setExpandedCards(prev => ({ ...prev, [teacher._id]: !prev[teacher._id] }))}
                   >
-                    {/* Compact Header */}
                     <div className="bg-gradient-to-r from-indigo-50 to-blue-50 px-3 py-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center">
@@ -372,7 +505,6 @@ export default function TeacherAssignments() {
                       )}
                     </div>
 
-                    {/* Compact Content */}
                     <div className="p-3 flex-1">
                       {hasAssignments ? (
                         <div className="space-y-2">
@@ -447,7 +579,8 @@ export default function TeacherAssignments() {
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
         </div>
       </ErpSection>
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Filter, Trophy, FileBarChart, Download, RotateCcw, Users, TrendingUp, Eye } from 'lucide-react';
 
 import api from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 import { downloadFile, buildDownloadQuery } from '@/lib/download';
 
@@ -37,108 +38,61 @@ const getGrade = (pct) => {
   return 'F';
 };
 
-
-
 const MAIN_EXAMS = ['PA1', 'PA2', 'PA3', 'PA4', 'FA1', 'FA2', 'Half Yearly', 'Final'];
-
-
 
 export default function ResultManagement() {
   const { isSubscriptionExpired, dialogOpen: expiredDialogOpen, setDialogOpen: setExpiredDialogOpen, checkAndBlock } = useSubscriptionExpiry();
 
   const [classes, setClasses] = useState([]);
-
   const [teachers, setTeachers] = useState([]);
-
   const [teacherClasses, setTeacherClasses] = useState([]);
-
   const [teacherSubjects, setTeacherSubjects] = useState([]);
-
   const [view, setView] = useState('daily');
 
   const [filters, setFilters] = useState({
-
     classId: '',
-
     subject: '',
-
     examType: '',
-
     examDate: '',
-
     teacher: '',
-
     testDate: '',
-
     dateFrom: '',
-
     dateTo: '',
-
     sortBy: 'marks_desc',
-
   });
 
   const [rows, setRows] = useState([]);
-
   const [results, setResults] = useState(null);
-
   const [dateFilterType, setDateFilterType] = useState('specific');
-
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState(null);
-
   const [selectedStudentResult, setSelectedStudentResult] = useState(null);
 
-
-
   useEffect(() => {
+    api.get('/classes')
+      .then((res) => setClasses(res.data.classes || []))
+      .catch((err) => console.error('Failed to load classes:', err));
 
-    Promise.all([api.get('/classes'), api.get('/users?role=teacher')]).then(([c, t]) => {
-
-      const cls = c.data.classes || [];
-
-      setClasses(cls);
-
-      setTeachers(t.data.users || []);
-
-    }).catch(err => {
-      console.error('Failed to load initial data:', err);
-      setError('Unable to load data');
-    });
-
+    api.get('/users?role=teacher')
+      .then((res) => setTeachers(res.data.users || []))
+      .catch(() => setTeachers([]));
   }, []);
-
 
   useEffect(() => {
     // Load classes assigned to selected teacher
     if (filters.teacher) {
-      
-      
-      api.get(`/users/${filters.teacher}`).then(res => {
-        const user = res.data.user;
-        
-        const assignments = user?.assignments || [];
-        
-        
-        // Extract class objects directly from assignments
-        const assignedClasses = assignments
-          .map(a => a.class)
-          .filter(c => c && c._id && c.className && c.section);
-        
-        
-        
-        // Deduplicate classes by _id
-        const uniqueClasses = assignedClasses.filter((c, index, self) =>
-          index === self.findIndex((t) => t._id === c._id)
-        );
-        
-        
-        setTeacherClasses(uniqueClasses);
-      }).catch(err => {
-        console.error('Failed to load teacher data:', err);
-        setTeacherClasses([]);
-      });
+      api.get(`/users/${filters.teacher}`)
+        .then((res) => {
+          const assignments = res.data.user?.assignments || [];
+          const assignedClasses = assignments
+            .map((a) => a.class)
+            .filter((c) => c && c._id && c.className && c.section);
+          const uniqueClasses = assignedClasses.filter(
+            (c, index, self) => index === self.findIndex((t) => t._id === c._id)
+          );
+          setTeacherClasses(uniqueClasses);
+        })
+        .catch(() => setTeacherClasses([]));
     } else {
       setTeacherClasses([]);
     }
@@ -147,22 +101,16 @@ export default function ResultManagement() {
   useEffect(() => {
     // Load subjects assigned to selected teacher for selected class
     if (filters.teacher && filters.classId) {
-      
-      
-      api.get(`/users/${filters.teacher}`).then(res => {
-        const assignments = res.data.user?.assignments || [];
-        
-        const subjects = assignments
-          .filter(a => (a.class?._id || a.class) === filters.classId)
-          .map(a => a.subject)
-          .filter(Boolean);
-        const uniqueSubjects = [...new Set(subjects)];
-        
-        setTeacherSubjects(uniqueSubjects);
-      }).catch(err => {
-        console.error('Failed to load teacher subjects:', err);
-        setTeacherSubjects([]);
-      });
+      api.get(`/users/${filters.teacher}`)
+        .then((res) => {
+          const assignments = res.data.user?.assignments || [];
+          const subjects = assignments
+            .filter((a) => (a.class?._id || a.class) === filters.classId)
+            .map((a) => a.subject)
+            .filter(Boolean);
+          setTeacherSubjects([...new Set(subjects)]);
+        })
+        .catch(() => setTeacherSubjects([]));
     } else {
       setTeacherSubjects([]);
     }
@@ -194,10 +142,10 @@ export default function ResultManagement() {
       // Build params with only non-empty values
       const params = {
         view,
-        teacher: filters.teacher,
       };
       
       // Only add optional parameters if they have values
+      if (filters.teacher) params.teacher = filters.teacher;
       if (filters.classId) params.classId = filters.classId;
       if (filters.subject) params.subject = filters.subject;
       if (filters.testDate) params.testDate = filters.testDate;
@@ -205,15 +153,10 @@ export default function ResultManagement() {
       if (filters.dateTo) params.dateTo = filters.dateTo;
       if (filters.sortBy) params.sortBy = filters.sortBy;
 
-      
-
       if (view === 'daily') params.category = 'daily';
-
       else if (view === 'main') params.category = 'main';
 
       const res = await api.get('/results', { params });
-
-      
 
       // Check if response has the new format with tests array
       if (res.data.tests) {
@@ -235,19 +178,10 @@ export default function ResultManagement() {
 
   };
 
-
-
   const toppers = useMemo(() => {
-    // Check if any filters are applied
-    const hasFilters = filters.teacher || filters.subject || filters.classId || 
-                      (view === 'daily' && (filters.testDate || filters.dateFrom || filters.dateTo)) ||
-                      (view === 'main' && (filters.examType || filters.examDate));
-    
-    if (!hasFilters) return []; // Return empty if no filters applied
-    
-    // Return top 3 students by rank
-    return rows.sort((a, b) => a.rank - b.rank).slice(0, 3);
-  }, [rows, filters, view]);
+    if (!rows || rows.length === 0) return [];
+    return [...rows].sort((a, b) => (a.rank || 999) - (b.rank || 999)).slice(0, 3);
+  }, [rows]);
 
 
 
@@ -307,46 +241,52 @@ export default function ResultManagement() {
             </FormField>
 
             <FormField label="Teacher">
-              <Select value={filters.teacher} onValueChange={(v) => {
-                setFilters({ ...filters, teacher: v, classId: '', subject: '' });
-              }}>
-                <SelectTrigger className="h-8.5 text-xs rounded-xl bg-white border-blue-200/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-xs"><SelectValue placeholder="Select Teacher" /></SelectTrigger>
-                <SelectContent>{teachers?.map((t) => <SelectItem key={t._id} value={t._id} className="text-xs">{t.teacherName || t.name}</SelectItem>)}</SelectContent>
+              <Select
+                value={filters.teacher || 'all'}
+                onValueChange={(v) => {
+                  setFilters({ ...filters, teacher: v === 'all' ? '' : v, classId: '', subject: '' });
+                }}
+              >
+                <SelectTrigger className="h-8.5 text-xs rounded-xl bg-white border-blue-200/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-xs"><SelectValue placeholder="All Teachers" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-semibold">All Teachers</SelectItem>
+                  {teachers?.map((t) => <SelectItem key={t._id} value={t._id} className="text-xs">{t.teacherName || t.name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </FormField>
 
             <FormField label="Class">
-              <Select value={filters.classId} onValueChange={(v) => {
-                setFilters({ ...filters, classId: v, subject: '' });
-              }}>
+              <Select
+                value={filters.classId || 'all'}
+                onValueChange={(v) => {
+                  setFilters({ ...filters, classId: v === 'all' ? '' : v, subject: '' });
+                }}
+              >
                 <SelectTrigger className="h-8.5 text-xs rounded-xl bg-white border-blue-200/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-xs"><SelectValue placeholder="Select Class" /></SelectTrigger>
                 <SelectContent>
-                  {filters.teacher && teacherClasses && teacherClasses.length > 0 ? (
-                    teacherClasses.map((c) => (
-                      <SelectItem key={c._id} value={c._id} className="text-xs">
-                        {c.className && c.section ? `Class ${c.className}-${c.section}` : 'Invalid Class Data'}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled className="text-xs">
-                      {filters.teacher ? (teacherClasses?.length === 0 ? 'No valid class assignments found' : 'No classes assigned') : 'Select teacher first'}
+                  <SelectItem value="all" className="text-xs font-semibold">All Classes</SelectItem>
+                  {((filters.teacher && teacherClasses && teacherClasses.length > 0) ? teacherClasses : classes)?.map((c) => (
+                    <SelectItem key={c._id} value={c._id} className="text-xs">
+                      Class {c.className} {c.section}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
             </FormField>
 
             <FormField label="Subject">
-              <Select value={filters.subject} onValueChange={(v) => {
-                setFilters({ ...filters, subject: v });
-              }}>
+              <Select
+                value={filters.subject || 'all'}
+                onValueChange={(v) => {
+                  setFilters({ ...filters, subject: v === 'all' ? '' : v });
+                }}
+              >
                 <SelectTrigger className="h-8.5 text-xs rounded-xl bg-white border-blue-200/80 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 shadow-xs"><SelectValue placeholder="Select Subject" /></SelectTrigger>
                 <SelectContent>
-                  {filters.teacher && filters.classId && teacherSubjects && teacherSubjects.length > 0 ? (
-                    teacherSubjects.map((s) => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)
-                  ) : (
-                    <SelectItem value="none" disabled className="text-xs">{filters.teacher && filters.classId ? 'No subjects assigned' : 'Select teacher and class first'}</SelectItem>
-                  )}
+                  <SelectItem value="all" className="text-xs font-semibold">All Subjects</SelectItem>
+                  {[...new Set([...(teacherSubjects || []), 'MATHEMATICS', 'SCIENCE', 'ENGLISH', 'HINDI', 'SOCIAL SCIENCE', 'COMPUTER', 'SANSKRIT'])].map((s) => (
+                    <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </FormField>
@@ -412,78 +352,80 @@ export default function ResultManagement() {
           </div>
 
           {/* Third Row: Apply, Reset, Export CSV, Export PDF */}
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-1">
             <Button
               onClick={() => {
                 if (!checkAndBlock(() => load())) return;
               }}
-              className="h-8.5 px-6 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer"
+              className="h-8.5 px-6 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all cursor-pointer w-full sm:w-auto"
               disabled={loading}
             >
               {loading ? 'Loading...' : 'View Result'}
             </Button>
 
-            <Button
-              onClick={resetFilters}
-              variant="outline"
-              className="h-8.5 px-4 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer"
-              disabled={loading}
-            >
-              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-              Reset
-            </Button>
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+              <Button
+                onClick={resetFilters}
+                variant="outline"
+                className="h-8 sm:h-8.5 px-2 sm:px-4 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer w-full sm:w-auto"
+                disabled={loading}
+              >
+                <RotateCcw className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                Reset
+              </Button>
 
-            {dateFilterType === 'specific' ? (
-              <>
-                <Button
-                  onClick={() => {
-                    if (!checkAndBlock(() => download('pdf'))) return;
-                  }}
-                  variant="outline"
-                  className="h-8.5 px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer"
-                  disabled={loading || rows.length === 0}
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  PDF
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (!checkAndBlock(() => download('xlsx'))) return;
-                  }}
-                  variant="outline"
-                  className="h-8.5 px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer"
-                  disabled={loading || rows.length === 0}
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  Excel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={() => {
-                    if (!checkAndBlock(() => download('csv'))) return;
-                  }}
-                  variant="outline"
-                  className="h-8.5 px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer"
-                  disabled={loading || rows.length === 0}
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  CSV
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (!checkAndBlock(() => download('xlsx'))) return;
-                  }}
-                  variant="outline"
-                  className="h-8.5 px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer"
-                  disabled={loading || rows.length === 0}
-                >
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  Excel
-                </Button>
-              </>
-            )}
+              {dateFilterType === 'specific' ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      if (!checkAndBlock(() => download('pdf'))) return;
+                    }}
+                    variant="outline"
+                    className="h-8 sm:h-8.5 px-2 sm:px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer w-full sm:w-auto"
+                    disabled={loading || rows.length === 0}
+                  >
+                    <Download className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                    PDF
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!checkAndBlock(() => download('xlsx'))) return;
+                    }}
+                    variant="outline"
+                    className="h-8 sm:h-8.5 px-2 sm:px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer w-full sm:w-auto"
+                    disabled={loading || rows.length === 0}
+                  >
+                    <Download className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                    Excel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={() => {
+                      if (!checkAndBlock(() => download('csv'))) return;
+                    }}
+                    variant="outline"
+                    className="h-8 sm:h-8.5 px-2 sm:px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer w-full sm:w-auto"
+                    disabled={loading || rows.length === 0}
+                  >
+                    <Download className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                    CSV
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (!checkAndBlock(() => download('xlsx'))) return;
+                    }}
+                    variant="outline"
+                    className="h-8 sm:h-8.5 px-2 sm:px-3 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs cursor-pointer w-full sm:w-auto"
+                    disabled={loading || rows.length === 0}
+                  >
+                    <Download className="mr-1 sm:mr-1.5 h-3.5 w-3.5" />
+                    Excel
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </ErpSection>
@@ -526,12 +468,12 @@ export default function ResultManagement() {
                   <TableHeader>
                     <>
                       <TableRow>
-                        <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '60px' }}>Total</TableHead>
-                        <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '70px' }}>Average</TableHead>
-                        <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '50px' }}>%</TableHead>
-                        <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '50px' }}>Rank</TableHead>
-                        <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                        <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                        <TableHead className="sm:sticky sm:left-0 bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '60px' }}>Total</TableHead>
+                        <TableHead className="sm:sticky sm:left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '70px' }}>Average</TableHead>
+                        <TableHead className="sm:sticky sm:left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '50px' }}>%</TableHead>
+                        <TableHead className="sm:sticky sm:left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '50px' }}>Rank</TableHead>
+                        <TableHead className="sm:sticky sm:left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                        <TableHead className="sm:sticky sm:left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500 py-2 px-3 text-[11px] font-bold uppercase" style={{ minWidth: '150px' }}>Student Name</TableHead>
                         {results.tests?.map((test, idx) => (
                           <TableHead key={test._id} colSpan={2} className="text-center bg-indigo-100 border-r border-indigo-200 py-2 px-3" style={{ minWidth: '120px' }}>
                             <div className="rounded-lg bg-indigo-600 px-3 py-1.5 text-white shadow-xs">
@@ -543,12 +485,12 @@ export default function ResultManagement() {
                         ))}
                       </TableRow>
                       <TableRow>
-                        <TableHead className="sticky left-0 bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '60px' }}>Total</TableHead>
-                        <TableHead className="sticky left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '70px' }}>Average</TableHead>
-                        <TableHead className="sticky left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '50px' }}>%</TableHead>
-                        <TableHead className="sticky left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '50px' }}>Rank</TableHead>
-                        <TableHead className="sticky left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '70px' }}>Roll No</TableHead>
-                        <TableHead className="sticky left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '150px' }}>Student Name</TableHead>
+                        <TableHead className="sm:sticky sm:left-0 bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '60px' }}>Total</TableHead>
+                        <TableHead className="sm:sticky sm:left-[60px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '70px' }}>Average</TableHead>
+                        <TableHead className="sm:sticky sm:left-[130px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '50px' }}>%</TableHead>
+                        <TableHead className="sm:sticky sm:left-[180px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '50px' }}>Rank</TableHead>
+                        <TableHead className="sm:sticky sm:left-[230px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '70px' }}>Roll No</TableHead>
+                        <TableHead className="sm:sticky sm:left-[300px] bg-blue-600 text-white z-10 border-r border-blue-500 py-1.5 px-3 text-[10px] uppercase font-bold" style={{ minWidth: '150px' }}>Student Name</TableHead>
                         {results.tests?.map((test) => (
                           <>
                             <TableHead key={`max-${test._id}`} className="text-center bg-indigo-50 border-r border-indigo-200 py-1.5 px-3 text-[10px] font-bold text-indigo-700" style={{ minWidth: '80px' }}>Max Marks</TableHead>
@@ -561,12 +503,12 @@ export default function ResultManagement() {
                   <TableBody>
                     {rows.map((r, index) => (
                       <TableRow key={r._id || index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100 transition-colors`}>
-                        <TableCell className="sticky left-0 bg-blue-50 z-10 font-mono text-xs font-bold text-blue-700 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '60px' }}>{r.totalObtained}</TableCell>
-                        <TableCell className="sticky left-[60px] bg-blue-50 z-10 font-xs font-semibold text-blue-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '70px' }}>{r.average}</TableCell>
-                        <TableCell className="sticky left-[130px] bg-blue-50 z-10 font-xs font-semibold text-blue-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '50px' }}>{r.percentage}%</TableCell>
-                        <TableCell className="sticky left-[180px] bg-blue-50 z-10 font-xs font-bold text-blue-700 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '50px' }}>{r.rank}</TableCell>
-                        <TableCell className="sticky left-[230px] bg-white z-10 font-mono text-xs text-slate-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '70px' }}>{r.student?.rollNo}</TableCell>
-                        <TableCell className="sticky left-[300px] bg-white z-10 text-xs font-bold text-slate-800 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '150px' }}>{r.student?.name}</TableCell>
+                        <TableCell className="sm:sticky sm:left-0 bg-blue-50 z-10 font-mono text-xs font-bold text-blue-700 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '60px' }}>{r.totalObtained}</TableCell>
+                        <TableCell className="sm:sticky sm:left-[60px] bg-blue-50 z-10 font-xs font-semibold text-blue-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '70px' }}>{r.average}</TableCell>
+                        <TableCell className="sm:sticky sm:left-[130px] bg-blue-50 z-10 font-xs font-semibold text-blue-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '50px' }}>{r.percentage}%</TableCell>
+                        <TableCell className="sm:sticky sm:left-[180px] bg-blue-50 z-10 font-xs font-bold text-blue-700 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '50px' }}>{r.rank}</TableCell>
+                        <TableCell className="sm:sticky sm:left-[230px] bg-white z-10 font-mono text-xs text-slate-600 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '70px' }}>{r.student?.rollNo}</TableCell>
+                        <TableCell className="sm:sticky sm:left-[300px] bg-white z-10 text-xs font-bold text-slate-800 border-r border-slate-200 py-1.5 px-3" style={{ minWidth: '150px' }}>{r.student?.name}</TableCell>
                         {results.tests?.map((test) => {
                           const mark = r.testMarks?.[test._id];
                           return (

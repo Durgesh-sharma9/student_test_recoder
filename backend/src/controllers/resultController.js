@@ -386,9 +386,6 @@ const buildResultRows = async (req, query) => {
       sFilter.testDate = {};
       if (dateFrom) sFilter.testDate.$gte = startOfDay(dateFrom);
       if (dateTo) sFilter.testDate.$lte = endOfDay(dateTo);
-    } else if (!dateFrom && !dateTo) {
-      const today = new Date();
-      sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
     }
   }
 
@@ -513,42 +510,21 @@ export const getResults = asyncHandler(async (req, res) => {
     const sFilter = withSchool(req, {});
     if (classId) sFilter.class = classId;
     if (subject) sFilter.subject = normalizeSubject(subject);
-    // Apply teacher filter if provided (for admin viewing teacher results) or if user is teacher
+    // Apply teacher filter if provided
     if (teacher) sFilter.teacher = teacher;
-    else if (req.user.role === 'teacher') sFilter.teacher = req.user._id;
     sFilter.category = 'daily';
-
-    // DEBUG LOGS - Detailed
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
     // Handle date filtering - prioritize date range over specific date
     if (dateFrom || dateTo) {
       sFilter.testDate = {};
       if (dateFrom) {
         sFilter.testDate.$gte = startOfDay(dateFrom);
-        
       }
       if (dateTo) {
         sFilter.testDate.$lte = endOfDay(dateTo);
-        
       }
     } else if (testDate) {
       sFilter.testDate = { $gte: startOfDay(testDate), $lte: endOfDay(testDate) };
-      
-    } else if (!dateFrom && !dateTo) {
-      const today = new Date();
-      sFilter.testDate = { $gte: startOfDay(today), $lte: endOfDay(today) };
-      
     }
 
     
