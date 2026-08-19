@@ -5,6 +5,7 @@ import Class from '../models/Class.js';
 import ResultSession from '../models/ResultSession.js';
 import MarkEntry from '../models/MarkEntry.js';
 import AcademicSession from '../models/AcademicSession.js';
+import Attendance from '../models/Attendance.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
@@ -1287,3 +1288,78 @@ export const resetParentPassword = asyncHandler(async (req, res) => {
     emailSent
   });
 });
+
+export const getParentStudentAttendance = asyncHandler(async (req, res) => {
+  const { studentId } = req.params;
+  const schoolId = req.user.school?._id ?? req.user.school;
+
+  const student = await Student.findOne({
+    _id: studentId,
+    school: schoolId,
+    isActive: true,
+  }).populate('class', 'className section');
+
+  if (!student) throw new ApiError(404, 'Student not found.');
+
+  // Fetch all attendance documents for this student's class
+  const attendanceDocs = await Attendance.find({
+    school: schoolId,
+    class: student.class?._id || student.class,
+  })
+    .sort({ dateString: -1 })
+    .populate('recordedBy', 'name role teacherName');
+
+  let totalDaysMarked = 0;
+  let totalPresent = 0;
+  let totalAbsent = 0;
+  let totalLeave = 0;
+  const history = [];
+
+  attendanceDocs.forEach((doc) => {
+    const studentRecord = (doc.records || []).find(
+      (r) => r.student && r.student.toString() === student._id.toString()
+    );
+
+    if (studentRecord) {
+      totalDaysMarked++;
+      if (studentRecord.status === 'present') totalPresent++;
+      else if (studentRecord.status === 'absent') totalAbsent++;
+      else if (studentRecord.status === 'leave') totalLeave++;
+
+      history.push({
+        _id: doc._id,
+        dateString: doc.dateString,
+        date: doc.date,
+        status: studentRecord.status,
+        remarks: studentRecord.remarks || '',
+        recordedBy: doc.recordedBy
+          ? (doc.recordedBy.name || doc.recordedBy.teacherName || 'Staff')
+          : 'Staff',
+      });
+    }
+  });
+
+  const attendancePercentage = totalDaysMarked > 0
+    ? Math.round((totalPresent / totalDaysMarked) * 100)
+    : 0;
+
+  res.json({
+    success: true,
+    student: {
+      _id: student._id,
+      name: student.name,
+      rollNo: student.rollNo,
+      className: student.class?.className || '',
+      section: student.class?.section || '',
+    },
+    stats: {
+      totalDaysMarked,
+      totalPresent,
+      totalAbsent,
+      totalLeave,
+      attendancePercentage,
+    },
+    history,
+  });
+});
+

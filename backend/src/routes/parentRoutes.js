@@ -14,6 +14,7 @@ import {
   getParentDailyTests,
   getParentMainExams,
   getParentExamDetails,
+  getParentStudentAttendance,
   getAdminParents,
   getAdminParentDetails,
   toggleParentStatus,
@@ -35,6 +36,7 @@ router.post('/unlink-student', unlinkStudentFromParent);
 router.post('/send-credentials', sendParentCredentials);
 router.get('/students', getParentStudents);
 router.get('/students/:studentId', getParentStudentDetails);
+router.get('/students/:studentId/attendance', getParentStudentAttendance);
 router.get('/students/:studentId/results-history', getParentStudentResultsHistory);
 router.get('/students/:studentId/daily-tests', getParentDailyTests);
 router.get('/students/:studentId/main-exams', getParentMainExams);

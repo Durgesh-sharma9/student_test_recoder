@@ -66,6 +66,7 @@ import CheckingProgress from '@/pages/teacher/CheckingProgress';
 import NotebookAnalytics from '@/pages/admin/NotebookAnalytics';
 import NotebookProgress from '@/pages/parent/NotebookProgress';
 import ParentNotebookAnalytics from '@/pages/parent/NotebookAnalytics';
+import ParentAttendance from '@/pages/parent/ParentAttendance';
 import AdminAttendance from '@/pages/admin/AdminAttendance';
 import AttenderEntry from '@/pages/attender/AttenderEntry';
 
@@ -171,6 +172,7 @@ export default function App() {
               <Route path="/attender/settings" element={<ProtectedRoute roles={['attender']}><TeacherSettings /></ProtectedRoute>} />
 
               <Route path="/parent/dashboard" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentDashboard /></RequireFeature></ProtectedRoute>} />
+              <Route path="/parent/attendance" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><ParentAttendance /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/notebook-progress" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="parent_portal" label="Parent Portal"><NotebookProgress /></RequireFeature></ProtectedRoute>} />
               <Route path="/parent/notebook-analytics" element={<ProtectedRoute roles={['parent']}><ParentNotebookAnalytics /></ProtectedRoute>} />
               <Route path="/parent/results" element={<ProtectedRoute roles={['parent']}><RequireFeature featureKey="reports" label="Reports"><ParentViewResults /></RequireFeature></ProtectedRoute>} />
