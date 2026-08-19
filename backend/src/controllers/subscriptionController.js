@@ -322,146 +322,68 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
   const newExpiry = new Date(currentExpiry);
   newExpiry.setDate(newExpiry.getDate() + durationDays);
 
-  if (isUpgrade) {
-    // Immediate activation for upgrades
-    school.plan = requestedPlan._id;
-    school.planExpiresAt = newExpiry;
-    school.scheduledDowngradePlan = null;
-    school.scheduledDowngradeDate = null;
-    await school.save();
+  // Create pending SubscriptionRequest for Super Admin approval
+  const requestDoc = await SubscriptionRequest.create({
+    school: school._id,
+    adminUser: req.user._id,
+    currentPlan: school.plan?._id,
+    requestedPlan: requestedPlan._id,
+    billingCycle: requestedPlan.billingCycle,
+    basePrice,
+    taxName,
+    taxPercentage,
+    taxAmount,
+    finalAmount,
+    couponId,
+    couponCode: couponCode ? couponCode.trim().toUpperCase() : null,
+    discountAmount,
+    mobileNumber,
+    state,
+    utr: String(utr).trim().toUpperCase(),
+    paymentScreenshotUrl,
+    paymentScreenshotName,
+    paymentScreenshotType,
+    status: 'pending',
+    submittedAt: new Date(),
+  });
 
-    // Create subscription history entry
-    await SubscriptionHistory.create({
-      school: school._id,
-      plan: requestedPlan._id,
-      action: 'plan_upgraded',
-      previousPlan: currentPlan?._id,
-      expiryDate: newExpiry,
-    });
-
-    // Notify admin about upgrade
+  // Notify super admins about new manual payment request
+  const superAdmins = await User.find({ role: 'super_admin', isActive: true }).select('_id');
+  if (superAdmins.length) {
     await Notification.create({
-      title: 'Plan Upgraded Successfully',
-      message: `Your plan has been upgraded to ${requestedPlan.name}. Valid until ${newExpiry.toLocaleDateString()}.`,
-      priority: 'success',
+      title: 'New Manual Payment Request Submitted',
+      message: `${school.schoolName} submitted a manual payment request for ${requestedPlan.name} (${requestedPlan.billingCycle}). UTR: ${utr}`,
+      priority: 'important',
       senderId: req.user._id,
       senderRole: 'school_admin',
-      recipientIds: [req.user._id],
+      recipientIds: superAdmins.map((u) => u._id),
       schoolId: school._id,
       targetRole: 'school_admin',
       isBroadcast: false,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Plan upgraded successfully',
-      subscription: {
-        currentPlan: requestedPlan,
-        planExpiresAt: newExpiry,
-      },
-    });
-  } else if (isDowngrade) {
-    // Schedule downgrade for end of current billing period
-    school.scheduledDowngradePlan = requestedPlan._id;
-    school.scheduledDowngradeDate = currentExpiry;
-    await school.save();
-
-    // Create subscription history entry
-    await SubscriptionHistory.create({
-      school: school._id,
-      plan: requestedPlan._id,
-      action: 'plan_downgrade_scheduled',
-      previousPlan: currentPlan?._id,
-      expiryDate: currentExpiry,
-      scheduledDowngradeDate: currentExpiry,
-    });
-
-    // Notify admin about scheduled downgrade
-    await Notification.create({
-      title: 'Plan Downgrade Scheduled',
-      message: `Your plan will be downgraded to ${requestedPlan.name} on ${currentExpiry.toLocaleDateString()}. Your current plan remains active until then.`,
-      priority: 'info',
-      senderId: req.user._id,
-      senderRole: 'school_admin',
-      recipientIds: [req.user._id],
-      schoolId: school._id,
-      targetRole: 'school_admin',
-      isBroadcast: false,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Plan downgrade scheduled successfully',
-      subscription: {
-        currentPlan: currentPlan,
-        planExpiresAt: currentExpiry,
-        scheduledDowngradePlan: requestedPlan,
-        scheduledDowngradeDate: currentExpiry,
-      },
-    });
-  } else {
-    // Pending approval for downgrades or new subscriptions
-    const requestDoc = await SubscriptionRequest.create({
-      school: school._id,
-      adminUser: req.user._id,
-      currentPlan: school.plan?._id,
-      requestedPlan: requestedPlan._id,
-      billingCycle: requestedPlan.billingCycle,
-      basePrice,
-      taxName,
-      taxPercentage,
-      taxAmount,
-      finalAmount,
-      couponId,
-      couponCode: couponCode ? couponCode.trim().toUpperCase() : null,
-      discountAmount,
-      mobileNumber,
-      state,
-      utr: String(utr).trim().toUpperCase(),
-      paymentScreenshotUrl,
-      paymentScreenshotName,
-      paymentScreenshotType,
-      status: 'pending',
-      submittedAt: new Date(),
-    });
-
-    // Notify super admins about new request
-    const superAdmins = await User.find({ role: 'super_admin', isActive: true }).select('_id');
-    if (superAdmins.length) {
-      await Notification.create({
-        title: 'New payment request submitted',
-        message: `${school.schoolName} submitted a payment request for ${requestedPlan.name} (${requestedPlan.billingCycle}).`,
-        priority: 'important',
-        senderId: req.user._id,
-        senderRole: 'school_admin',
-        recipientIds: superAdmins.map((u) => u._id),
-        schoolId: school._id,
-        targetRole: 'school_admin',
-        isBroadcast: false,
-        subscriptionRequestId: requestDoc._id,
-      });
-    }
-
-    // Notify admin about submission (self-notification to show in panel)
-    await Notification.create({
-      title: 'Payment Submitted',
-      message: 'Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.',
-      priority: 'normal',
-      senderId: req.user._id,
-      senderRole: 'school_admin',
-      recipientIds: [req.user._id],
-      schoolId: school._id,
-      targetRole: 'school_admin',
-      isBroadcast: false,
-    });
-
-    res.status(201).json({
-      success: true,
-      request: await SubscriptionRequest.findById(requestDoc._id)
-        .populate('school', 'schoolName email adminName')
-        .populate('requestedPlan', 'name planType billingCycle finalPrice'),
+      subscriptionRequestId: requestDoc._id,
     });
   }
+
+  // Notify admin about submission
+  await Notification.create({
+    title: 'Payment Request Submitted',
+    message: 'Your payment request has been received. Our Super Admin team will verify your UTR payment and approve your subscription.',
+    priority: 'normal',
+    senderId: req.user._id,
+    senderRole: 'school_admin',
+    recipientIds: [req.user._id],
+    schoolId: school._id,
+    targetRole: 'school_admin',
+    isBroadcast: false,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Manual payment request submitted successfully and is pending Super Admin approval.',
+    request: await SubscriptionRequest.findById(requestDoc._id)
+      .populate('school', 'schoolName email adminName')
+      .populate('requestedPlan', 'name planType billingCycle finalPrice'),
+  });
 });
 
 export const getSubscriptionStatus = asyncHandler(async (req, res) => {

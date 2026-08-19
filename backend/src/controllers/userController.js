@@ -169,7 +169,22 @@ export const createUser = asyncHandler(async (req, res) => {
   if (!schoolId) throw new ApiError(403, 'Your account is not linked to a school.');
 
   const userRole = role || 'teacher';
-  
+
+  // Enforce Teacher Plan Capacity Limit
+  if (userRole === 'teacher') {
+    const schoolDoc = await School.findById(schoolId).populate('plan');
+    if (schoolDoc && schoolDoc.plan) {
+      if (schoolDoc.isExpired) {
+        throw new ApiError(400, 'Your subscription plan has expired. Please upgrade your plan to add teachers.');
+      }
+      if (schoolDoc.plan.teacherCapacityType === 'limited') {
+        const activeTeachers = await User.countDocuments({ school: schoolId, role: 'teacher', isActive: true });
+        if (activeTeachers >= schoolDoc.plan.maxTeachers) {
+          throw new ApiError(400, `Teacher limit reached for your current plan (Max ${schoolDoc.plan.maxTeachers} Teachers). Please upgrade your subscription plan to add more teachers.`);
+        }
+      }
+    }
+  }
 
   // Check only active users in the same school
   const existing = await User.findOne({

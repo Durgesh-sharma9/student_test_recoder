@@ -111,6 +111,20 @@ export const getStudent = asyncHandler(async (req, res) => {
 export const createStudent = asyncHandler(async (req, res) => {
   const schoolId = req.user.school?._id ?? req.user.school;
   
+  // Enforce Student Plan Capacity Limit
+  const schoolDoc = await School.findById(schoolId).populate('plan');
+  if (schoolDoc && schoolDoc.plan) {
+    if (schoolDoc.isExpired) {
+      throw new ApiError(400, 'Your subscription plan has expired. Please upgrade your plan to add students.');
+    }
+    if (schoolDoc.plan.studentCapacityType === 'limited') {
+      const activeStudentsCount = await Student.countDocuments({ school: schoolId, isActive: true });
+      if (activeStudentsCount >= schoolDoc.plan.maxStudents) {
+        throw new ApiError(400, `Student limit reached for your current plan (Max ${schoolDoc.plan.maxStudents} Students). Please upgrade your subscription plan to add more students.`);
+      }
+    }
+  }
+
   // Get active session if not provided
   let academicSessionId = req.body.academicSession;
   if (!academicSessionId) {
@@ -346,6 +360,20 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
   const school = await School.findById(schoolId);
 
   const parsedData = parseStudentImportFile(req.file.buffer, req.file.originalName);
+
+  // Enforce Student Plan Capacity Limit for Bulk Import
+  const schoolDoc = await School.findById(schoolId).populate('plan');
+  if (schoolDoc && schoolDoc.plan) {
+    if (schoolDoc.isExpired) {
+      throw new ApiError(400, 'Your subscription plan has expired. Please upgrade your plan to import students.');
+    }
+    if (schoolDoc.plan.studentCapacityType === 'limited') {
+      const activeCount = await Student.countDocuments({ school: schoolId, isActive: true });
+      if (activeCount + parsedData.length > schoolDoc.plan.maxStudents) {
+        throw new ApiError(400, `Importing ${parsedData.length} students would exceed your plan limit (Current: ${activeCount}, Max Allowed: ${schoolDoc.plan.maxStudents}). Please upgrade your subscription plan.`);
+      }
+    }
+  }
   
   const results = {
     totalRows: parsedData.length,
