@@ -1247,98 +1247,103 @@ export default function AdminAttendance() {
       {/* MODAL: CREATE NEW ATTENDER */}
       {createModalOpen && (
         <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-emerald-600" />
+          <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl border-none">
+            <DialogHeader className="p-4 sm:p-5 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-extrabold text-slate-900">
+                <UserCheck className="h-5 w-5 text-emerald-600" />
                 Add Attender User
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateAttender} className="space-y-4 py-2">
-              <FormField label="Full Name" required>
-                <Input
-                  placeholder="e.g. Ramesh Kumar"
-                  value={attenderForm.name}
-                  onChange={(e) => setAttenderForm((s) => ({ ...s, name: e.target.value }))}
-                  required
-                />
-              </FormField>
-              <FormField label="Email Address (Credentials will be sent here)" required>
-                <Input
-                  type="email"
-                  placeholder="attender@school.com"
-                  value={attenderForm.email}
-                  onChange={(e) => setAttenderForm((s) => ({ ...s, email: e.target.value }))}
-                  required
-                />
-              </FormField>
-              <FormField label="Mobile Number">
-                <Input
-                  placeholder="9876543210"
-                  value={attenderForm.phoneNo}
-                  onChange={(e) => setAttenderForm((s) => ({ ...s, phoneNo: e.target.value }))}
-                />
-              </FormField>
+            <form onSubmit={handleCreateAttender} className="flex flex-col min-h-0 flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+                <FormField label="Full Name" required>
+                  <Input
+                    placeholder="e.g. Ramesh Kumar"
+                    value={attenderForm.name}
+                    onChange={(e) => setAttenderForm((s) => ({ ...s, name: e.target.value }))}
+                    required
+                    className="rounded-xl border-slate-200 text-xs sm:text-sm font-semibold"
+                  />
+                </FormField>
+                <FormField label="Email Address (Credentials will be sent here)" required>
+                  <Input
+                    type="email"
+                    placeholder="attender@school.com"
+                    value={attenderForm.email}
+                    onChange={(e) => setAttenderForm((s) => ({ ...s, email: e.target.value }))}
+                    required
+                    className="rounded-xl border-slate-200 text-xs sm:text-sm font-semibold"
+                  />
+                </FormField>
+                <FormField label="Mobile Number">
+                  <Input
+                    placeholder="9876543210"
+                    value={attenderForm.phoneNo}
+                    onChange={(e) => setAttenderForm((s) => ({ ...s, phoneNo: e.target.value }))}
+                    className="rounded-xl border-slate-200 text-xs sm:text-sm font-semibold"
+                  />
+                </FormField>
 
-              {/* Class Selection for New Attender */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700">Assign Classes (All Selected by Default)</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setAttenderForm((s) => ({ ...s, assignedClasses: classes.map((c) => c._id) }))}
-                      className="text-xs font-bold text-emerald-600 hover:underline"
-                    >
-                      Select All
-                    </button>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => setAttenderForm((s) => ({ ...s, assignedClasses: [] }))}
-                      className="text-xs font-bold text-slate-500 hover:underline"
-                    >
-                      Deselect All
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto p-2 border rounded-xl bg-slate-50">
-                  {classes.map((cls) => {
-                    const isChecked = attenderForm.assignedClasses.includes(cls._id);
-                    return (
-                      <label
-                        key={cls._id}
-                        className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
-                          isChecked
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
-                            : 'border-slate-200 bg-white text-slate-700'
-                        }`}
+                {/* Class Selection for New Attender */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700">Assign Classes (All Selected by Default)</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAttenderForm((s) => ({ ...s, assignedClasses: classes.map((c) => c._id) }))}
+                        className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
                       >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setAttenderForm((s) => ({ ...s, assignedClasses: [...s.assignedClasses, cls._id] }));
-                            } else {
-                              setAttenderForm((s) => ({ ...s, assignedClasses: s.assignedClasses.filter((id) => id !== cls._id) }));
-                            }
-                          }}
-                          className="rounded text-emerald-600"
-                        />
-                        <span>{cls.className} - {cls.section}</span>
-                      </label>
-                    );
-                  })}
+                        Select All
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={() => setAttenderForm((s) => ({ ...s, assignedClasses: [] }))}
+                        className="text-xs font-bold text-slate-500 hover:underline cursor-pointer"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-44 overflow-y-auto p-2 border border-slate-200/90 rounded-2xl bg-slate-50/70">
+                    {classes.map((cls) => {
+                      const isChecked = attenderForm.assignedClasses.includes(cls._id);
+                      return (
+                        <label
+                          key={cls._id}
+                          className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                            isChecked
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-950 shadow-2xs'
+                              : 'border-slate-200/90 bg-white text-slate-700 hover:bg-slate-100/70'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAttenderForm((s) => ({ ...s, assignedClasses: [...s.assignedClasses, cls._id] }));
+                              } else {
+                                setAttenderForm((s) => ({ ...s, assignedClasses: s.assignedClasses.filter((id) => id !== cls._id) }));
+                              }
+                            }}
+                            className="rounded text-emerald-600 focus:ring-0"
+                          />
+                          <span>{cls.className}-{cls.section}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <DialogFooter className="gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)}>
+              <DialogFooter className="p-4 border-t border-slate-100 bg-slate-50/80 sticky bottom-0 z-10 shrink-0 gap-2 flex items-center justify-end">
+                <Button type="button" variant="outline" onClick={() => setCreateModalOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" variant="success" disabled={loading}>
+                <Button type="submit" variant="success" disabled={loading} className="rounded-xl font-bold">
                   {loading ? 'Creating...' : 'Create & Send Email'}
                 </Button>
               </DialogFooter>
@@ -1350,83 +1355,85 @@ export default function AdminAttendance() {
       {/* MODAL: EDIT ASSIGNED CLASSES */}
       {classEditModalOpen && (
         <Dialog open={classEditModalOpen} onOpenChange={setClassEditModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+          <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl border-none">
+            <DialogHeader className="p-4 sm:p-5 border-b border-slate-100 bg-white sticky top-0 z-10 shrink-0">
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-extrabold text-slate-900">
                 <Users className="h-5 w-5 text-indigo-600" />
                 Assign Classes for {editingTeacher?.name || editingTeacher?.teacherName}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-500">
-                  Select allowed classes for marking attendance:
-                </p>
-                <div className="flex gap-2">
+            <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-500 font-medium">
+                    Select allowed classes for marking attendance:
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClassesForTeacher(classes.map((c) => c._id))}
+                      className="text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClassesForTeacher([])}
+                      className="text-xs font-bold text-slate-500 hover:underline cursor-pointer"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-48 overflow-y-auto p-2 border border-slate-200/90 rounded-2xl bg-slate-50/70">
+                  {classes.map((cls) => {
+                    const isChecked = selectedClassesForTeacher.includes(cls._id);
+                    return (
+                      <label
+                        key={cls._id}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                          isChecked
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-950 shadow-2xs'
+                            : 'border-slate-200/90 bg-white text-slate-700 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedClassesForTeacher((prev) => [...prev, cls._id]);
+                            } else {
+                              setSelectedClassesForTeacher((prev) => prev.filter((id) => id !== cls._id));
+                            }
+                          }}
+                          className="rounded text-indigo-600 focus:ring-0"
+                        />
+                        <span>{cls.className}-{cls.section}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>Selected: {selectedClassesForTeacher.length} class(es)</span>
                   <button
                     type="button"
                     onClick={() => setSelectedClassesForTeacher(classes.map((c) => c._id))}
-                    className="text-xs font-bold text-indigo-600 hover:underline"
+                    className="text-indigo-600 font-semibold hover:underline cursor-pointer"
                   >
-                    Select All
-                  </button>
-                  <span className="text-slate-300">•</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedClassesForTeacher([])}
-                    className="text-xs font-bold text-slate-500 hover:underline"
-                  >
-                    Deselect All
+                    Select All Classes
                   </button>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border rounded-xl bg-slate-50">
-                {classes.map((cls) => {
-                  const isChecked = selectedClassesForTeacher.includes(cls._id);
-                  return (
-                    <label
-                      key={cls._id}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors ${
-                        isChecked
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-800'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedClassesForTeacher((prev) => [...prev, cls._id]);
-                          } else {
-                            setSelectedClassesForTeacher((prev) => prev.filter((id) => id !== cls._id));
-                          }
-                        }}
-                        className="rounded text-indigo-600"
-                      />
-                      <span>{cls.className} - {cls.section}</span>
-                    </label>
-                  );
-                })}
-              </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                <span>Selected: {selectedClassesForTeacher.length} class(es)</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedClassesForTeacher(classes.map((c) => c._id))}
-                  className="text-indigo-600 font-semibold hover:underline"
-                >
-                  Select All Classes
-                </button>
-              </div>
-
-              <DialogFooter className="gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setClassEditModalOpen(false)}>
+              <DialogFooter className="p-4 border-t border-slate-100 bg-slate-50/80 sticky bottom-0 z-10 shrink-0 gap-2 flex items-center justify-end">
+                <Button type="button" variant="outline" onClick={() => setClassEditModalOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="button" variant="success" onClick={handleSaveTeacherClasses} disabled={loading}>
+                <Button type="button" variant="success" onClick={handleSaveTeacherClasses} disabled={loading} className="rounded-xl font-bold">
                   {loading ? 'Saving...' : 'Save Assigned Classes'}
                 </Button>
               </DialogFooter>

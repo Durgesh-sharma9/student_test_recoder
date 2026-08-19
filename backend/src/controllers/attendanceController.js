@@ -147,7 +147,10 @@ export const getAttendancePreview = asyncHandler(async (req, res) => {
     school: schoolId,
     class: classId,
     dateString,
-  });
+  }).populate('recordedBy', 'name role teacherName');
+
+  const isAdmin = ['admin', 'school_admin'].includes(req.user.role);
+  const isLocked = Boolean(existingAttendance) && !isAdmin;
 
   const recordMap = new Map();
   if (existingAttendance) {
@@ -178,6 +181,12 @@ export const getAttendancePreview = asyncHandler(async (req, res) => {
     },
     dateString,
     isMarked: Boolean(existingAttendance),
+    isLocked,
+    recordedByInfo: existingAttendance?.recordedBy ? {
+      name: existingAttendance.recordedBy.name || existingAttendance.recordedBy.teacherName || 'Staff',
+      role: ['admin', 'school_admin'].includes(existingAttendance.recordedBy.role) ? 'Admin' : existingAttendance.recordedBy.role === 'teacher' ? 'Teacher' : 'Attender',
+      time: existingAttendance.updatedAt,
+    } : null,
     records: previewRecords,
     summary: existingAttendance ? {
       totalStudents: existingAttendance.totalStudents,
@@ -206,9 +215,31 @@ export const saveAttendance = asyncHandler(async (req, res) => {
   const dateString = selectedDate.toISOString().split('T')[0];
   const todayString = new Date().toISOString().split('T')[0];
 
-  const isNonAdmin = ['teacher', 'attender'].includes(req.user.role);
+  const isAdmin = ['admin', 'school_admin'].includes(req.user.role);
+  const isNonAdmin = ['teacher', 'attender'].includes(req.user.role) || !isAdmin;
+
   if (isNonAdmin && dateString !== todayString) {
     throw new ApiError(403, 'Teachers and Attenders can only mark attendance for today');
+  }
+
+  // Attendance Lock Check: If attendance has already been recorded for this class & date,
+  // non-admin users (teacher/attender) cannot modify it. Only Admin can edit.
+  const existingAttendance = await Attendance.findOne({
+    school: schoolId,
+    class: classId,
+    dateString,
+  }).populate('recordedBy', 'name role teacherName');
+
+  if (existingAttendance && !isAdmin) {
+    const recordedByName = existingAttendance.recordedBy
+      ? (existingAttendance.recordedBy.name || existingAttendance.recordedBy.teacherName || 'Staff')
+      : 'another user';
+    const recordedByRole = existingAttendance.recordedBy?.role === 'teacher' ? 'Teacher' : existingAttendance.recordedBy?.role === 'attender' ? 'Attender' : 'Admin';
+    
+    throw new ApiError(
+      403,
+      `Attendance for this date has already been recorded by ${recordedByName} (${recordedByRole}). Only Admin can edit or modify submitted attendance.`
+    );
   }
 
   const activeSession = await AcademicSession.findOne({ school: schoolId, status: 'active' });

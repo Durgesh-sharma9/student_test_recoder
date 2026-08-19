@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { UserCheck, CheckCircle2, XCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { UserCheck, CheckCircle2, XCircle, RefreshCw, Sparkles, Lock } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -75,7 +75,12 @@ export default function AttenderEntry() {
 
   // Toggle student status strictly between Present <-> Absent
   const toggleStudentStatus = (studentId, currentStatus) => {
-    if (!previewData) return;
+    if (!previewData || previewData.isLocked) {
+      if (previewData?.isLocked) {
+        toast.error('Attendance is locked for this date. Only Admin can edit.');
+      }
+      return;
+    }
     const nextStatus = currentStatus === 'present' ? 'absent' : 'present';
 
     setPreviewData((prev) => {
@@ -99,7 +104,7 @@ export default function AttenderEntry() {
 
   // Mark all students as Present
   const markAllPresent = () => {
-    if (!previewData) return;
+    if (!previewData || previewData.isLocked) return;
     setPreviewData((prev) => {
       const updatedRecords = prev.records.map((r) => ({ ...r, status: 'present' }));
       return {
@@ -116,7 +121,7 @@ export default function AttenderEntry() {
 
   // Submit attendance
   const handleSaveAttendance = async () => {
-    if (!selectedClass || !previewData) return;
+    if (!selectedClass || !previewData || previewData.isLocked) return;
     setSaving(true);
     try {
       await api.post('/attendance/save', {
@@ -182,6 +187,17 @@ export default function AttenderEntry() {
           </div>
         </div>
       </ErpSection>
+
+      {/* ATTENDANCE LOCK BANNER IF PREVIOUSLY RECORDED BY SOMEONE */}
+      {previewData?.isLocked && (
+        <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-xl text-amber-900 text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-xs">
+          <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+          <span>
+            Attendance for this date was already recorded by{' '}
+            <span className="font-extrabold">{previewData.recordedByInfo?.name || 'Staff'}</span> ({previewData.recordedByInfo?.role || 'Staff'}). Only Admin can edit or modify submitted attendance.
+          </span>
+        </div>
+      )}
 
       {/* COMPACT SUMMARY COUNTER BAR (3 COLUMNS: TOTAL, PRESENT, ABSENT) */}
       {previewData && (
@@ -282,13 +298,26 @@ export default function AttenderEntry() {
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/90 backdrop-blur-md p-2 shadow-lg flex justify-center">
           <Button
             onClick={handleSaveAttendance}
-            variant="success"
+            variant={previewData?.isLocked ? 'outline' : 'success'}
             size="sm"
-            disabled={saving}
-            className="w-full max-w-xs gap-2 h-10 text-sm font-bold shadow-md shadow-emerald-600/20 rounded-xl"
+            disabled={saving || previewData?.isLocked}
+            className={`w-full max-w-xs gap-2 h-10 text-sm font-bold rounded-xl ${
+              previewData?.isLocked
+                ? 'border-amber-300 bg-amber-50 text-amber-800 cursor-not-allowed opacity-90'
+                : 'shadow-md shadow-emerald-600/20'
+            }`}
           >
-            <CheckCircle2 className="h-4 w-4" />
-            {saving ? 'Saving...' : 'Submit Attendance'}
+            {previewData?.isLocked ? (
+              <>
+                <Lock className="h-4 w-4 text-amber-600" />
+                <span>Attendance Locked (Admin Only)</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{saving ? 'Saving...' : 'Submit Attendance'}</span>
+              </>
+            )}
           </Button>
         </div>
       )}
