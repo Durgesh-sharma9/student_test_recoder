@@ -73,6 +73,18 @@ export default function Signup() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-6">
+      {/* Top Left Floating Back Button */}
+      <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2 text-xs md:text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-indigo-600 hover:shadow-md cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Home</span>
+        </button>
+      </div>
+
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{

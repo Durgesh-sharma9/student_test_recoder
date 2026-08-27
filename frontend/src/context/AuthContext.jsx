@@ -20,7 +20,10 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] Token from localStorage:', token ? 'exists' : 'none');
     
     if (!token) { 
-      console.log('[AuthContext] No token, setting loading to false');
+      console.log('[AuthContext] No token, clearing user state and setting loading to false');
+      localStorage.removeItem('user');
+      setUser(null);
+      setCachedUser(null);
       setLoading(false); 
       return; 
     }
@@ -35,16 +38,16 @@ export function AuthProvider({ children }) {
       })
       .catch((err) => {
         console.log('[AuthContext] /auth/me error:', err);
-        // Only clear user if it's a 401 error (invalid token)
-        if (err.response?.status === 401) {
-          console.log('[AuthContext] 401 error, clearing user');
+        // Only clear user if it's an auth error (401 or 403)
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          console.log('[AuthContext] 401/403 error, clearing user');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
           setCachedUser(null);
         } else {
           // For other errors, keep the cached user from localStorage
-          console.log('[AuthContext] Non-401 error, keeping cached user');
+          console.log('[AuthContext] Non-auth error, keeping cached user');
           const stored = localStorage.getItem('user');
           if (stored) {
             const parsedUser = JSON.parse(stored);
