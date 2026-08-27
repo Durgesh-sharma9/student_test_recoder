@@ -3,6 +3,23 @@ import api from '@/lib/api';
 
 const AuthContext = createContext(null);
 
+export const clearAllAuthStorage = () => {
+  console.log('[AuthContext] Purging all stored tokens, user credentials, and impersonation keys');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('superToken');
+  localStorage.removeItem('superUser');
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminUser');
+  localStorage.removeItem('selectedSessionId');
+  localStorage.removeItem('pending_activation_plan_id');
+  try {
+    sessionStorage.clear();
+  } catch (e) {
+    // Ignore sessionStorage errors
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user');
@@ -21,7 +38,7 @@ export function AuthProvider({ children }) {
     
     if (!token) { 
       console.log('[AuthContext] No token, clearing user state and setting loading to false');
-      localStorage.removeItem('user');
+      clearAllAuthStorage();
       setUser(null);
       setCachedUser(null);
       setLoading(false); 
@@ -40,9 +57,8 @@ export function AuthProvider({ children }) {
         console.log('[AuthContext] /auth/me error:', err);
         // Only clear user if it's an auth error (401 or 403)
         if (err.response?.status === 401 || err.response?.status === 403) {
-          console.log('[AuthContext] 401/403 error, clearing user');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          console.log('[AuthContext] 401/403 error, purging all sessions');
+          clearAllAuthStorage();
           setUser(null);
           setCachedUser(null);
         } else {
@@ -63,6 +79,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
+    clearAllAuthStorage();
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -72,6 +89,7 @@ export function AuthProvider({ children }) {
   };
 
   const parentLogin = async (email, phone, password) => {
+    clearAllAuthStorage();
     const res = await api.post('/auth/parent-login', { email, phone, password });
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('user', JSON.stringify(res.data.user));
@@ -81,6 +99,7 @@ export function AuthProvider({ children }) {
   };
 
   const setSession = (userData, tokenData) => {
+    clearAllAuthStorage();
     if (tokenData) localStorage.setItem('token', tokenData);
     if (userData) localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData || null);
@@ -88,9 +107,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('selectedSessionId');
+    clearAllAuthStorage();
     setUser(null);
     setCachedUser(null);
   };

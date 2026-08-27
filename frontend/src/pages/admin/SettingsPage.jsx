@@ -305,7 +305,6 @@ export default function SettingsPage() {
     { id: 'general', label: 'General', icon: Building2 },
     { id: 'account', label: 'Account', icon: Users },
     { id: 'security', label: 'Security', icon: Lock },
-    { id: 'about', label: 'About Us', icon: Info },
     { id: 'request_feature', label: 'Request a Feature', icon: MessageSquare }
   ];
 
@@ -714,47 +713,7 @@ export default function SettingsPage() {
             </ErpSection>
           )}
 
-          {/* 4. ABOUT US TAB */}
-          {activeTab === 'about' && (
-            <ErpSection 
-              title="About Test Master" 
-              icon={Info} 
-              tone="blue"
-              className="bg-gradient-to-br from-white to-blue-50/60 border-slate-200/80 shadow-md"
-            >
-              <div className="p-4 space-y-4 text-slate-600">
-                <div className="flex items-center gap-3.5 pb-3.5 border-b border-slate-100">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-650 text-white shadow-md shadow-indigo-500/20 shrink-0">
-                    <GraduationCap className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">Test Master Pro</h4>
-                    <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider">Version 2.4.0 (Stable)</p>
-                  </div>
-                </div>
 
-                <div className="space-y-2.5 text-xs">
-                  <p className="leading-relaxed">
-                    Test Master is an enterprise-grade School Management & Daily Test evaluation suite designed to streamline student assessments, academic session tracking, teacher coordination, parent communication, and instant reporting.
-                  </p>
-                  <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-150 space-y-1.5 font-medium text-slate-550">
-                    <div className="flex justify-between gap-4">
-                      <span>Customer License:</span>
-                      <span className="font-bold text-slate-700">Active (Enterprise Edition)</span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span>Assigned Institution:</span>
-                      <span className="font-bold text-slate-700">{user?.school?.schoolName || 'Your School'}</span>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <span>Technical Support:</span>
-                      <span className="font-bold text-slate-700">support@testmaster.com</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ErpSection>
-          )}
 
           {/* 5. REQUEST FEATURE TAB */}
           {activeTab === 'request_feature' && (

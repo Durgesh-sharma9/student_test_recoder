@@ -188,8 +188,8 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 text-slate-900 transition-colors duration-300 w-full">
-      {/* Impersonation Banner for Teacher */}
-      {localStorage.getItem('adminToken') && (
+      {/* Impersonation Banner for Teacher (Only visible if currently logged in as teacher) */}
+      {user?.role === 'teacher' && localStorage.getItem('adminToken') && (
         <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2.5 text-sm font-semibold flex items-center justify-between shadow-md z-50">
           <div className="flex items-center gap-2">
             <span className="animate-pulse flex h-2.5 w-2.5 rounded-full bg-white" />
@@ -214,8 +214,8 @@ export default function DashboardLayout() {
         </div>
       )}
 
-      {/* Impersonation Banner for School Admin */}
-      {localStorage.getItem('superToken') && (
+      {/* Impersonation Banner for School Admin (Only visible if currently logged in as school admin via impersonation) */}
+      {(user?.role === 'school_admin' || user?.role === 'admin') && localStorage.getItem('superToken') && (
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-4 py-2.5 text-sm font-semibold flex items-center justify-between shadow-md z-50 w-full shrink-0">
           <div className="flex items-center gap-2">
             <span className="animate-pulse flex h-2.5 w-2.5 rounded-full bg-white" />
