@@ -7,6 +7,7 @@ import Plan from './models/Plan.js';
 import Class from './models/Class.js';
 import Student from './models/Student.js';
 import AcademicSession from './models/AcademicSession.js';
+import PaymentSettings from './models/PaymentSettings.js';
 
 const seed = async () => {
   await connectDB();
@@ -17,18 +18,28 @@ const seed = async () => {
     Class.deleteMany({}),
     Student.deleteMany({}),
     AcademicSession.deleteMany({}),
+    PaymentSettings.deleteMany({}),
   ]);
 
   const superAdmin = await User.create({
     name: process.env.SUPER_ADMIN_NAME || 'Super Admin',
-    email: process.env.SUPER_ADMIN_EMAIL || 'super@school.com',
-    password: process.env.SUPER_ADMIN_PASSWORD || 'super123',
+    email: process.env.SUPER_ADMIN_EMAIL || 'testmaster@gmail.com',
+    password: process.env.SUPER_ADMIN_PASSWORD || 'superadmine3z608af',
     role: 'super_admin',
     isEmailVerified: true,
   });
 
+  await PaymentSettings.create({
+    upiId: 'schooladmin@upi',
+    merchantName: 'School Daily Test',
+    qrExpiryMinutes: 5,
+    razorpayEnabled: false,
+    updatedBy: superAdmin._id,
+  });
+
   console.log('Seed OK');
   console.log('Super Admin created successfully:', superAdmin.email);
+  console.log('Default Payment Settings initialized successfully.');
 
   await mongoose.disconnect();
 };

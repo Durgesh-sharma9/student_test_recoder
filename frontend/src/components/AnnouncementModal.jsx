@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, Paperclip, Users, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { Megaphone, Paperclip, Users, GraduationCap, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
   DialogBody,
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/erp/PagePrimitives';
+import { validateFile } from '@/utils/fileValidation';
 
 const defaultAnnouncementForm = { title: '', message: '', priority: 'normal' };
 const defaultPollForm = {
@@ -226,6 +227,7 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
       setPollOptions([{ text: '' }, { text: '' }]);
       setSelectedClassIds([]);
       setPollAttachmentFile(null);
+      onOpenChange(false);
     } catch (error) {
       console.error('Failed to create poll:', error);
       toast.error(error.response?.data?.message || 'Failed to create poll');
@@ -240,32 +242,34 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl rounded-2xl shadow-2xl px-6 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-3 pb-4">
+      <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-2xl rounded-2xl shadow-2xl p-4 sm:p-5 max-h-[85vh] overflow-y-auto bg-white border-0">
+        <DialogHeader className="space-y-2 pb-2">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-500 shadow-lg shadow-purple-500/30">
-                <Megaphone className="h-6 w-6 text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-500 shadow-md shadow-purple-500/30 shrink-0">
+                <Megaphone className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-slate-900">Announcement Center</DialogTitle>
-                <DialogDescription className="text-sm text-slate-500">Broadcast announcements and publish interactive polls to your school community.</DialogDescription>
+                <DialogTitle className="text-xl font-bold text-slate-900">Announcement Center</DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">Broadcast announcements and publish interactive polls to your school community.</DialogDescription>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             <Button
               type="button"
+              size="sm"
               variant={activeTab === 'announcement' ? 'default' : 'outline'}
-              className={activeTab === 'announcement' ? 'rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white' : 'rounded-xl'}
+              className={activeTab === 'announcement' ? 'rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white h-8 text-xs font-semibold' : 'rounded-xl h-8 text-xs font-semibold'}
               onClick={() => setActiveTab('announcement')}
             >
               Create Announcement
             </Button>
             <Button
               type="button"
+              size="sm"
               variant={activeTab === 'poll' ? 'default' : 'outline'}
-              className={activeTab === 'poll' ? 'rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white' : 'rounded-xl'}
+              className={activeTab === 'poll' ? 'rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white h-8 text-xs font-semibold' : 'rounded-xl h-8 text-xs font-semibold'}
               onClick={() => setActiveTab('poll')}
             >
               Create Poll
@@ -273,43 +277,43 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
           </div>
         </DialogHeader>
 
-        <DialogBody className="space-y-6 py-2">
+        <DialogBody className="space-y-3 py-1 text-slate-700">
           {activeTab === 'announcement' ? (
-            <div className="space-y-6">
-              <FormField label="Title">
+            <div className="space-y-3">
+              <FormField label="Title *">
                 <Input
                   placeholder="Enter announcement title"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500"
+                  className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500 h-9 text-xs"
                 />
               </FormField>
-              <FormField label="Message">
+              <FormField label="Message *">
                 <Textarea
                   placeholder="Enter announcement message"
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  rows={4}
-                  className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500"
+                  rows={3}
+                  className="rounded-xl border-slate-200 shadow-sm focus:ring-2 focus:ring-purple-500 text-xs resize-none"
                 />
               </FormField>
               <FormField label="Priority">
                 <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
-                  <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                  <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="normal">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Normal</div>
+                      <div className="flex items-center gap-2 text-xs"><div className="h-2 w-2 rounded-full bg-slate-400" />Normal</div>
                     </SelectItem>
                     <SelectItem value="info">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />Info</div>
+                      <div className="flex items-center gap-2 text-xs"><div className="h-2 w-2 rounded-full bg-blue-500" />Info</div>
                     </SelectItem>
                     <SelectItem value="important">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-orange-500" />Important</div>
+                      <div className="flex items-center gap-2 text-xs"><div className="h-2 w-2 rounded-full bg-orange-500" />Important</div>
                     </SelectItem>
                     <SelectItem value="urgent">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />Urgent</div>
+                      <div className="flex items-center gap-2 text-xs"><div className="h-2 w-2 rounded-full bg-red-500" />Urgent</div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -318,12 +322,12 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                 <>
                   <FormField label="Send To">
                     <Select value={targetRole} onValueChange={(value) => { setTargetRole(value); setRecipientType('all'); setSelectedRecipients([]); setSelectedClass(''); }}>
-                      <SelectTrigger className="rounded-xl border-slate-200 shadow-sm">
+                      <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="teacher"><div className="flex items-center gap-2"><Users className="h-4 w-4" />Teachers</div></SelectItem>
-                        <SelectItem value="parent"><div className="flex items-center gap-2"><GraduationCap className="h-4 w-4" />Parents</div></SelectItem>
+                        <SelectItem value="teacher"><div className="flex items-center gap-2 text-xs"><Users className="h-3.5 w-3.5" />Teachers</div></SelectItem>
+                        <SelectItem value="parent"><div className="flex items-center gap-2 text-xs"><GraduationCap className="h-3.5 w-3.5" />Parents</div></SelectItem>
                       </SelectContent>
                     </Select>
                   </FormField>
@@ -331,7 +335,7 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                   {targetRole === 'teacher' && (
                     <FormField label="Recipients">
                       <Select value={recipientType} onValueChange={setRecipientType}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Teachers</SelectItem>
                           <SelectItem value="selected">Selected Teachers</SelectItem>
@@ -342,11 +346,11 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                   {targetRole === 'teacher' && recipientType === 'selected' && (
                     <FormField label="Select Teachers">
-                      <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-3 shadow-sm">
+                      <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 p-2 shadow-sm">
                         {recipients.map((recipient) => (
-                          <label key={recipient._id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                            <input type="checkbox" checked={selectedRecipients.includes(recipient._id)} onChange={() => handleRecipientToggle(recipient._id)} className="rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500" />
-                            <span className="text-sm font-medium text-slate-700">{recipient.teacherName || recipient.name}</span>
+                          <label key={recipient._id} className="flex items-center gap-2.5 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors text-xs font-medium">
+                            <input type="checkbox" checked={selectedRecipients.includes(recipient._id)} onChange={() => handleRecipientToggle(recipient._id)} className="rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-500 h-3.5 w-3.5" />
+                            <span className="text-slate-700">{recipient.teacherName || recipient.name}</span>
                           </label>
                         ))}
                       </div>
@@ -356,7 +360,7 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                   {targetRole === 'parent' && (
                     <FormField label="Recipients">
                       <Select value={recipientType} onValueChange={setRecipientType}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Parents</SelectItem>
                           <SelectItem value="class">Class-wise Parents</SelectItem>
@@ -368,7 +372,7 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                   {targetRole === 'parent' && recipientType === 'class' && (
                     <FormField label="Select Class">
                       <Select value={selectedClass} onValueChange={setSelectedClass}>
-                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm"><SelectValue placeholder="Select a class" /></SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-slate-200 shadow-sm h-8 text-xs"><SelectValue placeholder="Select a class" /></SelectTrigger>
                         <SelectContent>
                           {classes.map((cls) => (
                             <SelectItem key={cls._id} value={cls._id}>{cls.className} {cls.section}</SelectItem>
@@ -386,34 +390,49 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      const maxSize = 10 * 1024 * 1024;
-                      if (file.size > maxSize) {
-                        toast.error('File size exceeds 10MB limit');
-                        return;
+                      if (validateFile(file)) {
+                        setAttachmentFile(file);
+                      } else {
+                        e.target.value = '';
                       }
-                      setAttachmentFile(file);
                     }
                   }}
-                  className="rounded-xl border-slate-200 shadow-sm"
+                  className="rounded-xl border-slate-200 shadow-sm h-8 text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-purple-50 file:text-purple-700"
                 />
-                {attachmentFile && <div className="mt-2 flex items-center gap-2 text-sm text-slate-600"><Paperclip className="h-4 w-4" /><span className="truncate">{attachmentFile.name}</span></div>}
+                {attachmentFile && (
+                  <div className="mt-1.5 flex items-center justify-between gap-2 p-2 rounded-xl border border-purple-200 bg-purple-50/70 text-xs text-purple-900 font-semibold shadow-sm animate-in fade-in">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="truncate">{attachmentFile.name}</span>
+                      <span className="text-[10px] font-bold text-purple-500 shrink-0">({(attachmentFile.size / 1024).toFixed(0)}KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentFile(null)}
+                      className="p-1 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-600 transition-colors shrink-0 cursor-pointer"
+                      title="Remove attachment"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </FormField>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <h3 className="text-lg font-semibold text-slate-900">Publish a new poll</h3>
-                <p className="mt-1 text-sm text-slate-500">Choose the audience, define the options and publish it instantly to the relevant parents or teachers.</p>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <h3 className="text-sm font-semibold text-slate-900">Publish a new poll</h3>
+                <p className="mt-0.5 text-xs text-slate-500">Choose the audience, define the options and publish it instantly to relevant parents or teachers.</p>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-3 lg:grid-cols-2">
                 <FormField label="Audience *">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm text-xs">
+                    <label className="flex items-center gap-2 font-medium text-slate-700">
                       <input type="radio" name="poll-audience" checked={pollForm.audience === 'teachers'} onChange={() => setPollForm({ ...pollForm, audience: 'teachers', audienceScope: 'all' })} />
                       Teachers
                     </label>
-                    <label className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <label className="mt-1.5 flex items-center gap-2 font-medium text-slate-700">
                       <input type="radio" name="poll-audience" checked={pollForm.audience === 'parents'} onChange={() => setPollForm({ ...pollForm, audience: 'parents', audienceScope: 'all' })} />
                       Parents
                     </label>
@@ -422,14 +441,14 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
                 <FormField label="Targeting *">
                   {pollForm.audience === 'teachers' ? (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Teachers support all teachers only. Individual teacher selection is not available.</div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-600">Teachers support all teachers only. Individual selection unavailable.</div>
                   ) : (
-                    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm text-xs">
+                      <label className="flex items-center gap-2 font-medium text-slate-700">
                         <input type="radio" name="parent-scope" checked={pollForm.audienceScope === 'all'} onChange={() => setPollForm({ ...pollForm, audienceScope: 'all' })} />
                         All Parents
                       </label>
-                      <label className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <label className="mt-1.5 flex items-center gap-2 font-medium text-slate-700">
                         <input type="radio" name="parent-scope" checked={pollForm.audienceScope === 'selected_classes'} onChange={() => setPollForm({ ...pollForm, audienceScope: 'selected_classes' })} />
                         Selected Classes
                       </label>
@@ -440,10 +459,10 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
 
               {pollForm.audience === 'parents' && pollForm.audienceScope === 'selected_classes' && (
                 <FormField label="Select Classes *">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    {classes.length === 0 ? <p className="text-sm text-slate-500">No classes available.</p> : classes.map((cls) => (
-                      <label key={cls._id} className="flex items-center gap-2 rounded-lg p-2 text-sm text-slate-700 hover:bg-slate-50">
-                        <input type="checkbox" checked={selectedClassIds.includes(cls._id)} onChange={() => toggleClassSelection(cls._id)} />
+                  <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm max-h-28 overflow-y-auto">
+                    {classes.length === 0 ? <p className="text-xs text-slate-500">No classes available.</p> : classes.map((cls) => (
+                      <label key={cls._id} className="flex items-center gap-2 rounded-lg p-1.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" checked={selectedClassIds.includes(cls._id)} onChange={() => toggleClassSelection(cls._id)} className="h-3.5 w-3.5 text-purple-600 rounded" />
                         <span>{cls.className} {cls.section}</span>
                       </label>
                     ))}
@@ -452,21 +471,21 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
               )}
 
               <FormField label="Poll Title *">
-                <Input placeholder="Annual Function Permission" value={pollForm.title} onChange={(e) => setPollForm({ ...pollForm, title: e.target.value })} className="rounded-xl border-slate-200 shadow-sm" />
+                <Input placeholder="Annual Function Permission" value={pollForm.title} onChange={(e) => setPollForm({ ...pollForm, title: e.target.value })} className="rounded-xl border-slate-200 shadow-sm h-9 text-xs" />
               </FormField>
 
               <FormField label="Description *">
-                <Textarea placeholder="Enter poll description" value={pollForm.description} onChange={(e) => setPollForm({ ...pollForm, description: e.target.value })} rows={4} className="rounded-xl border-slate-200 shadow-sm" />
+                <Textarea placeholder="Enter poll description" value={pollForm.description} onChange={(e) => setPollForm({ ...pollForm, description: e.target.value })} rows={3} className="rounded-xl border-slate-200 shadow-sm text-xs resize-none" />
               </FormField>
 
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-3 lg:grid-cols-2">
                 <FormField label="Poll Type">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm text-xs">
+                    <label className="flex items-center gap-2 font-medium text-slate-700">
                       <input type="radio" name="poll-type" checked={pollForm.pollType === 'single'} onChange={() => setPollForm({ ...pollForm, pollType: 'single' })} />
                       Single Choice
                     </label>
-                    <label className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <label className="mt-1.5 flex items-center gap-2 font-medium text-slate-700">
                       <input type="radio" name="poll-type" checked={pollForm.pollType === 'multiple'} onChange={() => setPollForm({ ...pollForm, pollType: 'multiple' })} />
                       Multiple Choice
                     </label>
@@ -474,9 +493,9 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
                 </FormField>
 
                 <FormField label="Expiry">
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm space-y-3">
-                    <Input type="datetime-local" value={pollForm.expiryDate} onChange={(e) => setPollForm({ ...pollForm, expiryDate: e.target.value })} className="rounded-xl border-slate-200 shadow-sm" />
-                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm space-y-2 text-xs">
+                    <Input type="datetime-local" value={pollForm.expiryDate} onChange={(e) => setPollForm({ ...pollForm, expiryDate: e.target.value })} className="rounded-xl border-slate-200 shadow-sm h-8 text-xs" />
+                    <label className="flex items-center gap-2 font-medium text-slate-700">
                       <input type="checkbox" checked={!pollForm.expiryDate} onChange={() => setPollForm({ ...pollForm, expiryDate: '' })} />
                       No Expiry
                     </label>
@@ -485,45 +504,72 @@ export default function AnnouncementModal({ open, onOpenChange, role, initialTab
               </div>
 
               <FormField label="Poll Options *">
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
                   {pollOptions.map((option, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <Input placeholder={`Option ${index + 1}`} value={option.text} onChange={(e) => handlePollOptionChange(index, e.target.value)} className="rounded-xl border-slate-200 shadow-sm" />
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(index)} className="rounded-xl border border-slate-200 hover:bg-slate-50"><Trash2 className="h-4 w-4" /></Button>
+                      <Input placeholder={`Option ${index + 1}`} value={option.text} onChange={(e) => handlePollOptionChange(index, e.target.value)} className="rounded-xl border-slate-200 shadow-sm h-8 text-xs" />
+                      {pollOptions.length > 2 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removePollOption(index)} className="h-8 w-8 rounded-xl border border-slate-200 hover:bg-slate-50"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      )}
                     </div>
                   ))}
-                  <Button type="button" variant="outline" className="rounded-xl" onClick={addPollOption}><Plus className="mr-2 h-4 w-4" />Add Option</Button>
+                  <Button type="button" variant="outline" size="sm" className="rounded-xl h-7 text-xs font-semibold" onClick={addPollOption}><Plus className="mr-1.5 h-3.5 w-3.5" />Add Option</Button>
                 </div>
               </FormField>
 
               <FormField label="Attachments (Optional)">
-                <Input type="file" accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png" onChange={(e) => { const file = e.target.files[0]; if (file) { if (file.size > 10 * 1024 * 1024) { toast.error('File size exceeds 10MB limit'); return; } setPollAttachmentFile(file); } }} className="rounded-xl border-slate-200 shadow-sm" />
-                {pollAttachmentFile && <div className="mt-2 flex items-center gap-2 text-sm text-slate-600"><Paperclip className="h-4 w-4" /><span className="truncate">{pollAttachmentFile.name}</span></div>}
+                <Input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      if (validateFile(file)) {
+                        setPollAttachmentFile(file);
+                      } else {
+                        e.target.value = '';
+                      }
+                    }
+                  }}
+                  className="rounded-xl border-slate-200 shadow-sm h-8 text-xs file:mr-2 file:py-0.5 file:px-2 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-purple-50 file:text-purple-700"
+                />
+                {pollAttachmentFile && (
+                  <div className="mt-1.5 flex items-center justify-between gap-2 p-2 rounded-xl border border-purple-200 bg-purple-50/70 text-xs text-purple-900 font-semibold shadow-sm animate-in fade-in">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Paperclip className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="truncate">{pollAttachmentFile.name}</span>
+                      <span className="text-[10px] font-bold text-purple-500 shrink-0">({(pollAttachmentFile.size / 1024).toFixed(0)}KB)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPollAttachmentFile(null)}
+                      className="p-1 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-600 transition-colors shrink-0 cursor-pointer"
+                      title="Remove attachment"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </FormField>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <label className="text-sm font-medium text-slate-700">Allow voters to edit their response while the poll is active</label>
-                <input type="checkbox" checked={pollForm.allowEdit} onChange={() => setPollForm({ ...pollForm, allowEdit: !pollForm.allowEdit })} />
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                <h3 className="text-lg font-semibold text-slate-900">Poll Publishing</h3>
-                <p className="mt-1 text-sm text-slate-500">Publish the poll to parents or teachers and let the notifications module handle follow-up actions.</p>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs">
+                <label className="font-medium text-slate-700">Allow voters to edit their response while the poll is active</label>
+                <input type="checkbox" checked={pollForm.allowEdit} onChange={() => setPollForm({ ...pollForm, allowEdit: !pollForm.allowEdit })} className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 h-3.5 w-3.5" />
               </div>
             </div>
           )}
         </DialogBody>
 
-        <DialogFooter className="pt-6">
+        <DialogFooter className="pt-2 pb-1">
           {activeTab === 'announcement' ? (
             <>
-              <Button variant="outline" onClick={() => { setAttachmentFile(null); onOpenChange(false); }} disabled={loading} className="rounded-xl border-slate-200 font-medium hover:bg-slate-50">Cancel</Button>
-              <Button onClick={handleSend} disabled={loading} className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 font-medium shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200">{loading ? 'Sending...' : 'Send Announcement'}</Button>
+              <Button variant="outline" size="sm" onClick={() => { setAttachmentFile(null); onOpenChange(false); }} disabled={loading} className="rounded-xl border-slate-200 font-medium hover:bg-slate-50 h-8 text-xs">Cancel</Button>
+              <Button size="sm" onClick={handleSend} disabled={loading} className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 font-medium shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 h-8 text-xs">{loading ? 'Sending...' : 'Send Announcement'}</Button>
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => { setPollForm(defaultPollForm); setPollOptions([{ text: '' }, { text: '' }]); setSelectedClassIds([]); setPollAttachmentFile(null); onOpenChange(false); }} disabled={pollSaving} className="rounded-xl border-slate-200 font-medium hover:bg-slate-50">Cancel</Button>
-              <Button onClick={handleCreatePoll} disabled={pollSaving} className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 font-medium shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200">{pollSaving ? 'Publishing...' : 'Publish Poll'}</Button>
+              <Button variant="outline" size="sm" onClick={() => { setPollForm(defaultPollForm); setPollOptions([{ text: '' }, { text: '' }]); setSelectedClassIds([]); setPollAttachmentFile(null); onOpenChange(false); }} disabled={pollSaving} className="rounded-xl border-slate-200 font-medium hover:bg-slate-50 h-8 text-xs">Cancel</Button>
+              <Button size="sm" onClick={handleCreatePoll} disabled={pollSaving} className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 font-medium shadow-md shadow-purple-500/20 hover:shadow-purple-500/30 h-8 text-xs">{pollSaving ? 'Publishing...' : 'Publish Poll'}</Button>
             </>
           )}
         </DialogFooter>
