@@ -249,7 +249,13 @@ export default function AdminAttendance() {
   const analyticsHistoryMap = useMemo(() => {
     const map = new Map();
     (analyticsData?.history || []).forEach((h) => {
-      map.set(h.dateString, h);
+      if (h.dateString) {
+        const cleanStr = String(h.dateString).split('T')[0].trim();
+        map.set(cleanStr, h);
+      } else if (h.date) {
+        const cleanStr = new Date(h.date).toISOString().split('T')[0];
+        map.set(cleanStr, h);
+      }
     });
     return map;
   }, [analyticsData]);

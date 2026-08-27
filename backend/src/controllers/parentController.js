@@ -1314,11 +1314,14 @@ export const getParentStudentAttendance = asyncHandler(async (req, res) => {
   let totalAbsent = 0;
   let totalLeave = 0;
   const history = [];
+  const targetStudentIdStr = String(student._id);
 
   attendanceDocs.forEach((doc) => {
-    const studentRecord = (doc.records || []).find(
-      (r) => r.student && r.student.toString() === student._id.toString()
-    );
+    const studentRecord = (doc.records || []).find((r) => {
+      if (!r || !r.student) return false;
+      const recId = r.student._id ? String(r.student._id) : String(r.student);
+      return recId === targetStudentIdStr;
+    });
 
     if (studentRecord) {
       totalDaysMarked++;
@@ -1326,9 +1329,14 @@ export const getParentStudentAttendance = asyncHandler(async (req, res) => {
       else if (studentRecord.status === 'absent') totalAbsent++;
       else if (studentRecord.status === 'leave') totalLeave++;
 
+      let dStr = doc.dateString;
+      if (!dStr && doc.date) {
+        dStr = new Date(doc.date).toISOString().split('T')[0];
+      }
+
       history.push({
         _id: doc._id,
-        dateString: doc.dateString,
+        dateString: dStr,
         date: doc.date,
         status: studentRecord.status,
         remarks: studentRecord.remarks || '',

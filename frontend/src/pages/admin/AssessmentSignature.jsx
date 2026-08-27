@@ -92,7 +92,7 @@ export default function AssessmentSignature() {
   
   // Basic states
   const [extraBlankRows, setExtraBlankRows] = useState(2);
-  const [assessmentTitle, setAssessmentTitle] = useState('Half Yearly Examination');
+  const [assessmentTitle, setAssessmentTitle] = useState('');
   const [activeClasses, setActiveClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [students, setStudents] = useState([]);
@@ -105,11 +105,7 @@ export default function AssessmentSignature() {
   const [allPlanners, setAllPlanners] = useState([]);
 
   // Assessment Columns: Array of { id, subject, date }
-  const [assessmentColumns, setAssessmentColumns] = useState([
-    { id: '1', subject: 'Science', date: '11-08-26' },
-    { id: '2', subject: 'Maths', date: '12-08-26' },
-    { id: '3', subject: 'English', date: '14-08-26' }
-  ]);
+  const [assessmentColumns, setAssessmentColumns] = useState([]);
 
   // Saved templates state
   const [savedSheets, setSavedSheets] = useState([]);

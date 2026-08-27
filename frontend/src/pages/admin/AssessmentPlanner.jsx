@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Calendar,
@@ -171,8 +172,8 @@ export default function AssessmentPlanner() {
   const [mainExamSessions, setMainExamSessions] = useState([]);
   const [selectedMainExam, setSelectedMainExam] = useState('');
   const [loadingExams, setLoadingExams] = useState(false);
-  const [availableClasses, setAvailableClasses] = useState(DEFAULT_CLASSES);
-  const [selectedClasses, setSelectedClasses] = useState(['5-a', '6-a', '7-a']);
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [selectedClasses, setSelectedClasses] = useState([]);
   
   // Date pickers for generation
   const [startDate, setStartDate] = useState(() => {
@@ -345,10 +346,14 @@ export default function AssessmentPlanner() {
           } else {
             setSelectedClasses(formatted.slice(0, 3).map(f => f.id));
           }
+        } else {
+          setAvailableClasses([]);
+          setSelectedClasses([]);
         }
       } catch (err) {
-        console.warn('API error fetching classes, using local fallback.', err);
-        setAvailableClasses(DEFAULT_CLASSES);
+        console.warn('API error fetching classes:', err);
+        setAvailableClasses([]);
+        setSelectedClasses([]);
       }
     };
     fetchClasses();
@@ -1475,28 +1480,37 @@ export default function AssessmentPlanner() {
                   </button>
                 </div>
                 <div className="border border-slate-200 rounded-xl bg-slate-50/50 p-3 max-h-[140px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                    {availableClasses.map((cls) => {
-                      if (!cls || !cls.id) return null;
-                      const isChecked = selectedClasses.includes(cls.id);
-                      return (
-                        <label
-                          key={cls.id}
-                          className={`flex items-center gap-2 cursor-pointer text-xs font-semibold transition-colors select-none ${
-                            isChecked ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleClass(cls.id)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
-                          />
-                          <span>{cls.name}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
+                  {availableClasses.length === 0 ? (
+                    <div className="text-center py-4 px-2">
+                      <p className="text-xs font-medium text-slate-500 mb-1">No classes found in database.</p>
+                      <Link to="/admin/classes" className="inline-flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-700 underline">
+                        + Add Classes in Manage Classes
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                      {availableClasses.map((cls) => {
+                        if (!cls || !cls.id) return null;
+                        const isChecked = selectedClasses.includes(cls.id);
+                        return (
+                          <label
+                            key={cls.id}
+                            className={`flex items-center gap-2 cursor-pointer text-xs font-semibold transition-colors select-none ${
+                              isChecked ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleClass(cls.id)}
+                              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
+                            />
+                            <span>{cls.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 
