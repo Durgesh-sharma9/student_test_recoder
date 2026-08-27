@@ -5,6 +5,7 @@ import {
   Upload, X, User, GraduationCap, FileText, Loader2, Inbox, Paperclip, CheckCircle2, ChevronDown, ChevronUp, Clock, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { filterValidFiles } from '@/utils/fileValidation';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -374,7 +375,8 @@ export default function FeedbackPanel({ role = 'parent' }) {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setAttachments(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+      const valid = filterValidFiles(e.dataTransfer.files);
+      if (valid.length) setAttachments(prev => [...prev, ...valid]);
     }
   };
 
@@ -637,9 +639,13 @@ export default function FeedbackPanel({ role = 'parent' }) {
                     <span className="font-semibold">Drag files</span> or{' '}
                     <label className="cursor-pointer font-bold text-blue-600 hover:text-blue-700 hover:underline">
                       browse computer
-                      <input type="file" className="sr-only" multiple onChange={(e) => setAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                      <input type="file" className="sr-only" multiple onChange={(e) => {
+                        const valid = filterValidFiles(e.target.files);
+                        if (valid.length) setAttachments(prev => [...prev, ...valid]);
+                        e.target.value = '';
+                      }} />
                     </label>
-                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max file size: 2MB</div>
+                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max size: Image 500KB | PDF 1MB</div>
                   </div>
                 </div>
                 
@@ -781,9 +787,13 @@ export default function FeedbackPanel({ role = 'parent' }) {
                     <span className="font-semibold">Drag files</span> or{' '}
                     <label className="cursor-pointer font-bold text-violet-600 hover:text-violet-700 hover:underline">
                       browse computer
-                      <input type="file" className="sr-only" multiple onChange={(e) => setAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                      <input type="file" className="sr-only" multiple onChange={(e) => {
+                        const valid = filterValidFiles(e.target.files);
+                        if (valid.length) setAttachments(prev => [...prev, ...valid]);
+                        e.target.value = '';
+                      }} />
                     </label>
-                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max file size: 2MB</div>
+                    <div className="text-[9px] font-medium text-slate-400 mt-0.5">Max size: Image 500KB | PDF 1MB</div>
                   </div>
                 </div>
                 
@@ -1090,7 +1100,11 @@ export default function FeedbackPanel({ role = 'parent' }) {
                               )}>
                                 <Paperclip className="h-3.5 w-3.5" />
                                 <span>Attach</span>
-                                <input type="file" className="sr-only" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                                <input type="file" className="sr-only" multiple onChange={(e) => {
+                                  const valid = filterValidFiles(e.target.files);
+                                  if (valid.length) setReplyAttachments(prev => [...prev, ...valid]);
+                                  e.target.value = '';
+                                }} />
                               </label>
                               <Button 
                                 size="sm" 

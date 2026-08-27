@@ -137,9 +137,9 @@ export default function SettingsPage() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check size limit (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Maximum file size allowed is 2MB');
+    // Check size limit (500KB)
+    if (file.size > 500 * 1024) {
+      toast.error('Maximum logo image size allowed is 500KB');
       return;
     }
 

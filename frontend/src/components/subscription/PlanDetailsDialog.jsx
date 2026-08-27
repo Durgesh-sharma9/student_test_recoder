@@ -581,7 +581,17 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
                                   type="file"
                                   accept="image/png,image/jpeg,image/jpg"
                                   className="hidden"
-                                  onChange={(e) => setForm((s) => ({ ...s, screenshot: e.target.files?.[0] || null }))}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      if (file.size > 500 * 1024) {
+                                        toast.error('Screenshot image size cannot exceed 500KB');
+                                        e.target.value = '';
+                                        return;
+                                      }
+                                      setForm((s) => ({ ...s, screenshot: file }));
+                                    }
+                                  }}
                                 />
                               </label>
                             </FormField>

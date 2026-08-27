@@ -19,7 +19,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 1 * 1024 * 1024, // 1MB overall limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -31,11 +31,12 @@ const upload = multer({
       'image/jpeg',
       'image/jpg',
       'image/png',
+      'image/webp',
     ];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
+    if (!allowedTypes.includes(file.mimetype)) {
+      cb(new Error('Invalid file type. Allowed types: PDF, DOC, DOCX, XLSX, CSV, JPG, JPEG, PNG, WEBP'));
     } else {
-      cb(new Error('Invalid file type. Allowed types: PDF, DOC, DOCX, XLSX, CSV, JPG, JPEG, PNG'));
+      cb(null, true);
     }
   },
 });

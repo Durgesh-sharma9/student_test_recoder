@@ -19,11 +19,11 @@ const router = Router();
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 500 * 1024 }, // 500KB limit for screenshot images
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Invalid file type. Allowed types: JPG, JPEG, PNG'));
+    else cb(new Error('Invalid file type. Allowed types: JPG, JPEG, PNG, WEBP'));
   },
 });
 

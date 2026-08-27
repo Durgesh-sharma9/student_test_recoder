@@ -979,14 +979,26 @@ export default function ManageUsers() {
               <FormField label="Attachment (Optional)">
                 <Input
                   type="file"
-                  accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx,.xlsx,.csv,.jpg,.jpeg,.png,.webp"
                   className="h-9 text-[10px] bg-white shadow-sm cursor-pointer pt-2"
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      const maxSize = 10 * 1024 * 1024;
-                      if (file.size > maxSize) {
-                        toast.error('File size exceeds 10MB limit');
+                      const isPdf = file.type === 'application/pdf' || file.name?.toLowerCase().endsWith('.pdf');
+                      const isImage = file.type?.startsWith('image/');
+                      if (isImage && file.size > 500 * 1024) {
+                        toast.error('Image size cannot exceed 500KB');
+                        e.target.value = '';
+                        return;
+                      }
+                      if (isPdf && file.size > 1024 * 1024) {
+                        toast.error('PDF size cannot exceed 1MB');
+                        e.target.value = '';
+                        return;
+                      }
+                      if (!isImage && !isPdf && file.size > 1024 * 1024) {
+                        toast.error('File size cannot exceed 1MB');
+                        e.target.value = '';
                         return;
                       }
                       setAttachmentFile(file);

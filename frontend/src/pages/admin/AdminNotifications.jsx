@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { filterValidFiles } from '@/utils/fileValidation';
 import { PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1'];
@@ -1185,7 +1186,11 @@ export default function AdminNotifications() {
                     <label className="cursor-pointer flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
                       <Paperclip className="h-3.5 w-3.5" />
                       <span>Attach Files</span>
-                      <input type="file" className="hidden" multiple onChange={(e) => setCreateAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                      <input type="file" className="hidden" multiple onChange={(e) => {
+                        const valid = filterValidFiles(e.target.files);
+                        if (valid.length) setCreateAttachments(prev => [...prev, ...valid]);
+                        e.target.value = '';
+                      }} />
                     </label>
                     {createAttachments.length > 0 && (
                       <span className="text-[10px] font-bold text-indigo-600">{createAttachments.length} file(s)</span>
@@ -2001,7 +2006,11 @@ export default function AdminNotifications() {
                     <label className="cursor-pointer flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-bold text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">
                       <div className="bg-slate-100 p-1 rounded-md shadow-inner"><Paperclip className="h-3 w-3" /></div>
                       <span>Attach File</span>
-                      <input type="file" className="hidden" multiple onChange={(e) => setReplyAttachments(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                      <input type="file" className="hidden" multiple onChange={(e) => {
+                        const valid = filterValidFiles(e.target.files);
+                        if (valid.length) setReplyAttachments(prev => [...prev, ...valid]);
+                        e.target.value = '';
+                      }} />
                     </label>
                     <Button 
                       onClick={handleSendReply} 
