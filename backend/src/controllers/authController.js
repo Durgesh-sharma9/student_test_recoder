@@ -100,10 +100,18 @@ export const registerSchool = asyncHandler(async (req, res) => {
   }
 
   const existingSchool = await School.findOne({ email: email.toLowerCase() });
-  if (existingSchool) throw new ApiError(400, 'A school with this email already exists.');
+  if (existingSchool) throw new ApiError(400, 'Email already registered. Please login instead.');
 
   const existingUser = await User.findOne({ email: email.toLowerCase() });
-  if (existingUser) throw new ApiError(400, 'Email already in use.');
+  if (existingUser) throw new ApiError(400, 'Email already registered. Please login instead.');
+
+  if (phone) {
+    const existingPhoneSchool = await School.findOne({ phone: phone.trim() });
+    const existingPhoneUser = await User.findOne({ phoneNo: phone.trim() });
+    if (existingPhoneSchool || existingPhoneUser) {
+      throw new ApiError(400, 'Phone number already registered.');
+    }
+  }
 
   // Get trial settings
   const trialSettings = await TrialSettings.getSettings().catch(() => ({ durationDays: 14 }));
@@ -794,16 +802,20 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
 
   // Check if email already exists
   const existingUser = await User.findOne({ email: emailNormalized });
-  if (existingUser) {
+  const existingSchoolEmail = await School.findOne({ email: emailNormalized });
+  if (existingUser || existingSchoolEmail) {
     console.warn('[sendSignupOTP] Rejection: Email already registered:', emailNormalized);
     throw new ApiError(400, 'Email already registered. Please login instead.');
   }
 
-  // Check if school name already exists
-  const existingSchool = await School.findOne({ schoolName: new RegExp(`^${schoolNameTrimmed.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') });
-  if (existingSchool) {
-    console.warn('[sendSignupOTP] Rejection: School name already exists:', schoolNameTrimmed);
-    throw new ApiError(400, 'School name already exists. Please choose a different name.');
+  // Check if phone number already exists (if provided)
+  if (phoneTrimmed) {
+    const existingPhoneUser = await User.findOne({ phoneNo: phoneTrimmed });
+    const existingPhoneSchool = await School.findOne({ phone: phoneTrimmed });
+    if (existingPhoneUser || existingPhoneSchool) {
+      console.warn('[sendSignupOTP] Rejection: Phone number already registered:', phoneTrimmed);
+      throw new ApiError(400, 'Phone number already registered.');
+    }
   }
 
   // Check rate limit for signup OTP (30 second cooldown)
