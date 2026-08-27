@@ -80,15 +80,32 @@ export function AuthProvider({ children }) {
     return res.data.user;
   };
 
+  const setSession = (userData, tokenData) => {
+    if (tokenData) localStorage.setItem('token', tokenData);
+    if (userData) localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData || null);
+    setCachedUser(userData || null);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('selectedSessionId');
     setUser(null);
     setCachedUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user: user || cachedUser, loading, login, parentLogin, logout, isAuthenticated: !!(user || cachedUser) }}>
+    <AuthContext.Provider value={{
+      user: user || cachedUser,
+      loading,
+      login,
+      parentLogin,
+      logout,
+      setUser: setSession,
+      setSession,
+      isAuthenticated: !!(user || cachedUser)
+    }}>
       {children}
     </AuthContext.Provider>
   );

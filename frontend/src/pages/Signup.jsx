@@ -23,13 +23,32 @@ export default function Signup() {
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
+    if (sendingOTP) return;
+
+    if (!form.schoolName.trim() || !form.adminName.trim() || !form.email.trim() || !form.password.trim()) {
+      toast.error('Please fill in all required fields (School Name, Admin Name, Email, Password)');
+      return;
+    }
+
     setSendingOTP(true);
     try {
-      await api.post('/auth/send-signup-otp', form);
+      console.log('[Signup] Sending OTP request body:', { ...form, password: '***' });
+      const res = await api.post('/auth/send-signup-otp', {
+        ...form,
+        email: form.email.toLowerCase().trim(),
+        schoolName: form.schoolName.trim(),
+        adminName: form.adminName.trim(),
+        phone: form.phone.trim(),
+      });
+      console.log('[Signup] Send OTP API response:', res.status, res.data);
       setShowOTP(true);
-      toast.success('OTP sent to your email');
+      toast.success(res.data?.message || 'OTP sent to your email');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send OTP');
+      console.error('[Signup] Send OTP API Error:', err.response?.status, err.response?.data || err.message);
+      const backendMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to send OTP';
+      toast.error(backendMessage);
+      // Ensure we do NOT move to OTP verification step if Send OTP API failed
+      setShowOTP(false);
     } finally {
       setSendingOTP(false);
     }
@@ -37,33 +56,86 @@ export default function Signup() {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    if (otp.length !== 6) {
+    if (loading) return;
+
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length !== 6) {
       toast.error('Please enter a valid 6-digit OTP');
       return;
     }
+
     setLoading(true);
+    let apiSuccess = false;
+    let authUser = null;
+    let authToken = null;
+    let successMessage = '';
+
     try {
-      const res = await api.post('/auth/verify-signup-otp', { email: form.email, otp });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      setUser(res.data.user);
-      setShowSuccess(true);
-      toast.success('Email verified successfully');
-      setTimeout(() => navigate('/admin'), 2000);
+      console.log('[Signup] Verifying OTP request:', { email: form.email.toLowerCase().trim(), otp: cleanOtp });
+      const res = await api.post('/auth/verify-signup-otp', { email: form.email.toLowerCase().trim(), otp: cleanOtp });
+      console.log('[Signup] Verify OTP API response status:', res.status, res.data);
+
+      if (res.data && res.data.success && res.data.token && res.data.user) {
+        apiSuccess = true;
+        authToken = res.data.token;
+        authUser = res.data.user;
+        successMessage = res.data.message || 'Email verified successfully! Redirecting to dashboard...';
+      } else {
+        toast.error(res.data?.message || 'OTP verification failed. Please try again.');
+        setLoading(false);
+        return;
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'OTP verification failed');
-    } finally {
+      console.error('[Signup] Verify OTP API Error:', err.response?.status, err.response?.data || err.message);
+      if (err.response) {
+        const backendMessage = err.response?.data?.message || err.response?.data?.error || 'OTP verification failed';
+        toast.error(backendMessage);
+      } else {
+        console.error('[Signup] Unexpected error during OTP API call:', err);
+        toast.error('An unexpected error occurred. Please try again.');
+      }
       setLoading(false);
+      return;
+    }
+
+    // Process successful OTP verification safely
+    if (apiSuccess) {
+      try {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('user', JSON.stringify(authUser));
+        if (typeof setUser === 'function') {
+          setUser(authUser);
+        }
+      } catch (storageErr) {
+        console.error('[Signup] Error saving session to local storage/context:', storageErr);
+      }
+
+      setShowSuccess(true);
+      toast.success(successMessage);
+      setTimeout(() => {
+        navigate('/admin');
+      }, 1000);
     }
   };
 
   const handleResendOTP = async () => {
+    if (sendingOTP || loading) return;
     setSendingOTP(true);
     try {
-      await api.post('/auth/send-signup-otp', form);
-      toast.success('OTP resent to your email');
+      console.log('[Signup] Resending OTP to:', form.email);
+      const res = await api.post('/auth/send-signup-otp', {
+        ...form,
+        email: form.email.toLowerCase().trim(),
+        schoolName: form.schoolName.trim(),
+        adminName: form.adminName.trim(),
+        phone: form.phone.trim(),
+      });
+      console.log('[Signup] Resend OTP API response:', res.status, res.data);
+      toast.success(res.data?.message || 'OTP resent to your email');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to resend OTP');
+      console.error('[Signup] Resend OTP API Error:', err.response?.status, err.response?.data || err.message);
+      const backendMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to resend OTP';
+      toast.error(backendMessage);
     } finally {
       setSendingOTP(false);
     }
@@ -167,7 +239,9 @@ export default function Signup() {
             <form className="space-y-4" onSubmit={handleVerifyOTP}>
               <FormField label="Enter OTP"><Input className="h-12 text-center text-lg tracking-widest" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required /></FormField>
               <Button className="w-full h-12" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</Button>
-              <Button type="button" onClick={handleResendOTP} variant="ghost" className="w-full">Resend OTP</Button>
+              <Button type="button" onClick={handleResendOTP} variant="ghost" className="w-full" disabled={sendingOTP || loading}>
+                {sendingOTP ? 'Resending OTP...' : 'Resend OTP'}
+              </Button>
             </form>
           )}
 

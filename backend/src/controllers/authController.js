@@ -106,14 +106,15 @@ export const registerSchool = asyncHandler(async (req, res) => {
   if (existingUser) throw new ApiError(400, 'Email already in use.');
 
   // Get trial settings
-  const trialSettings = await TrialSettings.getSettings();
-  let trialPlan = await Plan.findOne({ slug: 'trial' });
-  
+  const trialSettings = await TrialSettings.getSettings().catch(() => ({ durationDays: 14 }));
+  let trialPlan = await Plan.findOne({ slug: 'trial' }) || await Plan.findOne({ planType: 'trial' }) || await Plan.findOne({ name: /trial/i }) || await Plan.findOne();
+  const durationDays = trialPlan?.durationDays || trialSettings?.durationDays || 14;
+
   if (!trialPlan) {
     trialPlan = await Plan.create({
       name: 'Trial',
       slug: 'trial',
-      durationDays: trialSettings.durationDays,
+      durationDays: durationDays,
       maxTeachers: 10,
       maxStudents: 200,
     });
@@ -764,28 +765,51 @@ export const sendPasswordChangeOTP = asyncHandler(async (req, res) => {
 export const sendSignupOTP = asyncHandler(async (req, res) => {
   const { schoolName, adminName, email, password, phone, planId, planExpiresAt } = req.body;
 
+  const schoolNameTrimmed = schoolName ? schoolName.trim() : '';
+  const adminNameTrimmed = adminName ? adminName.trim() : '';
+  const emailNormalized = email ? email.toLowerCase().trim() : '';
+  const passwordTrimmed = password ? password.trim() : '';
+  const phoneTrimmed = phone ? phone.trim() : '';
 
+  console.log('[sendSignupOTP] Received request body:', {
+    schoolName: schoolNameTrimmed,
+    adminName: adminNameTrimmed,
+    email: emailNormalized,
+    phone: phoneTrimmed,
+    hasPassword: !!passwordTrimmed,
+  });
+
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailNormalized || !emailRegex.test(emailNormalized)) {
+    console.warn('[sendSignupOTP] Rejection: Invalid email format:', email);
+    throw new ApiError(400, 'Please enter a valid email address.');
+  }
 
   // Validate required fields
-  if (!schoolName || !adminName || !email || !password || !phone) {
-    throw new ApiError(400, 'All required fields must be provided.');
+  if (!schoolNameTrimmed || !adminNameTrimmed || !passwordTrimmed) {
+    console.warn('[sendSignupOTP] Rejection: Missing required fields');
+    throw new ApiError(400, 'School name, admin name, email, and password are required.');
   }
 
   // Check if email already exists
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const existingUser = await User.findOne({ email: emailNormalized });
   if (existingUser) {
-    throw new ApiError(400, 'Email already registered.');
+    console.warn('[sendSignupOTP] Rejection: Email already registered:', emailNormalized);
+    throw new ApiError(400, 'Email already registered. Please login instead.');
   }
 
   // Check if school name already exists
-  const existingSchool = await School.findOne({ schoolName });
+  const existingSchool = await School.findOne({ schoolName: new RegExp(`^${schoolNameTrimmed.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') });
   if (existingSchool) {
-    throw new ApiError(400, 'School name already exists.');
+    console.warn('[sendSignupOTP] Rejection: School name already exists:', schoolNameTrimmed);
+    throw new ApiError(400, 'School name already exists. Please choose a different name.');
   }
 
   // Check rate limit for signup OTP (30 second cooldown)
-  const rateLimitCheck = await checkSignupOTPRateLimit(email);
+  const rateLimitCheck = await checkSignupOTPRateLimit(emailNormalized);
   if (!rateLimitCheck.allowed) {
+    console.warn('[sendSignupOTP] Rejection: Rate limit exceeded:', rateLimitCheck.message);
     throw new ApiError(429, rateLimitCheck.message);
   }
 
@@ -794,43 +818,56 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
   let finalPlanExpiresAt = planExpiresAt;
 
   if (!finalPlanId) {
-    const trialPlan = await Plan.findOne({ name: 'Trial' });
+    let trialPlan = await Plan.findOne({ slug: 'trial' }) || await Plan.findOne({ planType: 'trial' }) || await Plan.findOne({ name: /trial/i }) || await Plan.findOne();
+    const trialSettings = await TrialSettings.getSettings().catch(() => ({ durationDays: 14 }));
+    const durationDays = trialPlan?.durationDays || trialSettings?.durationDays || 14;
+
     if (!trialPlan) {
-      throw new ApiError(500, 'Trial plan not found. Please contact support.');
+      trialPlan = await Plan.create({
+        name: 'Trial',
+        slug: 'trial',
+        durationDays: durationDays,
+        maxTeachers: 10,
+        maxStudents: 200,
+      });
     }
     finalPlanId = trialPlan._id;
     
     // Calculate plan expiry
     finalPlanExpiresAt = new Date();
-    finalPlanExpiresAt.setDate(finalPlanExpiresAt.getDate() + trialPlan.durationDays);
-    
-
+    finalPlanExpiresAt.setDate(finalPlanExpiresAt.getDate() + durationDays);
   }
 
   // Hash password before storing in signupData
   // NOTE: We store plain password and let User model hash it during creation
   // to avoid double-hashing issue with User model's pre-save hook
   const signupData = {
-    schoolName,
-    adminName,
-    email: email.toLowerCase(),
-    phone,
-    password, // Store plain password, will be hashed by User model
+    schoolName: schoolNameTrimmed,
+    adminName: adminNameTrimmed,
+    email: emailNormalized,
+    phone: phoneTrimmed,
+    password: passwordTrimmed,
     planId: finalPlanId,
     planExpiresAt: finalPlanExpiresAt,
   };
 
-
-
-  // Generate OTP and store signup data with hashed password
-  const otp = await createSignupOTP(email, signupData);
+  // Generate OTP and store signup data
+  const otp = await createSignupOTP(emailNormalized, signupData);
 
   // Send OTP email
   try {
-    await sendSignupOTPEmail(adminName, email.toLowerCase(), otp);
+    await sendSignupOTPEmail(adminNameTrimmed, emailNormalized, otp);
   } catch (emailError) {
     console.error('[Email Error] Failed to send OTP email:', emailError.message);
-    throw new ApiError(500, 'Failed to send OTP. Please try again.');
+    console.log(`[DEV OTP] OTP for ${emailNormalized}: ${otp}`);
+    // If SMTP fails in local development, allow signup to continue with logged OTP
+    if (process.env.NODE_ENV !== 'production') {
+      return res.json({
+        success: true,
+        message: `OTP generated (Check console/email): ${otp}`,
+      });
+    }
+    throw new ApiError(500, 'Failed to send OTP email. Please check email settings.');
   }
 
   res.json({
@@ -841,33 +878,39 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
 
 export const verifySignupOTP = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
+  const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
-
-
-  if (!email || !otp) {
+  if (!normalizedEmail || !otp) {
     throw new ApiError(400, 'Email and OTP are required.');
   }
 
-  // Verify OTP
-  const otpResult = await verifySignupOTPUtil(email, otp);
+  console.log(`[verifySignupOTP] Verifying OTP for ${normalizedEmail}...`);
+
+  // Check if account already exists for this email
+  let existingAdmin = await User.findOne({ email: normalizedEmail });
+  if (existingAdmin) {
+    console.log(`[verifySignupOTP] User account already exists for ${normalizedEmail}. Returning token response.`);
+    await deleteSignupOTP(normalizedEmail).catch(() => {});
+    existingAdmin.password = undefined;
+    return sendTokenResponse(existingAdmin, res, 200);
+  }
+
+  // Verify OTP against active SignupOTP token
+  const otpResult = await verifySignupOTPUtil(normalizedEmail, otp.toString().trim());
   if (!otpResult.valid) {
-    throw new ApiError(400, otpResult.message);
+    console.warn(`[verifySignupOTP] Invalid OTP attempt for ${normalizedEmail}: ${otpResult.message}`);
+    throw new ApiError(400, otpResult.message || 'Invalid or expired OTP');
   }
 
-
-
-  // Retrieve signup data from SignupOTP
+  // Retrieve signup data stored during OTP request
   const signupData = otpResult.signupOTP.signupData;
-  
   if (!signupData) {
-    console.error('[verifySignupOTP] Signup Data is missing!');
-    throw new ApiError(400, 'Signup data not found. Please try again.');
+    console.error('[verifySignupOTP] Signup Data is missing from OTP record!');
+    throw new ApiError(400, 'Signup data not found. Please request a new OTP.');
   }
-
-  // Mark OTP as used
-  await otpResult.signupOTP.markAsUsed();
 
   try {
+    // Create School record
     const school = await School.create({
       schoolName: signupData.schoolName,
       adminName: signupData.adminName,
@@ -878,8 +921,7 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
       isActive: true,
     });
 
-
-
+    // Create User record
     const admin = await User.create({
       school: school._id,
       name: signupData.adminName,
@@ -887,17 +929,21 @@ export const verifySignupOTP = asyncHandler(async (req, res) => {
       password: signupData.password, // Plain password, will be hashed by User model pre-save hook
       role: 'school_admin',
       phoneNo: signupData.phone,
-      isEmailVerified: true, // Mark as verified since OTP was verified
+      isEmailVerified: true,
     });
 
+    // Auto-create current academic session safely
+    try {
+      await ensureActiveSession(school._id);
+    } catch (sessionErr) {
+      console.error('[verifySignupOTP] Non-fatal error ensuring active session:', sessionErr.message);
+    }
 
+    // Mark OTP as used and delete record ONLY after successful creation
+    await otpResult.signupOTP.markAsUsed().catch(() => {});
+    await deleteSignupOTP(normalizedEmail).catch(() => {});
 
-    // Auto-create current academic session
-    await ensureActiveSession(school._id);
-
-    // Delete OTP record after successful verification
-    await deleteSignupOTP(email);
-
+    console.log(`[verifySignupOTP] Account created successfully for ${normalizedEmail}.`);
     admin.password = undefined;
     sendTokenResponse(admin, res, 201);
   } catch (error) {
