@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import NotificationPanel from '@/components/NotificationPanel';
 import AnnouncementModal from '@/components/AnnouncementModal';
 import LockedFeatureDialog from '@/components/subscription/LockedFeatureDialog';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 const getDisplayName = (user) => {
   if (!user) return 'User';
@@ -262,24 +263,22 @@ export default function DashboardLayout() {
       <aside className={cn('fixed inset-y-0 left-0 z-[60] flex flex-col border-r border-slate-200/80 bg-white shadow-2xl transition-all duration-300 lg:sticky lg:top-0 lg:h-screen lg:z-30 lg:shadow-sm', isCollapsed ? 'lg:w-20' : 'lg:w-56 w-[270px] xs:w-72', open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0')}>
         
         <div className={cn(
-          "flex h-16 items-center border-b border-slate-100 px-3.5 transition-all whitespace-nowrap shrink-0 bg-slate-50/50 justify-between",
-          isCollapsed ? "lg:justify-center gap-0 px-2" : "gap-2"
+          "relative flex h-16 items-center border-b border-slate-100 transition-all whitespace-nowrap shrink-0 bg-white",
+          isCollapsed ? "justify-center px-2" : "justify-start pl-6 pr-10"
         )}>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-indigo-500/20">
-              <GraduationCap className="h-4 w-4" />
-            </div>
-            <div className={cn("transition-opacity duration-200 flex-1 min-w-0", isCollapsed ? "lg:hidden" : "block")}>
-              <p className="text-[13.5px] font-extrabold tracking-tight bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent uppercase leading-none">Test Master</p>
-              <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 mt-1 leading-none">Pro Management</p>
-            </div>
-          </div>
+          {/* Logo */}
+          <NavLink 
+            to={user?.role === 'super_admin' ? '/super-admin' : user?.role === 'teacher' ? '/teacher' : user?.role === 'parent' ? '/parent/dashboard' : '/admin'} 
+            className="flex items-center select-none hover:opacity-90 transition-opacity"
+          >
+            <BrandLogo className={cn("w-auto object-contain transition-all", isCollapsed ? "h-6.5 max-h-[26px] mx-auto" : "h-7.5 max-h-[30px]")} />
+          </NavLink>
 
           {/* Desktop Collapse/Expand Toggle Button */}
           <Button 
             variant="ghost" 
             size="icon" 
-            className="hidden lg:flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-lg h-7 w-7 shrink-0 transition-colors cursor-pointer"
+            className="hidden lg:flex absolute right-2.5 top-1/2 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/80 rounded-lg h-7 w-7 transition-colors cursor-pointer"
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -291,8 +290,8 @@ export default function DashboardLayout() {
           </Button>
 
           {/* Mobile Close Button */}
-          <Button variant="ghost" size="icon" className="ml-auto lg:hidden text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl h-8.5 w-8.5 transition-colors" onClick={() => setOpen(false)}>
-            <X className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 lg:hidden text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl h-8 w-8 transition-colors" onClick={() => setOpen(false)}>
+            <X className="h-4 w-4" />
           </Button>
         </div>
         
