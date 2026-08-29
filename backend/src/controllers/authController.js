@@ -122,9 +122,10 @@ export const registerSchool = asyncHandler(async (req, res) => {
     trialPlan = await Plan.create({
       name: 'Trial',
       slug: 'trial',
+      planType: 'trial',
       durationDays: durationDays,
-      maxTeachers: 10,
-      maxStudents: 200,
+      maxTeachers: 5,
+      maxStudents: 20,
     });
   }
 
@@ -838,9 +839,10 @@ export const sendSignupOTP = asyncHandler(async (req, res) => {
       trialPlan = await Plan.create({
         name: 'Trial',
         slug: 'trial',
+        planType: 'trial',
         durationDays: durationDays,
-        maxTeachers: 10,
-        maxStudents: 200,
+        maxTeachers: 5,
+        maxStudents: 20,
       });
     }
     finalPlanId = trialPlan._id;

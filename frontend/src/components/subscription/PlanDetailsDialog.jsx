@@ -1,29 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreditCard, Timer, Upload, CheckCircle2 } from 'lucide-react';
+import { CreditCard, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogBody } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/erp/PagePrimitives';
-import { SUBSCRIPTION_FEATURES } from '@/lib/subscriptionFeatures';
 import { useSubscription } from '@/context/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import { firePlanActiveConfetti } from '@/utils/confetti';
 
 const cycleLabel = (cycle) =>
   cycle === 'yearly' ? 'Yearly' : 'Monthly';
-// Helper to get display price from plan object
-// Priority: finalPrice > price > basePrice
-// Never returns 0 if any valid price exists
-const getDisplayPrice = (plan) => {
-  const finalPrice = Number(plan?.finalPrice ?? 0);
-  if (finalPrice > 0) return finalPrice;
-  const price = Number(plan?.price ?? 0);
-  if (price > 0) return price;
-  return Number(plan?.basePrice ?? 0);
-};
 
 export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   const navigate = useNavigate();
@@ -31,11 +20,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
   const [loading, setLoading] = useState(false);
   const [planData, setPlanData] = useState(null);
   const [settings, setSettings] = useState(null);
-  const [qr, setQr] = useState(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const timerRef = useRef(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('upi');
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
 
   useEffect(() => {
@@ -54,9 +39,6 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
 
   const [form, setForm] = useState({
     mobileNumber: '',
-    state: '',
-    utr: '',
-    screenshot: null,
     couponCode: '',
   });
   const [submitted, setSubmitted] = useState(false);
@@ -76,75 +58,21 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       const paymentSettings = settingsRes.data.settings;
       setSettings(paymentSettings);
       setSelectedPlanId(idToLoad);
-      setPaymentMethod('razorpay');
-      
-      const plan = planRes.data.plan;
-      
-      console.table([{
-        slug: plan.slug,
-        basePrice: plan.basePrice,
-        finalPrice: plan.finalPrice,
-        price: plan.price,
-        taxEnabled: plan.tax?.enabled,
-        taxPercentage: plan.tax?.percentage
-      }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const regenerateQr = async (activePlanId) => {
-    if (!activePlanId) return;
-    const res = await api.post('/subscriptions/upi-qr', { 
-      planId: activePlanId,
-      couponCode: form.couponCode,
-    });
-    setQr(res.data.qr);
-    setSecondsLeft(res.data.qr.expiresInSeconds || 300);
-    setPricing(res.data.pricing);
-    setAppliedCoupon(res.data.pricing?.appliedCoupon || null);
-  };
-
   useEffect(() => {
     if (!open) return;
     setSubmitted(false);
-    setForm({ mobileNumber: '', state: '', utr: '', screenshot: null, couponCode: '' });
+    setForm({ mobileNumber: '', couponCode: '' });
     setAppliedCoupon(null);
     setPricing(null);
     setSelectedPlanId(null);
     load().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, planId]);
-
-  // When planData is loaded, generate QR
-  useEffect(() => {
-    if (!open) return;
-    const activePlanId = planData?.plan?._id || planData?.plan?._id === 0 ? planData.plan._id : planId;
-    if (!activePlanId) return;
-    regenerateQr(activePlanId).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, planData?.plan?._id]);
-
-  // Countdown timer
-  useEffect(() => {
-    if (!open) return;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (secondsLeft === 0 && qr?.upiUri) {
-      const activePlanId = planData?.plan?._id || planId;
-      regenerateQr(activePlanId).catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft, open]);
 
   const plan = planData?.plan;
   const comparison = (planData?.comparison || []).filter(c => c.billingCycle === 'monthly' || c.billingCycle === 'yearly');
@@ -154,7 +82,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     
     // Reset form when switching plans
     setSubmitted(false);
-    setForm({ mobileNumber: '', state: '', utr: '', screenshot: null, couponCode: '' });
+    setForm({ mobileNumber: '', couponCode: '' });
     setAppliedCoupon(null);
     setPricing(null);
     
@@ -211,35 +139,6 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       toast.error(error.response?.data?.message || 'Invalid coupon code');
       setAppliedCoupon(null);
       setPricing(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submit = async () => {
-    if (!plan?._id) return;
-    if (!form.utr?.trim()) {
-      toast.error('Please enter UPI Transaction ID / UTR');
-      return;
-    }
-    setLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append('planId', plan._id);
-      fd.append('utr', form.utr);
-      if (form.mobileNumber) fd.append('mobileNumber', form.mobileNumber);
-      if (form.state) fd.append('state', form.state);
-      if (form.screenshot) fd.append('screenshot', form.screenshot);
-      if (form.couponCode) fd.append('couponCode', form.couponCode);
-
-      await api.post('/subscriptions/requests', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      setSubmitted(true);
-      toast.success('Payment request submitted');
-      localStorage.setItem('pending_activation_plan_id', plan._id);
-      refreshSubscription().catch(() => {});
     } finally {
       setLoading(false);
     }
@@ -480,7 +379,10 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
               <div className="space-y-3">
                 <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                    <p className="text-xs font-extrabold text-slate-900">Online Checkout</p>
+                    <p className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      Razorpay Online Checkout
+                    </p>
                     <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
                       ⚡ Instant Activation
                     </span>
@@ -593,3 +495,5 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
     </Dialog>
   );
 }
+
+
