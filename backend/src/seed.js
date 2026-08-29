@@ -33,7 +33,9 @@ const seed = async () => {
     upiId: 'schooladmin@upi',
     merchantName: 'School Daily Test',
     qrExpiryMinutes: 5,
-    razorpayEnabled: false,
+    razorpayEnabled: true,
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TNFrLSunBdtmcv',
+    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'rYqvnc8Q8GqIpXT6ZSNKp7Ly',
     updatedBy: superAdmin._id,
   });
 

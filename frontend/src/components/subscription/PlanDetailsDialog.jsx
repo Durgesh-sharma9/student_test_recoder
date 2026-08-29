@@ -76,11 +76,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       const paymentSettings = settingsRes.data.settings;
       setSettings(paymentSettings);
       setSelectedPlanId(idToLoad);
-      if (paymentSettings?.razorpayEnabled) {
-        setPaymentMethod('razorpay');
-      } else {
-        setPaymentMethod('upi');
-      }
+      setPaymentMethod('razorpay');
       
       const plan = planRes.data.plan;
       
@@ -181,14 +177,40 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       });
       
       if (res.data.success) {
-        setAppliedCoupon(res.data.coupon);
-        // Regenerate QR with coupon
-        await regenerateQr(selectedPlanId);
-        toast.success('Coupon applied successfully');
+        const coupon = res.data.coupon;
+        setAppliedCoupon(coupon);
+
+        const rawBase = Number(plan?.basePrice ?? plan?.price ?? 0);
+        let discount = 0;
+        if (coupon.discountType === 'percentage') {
+          discount = (rawBase * Number(coupon.discountValue || 0)) / 100;
+        } else {
+          discount = Number(coupon.discountValue || 0);
+        }
+        discount = Math.min(rawBase, discount);
+        const discPrice = Math.max(0, rawBase - discount);
+
+        const hasTax = Boolean(plan?.tax?.enabled);
+        const taxRate = hasTax ? Number(plan?.tax?.percentage ?? 18) : 0;
+        const taxAmt = hasTax ? (discPrice * taxRate) / 100 : 0;
+        const finalAmt = discPrice + taxAmt;
+
+        setPricing({
+          basePrice: rawBase,
+          discountAmount: discount,
+          discountedPrice: discPrice,
+          taxPercentage: taxRate,
+          taxAmount: taxAmt,
+          finalAmount: finalAmt,
+          appliedCoupon: coupon,
+        });
+
+        toast.success(`Coupon "${coupon.code}" applied! (${coupon.discountValue}% OFF)`);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Invalid coupon');
+      toast.error(error.response?.data?.message || 'Invalid coupon code');
       setAppliedCoupon(null);
+      setPricing(null);
     } finally {
       setLoading(false);
     }
@@ -246,7 +268,8 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
         couponCode: form.couponCode,
       });
       
-      const { order } = res.data;
+      const { order, keyId } = res.data;
+      const razorpayKey = keyId || settings?.razorpayKeyId || 'rzp_test_TNFrLSunBdtmcv';
 
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
@@ -256,7 +279,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       }
 
       const options = {
-        key: settings.razorpayKeyId,
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency,
         name: 'School ERP',
@@ -340,343 +363,231 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
           }
         }}
       >
-        <DialogHeader className="pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-indigo-600" />
-            Plan Details
+        <DialogHeader className="pb-3 border-b border-slate-100">
+          <DialogTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900">
+            <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+              <CreditCard className="h-4 w-4" />
+            </div>
+            Plan Details & Upgrade
           </DialogTitle>
-          <DialogDescription className="text-sm">View plan features and submit a manual UPI payment request.</DialogDescription>
+          <DialogDescription className="text-xs text-slate-500">
+            Review features, apply valid coupon codes, and upgrade instantly via Razorpay.
+          </DialogDescription>
         </DialogHeader>
 
         {loading && !plan ? (
-          <div className="p-4 pt-0 text-sm text-slate-500">Loading...</div>
+          <div className="p-6 text-center text-xs font-semibold text-slate-500">Loading plan details...</div>
         ) : null}
 
         {!loading && plan ? (
-          <DialogBody className="p-4 pt-0 overflow-y-auto">
+          <DialogBody className="p-4 overflow-y-auto space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
-            {/* Left - Plan Details */}
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Plan</p>
-                <p className="mt-1 text-xl font-extrabold text-slate-900">{plan.name}</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {cycleLabel(plan.billingCycle)} · {plan.planType?.toUpperCase?.() || ''}
-                </p>
-
-                {plan.highlights && plan.highlights.length > 0 && plan.highlights.some(h => h) && (
-                  <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Highlights</p>
-                    <ul className="mt-2 space-y-1">
-                      {plan.highlights.filter(h => h).map((highlight, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                          <span className="mt-1 h-1 w-1 rounded-full bg-emerald-500" />
-                          {highlight}
-                        </li>
-                      ))}
-                    </ul>
+              {/* Left - Plan Details & Price Summary */}
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="inline-block rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 uppercase tracking-wider border border-purple-100">
+                        {plan.planType?.toUpperCase?.() || 'PLAN'}
+                      </span>
+                      <h3 className="mt-1 text-lg font-black text-slate-900">{plan.name}</h3>
+                      <p className="text-xs font-medium text-slate-500">{cycleLabel(plan.billingCycle)} Subscription</p>
+                    </div>
                   </div>
-                )}
 
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-                    <span className="text-xs font-medium text-slate-600">Base Price</span>
-                    <span className="text-sm font-bold text-slate-900">₹{basePrice.toFixed(2)}</span>
-                  </div>
-                  {discountAmount > 0 && (
-                    <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2">
-                      <span className="text-xs font-medium text-emerald-700">Coupon Discount</span>
-                      <span className="text-sm font-bold text-emerald-900">-₹{discountAmount.toFixed(2)}</span>
+                  {plan.highlights && plan.highlights.length > 0 && plan.highlights.some(h => h) && (
+                    <div className="mt-3.5 pt-3 border-t border-slate-100">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Included Features</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {plan.highlights.filter(h => h).map((highlight, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                            <span>{highlight}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
-                  {taxEnabled && (
-                    <div className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2">
-                      <span className="text-xs font-medium text-amber-700">GST ({taxPercentage}%)</span>
-                      <span className="text-sm font-bold text-amber-900">₹{taxAmount.toFixed(2)}</span>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-600">
+                      <span>Base Price</span>
+                      <span className="font-bold text-slate-900">₹{basePrice.toFixed(2)}</span>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2">
-                    <span className="text-xs font-semibold text-indigo-700">Final Price</span>
-                    <span className="text-lg font-extrabold text-indigo-900">₹{finalAmount.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold text-slate-900">Compare Plans</p>
-                <div className="mt-3 space-y-1">
-                  {comparison.map((c) => {
-                    const isSelected = c.planId === selectedPlanId;
-                    return (
-                      <div
-                        key={c.billingCycle}
-                        onClick={() => handleComparisonClick(c)}
-                        className={cn(
-                          'flex items-center justify-between rounded-lg px-3 py-2 text-xs cursor-pointer transition-all',
-                          isSelected
-                            ? 'bg-indigo-50 border-2 border-indigo-200'
-                            : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'
-                        )}
-                      >
-                        <span className="font-medium text-slate-700">{c.label}</span>
-                        <span className="font-semibold text-slate-900">
-                          {c.price ? `₹${Number(c.price).toFixed(2)}` : '-'}
-                          {c.savePercent !== null && c.billingCycle !== 'monthly' ? (
-                            <span className="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                              Save {c.savePercent}%
-                            </span>
-                          ) : null}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  </div>
-                </div>
-              </div>
-                       {/* Right - Payment */}
-            <div className="space-y-3">
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold text-slate-900">Payment</p>
-                {!settings?.upiId && !settings?.razorpayEnabled ? (
-                  <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs text-rose-700">
-                    Super Admin has not configured any payment settings yet.
-                  </div>
-                ) : (
-                  <>
-                    {/* Method Selector if both are enabled */}
-                    {settings?.razorpayEnabled && settings?.upiId && (
-                      <div className="mt-3 flex gap-2 border-b border-slate-100 pb-3">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('razorpay')}
-                          className={cn(
-                            'flex-1 rounded-lg py-2 text-xs font-bold transition-all border',
-                            paymentMethod === 'razorpay'
-                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          )}
-                        >
-                          Instant Payment (Razorpay)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('upi')}
-                          className={cn(
-                            'flex-1 rounded-lg py-2 text-xs font-bold transition-all border',
-                            paymentMethod === 'upi'
-                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          )}
-                        >
-                          Manual UPI QR Code
-                        </button>
-                      </div>
-                    )}
-
-                    {paymentMethod === 'upi' ? (
+                    {discountAmount > 0 && (
                       <>
-                        {!settings?.upiId ? (
-                          <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-xs text-rose-700">
-                            Super Admin has not configured the UPI ID yet.
-                          </div>
-                        ) : (
-                          <div className="mt-4 flex flex-col items-center gap-3">
-                            {qr?.dataUrl ? (
-                              <img
-                                src={qr.dataUrl}
-                                alt="UPI QR"
-                                className="h-52 w-52 rounded-xl border border-slate-200 bg-white p-3 shadow-lg"
-                              />
-                            ) : (
-                              <div className="flex h-52 w-52 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500">
-                                Generating QR...
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2 text-xs text-slate-700">
-                              <Timer className="h-4 w-4 text-indigo-600" />
-                              Expires in <span className="font-bold text-indigo-900">{secondsLeft}s</span>
-                              <Button variant="outline" size="sm" onClick={() => regenerateQr(plan._id)} disabled={loading} className="h-7 px-2 text-xs">
-                                Regenerate
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="mt-4 flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
-                        <CreditCard className="h-10 w-10 text-indigo-500 mb-2" />
-                        <p className="text-xs font-bold text-slate-800">Instant Activation via Razorpay</p>
-                        <p className="mt-1 text-[10px] text-slate-500 max-w-xs">
-                          Pay securely using cards, Netbanking, wallets, or UPI. Your plan will be upgraded instantly once verified.
-                        </p>
-                      </div>
-                    )}
-
-                    {!submitted ? (
-                      <div className="mt-4 space-y-3">
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <FormField label="Mobile Number">
-                            <Input
-                              placeholder="Optional"
-                              value={form.mobileNumber}
-                              onChange={(e) => setForm((s) => ({ ...s, mobileNumber: e.target.value }))}
-                              className="h-9 text-sm"
-                            />
-                          </FormField>
-                          <FormField label="State">
-                            <Input
-                              placeholder="Optional"
-                              value={form.state}
-                              onChange={(e) => setForm((s) => ({ ...s, state: e.target.value }))}
-                              className="h-9 text-sm"
-                            />
-                          </FormField>
-                        </div>
-
-                        <FormField label="Coupon Code (Optional)">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="TTP20"
-                              value={form.couponCode}
-                              onChange={(e) => setForm((s) => ({ ...s, couponCode: e.target.value.toUpperCase() }))}
-                              disabled={submitted}
-                              className="h-9 text-sm"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={applyCoupon}
-                              disabled={loading || !form.couponCode.trim() || submitted}
-                              className="h-9 px-3 text-xs"
-                            >
-                              Apply
-                            </Button>
-                          </div>
-                          {appliedCoupon && (
-                            <p className="mt-0.5 text-[10px] text-emerald-600">
-                              Coupon applied: {appliedCoupon.discountValue}% discount
-                            </p>
-                          )}
-                        </FormField>
-
-                        {paymentMethod === 'upi' && (
-                          <>
-                            <FormField label="UPI Transaction ID / UTR">
-                              <Input
-                                placeholder="Enter UTR"
-                                value={form.utr}
-                                onChange={(e) => setForm((s) => ({ ...s, utr: e.target.value }))}
-                                required
-                                className="h-9 text-sm"
-                              />
-                            </FormField>
-
-                            <FormField label="Payment Screenshot (Optional)">
-                              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 transition-colors">
-                                <span className="flex items-center gap-2">
-                                  <Upload className="h-3 w-3 text-slate-500" />
-                                  {form.screenshot ? form.screenshot.name : 'Upload Image'}
-                                </span>
-                                <input
-                                  type="file"
-                                  accept="image/png,image/jpeg,image/jpg"
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      if (file.size > 500 * 1024) {
-                                        toast.error('Screenshot image size cannot exceed 500KB');
-                                        e.target.value = '';
-                                        return;
-                                      }
-                                      setForm((s) => ({ ...s, screenshot: file }));
-                                    }
-                                  }}
-                                />
-                              </label>
-                            </FormField>
-                          </>
-                        )}
-
-                        {paymentMethod === 'razorpay' ? (
-                          <Button onClick={handleRazorpayPayment} disabled={loading} className="w-full h-10 text-sm">
-                            {loading ? 'Processing...' : 'Pay via Razorpay'}
-                          </Button>
-                        ) : (
-                          <Button onClick={submit} disabled={loading || !settings?.upiId} className="w-full h-10 text-sm">
-                            {loading ? 'Submitting...' : 'Submit Payment Request'}
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                        <div className="flex items-start gap-3">
-                          <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm">
-                            <CheckCircle2 className="h-6 w-6" />
+                        <div className="flex items-center justify-between rounded-xl bg-emerald-50/90 p-2 border border-emerald-200/70 text-xs">
+                          <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                            🏷️ Coupon ({appliedCoupon?.code || form.couponCode}) · {appliedCoupon?.discountValue}% OFF
                           </span>
-                          <div>
-                            <p className="text-sm font-extrabold text-emerald-900">
-                              {paymentMethod === 'razorpay' ? 'Payment Successful!' : 'Payment Request Submitted'}
-                            </p>
-                            <p className="mt-1 text-xs text-emerald-800">
-                              {paymentMethod === 'razorpay'
-                                ? 'Your subscription has been activated instantly. You now have full access to your plan benefits.'
-                                : 'Your payment request has been received. Our team will verify your payment. Please wait up to 12 hours.'}
-                            </p>
-                            <div className="mt-2 inline-flex rounded-lg bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-900">
-                              Status: {paymentMethod === 'razorpay' ? 'Active' : 'Pending Verification'}
-                            </div>
-                          </div>
+                          <span className="font-black text-emerald-700">-₹{discountAmount.toFixed(2)}</span>
                         </div>
+                        <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                          <span>Subtotal after discount</span>
+                          <span className="font-bold text-slate-800">₹{discountedPrice.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
 
-                        <div className="mt-4 flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              onOpenChange(false);
-                            }}
-                            className="h-8 text-xs"
-                          >
-                            Close
-                          </Button>
-                          <Button
-                            variant="success"
-                            onClick={() => {
-                              onOpenChange(false);
-                              navigate('/admin');
-                            }}
-                            className="h-8 text-xs"
-                          >
-                            Back to Dashboard
-                          </Button>
-                        </div>
+                    {taxEnabled && (
+                      <div className="flex items-center justify-between text-xs text-amber-800 bg-amber-50/60 p-2 rounded-xl border border-amber-100">
+                        <span>GST ({taxPercentage}%)</span>
+                        <span className="font-bold text-amber-900">₹{taxAmount.toFixed(2)}</span>
                       </div>
                     )}
-                  </>
-                )}
+
+                    <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 p-2.5 border border-indigo-100 shadow-sm">
+                      <span className="text-xs font-black text-indigo-950">Final Payable Amount</span>
+                      <span className="text-base font-black text-indigo-700">₹{finalAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+                  <p className="text-xs font-extrabold text-slate-900">Compare Cycles</p>
+                  <div className="mt-2 space-y-1.5">
+                    {comparison.map((c) => {
+                      const isSelected = c.planId === selectedPlanId;
+                      return (
+                        <div
+                          key={c.billingCycle}
+                          onClick={() => handleComparisonClick(c)}
+                          className={cn(
+                            'flex items-center justify-between rounded-xl px-3 py-2 text-xs cursor-pointer transition-all',
+                            isSelected
+                              ? 'bg-indigo-50/80 border-2 border-indigo-300 font-bold text-indigo-900 shadow-xs'
+                              : 'bg-slate-50 border border-slate-200/60 text-slate-600 hover:bg-slate-100/70'
+                          )}
+                        >
+                          <span className="font-semibold">{c.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span>{c.price ? `₹${Number(c.price).toFixed(2)}` : '-'}</span>
+                            {c.savePercent !== null && c.billingCycle !== 'monthly' ? (
+                              <span className="rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">
+                                Save {c.savePercent}%
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right - Payment Checkout */}
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                    <p className="text-xs font-extrabold text-slate-900">Online Checkout</p>
+                    <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ⚡ Instant Activation
+                    </span>
+                  </div>
+
+                  <div className="mt-3.5 flex flex-col items-center justify-center p-3.5 text-center rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-purple-50/30 to-white shadow-xs">
+                    <CreditCard className="h-7 w-7 text-indigo-600 mb-1" />
+                    <p className="text-xs font-black text-slate-900">100% Secure via Razorpay</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500 max-w-xs leading-relaxed">
+                      Supports Cards, GPay, PhonePe, Paytm, Netbanking & Wallets.
+                    </p>
+                  </div>
+
+                  {!submitted ? (
+                    <div className="mt-4 space-y-3.5">
+                      <FormField label="Mobile Number (Optional)">
+                        <Input
+                          placeholder="e.g. 9876543210"
+                          value={form.mobileNumber}
+                          onChange={(e) => setForm((s) => ({ ...s, mobileNumber: e.target.value }))}
+                          className="h-9 text-xs rounded-xl border-slate-200"
+                        />
+                      </FormField>
+
+                      <FormField label="Coupon Code">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="ENTER CODE (e.g. TTP20)"
+                            value={form.couponCode}
+                            onChange={(e) => setForm((s) => ({ ...s, couponCode: e.target.value.toUpperCase() }))}
+                            disabled={submitted}
+                            className="h-9 text-xs font-extrabold uppercase rounded-xl border-slate-200 tracking-wider"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={applyCoupon}
+                            disabled={loading || !form.couponCode.trim() || submitted}
+                            className="h-9 px-4 text-xs font-bold rounded-xl border-indigo-200 hover:bg-indigo-50 text-indigo-700"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                        {appliedCoupon && (
+                          <p className="mt-1 text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                            ✓ Coupon "{appliedCoupon.code}" applied ({appliedCoupon.discountValue}% discount)
+                          </p>
+                        )}
+                      </FormField>
+
+                      <Button
+                        onClick={handleRazorpayPayment}
+                        disabled={loading}
+                        className="w-full h-10 text-xs font-black rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md transition-all cursor-pointer"
+                      >
+                        {loading ? 'Processing Payment...' : `Pay ₹${finalAmount.toFixed(2)} with Razorpay`}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs shrink-0">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-black text-emerald-950">
+                            Payment Successful!
+                          </p>
+                          <p className="mt-1 text-xs text-emerald-800 leading-relaxed font-medium">
+                            Your plan has been upgraded instantly. All features are now active.
+                          </p>
+                          <div className="mt-2 inline-flex rounded-lg bg-white px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-700 border border-emerald-200">
+                            Status: Active
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => onOpenChange(false)}
+                          className="h-8 text-xs font-bold rounded-xl"
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            onOpenChange(false);
+                            navigate('/admin');
+                          }}
+                          className="h-8 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          Back to Dashboard
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
           </DialogBody>
         ) : null}
 
-        <DialogFooter>
-          {!submitted ? (
-            <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
-              {paymentMethod === 'razorpay' ? (
-                <Button variant="success" onClick={handleRazorpayPayment} disabled={loading}>
-                  {loading ? 'Processing...' : 'Pay via Razorpay'}
-                </Button>
-              ) : (
-                <Button variant="success" onClick={submit} disabled={loading || !settings?.upiId}>
-                  {loading ? 'Submitting...' : 'Submit Payment Request'}
-                </Button>
-              )}
-            </>
-          ) : null}
+        <DialogFooter className="py-2.5 px-4 border-t border-slate-100">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-8 text-xs font-bold rounded-xl">
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

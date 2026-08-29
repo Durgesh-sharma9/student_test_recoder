@@ -97,20 +97,15 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
 
 export const getPaymentSettings = asyncHandler(async (req, res) => {
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
+  const razorpayKeyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '';
   res.json({
     success: true,
-    settings: settings ? {
-      upiId: settings.upiId || '',
-      merchantName: settings.merchantName || '',
-      qrExpiryMinutes: settings.qrExpiryMinutes || 5,
-      razorpayEnabled: Boolean(settings.razorpayEnabled),
-      razorpayKeyId: settings.razorpayKeyId || '',
-    } : {
-      upiId: '',
-      merchantName: '',
-      qrExpiryMinutes: 5,
-      razorpayEnabled: false,
-      razorpayKeyId: '',
+    settings: {
+      upiId: settings?.upiId || '',
+      merchantName: settings?.merchantName || '',
+      qrExpiryMinutes: settings?.qrExpiryMinutes || 5,
+      razorpayEnabled: settings ? (settings.razorpayEnabled !== false) : true,
+      razorpayKeyId,
     },
   });
 });
@@ -454,11 +449,8 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     PaymentSettings.findOne().sort('-updatedAt -createdAt'),
   ]);
 
-  if (!plan || !plan.isActive) throw new ApiError(404, 'Plan not found');
-  if (!settings || !settings.razorpayEnabled) throw new ApiError(400, 'Razorpay payments are not enabled by Super Admin');
-
-  const keyId = settings.razorpayKeyId || process.env.RAZORPAY_KEY_ID;
-  const keySecret = settings.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
+  const keyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID;
+  const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
 
   if (!keyId || !keySecret) throw new ApiError(500, 'Razorpay is not fully configured (missing Key ID or Secret)');
 
@@ -517,6 +509,7 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
+    keyId,
     order: {
       id: order.id,
       amount: order.amount,
@@ -552,9 +545,8 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
 
   if (!requestedPlan || !requestedPlan.isActive) throw new ApiError(404, 'Requested plan not found');
   if (!school) throw new ApiError(400, 'School not found');
-  if (!settings || !settings.razorpayEnabled) throw new ApiError(400, 'Razorpay payments are disabled');
 
-  const keySecret = settings.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
+  const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
   if (!keySecret) throw new ApiError(500, 'Razorpay Key Secret is not configured');
 
   // Verify signature
