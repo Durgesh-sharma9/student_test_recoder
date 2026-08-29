@@ -12,7 +12,7 @@ import { FormField } from '@/components/erp/PagePrimitives';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Signup() {
-  const { setUser } = useAuth();
+  const { setSession } = useAuth();
   const [form, setForm] = useState({ schoolName: '', adminName: '', email: '', phone: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [sendingOTP, setSendingOTP] = useState(false);
@@ -79,7 +79,7 @@ export default function Signup() {
         apiSuccess = true;
         authToken = res.data.token;
         authUser = res.data.user;
-        successMessage = res.data.message || 'Email verified successfully! Redirecting to dashboard...';
+        successMessage = res.data.message || 'Email verified successfully! Logging you in...';
       } else {
         toast.error(res.data?.message || 'OTP verification failed. Please try again.');
         setLoading(false);
@@ -99,12 +99,13 @@ export default function Signup() {
     }
 
     // Process successful OTP verification safely
-    if (apiSuccess) {
+    if (apiSuccess && authToken && authUser) {
       try {
-        localStorage.setItem('token', authToken);
-        localStorage.setItem('user', JSON.stringify(authUser));
-        if (typeof setUser === 'function') {
-          setUser(authUser);
+        if (typeof setSession === 'function') {
+          setSession(authUser, authToken);
+        } else {
+          localStorage.setItem('token', authToken);
+          localStorage.setItem('user', JSON.stringify(authUser));
         }
       } catch (storageErr) {
         console.error('[Signup] Error saving session to local storage/context:', storageErr);
@@ -112,9 +113,15 @@ export default function Signup() {
 
       setShowSuccess(true);
       toast.success(successMessage);
+      
+      const role = authUser.role === 'admin' ? 'school_admin' : authUser.role;
       setTimeout(() => {
-        navigate('/admin');
-      }, 1000);
+        if (role === 'super_admin') navigate('/super-admin');
+        else if (role === 'school_admin') navigate('/admin');
+        else if (role === 'teacher') navigate('/teacher');
+        else if (role === 'parent') navigate('/parent');
+        else navigate('/admin');
+      }, 800);
     }
   };
 

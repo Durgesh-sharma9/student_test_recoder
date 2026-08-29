@@ -99,9 +99,12 @@ export function AuthProvider({ children }) {
   };
 
   const setSession = (userData, tokenData) => {
-    clearAllAuthStorage();
-    if (tokenData) localStorage.setItem('token', tokenData);
-    if (userData) localStorage.setItem('user', JSON.stringify(userData));
+    if (tokenData) {
+      localStorage.setItem('token', tokenData);
+    }
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
     setUser(userData || null);
     setCachedUser(userData || null);
   };
@@ -119,7 +122,7 @@ export function AuthProvider({ children }) {
       login,
       parentLogin,
       logout,
-      setUser: setSession,
+      setUser: (u) => setSession(u),
       setSession,
       isAuthenticated: !!(user || cachedUser)
     }}>
