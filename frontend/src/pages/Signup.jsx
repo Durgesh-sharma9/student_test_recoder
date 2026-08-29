@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   GraduationCap, School, Mail, ArrowLeft, ShieldCheck, 
-  CheckCircle2, UserCircle, Briefcase, PieChart, ClipboardList 
+  CheckCircle2, UserCircle, Briefcase, PieChart, ClipboardList,
+  Phone
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,24 @@ import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/erp/PagePrimitives';
 import { useAuth } from '@/context/AuthContext';
 
+const COUNTRY_CODES = [
+  { code: '+91', iso: 'in', name: 'India', flag: '🇮🇳' },
+  { code: '+1', iso: 'us', name: 'US / Canada', flag: '🇺🇸' },
+  { code: '+44', iso: 'gb', name: 'UK', flag: '🇬🇧' },
+  { code: '+971', iso: 'ae', name: 'UAE', flag: '🇦🇪' },
+  { code: '+966', iso: 'sa', name: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: '+977', iso: 'np', name: 'Nepal', flag: '🇳🇵' },
+  { code: '+880', iso: 'bd', name: 'Bangladesh', flag: '🇧🇩' },
+  { code: '+61', iso: 'au', name: 'Australia', flag: '🇦🇺' },
+  { code: '+65', iso: 'sg', name: 'Singapore', flag: '🇸🇬' },
+  { code: '+60', iso: 'my', name: 'Malaysia', flag: '🇲🇾' },
+];
+
 export default function Signup() {
   const { setSession } = useAuth();
-  const [form, setForm] = useState({ schoolName: '', adminName: '', email: '', phone: '', password: '' });
+  const [form, setForm] = useState({ schoolName: '', adminName: '', email: '', password: '' });
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingOTP, setSendingOTP] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
@@ -30,15 +46,23 @@ export default function Signup() {
       return;
     }
 
+    const cleanPhone = phoneNumber.trim();
+    if (cleanPhone && cleanPhone.length !== 10) {
+      toast.error('Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    const fullPhone = cleanPhone ? `${countryCode} ${cleanPhone}` : '';
+
     setSendingOTP(true);
     try {
-      console.log('[Signup] Sending OTP request body:', { ...form, password: '***' });
+      console.log('[Signup] Sending OTP request body:', { ...form, phone: fullPhone, password: '***' });
       const res = await api.post('/auth/send-signup-otp', {
         ...form,
         email: form.email.toLowerCase().trim(),
         schoolName: form.schoolName.trim(),
         adminName: form.adminName.trim(),
-        phone: form.phone.trim(),
+        phone: fullPhone,
       });
       console.log('[Signup] Send OTP API response:', res.status, res.data);
       setShowOTP(true);
@@ -47,7 +71,6 @@ export default function Signup() {
       console.error('[Signup] Send OTP API Error:', err.response?.status, err.response?.data || err.message);
       const backendMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to send OTP';
       toast.error(backendMessage);
-      // Ensure we do NOT move to OTP verification step if Send OTP API failed
       setShowOTP(false);
     } finally {
       setSendingOTP(false);
@@ -127,6 +150,9 @@ export default function Signup() {
 
   const handleResendOTP = async () => {
     if (sendingOTP || loading) return;
+    const cleanPhone = phoneNumber.trim();
+    const fullPhone = cleanPhone ? `${countryCode} ${cleanPhone}` : '';
+
     setSendingOTP(true);
     try {
       console.log('[Signup] Resending OTP to:', form.email);
@@ -135,7 +161,7 @@ export default function Signup() {
         email: form.email.toLowerCase().trim(),
         schoolName: form.schoolName.trim(),
         adminName: form.adminName.trim(),
-        phone: form.phone.trim(),
+        phone: fullPhone,
       });
       console.log('[Signup] Resend OTP API response:', res.status, res.data);
       toast.success(res.data?.message || 'OTP resent to your email');
@@ -233,7 +259,31 @@ export default function Signup() {
               <FormField label="School Name"><Input placeholder="School Name" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} required /></FormField>
               <FormField label="Admin Name"><Input placeholder="Admin Name" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} required /></FormField>
               <FormField label="Email"><Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
-              <FormField label="Phone"><Input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></FormField>
+              
+              <FormField label="Mobile Number">
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:outline-none shrink-0"
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code + c.iso} value={c.code}>
+                        {c.flag} {c.code}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    type="tel"
+                    placeholder="10-digit mobile number"
+                    value={phoneNumber}
+                    maxLength={10}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="flex-1"
+                  />
+                </div>
+              </FormField>
+
               <FormField label="Password"><Input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></FormField>
               <Button className="w-full h-12 mt-2" disabled={sendingOTP}>{sendingOTP ? 'Sending OTP...' : 'Send OTP'}</Button>
             </form>
@@ -259,4 +309,4 @@ export default function Signup() {
       </div>
     </div>
   );
-}
+}

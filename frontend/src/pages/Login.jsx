@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -113,7 +113,7 @@ export default function Login() {
               <GraduationCap className="h-7 w-7" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-900">School Portal</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">School ERP</h2>
               <p className="text-xs text-slate-500">Academic & Result Management</p>
             </div>
           </div>
@@ -178,6 +178,10 @@ export default function Login() {
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-slate-500">
+            Don't have an account? <Link to="/signup" className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">Sign up</Link>
+          </p>
         </div>
       </div>
     </div>
