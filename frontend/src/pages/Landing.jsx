@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import BrandLogo from "@/components/brand/BrandLogo";
 import {
   GraduationCap, BarChart3, Users, BookOpen, Trophy,
   Calendar, ArrowRight, ClipboardList, FileSpreadsheet,
@@ -209,16 +210,16 @@ export default function Landing() {
         .btn-ghost-white:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
 
         /* ── NAV ── */
-        .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);transition:box-shadow .3s}
+        .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:box-shadow .3s}
         .nav.scrolled{box-shadow:0 4px 24px rgba(0,0,0,.07)}
-        .nav-inner{max-width:1160px;margin:0 auto;padding:0 32px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:32px}
-        .logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:800;color:var(--text)}
-        .logo-mark{width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#2563eb);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.4)}
+        .nav-inner{max-width:1160px;margin:0 auto;padding:0 28px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+        .logo{display:flex;align-items:center;text-decoration:none;outline:none;}
+        .logo img{height:36px;max-height:38px;width:auto;object-fit:contain;}
         .nav-links{display:flex;align-items:center;gap:28px;font-size:14px;font-weight:600;color:var(--text-2)}
         .nav-links a:hover{color:var(--text)}
         .nav-actions{display:flex;gap:10px;align-items:center}
         
-        .mobile-menu-btn { display: none; background: none; font-size: 24px; padding: 10px; border: none; cursor: pointer; color: var(--text); }
+        .mobile-menu-btn { display: none; background: none; font-size: 24px; padding: 8px; border: none; cursor: pointer; color: var(--text); }
         .mobile-menu { 
           display: none; 
           background: #fff; 
@@ -507,9 +508,15 @@ export default function Landing() {
           .footer-bottom { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; text-align: left !important; border-top: 1px solid #1e293b !important; padding-top: 20px !important; }
           .footer-copy { font-size: 11px !important; }
           .footer-legal { font-size: 11px !important; gap: 16px !important; }
+          .nav-inner { padding: 0 20px !important; height: 62px !important; }
+          .logo img { height: 32px !important; }
+          .mobile-menu { top: 62px !important; }
         }
 
         @media (max-width: 480px) {
+          .nav-inner { padding: 0 16px !important; height: 58px !important; }
+          .logo img { height: 28px !important; }
+          .mobile-menu { top: 58px !important; }
           h1.hero-h1 { font-size: 28px; }
           .pc-price { font-size: 32px; }
         }
@@ -521,10 +528,9 @@ export default function Landing() {
       {/* ── NAV ── */}
       <nav className={`nav${scrolled ? " scrolled" : ""}`}>
         <div className="nav-inner">
-          <div className="logo">
-            <div className="logo-mark"><GraduationCap size={18} /></div>
-            Test Master Pro
-          </div>
+          <Link to="/" className="logo hover:opacity-90 transition-opacity" style={{ textDecoration: 'none' }}>
+            <BrandLogo className="h-8 sm:h-9 md:h-[36px]" />
+          </Link>
           <div className="nav-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
@@ -590,8 +596,8 @@ export default function Landing() {
             </div>
             <div className="dash-kpis">
               {[
-                { lbl: "STUDENTS", val: "12,540", delta: "↑ 4.2%", bar: "linear-gradient(90deg,#6366f1,#3b82f6)" },
-                { lbl: "TESTS DONE", val: "1,250", delta: "↑ 12%", bar: "linear-gradient(90deg,#10b981,#06b6d4)" },
+                { lbl: "STUDENTS", val: "2,450", delta: "↑ 8.4%", bar: "linear-gradient(90deg,#6366f1,#3b82f6)" },
+                { lbl: "TESTS DONE", val: "480", delta: "↑ 15%", bar: "linear-gradient(90deg,#10b981,#06b6d4)" },
                 { lbl: "TOP RANK", val: "#1", delta: "Class A", bar: "linear-gradient(90deg,#f59e0b,#f97316)" },
                 { lbl: "UPTIME", val: "99.9%", delta: "30 days", bar: "linear-gradient(90deg,#ec4899,#8b5cf6)" },
               ].map(k => (
@@ -626,10 +632,10 @@ export default function Landing() {
       {/* ── STATS ── */}
       <div className="stats-section" ref={statsRef}>
         <div className="stats-inner">
-          <StatCard value={100} suffix="+" label="Schools" icon={Building2} gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0} inView={statsVisible} />
-          <StatCard value={15000} suffix="" label="Students" icon={Users} gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80} inView={statsVisible} />
-          <StatCard value={800} suffix="+" label="Teachers" icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
-          <StatCard value={50000} suffix="+" label="Results generated" icon={FileText} gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
+          <StatCard value={20} suffix="+" label="Schools" icon={Building2} gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0} inView={statsVisible} />
+          <StatCard value={5000} suffix="+" label="Students" icon={Users} gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80} inView={statsVisible} />
+          <StatCard value={200} suffix="+" label="Teachers" icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
+          <StatCard value={15000} suffix="+" label="Results generated" icon={FileText} gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
         </div>
       </div>
 
@@ -866,9 +872,10 @@ export default function Landing() {
           <div className="footer-inner">
             <div className="footer-top">
               <div className="footer-brand">
-                <div className="footer-logo">
-                  <div className="footer-logo-mark"><GraduationCap size={16} /></div>
-                  Test Master Pro
+                <div className="footer-logo mb-3">
+                  <div className="inline-flex bg-white rounded-xl px-2.5 py-1 shadow-sm">
+                    <BrandLogo className="h-9" />
+                  </div>
                 </div>
                 <p className="footer-desc">Test Master Pro is a cloud-based School Result & Daily Test Management Platform that helps schools manage students, teachers, exams, rankings and parent communication efficiently.</p>
                 <div className="footer-socials">
