@@ -129,6 +129,9 @@ export default function SuperPlans() {
   };
 
   const openEdit = (plan) => {
+    const rawHighlights = Array.isArray(plan.highlights) ? plan.highlights : [];
+    const highlights = Array.from({ length: 5 }, (_, i) => rawHighlights[i] || '');
+
     setForm({
       name: plan.name || '',
       billingCycle: plan.billingCycle || 'monthly',
@@ -143,7 +146,7 @@ export default function SuperPlans() {
       maxTeachers: Number(plan.maxTeachers ?? 50),
       studentCapacityType: plan.studentCapacityType || 'limited',
       maxStudents: Number(plan.maxStudents ?? 500),
-      highlights: Array.isArray(plan.highlights) ? [...plan.highlights] : ['', '', '', '', ''],
+      highlights,
     });
     setDialog({ open: true, mode: 'edit', plan });
   };
