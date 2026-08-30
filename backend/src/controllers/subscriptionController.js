@@ -312,9 +312,16 @@ export const submitSubscriptionRequest = asyncHandler(async (req, res) => {
   const finalAmount = discountedPrice + taxAmount;
 
   // Calculate new expiry date
-  const currentExpiry = school.planExpiresAt || new Date();
+  const isCurrentPlanTrial =
+    currentPlan?.planType === 'trial' ||
+    currentPlan?.slug === 'trial' ||
+    /trial/i.test(currentPlan?.name || '');
+  const now = new Date();
+  const baseDate = (!isCurrentPlanTrial && school.planExpiresAt && school.planExpiresAt > now)
+    ? school.planExpiresAt
+    : now;
   const durationDays = requestedPlan.durationDays || 30;
-  const newExpiry = new Date(currentExpiry);
+  const newExpiry = new Date(baseDate);
   newExpiry.setDate(newExpiry.getDate() + durationDays);
 
   // Create pending SubscriptionRequest for Super Admin approval
@@ -587,12 +594,18 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
 
   // Plan activation logic (immediate since Razorpay is fully verified)
   const currentPlan = school.plan;
-  const currentExpiry = school.planExpiresAt || new Date();
+  const isCurrentPlanTrial =
+    currentPlan?.planType === 'trial' ||
+    currentPlan?.slug === 'trial' ||
+    /trial/i.test(currentPlan?.name || '');
   const durationDays = requestedPlan.durationDays || 30;
   
   // Calculate new expiry date
+  // If currently on trial (or already expired), start fresh from now (leftover trial days cut ho jayenge)
   const now = new Date();
-  const baseDate = school.planExpiresAt && school.planExpiresAt > now ? school.planExpiresAt : now;
+  const baseDate = (!isCurrentPlanTrial && school.planExpiresAt && school.planExpiresAt > now)
+    ? school.planExpiresAt
+    : now;
   const newExpiry = new Date(baseDate);
   newExpiry.setDate(newExpiry.getDate() + durationDays);
 

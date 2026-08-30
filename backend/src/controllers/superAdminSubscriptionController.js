@@ -120,9 +120,18 @@ export const approveSubscriptionRequest = asyncHandler(async (req, res) => {
   if (!plan || !plan.isActive) throw new ApiError(404, 'Requested plan not found');
 
   // Activate plan and extend expiry
+  const currentPlan = school.plan ? await Plan.findById(school.plan) : null;
+  const isCurrentPlanTrial =
+    currentPlan?.planType === 'trial' ||
+    currentPlan?.slug === 'trial' ||
+    /trial/i.test(currentPlan?.name || '');
+
   school.plan = plan._id;
   const now = new Date();
-  const base = school.planExpiresAt && school.planExpiresAt > now ? school.planExpiresAt : now;
+  // If currently on trial (or already expired), start fresh from now (cut leftover trial days)
+  const base = (!isCurrentPlanTrial && school.planExpiresAt && school.planExpiresAt > now)
+    ? school.planExpiresAt
+    : now;
   school.planExpiresAt = new Date(base.getTime() + Number(plan.durationDays || 30) * 86400000);
   await school.save();
 

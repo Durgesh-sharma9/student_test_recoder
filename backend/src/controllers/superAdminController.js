@@ -226,17 +226,27 @@ export const updateSchoolStatus = asyncHandler(async (req, res) => {
 
 export const extendSchoolPlan = asyncHandler(async (req, res) => {
   const { planId, extendDays } = req.body;
-  const school = await School.findById(req.params.id);
+  const school = await School.findById(req.params.id).populate('plan');
   if (!school) throw new ApiError(404, 'School not found.');
+
+  const isCurrentPlanTrial =
+    school.plan?.planType === 'trial' ||
+    school.plan?.slug === 'trial' ||
+    /trial/i.test(school.plan?.name || '');
+
+  const now = new Date();
 
   if (planId) {
     const plan = await Plan.findById(planId);
     if (!plan) throw new ApiError(404, 'Plan not found.');
     school.plan = plan._id;
-    const base = school.planExpiresAt > new Date() ? school.planExpiresAt : new Date();
-    school.planExpiresAt = new Date(base.getTime() + plan.durationDays * 86400000);
+    // If currently on trial (or already expired), start fresh from now (cut leftover trial days)
+    const base = (!isCurrentPlanTrial && school.planExpiresAt && school.planExpiresAt > now)
+      ? school.planExpiresAt
+      : now;
+    school.planExpiresAt = new Date(base.getTime() + Number(plan.durationDays || 30) * 86400000);
   } else if (extendDays) {
-    const base = school.planExpiresAt > new Date() ? school.planExpiresAt : new Date();
+    const base = school.planExpiresAt && school.planExpiresAt > now ? school.planExpiresAt : now;
     school.planExpiresAt = new Date(base.getTime() + Number(extendDays) * 86400000);
   }
 
