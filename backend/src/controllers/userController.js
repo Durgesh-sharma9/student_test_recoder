@@ -247,7 +247,9 @@ export const createUser = asyncHandler(async (req, res) => {
         const school = await School.findById(schoolId);
         const schoolName = school?.schoolName || 'Your School';
         
-        const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+        const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+          ? `${process.env.CLIENT_URL}/login`
+          : 'https://testmaster.webncode.in/login';
         
         
 
@@ -427,7 +429,9 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
         try {
           const school = await School.findById(schoolId);
           const schoolName = school?.schoolName || 'Your School';
-          const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+          const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+            ? `${process.env.CLIENT_URL}/login`
+            : 'https://testmaster.webncode.in/login';
 
           
 
@@ -477,7 +481,9 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
       try {
         const school = await School.findById(schoolId);
         const schoolName = school?.schoolName || 'Your School';
-        const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+        const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+          ? `${process.env.CLIENT_URL}/login`
+          : 'https://testmaster.webncode.in/login';
 
         
 
@@ -612,7 +618,9 @@ export const assignTeacherWorkload = asyncHandler(async (req, res) => {
   try {
     const school = await School.findById(teacher.school);
     const schoolName = school?.schoolName || 'Your School';
-    const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? `${process.env.CLIENT_URL}/login`
+      : 'https://testmaster.webncode.in/login';
     
     const updated = await User.findById(teacher._id)
       .select('-password')
@@ -672,7 +680,9 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
   try {
     const school = await School.findById(teacher.school);
     const schoolName = school?.schoolName || 'Your School';
-    const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+    const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? `${process.env.CLIENT_URL}/login`
+      : 'https://testmaster.webncode.in/login';
 
     
 

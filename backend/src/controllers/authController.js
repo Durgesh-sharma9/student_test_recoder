@@ -405,7 +405,9 @@ export const resetTeacherPassword = asyncHandler(async (req, res) => {
     
     const school = await School.findById(schoolId);
     const schoolName = school?.schoolName || 'Your School';
-    const loginUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/login`;
+    const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? `${process.env.CLIENT_URL}/login`
+      : 'https://testmaster.webncode.in/login';
 
     await sendTeacherCreationEmail(
       schoolName,

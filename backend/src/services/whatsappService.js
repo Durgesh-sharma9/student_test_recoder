@@ -45,6 +45,8 @@ export const sendTeacherWhatsAppCredentials = async ({
       cleanPhone = `91${cleanPhone}`;
     }
 
+    const targetUrl = loginUrl || 'https://testmaster.webncode.in/login';
+
     const messageText = `🏫 *Welcome to ${schoolName}!*
 
 Dear *${teacherName}*,
@@ -52,7 +54,7 @@ Your Teacher account has been created successfully. Below are your login credent
 
 📧 *Email:* ${email}
 🔑 *Password:* ${password}
-🌐 *Login Portal:* ${loginUrl}
+🌐 *Login Portal:* ${targetUrl} (testmaster.webncode.in)
 
 Please keep your login credentials safe and secure.`;
 

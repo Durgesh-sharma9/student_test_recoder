@@ -88,14 +88,10 @@ export const sendTeacherCreationEmail = async (
   password,
   loginUrl
 ) => {
-  
-  
-  
-  
-  
-  
-  
-  
+  const targetLoginUrl = (loginUrl && !loginUrl.includes('localhost') && !loginUrl.includes('127.0.0.1'))
+    ? loginUrl
+    : 'https://testmaster.webncode.in/login';
+  const displayPortalUrl = 'testmaster.webncode.in';
 
   // Verify SMTP configuration before sending
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -170,6 +166,13 @@ export const sendTeacherCreationEmail = async (
                 <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Temporary Password</p>
                 <p style="color: #667eea; font-size: 18px; margin: 0; font-weight: 700; letter-spacing: 1px;">${password}</p>
               </div>
+
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Login Portal / Website</p>
+                <p style="margin: 0;">
+                  <a href="${targetLoginUrl}" style="color: #667eea; font-size: 16px; font-weight: 600; text-decoration: underline;">${displayPortalUrl}</a>
+                </p>
+              </div>
               
               <div style="margin-bottom: 15px;">
                 <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">School</p>
@@ -190,9 +193,13 @@ export const sendTeacherCreationEmail = async (
               </p>
             </div>
 
-            <!-- Login Button -->
+            <!-- Login Button & Direct Link -->
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">Login To Portal</a>
+              <a href="${targetLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">Login To Portal</a>
+              <div style="margin-top: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 4px;">Login URL:</p>
+                <a href="${targetLoginUrl}" style="color: #667eea; font-size: 15px; font-weight: 600; text-decoration: underline;">https://${displayPortalUrl}</a>
+              </div>
             </div>
 
             <!-- Footer -->
@@ -222,13 +229,15 @@ You can now login to the Test Master Pro portal.
 Login Details:
 Email: ${teacherEmail}
 Temporary Password: ${password}
+Login Portal: https://${displayPortalUrl} (${targetLoginUrl})
 School: ${schoolName}
 Role: Teacher
 
 Security Notice:
 Please change your password immediately after your first login.
 
-Login To Portal: ${loginUrl}
+Login To Portal: ${targetLoginUrl}
+Website: https://${displayPortalUrl}
 
 Regards,
 ${schoolName}
@@ -532,10 +541,10 @@ export const sendTeacherAssignmentEmail = async (
   schoolName = 'Your School',
   loginUrl = ''
 ) => {
-  
-  
-  
-  
+  const targetLoginUrl = (loginUrl && !loginUrl.includes('localhost') && !loginUrl.includes('127.0.0.1'))
+    ? loginUrl
+    : 'https://testmaster.webncode.in/login';
+  const displayPortalUrl = 'testmaster.webncode.in';
 
   const classesList = assignedClasses
     .map((c) => `<li style="color: #212529; font-size: 15px; margin: 8px 0; padding-left: 20px; position: relative;">• ${c}</li>`)
@@ -598,9 +607,13 @@ export const sendTeacherAssignmentEmail = async (
               </p>
             </div>
 
-            <!-- Login Button -->
+            <!-- Login Button & Direct Link -->
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">Open Teacher Portal</a>
+              <a href="${targetLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">Open Teacher Portal</a>
+              <div style="margin-top: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 4px;">Login Portal:</p>
+                <a href="${targetLoginUrl}" style="color: #667eea; font-size: 15px; font-weight: 600; text-decoration: underline;">https://${displayPortalUrl}</a>
+              </div>
             </div>
 
             <!-- Footer -->
@@ -631,7 +644,8 @@ ${assignedSubjects.length > 0 ? assignedSubjects.map(s => `• ${s}`).join('\n')
 
 Please login to your teacher portal to view your latest teaching assignments and responsibilities.
 
-Open Teacher Portal: ${loginUrl}
+Open Teacher Portal: ${targetLoginUrl}
+Website: https://${displayPortalUrl}
 
 Regards,
 ${schoolName}
