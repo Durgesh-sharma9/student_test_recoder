@@ -15,7 +15,7 @@ export const generateStudentImportTemplate = async () => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Students');
 
-  const headers = ['Admission No', 'Roll No', 'Student Name', 'Gender', 'Admission Date', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
+  const headers = ['Admission No', 'Roll No', 'Student Name', 'Gender (Optional)', 'Admission Date', 'Parent/Guardian Name', 'Parent Phone', 'Parent Email (Optional)'];
   sheet.addRow(headers);
 
   const headerRow = sheet.getRow(1);

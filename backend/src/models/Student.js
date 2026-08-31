@@ -7,7 +7,7 @@ const studentSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     rollNo: { type: String, required: true, trim: true },
     class: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
-    gender: { type: String, enum: ['male', 'female', 'other'], required: true },
+    gender: { type: String, enum: ['male', 'female', 'other', '', null], default: '' },
     parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent' },
     admissionDate: { type: Date, required: true },
     admissionNo: { type: String, trim: true },

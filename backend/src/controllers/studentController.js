@@ -442,7 +442,7 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         continue;
       }
 
-      if (!row.gender || !validGenders.includes(row.gender)) {
+      if (row.gender && !validGenders.includes(row.gender)) {
         results.failed++;
         results.errors.push({ row: row.rowNumber, error: 'Gender must be male, female, or other' });
         continue;

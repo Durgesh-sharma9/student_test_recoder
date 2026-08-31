@@ -30,7 +30,7 @@ export default function ManageStudents() {
   
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
   const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -161,7 +161,7 @@ export default function ManageStudents() {
                 toast.success('Student updated');
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -211,7 +211,7 @@ export default function ManageStudents() {
                 
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+                setForm({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
@@ -252,7 +252,7 @@ export default function ManageStudents() {
       }
       setOpen(false); 
       setEdit(null); 
-      setForm({ rollNo: '', name: '', admissionNo: '', gender: 'male', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+      setForm({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
       loadStudents(selectedClass);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
@@ -549,7 +549,7 @@ export default function ManageStudents() {
                     <TableCell className="text-slate-800 text-xs py-2">{s.name}</TableCell>
                     <TableCell className="text-slate-600 text-xs py-2">{s.parent?.parentName || 'N/A'}</TableCell>
                     <TableCell className="text-slate-600 text-xs py-2 text-center">{formatDate(s.admissionDate)}</TableCell>
-                    <TableCell className="capitalize text-slate-600 text-xs py-2">{s.gender}</TableCell>
+                    <TableCell className="capitalize text-slate-600 text-xs py-2">{s.gender || '—'}</TableCell>
                     <TableCell className="text-slate-600 text-xs py-2">
                       {s.isActive ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700">
@@ -573,7 +573,7 @@ export default function ManageStudents() {
                               rollNo: s.rollNo, 
                               name: s.name, 
                               admissionNo: s.admissionNo || '',
-                              gender: s.gender, 
+                              gender: s.gender || '', 
                               admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                               parentName: s.parent?.parentName || s.parentName || '', 
                               parentPhone: s.parent?.phone || s.parentPhone || '', 
@@ -663,10 +663,10 @@ export default function ManageStudents() {
                 </FormField>
 
                 <div className="grid grid-cols-2 gap-3.5">
-                  <FormField label="Gender" required>
-                    <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+                  <FormField label="Gender">
+                    <Select value={form.gender || ''} onValueChange={(v) => setForm({ ...form, gender: v })}>
                       <SelectTrigger className="h-9 rounded-md text-sm bg-white">
-                        <SelectValue />
+                        <SelectValue placeholder="Select Gender (Optional)" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
@@ -939,7 +939,7 @@ export default function ManageStudents() {
                     <ul className="text-[11px] text-slate-600 grid grid-cols-2 gap-1.5">
                       <li>• Roll No (req)</li>
                       <li>• Student Name (req)</li>
-                      <li>• Gender</li>
+                      <li>• Gender (Optional)</li>
                       <li>• Parent Name</li>
                       <li>• Parent Phone</li>
                       <li>• Parent Email</li>
