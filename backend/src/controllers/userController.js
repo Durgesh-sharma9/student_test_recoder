@@ -353,6 +353,28 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
     inactiveByEmail.set(user.email, user);
   });
 
+  // Enforce Teacher Plan Capacity Limit for Bulk Import
+  const schoolDoc = await School.findById(schoolId).populate('plan');
+  if (schoolDoc && schoolDoc.plan) {
+    if (schoolDoc.isExpired) {
+      throw new ApiError(400, 'Your subscription plan has expired. Please upgrade your plan to import teachers.');
+    }
+    if (schoolDoc.plan.teacherCapacityType === 'limited') {
+      const activeTeachers = await User.countDocuments({ school: schoolId, role: 'teacher', isActive: true });
+      const uniqueNewEmails = new Set(
+        records
+          .map((r) => r.email?.trim().toLowerCase())
+          .filter((email) => email && !existingByEmail.has(email))
+      );
+      if (activeTeachers + uniqueNewEmails.size > schoolDoc.plan.maxTeachers) {
+        throw new ApiError(
+          400,
+          `Importing ${uniqueNewEmails.size} teacher(s) would exceed your plan limit (Current: ${activeTeachers}, Max Allowed: ${schoolDoc.plan.maxTeachers}). Please upgrade your subscription plan.`
+        );
+      }
+    }
+  }
+
   
   
 

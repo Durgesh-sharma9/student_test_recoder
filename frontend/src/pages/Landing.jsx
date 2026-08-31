@@ -7,7 +7,8 @@ import {
   Calendar, ArrowRight, ClipboardList, FileSpreadsheet,
   Smartphone, Building2, ChevronRight, Star, Zap, Cloud,
   Lock, TrendingUp, FileText, Play, Check, X, Twitter,
-  Linkedin, Facebook, Instagram, Mail, Phone, MapPin, Gem
+  Linkedin, Facebook, Instagram, Mail, Phone, MapPin, Gem,
+  Activity, Bell, UserPlus, Receipt, Megaphone
 } from "lucide-react";
 // my landing page
 /* ─── animated counter ─── */
@@ -45,7 +46,45 @@ export default function Landing() {
   const [statsVisible, setStatsVisible] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDashTab, setActiveDashTab] = useState(0);
   const statsRef = useRef(null);
+
+  const dashViews = useMemo(() => [
+    {
+      id: "admin",
+      tabLabel: "Admin Overview",
+      icon: Building2,
+      img: "/dashboard-preview.png",
+      alt: "Admin Dashboard Overview",
+      chipTop: { label: "ACCURACY RATE", val: "98.4%", icon: BarChart3, color: "pink" },
+      chipBottom: { label: "LIVE REPORT", val: "Daily Test #1", icon: Bell, color: "green", ping: true }
+    },
+    {
+      id: "daily-test",
+      tabLabel: "Daily Test Analytics",
+      icon: BookOpen,
+      img: "/daily-test-preview.jpg",
+      alt: "Student Daily Test Performance",
+      chipTop: { label: "AVG SCORE", val: "63.6%", icon: TrendingUp, color: "blue" },
+      chipBottom: { label: "ATTENDANCE", val: "95.0%", icon: Check, color: "green", ping: false }
+    },
+    {
+      id: "main-exam",
+      tabLabel: "Main Exam Trends",
+      icon: Trophy,
+      img: "/main-exam-preview.jpg",
+      alt: "Main Exam & Subject Performance",
+      chipTop: { label: "HALF YEARLY", val: "72.5%", icon: Trophy, color: "pink" },
+      chipBottom: { label: "TOP SUBJECT", val: "Chemistry 100%", icon: Star, color: "green", ping: true }
+    }
+  ], []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveDashTab((prev) => (prev + 1) % 3);
+    }, 6500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -287,38 +326,194 @@ export default function Landing() {
         .mobile-menu .btn { width: 100%; justify-content: center; }
 
         /* ── HERO ── */
-        .hero-wrap{max-width:1160px;margin:0 auto;padding:28px 32px 48px}
-        .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-        .hero-pill{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#eef2ff,#fdf4ff);color:#4f46e5;font-size:12px;font-weight:700;padding:7px 18px;border-radius:40px;border:1.5px solid #c7d2fe;margin-bottom:24px;letter-spacing:.02em}
-        .pill-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);flex-shrink:0;box-shadow:0 0 0 3px rgba(16,185,129,.25)}
-        h1.hero-h1{font-size:52px;font-weight:800;line-height:1.08;letter-spacing:-.035em;color:var(--text)}
+        .hero-wrap{max-width:1380px;margin:0 auto;padding:48px 32px 104px}
+        .hero-grid{display:grid;grid-template-columns:0.85fr 1.35fr;gap:40px;align-items:center}
+        .hero-pill{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#eef2ff,#fdf4ff);color:#4f46e5;font-size:12px;font-weight:700;padding:6px 16px;border-radius:40px;border:1.5px solid #c7d2fe;margin-bottom:18px;letter-spacing:.02em}
+        .pill-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);flex-shrink:0;box-shadow:0 0 0 2.5px rgba(16,185,129,.25)}
+        h1.hero-h1{font-size:46px;font-weight:800;line-height:1.12;letter-spacing:-.032em;color:var(--text)}
         .hero-accent{background:linear-gradient(135deg,#6366f1,#ec4899,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-        .hero-sub{font-size:16px;color:var(--text-2);line-height:1.8;margin:20px 0 34px;max-width:490px}
-        .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:38px}
-        .hero-checks{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+        .hero-sub{font-size:15px;color:var(--text-2);line-height:1.7;margin:15px 0 26px;max-width:450px}
+        .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+        .hero-checks{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
         .hc{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--text-2)}
-        .hc-dot{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(16,185,129,.3)}
+        .hc-dot{width:19px;height:19px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2.5px 7px rgba(16,185,129,.25)}
 
-        /* ── DASHBOARD ── */
-        .dash{background:linear-gradient(160deg,#fafbff,#f3f4ff);border:1.5px solid #e0e7ff;border-radius:var(--r-xl);padding:24px;box-shadow:0 24px 80px rgba(99,102,241,.15)}
-        .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-        .dash-title-text{font-size:13px;font-weight:700}
-        .live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:#059669;font-weight:700;font-family:var(--mono);background:linear-gradient(135deg,#ecfdf5,#d1fae5);padding:5px 12px;border-radius:20px;border:1px solid #6ee7b7}
-        .live-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#10b981;display:block;animation:pulse 1.5s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-        .dash-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-        .kpi{background:#fff;border:1px solid #e0e7ff;border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-        .kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
-        .kpi-lbl{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--text-3);margin-bottom:6px;text-transform:uppercase}
-        .kpi-val{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.03em}
-        .kpi-delta{font-size:11px;font-weight:700;color:#059669;margin-top:3px}
-        .dash-chart{background:#fff;border:1px solid #e0e7ff;border-radius:var(--r);padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-        .chart-ttl{font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px}
-        .bars{display:flex;align-items:flex-end;gap:6px;height:76px}
-        .b{flex:1;border-radius:5px 5px 0 0;transition:opacity .2s}
-        .b:hover{opacity:.8}
-        .blabels{display:flex;gap:6px;margin-top:6px}
-        .blabels span{flex:1;text-align:center;font-size:10px;color:var(--text-3);font-family:var(--mono)}
+        /* ── FLOATING DASHBOARD SHOWCASE FRAME ── */
+        .dash-showcase-container{
+          position:relative;
+          padding:14px 6px 38px;
+          width:100%;
+        }
+        .dash-tabs-bar{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:8px;
+          margin-bottom:14px;
+          overflow-x:auto;
+          padding:2px 4px;
+        }
+        .dash-tab-btn{
+          display:inline-flex;
+          align-items:center;
+          gap:6px;
+          padding:6px 14px;
+          border-radius:30px;
+          font-size:11.5px;
+          font-weight:700;
+          color:#64748b;
+          background:#ffffff;
+          border:1px solid #e2e8f0;
+          cursor:pointer;
+          transition:all .2s ease;
+          white-space:nowrap;
+        }
+        .dash-tab-btn:hover{
+          color:#4f46e5;
+          border-color:#c7d2fe;
+          background:#f8faff;
+        }
+        .dash-tab-btn.active{
+          color:#ffffff;
+          background:linear-gradient(135deg,#4f46e5,#6366f1);
+          border-color:#4f46e5;
+          box-shadow:0 4px 12px rgba(79,70,229,0.28);
+        }
+        .dash-main-card{
+          background:#ffffff;
+          border-radius:30px;
+          padding:12px 12px 18px;
+          border:1.5px solid rgba(226,232,240,0.9);
+          box-shadow:0 32px 100px -15px rgba(99,102,241,0.24), 0 12px 35px -10px rgba(0,0,0,0.06);
+          position:relative;
+          transition:transform .35s ease, box-shadow .35s ease;
+        }
+        .dash-main-card:hover{
+          transform:translateY(-3px);
+          box-shadow:0 36px 100px -12px rgba(99,102,241,0.28), 0 16px 36px -10px rgba(0,0,0,0.08);
+        }
+        .dash-img-holder{
+          position:relative;
+          border-radius:20px;
+          overflow:hidden;
+          border:1px solid #f1f5f9;
+          background:#f8fafc;
+        }
+        .dash-img{
+          width:100%;
+          height:auto;
+          display:block;
+          object-fit:contain;
+          transition:opacity .3s ease;
+        }
+        .dash-dots-bar{
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:6px;
+          margin-top:12px;
+        }
+        .dash-dot{
+          height:6px;
+          border-radius:10px;
+          background:#cbd5e1;
+          transition:all .3s ease;
+          cursor:pointer;
+          border:none;
+          padding:0;
+        }
+        .dash-dot.active{
+          width:24px;
+          background:linear-gradient(90deg,#4f46e5,#6366f1);
+        }
+        .dash-dot.inactive{
+          width:6px;
+        }
+
+        /* ── FLOATING CHIPS / BADGES ── */
+        .floating-chip{
+          position:absolute;
+          background:rgba(255,255,255,0.96);
+          backdrop-filter:blur(12px);
+          border:1px solid rgba(226,232,240,0.9);
+          border-radius:18px;
+          padding:10px 16px;
+          display:flex;
+          align-items:center;
+          gap:12px;
+          box-shadow:0 20px 40px -10px rgba(15,23,42,0.18), 0 8px 18px -6px rgba(0,0,0,0.08);
+          z-index:20;
+          pointer-events:none;
+          transition:all .3s ease;
+        }
+        .floating-chip-top{
+          top:-12px;
+          left:-20px;
+          animation:floatSlow 4.5s ease-in-out infinite;
+        }
+        .floating-chip-bottom{
+          bottom:-14px;
+          right:-20px;
+          animation:floatSlowRev 4.5s ease-in-out infinite;
+        }
+        @keyframes floatSlow{
+          0%,100%{transform:translateY(0px)}
+          50%{transform:translateY(-8px)}
+        }
+        @keyframes floatSlowRev{
+          0%,100%{transform:translateY(0px)}
+          50%{transform:translateY(8px)}
+        }
+        .chip-icon{
+          width:38px;
+          height:38px;
+          border-radius:12px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          flex-shrink:0;
+          position:relative;
+        }
+        .chip-icon.pink{
+          background:#fdf2f8;
+          color:#db2777;
+        }
+        .chip-icon.green{
+          background:#ecfdf5;
+          color:#059669;
+        }
+        .chip-icon.blue{
+          background:#eff6ff;
+          color:#2563eb;
+        }
+        .chip-ping-dot{
+          position:absolute;
+          top:-2px;
+          right:-2px;
+          width:8px;
+          height:8px;
+          border-radius:50%;
+          background:#f43f5e;
+          border:2px solid #ffffff;
+        }
+        .chip-content{
+          display:flex;
+          flex-direction:column;
+        }
+        .chip-label{
+          font-size:9.5px;
+          font-weight:800;
+          letter-spacing:.08em;
+          color:#64748b;
+          text-transform:uppercase;
+        }
+        .chip-val{
+          font-size:15px;
+          font-weight:800;
+          color:#0f172a;
+          letter-spacing:-.02em;
+          line-height:1.2;
+        }
 
         /* ── STATS ── */
         .stats-section{padding:36px 0;background:linear-gradient(135deg,#f8faff 0%,#fdf4ff 50%,#fff7ed 100%)}
@@ -486,14 +681,17 @@ export default function Landing() {
 
           /* HERO CHECKS */
           .hero-checks { grid-template-columns: 1fr !important; gap: 8px !important; max-width: 280px !important; margin: 0 auto !important; text-align: left !important; }
-          .hc { font-size: 12.5px !important; }
-
-          .dash { padding: 14px !important; border-radius: 18px !important; }
-          .dash-kpis { gap: 8px !important; }
-          .kpi { padding: 10px !important; }
-          .kpi-val { font-size: 18px !important; }
-
-          .section { padding: 36px 16px !important; }
+          .dash-showcase-container { padding: 8px 4px 16px !important; }
+          .dash-tabs-bar { justify-content: flex-start !important; gap: 6px !important; padding-bottom: 4px !important; }
+          .dash-tab-btn { font-size: 10.5px !important; padding: 5px 11px !important; }
+          .dash-main-card { border-radius: 18px !important; padding: 6px 6px 12px !important; }
+          .dash-img-holder { aspect-ratio: auto !important; }
+          .floating-chip { padding: 5px 9px !important; border-radius: 12px !important; gap: 7px !important; }
+          .floating-chip-top { top: -10px !important; left: -6px !important; }
+          .floating-chip-bottom { bottom: -10px !important; right: -6px !important; }
+          .chip-icon { width: 26px !important; height: 26px !important; border-radius: 7px !important; }
+          .chip-val { font-size: 12.5px !important; }
+          .chip-label { font-size: 7.5px !important; }
           .section-head { margin-bottom: 24px !important; text-align: center !important; }
           .section-head h2 { font-size: 22px !important; letter-spacing: -.02em !important; }
           .section-head p { font-size: 12.5px !important; margin-top: 5px !important; }
@@ -640,43 +838,86 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* dashboard mockup */}
-          <div className="dash">
-            <div className="dash-topbar">
-              <span className="dash-title-text">Dashboard Overview</span>
-              <span className="live-badge">LIVE</span>
+          {/* Floating Interactive Dashboard Showcase Frame */}
+          <div className="dash-showcase-container">
+            {/* View Selector Tabs */}
+            <div className="dash-tabs-bar">
+              {dashViews.map((v, i) => {
+                const TabIcon = v.icon;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`dash-tab-btn ${activeDashTab === i ? 'active' : ''}`}
+                    onClick={() => setActiveDashTab(i)}
+                  >
+                    <TabIcon size={13} />
+                    <span>{v.tabLabel}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="dash-kpis">
-              {[
-                { lbl: "STUDENTS", val: "2,450", delta: "↑ 8.4%", bar: "linear-gradient(90deg,#6366f1,#3b82f6)" },
-                { lbl: "TESTS DONE", val: "480", delta: "↑ 15%", bar: "linear-gradient(90deg,#10b981,#06b6d4)" },
-                { lbl: "TOP RANK", val: "#1", delta: "Class A", bar: "linear-gradient(90deg,#f59e0b,#f97316)" },
-                { lbl: "UPTIME", val: "99.9%", delta: "30 days", bar: "linear-gradient(90deg,#ec4899,#8b5cf6)" },
-              ].map(k => (
-                <div className="kpi" key={k.lbl}>
-                  <div className="kpi-bar" style={{ background: k.bar }} />
-                  <div className="kpi-lbl">{k.lbl}</div>
-                  <div className="kpi-val">{k.val}</div>
-                  <div className="kpi-delta">{k.delta}</div>
+
+            {/* Top-Left Floating Metric Chip */}
+            {(() => {
+              const current = dashViews[activeDashTab] || dashViews[0];
+              const TopIcon = current.chipTop.icon;
+              return (
+                <div className="floating-chip floating-chip-top" key={`top-${activeDashTab}`}>
+                  <div className={`chip-icon ${current.chipTop.color}`}>
+                    <TopIcon size={20} />
+                  </div>
+                  <div className="chip-content">
+                    <span className="chip-label">{current.chipTop.label}</span>
+                    <span className="chip-val">{current.chipTop.val}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="dash-chart">
-              <div className="chart-ttl">Results Generated</div>
-              <div className="bars">
-                {[
-                  { h: 42, c: "#c7d2fe" }, { h: 58, c: "#c7d2fe" }, { h: 51, c: "#a5b4fc" },
-                  { h: 72, c: "#818cf8" }, { h: 65, c: "#a5b4fc" },
-                  { h: 92, c: "linear-gradient(0deg,#4f46e5,#6366f1)" },
-                  { h: 78, c: "#c7d2fe" },
-                ].map((bar, i) => (
-                  <div key={i} className="b" style={{ height: `${bar.h}%`, background: bar.c }} />
+              );
+            })()}
+
+            {/* Main Curved Dashboard Image Card */}
+            <div className="dash-main-card">
+              <div className="dash-img-holder">
+                <img
+                  src={dashViews[activeDashTab].img}
+                  alt={dashViews[activeDashTab].alt}
+                  className="dash-img"
+                  key={dashViews[activeDashTab].img}
+                  loading="eager"
+                />
+              </div>
+
+              {/* Carousel Dots */}
+              <div className="dash-dots-bar">
+                {dashViews.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`View slide ${i + 1}`}
+                    className={`dash-dot ${activeDashTab === i ? 'active' : 'inactive'}`}
+                    onClick={() => setActiveDashTab(i)}
+                  />
                 ))}
               </div>
-              <div className="blabels">
-                {["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"].map(m => <span key={m}>{m}</span>)}
-              </div>
             </div>
+
+            {/* Bottom-Right Floating Notification Chip */}
+            {(() => {
+              const current = dashViews[activeDashTab] || dashViews[0];
+              const BottomIcon = current.chipBottom.icon;
+              return (
+                <div className="floating-chip floating-chip-bottom" key={`bot-${activeDashTab}`}>
+                  <div className={`chip-icon ${current.chipBottom.color}`}>
+                    {current.chipBottom.ping && <span className="chip-ping-dot" />}
+                    <BottomIcon size={20} />
+                  </div>
+                  <div className="chip-content">
+                    <span className="chip-label">{current.chipBottom.label}</span>
+                    <span className="chip-val">{current.chipBottom.val}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
