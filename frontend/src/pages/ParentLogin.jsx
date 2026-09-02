@@ -49,7 +49,8 @@ export default function ParentLogin() {
       toast.success('Login successful');
       navigate('/parent/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      const errorMsg = err.response?.data?.message || (err.message === 'Network Error' ? 'Server connection error. Please try again.' : 'Invalid email, phone or password.');
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

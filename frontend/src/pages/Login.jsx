@@ -39,7 +39,8 @@ export default function Login() {
       else if (role === 'school_admin') navigate('/admin');
       else navigate('/teacher');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      const errorMsg = err.response?.data?.message || (err.message === 'Network Error' ? 'Server connection error. Please try again.' : 'Invalid email or password.');
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
