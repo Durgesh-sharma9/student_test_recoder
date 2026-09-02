@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/erp/PagePrimitives';
 import { useAuth } from '@/context/AuthContext';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 const COUNTRY_CODES = [
   { code: '+91', iso: 'in', name: 'India', flag: '🇮🇳' },
@@ -238,29 +239,29 @@ export default function Signup() {
         </div>
 
         {/* Right Side Form Box */}
-        <div className="w-full max-w-[400px] rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl sm:p-9">
-          <div className="mb-8 flex items-center gap-3.5">
+        <div className="w-full max-w-[380px] rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-xl">
+          <div className="relative mb-4 flex items-center justify-center min-h-[30px]">
             {showOTP && (
-              <Button variant="ghost" size="icon" onClick={handleBack} className="mr-2">
+              <Button variant="ghost" size="icon" onClick={handleBack} className="absolute left-0 h-8 w-8">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
-              <School className="h-7 w-7" />
-            </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900">School Signup</h2>
-              <p className="text-xs text-slate-500">Academic & Result Management</p>
-            </div>
+            <Link to="/" className="inline-flex items-center transition-opacity hover:opacity-90">
+              <BrandLogo className="h-7 sm:h-8" />
+            </Link>
           </div>
 
           {!showOTP ? (
-            <form className="space-y-4" onSubmit={handleSendOTP}>
-              <FormField label="School Name"><Input placeholder="School Name" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} required /></FormField>
-              <FormField label="Admin Name"><Input placeholder="Admin Name" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} required /></FormField>
-              <FormField label="Email"><Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
-              
-              <FormField label="Mobile Number">
+            <>
+              <h3 className="mb-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">School Signup 🚀</h3>
+              <p className="mb-4 text-xs sm:text-sm text-slate-500">Register your school to get started</p>
+
+              <form className="space-y-3" onSubmit={handleSendOTP}>
+                <FormField label="School Name"><Input className="h-10 text-sm" placeholder="School Name" value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} required /></FormField>
+                <FormField label="Admin Name"><Input className="h-10 text-sm" placeholder="Admin Name" value={form.adminName} onChange={(e) => setForm({ ...form, adminName: e.target.value })} required /></FormField>
+                <FormField label="Email"><Input className="h-10 text-sm" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></FormField>
+                
+                <FormField label="Mobile Number">
                 <div className="flex gap-2">
                   <select
                     value={countryCode}
@@ -279,31 +280,37 @@ export default function Signup() {
                     value={phoneNumber}
                     maxLength={10}
                     onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="flex-1"
+                    className="flex-1 h-10 text-sm"
                   />
                 </div>
               </FormField>
 
-              <FormField label="Password"><Input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></FormField>
-              <Button className="w-full h-12 mt-2" disabled={sendingOTP}>{sendingOTP ? 'Sending OTP...' : 'Send OTP'}</Button>
+              <FormField label="Password"><Input className="h-10 text-sm" type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></FormField>
+              <Button className="w-full h-11 mt-1.5 text-sm font-semibold" disabled={sendingOTP}>{sendingOTP ? 'Sending OTP...' : 'Send OTP'}</Button>
             </form>
+          </>
           ) : showSuccess ? (
-            <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"><ShieldCheck className="h-8 w-8 text-green-600" /></div>
-              <h3 className="text-xl font-semibold text-slate-900">Verified!</h3>
+            <div className="text-center py-6">
+              <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3"><ShieldCheck className="h-7 w-7 text-green-600" /></div>
+              <h3 className="text-lg font-semibold text-slate-900">Verified!</h3>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={handleVerifyOTP}>
-              <FormField label="Enter OTP"><Input className="h-12 text-center text-lg tracking-widest" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required /></FormField>
-              <Button className="w-full h-12" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</Button>
-              <Button type="button" onClick={handleResendOTP} variant="ghost" className="w-full" disabled={sendingOTP || loading}>
-                {sendingOTP ? 'Resending OTP...' : 'Resend OTP'}
-              </Button>
-            </form>
+            <>
+              <h3 className="mb-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Verify OTP 🔐</h3>
+              <p className="mb-4 text-xs sm:text-sm text-slate-500">Enter the verification code sent to your phone</p>
+
+              <form className="space-y-3.5" onSubmit={handleVerifyOTP}>
+                <FormField label="Enter OTP"><Input className="h-12 text-center text-lg tracking-widest font-mono" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required /></FormField>
+                <Button className="w-full h-11 text-sm font-semibold" disabled={loading}>{loading ? 'Verifying...' : 'Verify OTP'}</Button>
+                <Button type="button" onClick={handleResendOTP} variant="ghost" className="w-full h-9 text-xs" disabled={sendingOTP || loading}>
+                  {sendingOTP ? 'Resending OTP...' : 'Resend OTP'}
+                </Button>
+              </form>
+            </>
           )}
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Already have an account? <Link to="/login" className="font-semibold text-indigo-600">Login</Link>
+          <p className="mt-5 text-center text-xs sm:text-sm text-slate-500">
+            Already have an account? <Link to="/login" className="font-semibold text-indigo-600 hover:underline">Login</Link>
           </p>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/erp/PagePrimitives';
+import BrandLogo from '@/components/brand/BrandLogo';
 import {
   UserCircle,
   Briefcase,
@@ -108,17 +109,13 @@ export default function Login() {
 
         {/* Right Side Login Box */}
         <div className="w-full max-w-[400px] rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl sm:p-9">
-          <div className="mb-8 flex items-center gap-3.5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
-              <GraduationCap className="h-7 w-7" />
-            </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900">School ERP</h2>
-              <p className="text-xs text-slate-500">Academic & Result Management</p>
-            </div>
+          <div className="mb-6 flex justify-center">
+            <Link to="/" className="inline-flex items-center transition-opacity hover:opacity-90">
+              <BrandLogo className="h-7 sm:h-8" />
+            </Link>
           </div>
 
-          <h3 className="mb-1.5 text-3xl font-extrabold tracking-tight text-slate-900">Welcome Back 👋</h3>
+          <h3 className="mb-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Welcome Back 👋</h3>
           <p className="mb-7 text-sm text-slate-500">Login to continue to your dashboard</p>
 
           <Button
