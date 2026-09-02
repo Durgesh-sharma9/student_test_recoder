@@ -168,6 +168,7 @@ export default function Landing() {
     { quote: "Our school’s daily test management and result generation process became 90% faster. It has significantly reduced manual errors.", name: "Dr. Anjali Verma", role: "Principal, First step School", initials: "AV", grad: "linear-gradient(135deg,#6366f1,#3b82f6)", bg: "linear-gradient(135deg,#eef2ff,#eff6ff)" },
     { quote: "The Parent Portal feature has been a game-changer. Parents are now much more involved, and our office staff is no longer overwhelmed with queries.", name: "Rajesh Meena", role: "Administrator, Global Public School", initials: "RM", grad: "linear-gradient(135deg,#10b981,#06b6d4)", bg: "linear-gradient(135deg,#ecfdf5,#e0f2fe)" },
     { quote: "Managing multiple school branches from one dashboard is seamless. Data accuracy is perfect, and the reporting tools are truly professional.", name: "Sunita Reddy", role: "Director, Heritage Academy", initials: "SR", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)", bg: "linear-gradient(135deg,#fdf4ff,#fce7f3)" },
+    { quote: "Assessment planning and automated ranking have made term exams completely stress-free for our teachers. Highly recommended for every school.", name: "Vikram Sharma", role: "Academic Head, St. Xavier's Convent", initials: "VS", grad: "linear-gradient(135deg,#f59e0b,#f97316)", bg: "linear-gradient(135deg,#fffbeb,#fff7ed)" },
   ];
 
   const [plans, setPlans] = useState([]);
@@ -585,17 +586,17 @@ export default function Landing() {
         .why-card p{font-size:12px;color:var(--text-2);line-height:1.55}
 
         /* ── TESTIMONIALS ── */
-        .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-        .tc{border-radius:18px;padding:20px 18px;position:relative;overflow:hidden;transition:transform .22s,box-shadow .22s}
+        .testi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+        .tc{border-radius:16px;padding:18px 14px;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;transition:transform .22s,box-shadow .22s}
         .tc:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
         .tc-bar{position:absolute;top:0;left:0;right:0;height:4px;border-radius:4px 4px 0 0}
-        .tc-stars{display:flex;gap:2px;margin-bottom:10px}
+        .tc-stars{display:flex;gap:2px;margin-bottom:8px}
         .tc-stars svg{color:#f59e0b;fill:#f59e0b}
-        .tc-quote{font-size:12.5px;line-height:1.6;margin-bottom:14px;opacity:.88}
-        .tc-author{display:flex;align-items:center;gap:10px;border-top:1px solid rgba(0,0,0,.07);padding-top:12px}
-        .tc-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0}
-        .tc-name{font-size:12.5px;font-weight:700}
-        .tc-role{font-size:11px;opacity:.65;margin-top:1px}
+        .tc-quote{font-size:11.8px;line-height:1.55;margin-bottom:12px;opacity:.88;flex-grow:1}
+        .tc-author{display:flex;align-items:center;gap:9px;border-top:1px solid rgba(0,0,0,.07);padding-top:10px}
+        .tc-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+        .tc-name{font-size:12px;font-weight:700}
+        .tc-role{font-size:10.5px;opacity:.65;margin-top:1px}
 
         /* ── PRICING ── */
         .pricing-bg{background:linear-gradient(160deg,#faf5ff 0%,#eff6ff 50%,#ecfdf5 100%);padding:56px 0}
@@ -925,10 +926,10 @@ export default function Landing() {
       {/* ── STATS ── */}
       <div className="stats-section" ref={statsRef}>
         <div className="stats-inner">
-          <StatCard value={20} suffix="+" label="Schools" icon={Building2} gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0} inView={statsVisible} />
-          <StatCard value={5000} suffix="+" label="Students" icon={Users} gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80} inView={statsVisible} />
-          <StatCard value={200} suffix="+" label="Teachers" icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
-          <StatCard value={15000} suffix="+" label="Results generated" icon={FileText} gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
+          <StatCard value={50} suffix="+" label="Schools" icon={Building2} gradient="linear-gradient(135deg,#6366f1,#3b82f6)" delay={0} inView={statsVisible} />
+          <StatCard value={10000} suffix="+" label="Students" icon={Users} gradient="linear-gradient(135deg,#10b981,#06b6d4)" delay={80} inView={statsVisible} />
+          <StatCard value={500} suffix="+" label="Teachers" icon={GraduationCap} gradient="linear-gradient(135deg,#f59e0b,#f97316)" delay={160} inView={statsVisible} />
+          <StatCard value={30000} suffix="+" label="Results generated" icon={FileText} gradient="linear-gradient(135deg,#ec4899,#8b5cf6)" delay={240} inView={statsVisible} />
         </div>
       </div>
 
@@ -980,10 +981,10 @@ export default function Landing() {
           <div className="portal-text">
             <div className="s-tag" style={{ marginBottom: 14 }}>✦ Parent portal</div>
             <h2>Keep Parents Connected</h2>
-            <p>Parents receive secure access to monitor daily test marks, exam ranks, attendance status, and important school notices in real-time.</p>
+            <p>Parents receive secure access to monitor daily test marks, main exam results, class ranks, attendance status, and important school notices in real-time.</p>
             <div className="portal-feats">
               {[
-                { icon: FileText, title: "Daily & Exam Results", desc: "Subject-wise marks, percentage breakdown, and printable report cards.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
+                { icon: FileText, title: "Daily Test & Main Exam Results", desc: "Subject-wise daily test marks, main exam scores, percentage breakdown, and report cards.", grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
                 { icon: Trophy, title: "Class Rankings & Growth", desc: "Real-time class rank, topper badges, and progress trends.", grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
                 { icon: Calendar, title: "Attendance & School Notices", desc: "Track student attendance percentage and stay updated with school notices.", grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
               ].map(pf => (
@@ -1003,7 +1004,7 @@ export default function Landing() {
             </div>
             {[
               { icon: BookOpen, title: "Science — Daily Test 4", sub: "24/25 · Rank 2nd in class", grad: "linear-gradient(135deg,#6366f1,#3b82f6)" },
-              { icon: BarChart3, title: "Overall Percentage", sub: "91.5% · Grade A+", grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
+              { icon: FileText, title: "Main Exam Result", sub: "91.5% · Grade A+ (Passed)", grad: "linear-gradient(135deg,#10b981,#06b6d4)" },
               { icon: Trophy, title: "Class Ranking", sub: "3rd out of 38 students", grad: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
               { icon: Calendar, title: "Monthly Attendance", sub: "96.2% Present this month", grad: "linear-gradient(135deg,#f59e0b,#f97316)" },
             ].map(pc => (
@@ -1137,8 +1138,15 @@ export default function Landing() {
           <p>Start managing students, teachers, daily tests and results through one powerful cloud platform.</p>
           <div className="cta-actions">
             <Link to="/signup" className="btn btn-white btn-lg">Start Free Trial <ArrowRight size={16} /></Link>
-            <a href="mailto:support@schoolresult.app" className="btn btn-ghost-white btn-lg">
-              <Phone size={15} /> Contact Sales
+            <a
+              href="mailto:testmaster@webncode.in?subject=Test%20Master%20Pro%20-%20Sales%20Inquiry"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open('https://mail.google.com/mail/?view=cm&fs=1&to=testmaster@webncode.in&su=Test%20Master%20Pro%20-%20Sales%20Inquiry', '_blank');
+              }}
+              className="btn btn-ghost-white btn-lg cursor-pointer"
+            >
+              <Mail size={15} /> Contact Sales
             </a>
           </div>
           <p className="cta-note">✓ Free 14-day trial &nbsp;·&nbsp; ✓ No credit card &nbsp;·&nbsp; ✓ Cancel anytime</p>
@@ -1166,32 +1174,47 @@ export default function Landing() {
               </div>
               <div className="footer-col">
                 <h4>Features</h4>
-                <a href="#">Student Management</a>
-                <a href="#">Teacher Management</a>
-                <a href="#">Daily Tests</a>
-                <a href="#">Results</a>
-                <a href="#">Parent Portal</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Student Management</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Teacher Management</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Daily Tests</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Results</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Parent Portal</a>
               </div>
               <div className="footer-col">
                 <h4>Support</h4>
-                <a href="#">Help Center</a>
-                <a href="#">Documentation</a>
-                <a href="#">Contact</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms & Conditions</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Help Center</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Documentation</a>
+                <a href="https://webncode.in/#contact" target="_blank" rel="noopener noreferrer">Contact</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>
               </div>
               <div className="footer-col contact-col">
                 <h4>Contact</h4>
-                <div className="contact-item"><Mail size={13} color="#6366f1" /> support@schoolresult.app</div>
-                <div className="contact-item"><Phone size={13} color="#10b981" /> +91 8947919195</div>
+                <div className="contact-item">
+                  <Mail size={13} color="#6366f1" />
+                  <a
+                    href="mailto:testmaster@webncode.in"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open('https://mail.google.com/mail/?view=cm&fs=1&to=testmaster@webncode.in', '_blank');
+                    }}
+                    className="hover:underline text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    testmaster@webncode.in
+                  </a>
+                </div>
+                <div className="contact-item">
+                  <Phone size={13} color="#10b981" />
+                  <a href="tel:+918947919195" className="hover:underline text-slate-300 hover:text-white">+91 8947919195</a>
+                </div>
                 <div className="contact-item"><MapPin size={13} color="#ec4899" /> Jaipur, Rajasthan</div>
               </div>
             </div>
             <div className="footer-bottom">
               <div className="footer-copy">© 2026 Test Master Pro. All rights reserved.</div>
               <div className="footer-legal">
-                <a href="#">Privacy policy</a>
-                <a href="#">Terms of service</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+                <a href="https://webncode.in" target="_blank" rel="noopener noreferrer">Terms of service</a>
               </div>
             </div>
           </div>
