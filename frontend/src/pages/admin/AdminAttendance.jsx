@@ -1348,16 +1348,14 @@ export default function AdminAttendance() {
                                 const status = st.attendanceByDate[dStr];
                                 return (
                                   <TableCell key={dStr} className="text-center p-0.5 border-r border-slate-100">
-                                    {status === 'present' ? (
-                                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-white font-black text-[10px] shadow-2xs" title={`${st.name} • Present on ${dStr}`}>
-                                        P
-                                      </span>
-                                    ) : status === 'absent' ? (
+                                    {status === 'absent' ? (
                                       <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-rose-600 text-white font-black text-[10px] shadow-2xs" title={`${st.name} • Absent on ${dStr}`}>
                                         A
                                       </span>
                                     ) : (
-                                      <span className="text-slate-300 font-bold text-[10px]">-</span>
+                                      <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-emerald-600 text-white font-black text-[10px] shadow-2xs" title={`${st.name} • Present on ${dStr}`}>
+                                        P
+                                      </span>
                                     )}
                                   </TableCell>
                                 );

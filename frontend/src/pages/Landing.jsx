@@ -52,21 +52,48 @@ export default function Landing() {
   const dashViews = useMemo(() => [
     {
       id: "admin",
-      tabLabel: "Admin Overview",
+      tabLabel: "Admin Dashboard",
       icon: Building2,
       img: "/dashboard-preview.png",
       alt: "Admin Dashboard Overview",
-      chipTop: { label: "ACCURACY RATE", val: "98.4%", icon: BarChart3, color: "pink" },
-      chipBottom: { label: "LIVE REPORT", val: "Daily Test #1", icon: Bell, color: "green", ping: true }
+      chipTop: { label: "TOTAL STRENGTH", val: "842 Students", icon: BarChart3, color: "pink" },
+      chipBottom: { label: "LIVE STATUS", val: "59 Staff Active", icon: Bell, color: "green", ping: true }
     },
     {
-      id: "daily-test",
-      tabLabel: "Daily Test Analytics",
+      id: "student-perf",
+      tabLabel: "Student Analytics",
+      icon: Trophy,
+      img: "/student-analytics-preview.png",
+      alt: "Student Performance & Daily Test Analytics",
+      chipTop: { label: "DAILY TEST #1", val: "99.1% (Dhruv)", icon: TrendingUp, color: "blue" },
+      chipBottom: { label: "ATTENDANCE", val: "100% Present", icon: Check, color: "green", ping: false }
+    },
+    {
+      id: "class-results",
+      tabLabel: "Class Results",
       icon: BookOpen,
-      img: "/daily-test-preview.jpg",
-      alt: "Student Daily Test Performance",
-      chipTop: { label: "AVG SCORE", val: "63.6%", icon: TrendingUp, color: "blue" },
-      chipBottom: { label: "ATTENDANCE", val: "95.0%", icon: Check, color: "green", ping: false }
+      img: "/class-results-preview.png",
+      alt: "Class 8-A Consolidated Daily Test Results",
+      chipTop: { label: "CLASS 8-A", val: "99.4% Top Score", icon: Star, color: "pink" },
+      chipBottom: { label: "REPORT FORMAT", val: "Instant Ranks", icon: FileSpreadsheet, color: "blue", ping: true }
+    },
+    {
+      id: "attendance",
+      tabLabel: "Attendance Register",
+      icon: Calendar,
+      img: "/attendance-preview.png",
+      alt: "Monthly Attendance Register",
+      chipTop: { label: "MONTH REGISTER", val: "96.2% Present", icon: Calendar, color: "green" },
+      chipBottom: { label: "STATUS", val: "P / A Badges", icon: Users, color: "blue", ping: false }
+    },
+    {
+      id: "signature",
+      tabLabel: "Signature Sheet",
+      icon: ClipboardList,
+      img: "/signature-sheet-preview.png",
+      alt: "Exam Attendance & Signature Sheet",
+      chipTop: { label: "PRINT READY", val: "1-Click PDF/Print", icon: FileText, color: "pink" },
+      chipBottom: { label: "VERIFICATION", val: "Invigilator Slip", icon: Check, color: "green", ping: true }
     },
     {
       id: "main-exam",
@@ -81,10 +108,10 @@ export default function Landing() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveDashTab((prev) => (prev + 1) % 3);
-    }, 6500);
+      setActiveDashTab((prev) => (prev + 1) % dashViews.length);
+    }, 5500);
     return () => clearInterval(timer);
-  }, []);
+  }, [dashViews.length]);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
@@ -351,7 +378,6 @@ export default function Landing() {
           justify-content:center;
           gap:8px;
           margin-bottom:14px;
-          overflow-x:auto;
           padding:2px 4px;
         }
         .dash-tab-btn{
@@ -841,24 +867,6 @@ export default function Landing() {
 
           {/* Floating Interactive Dashboard Showcase Frame */}
           <div className="dash-showcase-container">
-            {/* View Selector Tabs */}
-            <div className="dash-tabs-bar">
-              {dashViews.map((v, i) => {
-                const TabIcon = v.icon;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    className={`dash-tab-btn ${activeDashTab === i ? 'active' : ''}`}
-                    onClick={() => setActiveDashTab(i)}
-                  >
-                    <TabIcon size={13} />
-                    <span>{v.tabLabel}</span>
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Top-Left Floating Metric Chip */}
             {(() => {
               const current = dashViews[activeDashTab] || dashViews[0];

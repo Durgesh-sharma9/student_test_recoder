@@ -61,10 +61,31 @@ export default function AdminDashboard() {
     { name: 'Sessions', value: data.stats?.sessions || 0 },
   ];
 
-  // FIX: Added null/undefined safeguards to prevent localeCompare or match crashes
+  const CLASS_ORDER_MAP = {
+    'NURSERY': 0, 'LKG': 1, 'UKG': 2, 'PREP': 3,
+    'CLASS 1': 4, '1': 4, 'CLASS 2': 5, '2': 5,
+    'CLASS 3': 6, '3': 6, 'CLASS 4': 7, '4': 7,
+    'CLASS 5': 8, '5': 8, 'CLASS 6': 9, '6': 9,
+    'CLASS 7': 10, '7': 10, 'CLASS 8': 11, '8': 11,
+    'CLASS 9': 12, '9': 12, 'CLASS 10': 13, '10': 13,
+    'CLASS 11': 14, '11': 14, 'CLASS 12': 15, '12': 15
+  };
+
+  const formatShortClassName = (className, section) => {
+    let cName = String(className || '').toUpperCase().trim();
+    if (cName.startsWith('CLASS ')) cName = cName.replace('CLASS ', '');
+    if (cName === 'NURSERY') cName = 'Nur';
+    let sec = String(section || '').toUpperCase().trim();
+    if (sec === 'SCIENCE') sec = 'Sci';
+    if (sec === 'COMMERCE') sec = 'Com';
+    if (sec === 'ARTS') sec = 'Arts';
+    return `${cName}-${sec}`;
+  };
+
   const classStrengthData = (data.classPerformance || [])
     .map((cp) => ({
       name: `${cp.className || ''}-${cp.section || ''}`,
+      shortName: formatShortClassName(cp.className, cp.section),
       value: cp.studentCount || 0,
       studentCount: cp.studentCount || 0,
       classId: cp.classId,
@@ -72,18 +93,9 @@ export default function AdminDashboard() {
       section: cp.section,
     }))
     .sort((a, b) => {
-      const extractClassNumber = (name) => {
-        if (!name) return 0;
-        const match = String(name).match(/\d+/);
-        return match ? parseInt(match[0], 10) : 0;
-      };
-      
-      const classNumA = extractClassNumber(a.className);
-      const classNumB = extractClassNumber(b.className);
-      
-      if (classNumA !== classNumB) {
-        return classNumA - classNumB;
-      }
+      const orderA = CLASS_ORDER_MAP[String(a.className || '').toUpperCase().trim()] ?? 99;
+      const orderB = CLASS_ORDER_MAP[String(b.className || '').toUpperCase().trim()] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
       return String(a.section || '').localeCompare(String(b.section || ''));
     });
 
@@ -150,35 +162,40 @@ export default function AdminDashboard() {
             <p className="text-xs sm:text-[13px] font-medium text-slate-500 mt-1">No class data available yet</p>
           </div>
         ) : (
-          <div className="mt-1 sm:mt-2 w-full h-[180px] sm:h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={classStrengthData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
-                  axisLine={false} 
-                  tickLine={false}
-                  dy={4} 
-                />
-                <YAxis 
-                  tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
-                  axisLine={false} 
-                  tickLine={false} 
-                  dx={-5}
-                />
-                <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} content={<ClassStrengthTooltip />} />
-                <Bar 
-                  dataKey="value" 
-                  radius={[5, 5, 0, 0]} 
-                  maxBarSize={36} 
-                  className="cursor-pointer transition-opacity hover:opacity-80"
-                  onClick={(data) => handleClassClick(data)}
-                >
-                  {classStrengthData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="mt-1 sm:mt-2 w-full overflow-x-auto pb-2 scrollbar-thin">
+            <div style={{ minWidth: `${Math.max(780, classStrengthData.length * 32)}px`, height: '240px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={classStrengthData} margin={{ top: 15, right: 10, left: -20, bottom: 25 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="shortName" 
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    tick={{ fontSize: 10, fill: '#475569', fontWeight: 600 }} 
+                    axisLine={{ stroke: '#e2e8f0' }} 
+                    tickLine={false}
+                    height={40}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    dx={-5}
+                  />
+                  <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} content={<ClassStrengthTooltip />} />
+                  <Bar 
+                    dataKey="value" 
+                    radius={[4, 4, 0, 0]} 
+                    maxBarSize={28} 
+                    className="cursor-pointer transition-opacity hover:opacity-80"
+                    onClick={(data) => handleClassClick(data)}
+                  >
+                    {classStrengthData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </ErpSection>
