@@ -14,51 +14,103 @@ import autoTable from 'jspdf-autotable';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-// Shared date formatter utility for DD-MM-YY format
+// Shared date formatter utility for DD-MM-YYYY format
 const getFormattedDate = (date = new Date()) => {
   const d = new Date(date);
   if (isNaN(d.getTime())) return '';
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(-2);
+  const year = String(d.getFullYear());
   return `${day}-${month}-${year}`;
 };
 
 const ensureDMYFormat = (str) => {
   if (!str) return '';
-  if (/^\d{2}-\d{2}-\d{2}$/.test(str)) return str;
+  const cleaned = String(str).trim();
+  if (!cleaned) return '';
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const parts = str.split('-');
-    return `${parts[2]}-${parts[1]}-${parts[0].slice(-2)}`;
-  }
-
-  let cleaned = str.replace(/\//g, '-').trim();
-
-  if (/^\d{8}$/.test(cleaned)) {
-    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(6)}`;
-  }
-  if (/^\d{6}$/.test(cleaned)) {
-    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(4)}`;
-  }
-
-  const parts = cleaned.split('-');
+  // Check if standard formatted DD-MM-YYYY
+  const parts = cleaned.replace(/\//g, '-').split('-');
   if (parts.length === 3) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    let year = parts[2];
-    if (year.length === 4) {
-      year = year.slice(-2);
+    let day = parseInt(parts[0], 10);
+    let month = parseInt(parts[1], 10);
+    let year = parseInt(parts[2], 10);
+
+    // If YYYY-MM-DD
+    if (parts[0].length === 4) {
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
     }
-    return `${day}-${month}-${year}`;
+
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return '';
+    if (month < 1 || month > 12) return '';
+    if (day < 1 || day > 31) return '';
+    if (year < 100) year += 2000;
+    if (year < 1900 || year > 2100) return '';
+
+    return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
   }
 
-  const parsed = Date.parse(cleaned);
-  if (!isNaN(parsed)) {
-    return getFormattedDate(new Date(parsed));
+  // Handle continuous digits e.g. 15092026 (8 digits) or 150926 (6 digits)
+  const digitsOnly = cleaned.replace(/\D/g, '');
+  if (digitsOnly.length === 8) {
+    const day = parseInt(digitsOnly.slice(0, 2), 10);
+    const month = parseInt(digitsOnly.slice(2, 4), 10);
+    const year = parseInt(digitsOnly.slice(4, 8), 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2100) {
+      return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
+    }
+  } else if (digitsOnly.length === 6) {
+    const day = parseInt(digitsOnly.slice(0, 2), 10);
+    const month = parseInt(digitsOnly.slice(2, 4), 10);
+    let year = parseInt(digitsOnly.slice(4, 6), 10);
+    if (year < 100) year += 2000;
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}-${year}`;
+    }
   }
 
-  return cleaned;
+  return '';
+};
+
+// Real-time DD-MM-YYYY mask as user types digits
+const formatLiveDateInput = (inputVal, prevVal = '') => {
+  if (prevVal && inputVal.length < prevVal.length) {
+    return inputVal;
+  }
+  const digits = inputVal.replace(/\D/g, '').slice(0, 8);
+  if (!digits) return '';
+
+  let day = digits.slice(0, 2);
+  let month = digits.slice(2, 4);
+  let year = digits.slice(4, 8);
+
+  if (day.length === 2) {
+    let d = parseInt(day, 10);
+    if (d > 31) day = '31';
+    if (d === 0) day = '01';
+  }
+  if (month.length === 2) {
+    let m = parseInt(month, 10);
+    if (m > 12) month = '12';
+    if (m === 0) month = '01';
+  }
+
+  let res = day;
+  if (digits.length > 2 || (digits.length === 2 && inputVal.length >= 2)) {
+    res += '-';
+  }
+  if (month) {
+    res += month;
+    if (digits.length > 4 || (digits.length === 4 && inputVal.length >= 5)) {
+      res += '-';
+    }
+  }
+  if (year) {
+    res += year;
+  }
+  return res;
 };
 
 // Utility function to paginate students using fixed row count
@@ -133,12 +185,15 @@ export default function AssessmentSignature() {
     if (parts.length === 3) {
       const day = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10);
-      const year = parseInt(parts[2], 10);
+      let year = parseInt(parts[2], 10);
+      if (year < 100) year += 2000;
       if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-        return new Date(year, month - 1, day);
+        const date = new Date(year, month - 1, day);
+        if (!isNaN(date.getTime())) return date;
       }
     }
-    return null;
+    const parsed = Date.parse(dmyStr);
+    return isNaN(parsed) ? null : new Date(parsed);
   };
 
   // Fetch active classes on mount
@@ -972,44 +1027,52 @@ export default function AssessmentSignature() {
                           <Input 
                             placeholder="DD-MM-YYYY"
                             value={col.date}
-                            onChange={(e) => handleColumnChange(col.id, 'date', e.target.value)}
-                            onBlur={(e) => handleColumnChange(col.id, 'date', formatOnBlur(e.target.value))}
-                            className="h-8.5 text-xs rounded-md border-slate-200 pr-8"
+                            maxLength={10}
+                            onChange={(e) => {
+                              const formattedLive = formatLiveDateInput(e.target.value, col.date);
+                              handleColumnChange(col.id, 'date', formattedLive);
+                            }}
+                            onBlur={(e) => {
+                              const raw = e.target.value.trim();
+                              if (!raw) {
+                                handleColumnChange(col.id, 'date', '');
+                                return;
+                              }
+                              const formatted = ensureDMYFormat(raw);
+                              if (!formatted) {
+                                toast.error('Invalid Date! Please enter valid date (e.g. 15-09-2026)');
+                                handleColumnChange(col.id, 'date', '');
+                              } else {
+                                handleColumnChange(col.id, 'date', formatted);
+                              }
+                            }}
+                            className="h-8.5 text-xs rounded-md border-slate-200 pr-8 font-mono"
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowCalendarId(showCalendarId === col.id ? null : col.id)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-655 transition-colors"
-                          >
-                            <Calendar className="h-3.5 w-3.5" />
-                          </button>
-
-                          {showCalendarId === col.id && (
-                            <div className="absolute right-0 top-8.5 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2">
-                              <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-2 px-1">
-                                <span className="text-[10px] font-bold text-slate-500">Pick Date</span>
-                                <button 
-                                  type="button" 
-                                  onClick={() => setShowCalendarId(null)}
-                                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600"
+                          <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                            <ReactDatePicker
+                              selected={parseDMY(col.date)}
+                              onChange={(date) => {
+                                if (date) {
+                                  handleColumnChange(col.id, 'date', getFormattedDate(date));
+                                } else {
+                                  handleColumnChange(col.id, 'date', '');
+                                }
+                              }}
+                              portalId="root"
+                              popperClassName="z-[99999]"
+                              popperPlacement="bottom-end"
+                              dateFormat="dd-MM-yyyy"
+                              customInput={
+                                <button
+                                  type="button"
+                                  className="text-slate-400 hover:text-emerald-600 transition-colors p-1.5 cursor-pointer flex items-center justify-center rounded"
+                                  title="Pick date"
                                 >
-                                  Close
+                                  <Calendar className="h-3.5 w-3.5" />
                                 </button>
-                              </div>
-                              <ReactDatePicker
-                                inline
-                                selected={parseDMY(col.date)}
-                                onChange={(date) => {
-                                  if (date) {
-                                    handleColumnChange(col.id, 'date', getFormattedDate(date));
-                                  } else {
-                                    handleColumnChange(col.id, 'date', '');
-                                  }
-                                  setShowCalendarId(null);
-                                }}
-                              />
-                            </div>
-                          )}
+                              }
+                            />
+                          </div>
                         </div>
 
                         <Button 
