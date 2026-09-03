@@ -22,12 +22,27 @@ export const clearAllAuthStorage = () => {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored && stored !== 'undefined' && stored !== 'null') {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Failed to parse initial user from localStorage:', e);
+      localStorage.removeItem('user');
+    }
+    return null;
   });
   const [cachedUser, setCachedUser] = useState(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored && stored !== 'undefined' && stored !== 'null') {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('[AuthContext] Failed to parse cachedUser from localStorage:', e);
+    }
+    return null;
   });
   const [loading, setLoading] = useState(true);
 
@@ -36,8 +51,8 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     console.log('[AuthContext] Token from localStorage:', token ? 'exists' : 'none');
     
-    if (!token) { 
-      console.log('[AuthContext] No token, clearing user state and setting loading to false');
+    if (!token || token === 'undefined' || token === 'null') { 
+      console.log('[AuthContext] No valid token, clearing user state and setting loading to false');
       clearAllAuthStorage();
       setUser(null);
       setCachedUser(null);
@@ -49,9 +64,11 @@ export function AuthProvider({ children }) {
     api.get('/auth/me')
       .then((res) => {
         console.log('[AuthContext] /auth/me success:', res.data.user);
-        setUser(res.data.user);
-        setCachedUser(res.data.user);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        if (res.data?.user) {
+          setUser(res.data.user);
+          setCachedUser(res.data.user);
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+        }
       })
       .catch((err) => {
         console.log('[AuthContext] /auth/me error:', err);
@@ -65,10 +82,16 @@ export function AuthProvider({ children }) {
           // For other errors, keep the cached user from localStorage
           console.log('[AuthContext] Non-auth error, keeping cached user');
           const stored = localStorage.getItem('user');
-          if (stored) {
-            const parsedUser = JSON.parse(stored);
-            setUser(parsedUser);
-            setCachedUser(parsedUser);
+          if (stored && stored !== 'undefined' && stored !== 'null') {
+            try {
+              const parsedUser = JSON.parse(stored);
+              setUser(parsedUser);
+              setCachedUser(parsedUser);
+            } catch (parseErr) {
+              clearAllAuthStorage();
+              setUser(null);
+              setCachedUser(null);
+            }
           }
         }
       })
