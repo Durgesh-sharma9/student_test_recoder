@@ -21,10 +21,14 @@ const seed = async () => {
     PaymentSettings.deleteMany({}),
   ]);
 
+  if (!process.env.SUPER_ADMIN_EMAIL || !process.env.SUPER_ADMIN_PASSWORD) {
+    throw new Error('SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD must be configured in .env before running seed');
+  }
+
   const superAdmin = await User.create({
     name: process.env.SUPER_ADMIN_NAME || 'Super Admin',
-    email: process.env.SUPER_ADMIN_EMAIL || 'testmaster@gmail.com',
-    password: process.env.SUPER_ADMIN_PASSWORD || 'superadmine3z608af',
+    email: process.env.SUPER_ADMIN_EMAIL,
+    password: process.env.SUPER_ADMIN_PASSWORD,
     role: 'super_admin',
     isEmailVerified: true,
   });
