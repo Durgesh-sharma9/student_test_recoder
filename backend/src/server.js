@@ -1,9 +1,16 @@
-// Razorpay keys automatically fallback to .env if DB settings are empty
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load .env from backend root
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
+
+import express from 'express';
+import cors from 'cors';
 import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { checkScheduledDowngrades } from './middleware/processScheduledDowngrades.js';
@@ -33,9 +40,6 @@ import notebookRoutes from './routes/notebookRoutes.js';
 import pollRoutes from './routes/pollRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -1,7 +1,17 @@
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User from '../models/User.js';
 import Parent from '../models/Parent.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load .env from backend root directory and fallback to cwd
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
 passport.serializeUser((user, done) => {
   done(null, user._id);
@@ -26,13 +36,17 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Google OAuth Strategy
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback',
-    },
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+if (googleClientId && googleClientSecret) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: googleClientId,
+        clientSecret: googleClientSecret,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback',
+      },
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails?.[0]?.value?.toLowerCase();
@@ -77,5 +91,8 @@ passport.use(
     }
   )
 );
+} else {
+  console.warn('⚠️ [Passport] GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET is missing. Google OAuth Strategy will not be initialized.');
+}
 
 export default passport;
