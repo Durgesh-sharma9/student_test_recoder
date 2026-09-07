@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
-    "migrate": "node src/migrate.js"
+    "migrate": "node src/migrate.js",
+    "backup": "node scripts/backupDb.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
