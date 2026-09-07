@@ -21,9 +21,18 @@ const signToken = (id) =>
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 
-const sendTokenResponse = (user, res, statusCode = 200) => {
+const sendTokenResponse = async (user, res, statusCode = 200) => {
   const token = signToken(user._id);
-  const userObj = user.toObject();
+
+  if (user && typeof user.populate === 'function' && user.school) {
+    try {
+      await user.populate('school', 'schoolName adminName email phone schoolCode address city state pincode logo plan planExpiresAt isActive');
+    } catch (e) {
+      console.warn('[sendTokenResponse] Non-fatal error populating school:', e.message);
+    }
+  }
+
+  const userObj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
   delete userObj.password;
   if (userObj.role === 'admin') userObj.role = 'school_admin';
   
@@ -283,13 +292,13 @@ export const getMe = asyncHandler(async (req, res) => {
   // Try to find user first (for admin/teacher)
   let user = await User.findById(req.user._id)
     .select('-password')
-    .populate('school', 'schoolName planExpiresAt isActive schoolCode address city state pincode logo')
+    .populate('school', 'schoolName adminName email phone planExpiresAt isActive schoolCode address city state pincode logo')
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section');
 
   // If not found in User, try Parent (for parents)
   if (!user) {
-    user = await Parent.findById(req.user._id).select('-password').populate('school', 'schoolName planExpiresAt isActive schoolCode address city state pincode logo');
+    user = await Parent.findById(req.user._id).select('-password').populate('school', 'schoolName adminName email phone planExpiresAt isActive schoolCode address city state pincode logo');
     if (user) {
       // Convert Parent to user-like object
       user = {
