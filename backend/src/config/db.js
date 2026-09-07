@@ -9,8 +9,13 @@ import User from '../models/User.js';
 
 const syncSuperAdmin = async () => {
   const adminName = process.env.SUPER_ADMIN_NAME || 'Super Admin';
-  const adminEmail = process.env.SUPER_ADMIN_EMAIL || 'super@school.com';
-  const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'super123';
+  const adminEmail = process.env.SUPER_ADMIN_EMAIL;
+  const adminPassword = process.env.SUPER_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.log('[Server] SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in .env. Skipping super admin sync.');
+    return;
+  }
 
   try {
     let user = await User.findOne({ role: 'super_admin' }).select('+password');
