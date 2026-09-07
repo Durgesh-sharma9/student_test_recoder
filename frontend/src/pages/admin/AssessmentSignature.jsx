@@ -711,7 +711,7 @@ export default function AssessmentSignature() {
   }, []);
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto lg:-mt-10 md:-mt-8 -mt-6 pb-10 px-2 sm:px-4">
+    <div className="space-y-4 max-w-7xl mx-auto pb-10 px-2 sm:px-4">
       {/* Inject print stylesheet overrides dynamically */}
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
@@ -785,7 +785,7 @@ export default function AssessmentSignature() {
         }
       `}} />
 
-      <div className="no-print -mb-4 flex items-center justify-between">
+      <div className="no-print flex items-center justify-between gap-4">
         <PageHeader
           title="Attendance Sheet"
           description="Generate and export printable student attendance sheets for classrooms."
