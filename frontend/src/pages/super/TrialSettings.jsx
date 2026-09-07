@@ -15,7 +15,13 @@ export default function TrialSettings() {
     setLoading(true);
     try {
       const res = await api.get('/trial-settings');
-      setSettings(res.data.settings);
+      const loaded = res.data?.settings ?? res.data;
+      if (loaded && typeof loaded === 'object') {
+        setSettings({
+          enabled: loaded.enabled !== undefined ? Boolean(loaded.enabled) : true,
+          durationDays: Number(loaded.durationDays) || 14,
+        });
+      }
     } catch (e) {
       console.error(e);
       toast.error('Failed to load trial settings');
@@ -42,6 +48,8 @@ export default function TrialSettings() {
   };
 
   const durationOptions = [7, 14, 30];
+  const isEnabled = Boolean(settings?.enabled);
+  const currentDuration = Number(settings?.durationDays || 14);
 
   return (
     <PageStack>
@@ -59,23 +67,23 @@ export default function TrialSettings() {
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl p-2.5 bg-indigo-50 text-indigo-600">
-                  {settings.enabled ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
+                  {isEnabled ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Enable Free Trial</p>
                   <p className="text-xs text-slate-500">
-                    {settings.enabled ? 'New schools will receive a free trial on signup' : 'Free trial is disabled'}
+                    {isEnabled ? 'New schools will receive a free trial on signup' : 'Free trial is disabled'}
                   </p>
                 </div>
               </div>
               <Switch
-                checked={settings.enabled}
-                onCheckedChange={(checked) => setSettings({ ...settings, enabled: checked })}
+                checked={isEnabled}
+                onCheckedChange={(checked) => setSettings((prev) => ({ ...(prev || {}), enabled: checked, durationDays: prev?.durationDays || 14 }))}
               />
             </div>
 
             {/* Trial Duration */}
-            {settings.enabled && (
+            {isEnabled && (
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="rounded-xl p-2.5 bg-amber-50 text-amber-600">
@@ -90,9 +98,9 @@ export default function TrialSettings() {
                   {durationOptions.map((days) => (
                     <button
                       key={days}
-                      onClick={() => setSettings({ ...settings, durationDays: days })}
+                      onClick={() => setSettings((prev) => ({ ...(prev || {}), enabled: prev?.enabled ?? true, durationDays: days }))}
                       className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
-                        settings.durationDays === days
+                        currentDuration === days
                           ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}

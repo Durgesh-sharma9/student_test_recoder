@@ -63,11 +63,12 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] Calling /auth/me');
     api.get('/auth/me')
       .then((res) => {
-        console.log('[AuthContext] /auth/me success:', res.data.user);
-        if (res.data?.user) {
-          setUser(res.data.user);
-          setCachedUser(res.data.user);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
+        const userObj = res.data?.user || res.data?.data?.user || res.data?.data;
+        console.log('[AuthContext] /auth/me success:', userObj);
+        if (userObj) {
+          setUser(userObj);
+          setCachedUser(userObj);
+          localStorage.setItem('user', JSON.stringify(userObj));
         }
       })
       .catch((err) => {
