@@ -97,7 +97,7 @@ export default function AdminPlans() {
               <h3 className="text-xl font-bold text-slate-900 capitalize mb-1">{p.name}</h3>
               <div className="mb-6">
                 <span className="text-4xl font-extrabold text-slate-900">₹{p.basePrice}</span>
-                <span className="text-slate-500 text-sm font-medium ml-1">/month</span>
+                <span className="text-slate-500 text-sm font-medium ml-1">/{activeCycle === 'yearly' ? 'year' : 'month'}</span>
               </div>
               <p className="text-xs text-slate-500 mb-6">Ideal for growing institutes</p>
               

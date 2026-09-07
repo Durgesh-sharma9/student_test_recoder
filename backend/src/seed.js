@@ -39,9 +39,36 @@ const seed = async () => {
     updatedBy: superAdmin._id,
   });
 
+  // Seed default subscription plans
+  const { seedPlans } = await import('../scripts/seedPlans.js');
+  await seedPlans();
+
+  // Ensure Trial plan exists
+  await Plan.findOneAndUpdate(
+    { slug: 'trial' },
+    {
+      $set: {
+        name: 'Trial',
+        slug: 'trial',
+        planType: 'trial',
+        billingCycle: 'monthly',
+        durationDays: 14,
+        maxTeachers: 5,
+        maxStudents: 20,
+        teacherCapacityType: 'limited',
+        studentCapacityType: 'limited',
+        basePrice: 0,
+        finalPrice: 0,
+        price: 0,
+        isActive: true,
+      }
+    },
+    { upsert: true }
+  );
+
   console.log('Seed OK');
   console.log('Super Admin created successfully:', superAdmin.email);
-  console.log('Default Payment Settings initialized successfully.');
+  console.log('Default Payment Settings and Plans initialized successfully.');
 
   await mongoose.disconnect();
 };
