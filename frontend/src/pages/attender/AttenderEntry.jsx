@@ -24,16 +24,22 @@ export default function AttenderEntry() {
         const res = await api.get('/classes');
         let classList = res.data.classes || [];
 
-        if (user?.assignedClasses && user.assignedClasses.length > 0) {
-          const assignedIds = new Set(
-            user.assignedClasses.map((c) => (typeof c === 'object' ? String(c._id) : String(c)))
-          );
-          classList = classList.filter((c) => assignedIds.has(String(c._id)));
+        if (['teacher', 'attender'].includes(user?.role)) {
+          if (user?.assignedClasses && user.assignedClasses.length > 0) {
+            const assignedIds = new Set(
+              user.assignedClasses.map((c) => (typeof c === 'object' ? String(c._id) : String(c)))
+            );
+            classList = classList.filter((c) => assignedIds.has(String(c._id)));
+          } else {
+            classList = [];
+          }
         }
 
         setClasses(classList);
         if (classList.length > 0) {
           setSelectedClass(classList[0]._id);
+        } else {
+          setSelectedClass('');
         }
       } catch (err) {
         toast.error('Failed to load classes');
@@ -155,11 +161,17 @@ export default function AttenderEntry() {
                 <SelectValue placeholder="Select Class" />
               </SelectTrigger>
               <SelectContent>
-                {classes.map((c) => (
-                  <SelectItem key={c._id} value={c._id}>
-                    Class {c.className} - {c.section}
+                {classes.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    No classes assigned
                   </SelectItem>
-                ))}
+                ) : (
+                  classes.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      Class {c.className} - {c.section}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

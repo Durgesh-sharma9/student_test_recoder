@@ -69,9 +69,7 @@ export default function AdminAttendance() {
   const openClassEditModal = (teacher) => {
     setEditingTeacher(teacher);
     const assigned = teacher.assignedClasses || [];
-    const initialIds = assigned.length > 0
-      ? assigned.map((c) => (typeof c === 'object' ? c._id : c))
-      : classes.map((c) => c._id);
+    const initialIds = assigned.map((c) => (typeof c === 'object' ? c._id : c));
     setSelectedClassesForTeacher(initialIds);
     setClassEditModalOpen(true);
   };
@@ -81,7 +79,7 @@ export default function AdminAttendance() {
       name: '',
       email: '',
       phoneNo: '',
-      assignedClasses: classes.map((c) => c._id),
+      assignedClasses: [],
     });
     setCreateModalOpen(true);
   };
@@ -386,7 +384,7 @@ export default function AdminAttendance() {
 
   const resolveAssignedClasses = (assignedList) => {
     if (!assignedList || assignedList.length === 0) {
-      return classes; // All classes assigned
+      return [];
     }
     return assignedList.map((c) => {
       if (typeof c === 'object' && c._id) return c;
@@ -650,7 +648,9 @@ export default function AdminAttendance() {
                             <TableCell className="text-slate-600 font-medium">{att.phoneNo || '-'}</TableCell>
                             <TableCell>
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {resolvedList.length > 3 ? (
+                                {resolvedList.length === 0 ? (
+                                  <span className="text-xs text-slate-400 font-medium italic">No classes assigned</span>
+                                ) : resolvedList.length > 3 ? (
                                   <>
                                     {resolvedList.slice(0, 3).map((c) => (
                                       <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
@@ -680,7 +680,7 @@ export default function AdminAttendance() {
                                     <button
                                       type="button"
                                       onClick={() => toggleExpandUser(att._id)}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
+                                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
                                     >
                                       {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                       {isExpanded ? 'Hide' : 'Students'}
@@ -814,7 +814,9 @@ export default function AdminAttendance() {
                             <TableCell className="text-slate-600 font-medium">{t.email}</TableCell>
                             <TableCell>
                               <div className="flex flex-wrap items-center gap-1.5">
-                                {resolvedList.length > 3 ? (
+                                {resolvedList.length === 0 ? (
+                                  <span className="text-xs text-slate-400 font-medium italic">No classes assigned</span>
+                                ) : resolvedList.length > 3 ? (
                                   <>
                                     {resolvedList.slice(0, 3).map((c) => (
                                       <span key={c._id} className="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-100/80">
@@ -844,7 +846,7 @@ export default function AdminAttendance() {
                                     <button
                                       type="button"
                                       onClick={() => toggleExpandUser(t._id)}
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
+                                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 font-extrabold text-xs transition-all cursor-pointer ml-1"
                                     >
                                       {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                       {isExpanded ? 'Hide' : 'Students'}
