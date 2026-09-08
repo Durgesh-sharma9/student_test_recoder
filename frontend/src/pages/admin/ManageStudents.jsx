@@ -30,7 +30,7 @@ export default function ManageStudents() {
   
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+  const [form, setForm] = useState({ class: '', rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
   const [rollConflictDialog, setRollConflictDialog] = useState({ open: false, conflict: null, onConfirm: null });
   
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -127,12 +127,23 @@ export default function ManageStudents() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.parentPhone.startsWith('+')) {
-      toast.error('Parent Phone number must start with + followed by country code');
-      return;
+    let parentPhone = String(form.parentPhone || '').trim();
+    if (parentPhone) {
+      if (!parentPhone.startsWith('+')) {
+        const cleanDigits = parentPhone.replace(/\D/g, '');
+        if (cleanDigits.length === 10) {
+          parentPhone = `+91${cleanDigits}`;
+        } else if (cleanDigits.length > 0) {
+          parentPhone = `+${cleanDigits}`;
+        }
+      }
+    } else {
+      parentPhone = '+91';
     }
-    const digits = form.parentPhone.replace(/\D/g, '');
-    if (form.parentPhone.startsWith('+91') && digits.length !== 12) {
+    form.parentPhone = parentPhone;
+
+    const digits = parentPhone.replace(/\D/g, '');
+    if (parentPhone.startsWith('+91') && digits.length !== 12) {
       toast.error('Indian phone number must be exactly 10 digits after +91');
       return;
     }
@@ -141,12 +152,18 @@ export default function ManageStudents() {
       return;
     }
     
-    // For edit with roll number change, check for conflicts
-    if (edit && form.rollNo !== edit.rollNo) {
+    const targetClassId = String(form.class || selectedClass);
+    const originalClassId = String(edit?.class?._id || edit?.class || selectedClass);
+    const isClassChanged = edit && targetClassId !== originalClassId;
+    const isRollChanged = edit && String(form.rollNo).trim() !== String(edit.rollNo).trim();
+
+    // For edit with roll number change OR class shift, check for conflicts
+    if (edit && (isRollChanged || isClassChanged)) {
       try {
         const conflictRes = await api.post('/students/check-roll-conflicts', {
-          classId: selectedClass,
-          rollNumbers: [form.rollNo]
+          classId: targetClassId,
+          rollNumbers: [form.rollNo],
+          excludeStudentId: edit._id,
         });
         
         if (conflictRes.data.hasConflicts && conflictRes.data.conflicts.length > 0) {
@@ -156,13 +173,18 @@ export default function ManageStudents() {
             conflict: conflict,
             onConfirm: async (shiftOption) => {
               try {
-                const payload = { ...form, class: selectedClass, shiftOption };
+                const payload = { ...form, class: targetClassId, shiftOption };
                 await api.put(`/students/${edit._id}`, payload);
-                toast.success('Student updated');
+                const targetClassName = classes.find(c => c._id === targetClassId);
+                const classNameText = targetClassName ? `${targetClassName.className}-${targetClassName.section}` : '';
+                toast.success(isClassChanged ? `Student shifted to Class ${classNameText} successfully` : 'Student updated');
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+                setForm({ class: selectedClass, rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
+                if (isClassChanged && targetClassId !== selectedClass) {
+                  setSelectedClass(targetClassId);
+                }
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
                 toast.error(err.response?.data?.message || 'Failed to update student');
@@ -180,7 +202,7 @@ export default function ManageStudents() {
     if (!edit) {
       try {
         const conflictRes = await api.post('/students/check-roll-conflicts', {
-          classId: selectedClass,
+          classId: targetClassId,
           rollNumbers: [form.rollNo]
         });
         
@@ -191,7 +213,7 @@ export default function ManageStudents() {
             conflict: conflict,
             onConfirm: async (shiftOption) => {
               try {
-                const payload = { ...form, class: selectedClass, shiftOption };
+                const payload = { ...form, class: targetClassId, shiftOption };
                 const response = await api.post('/students', payload);
                 
                 if (response.data.parentData && response.data.parentData.isNew && response.data.parentData.parent.email) {
@@ -211,8 +233,11 @@ export default function ManageStudents() {
                 
                 setOpen(false);
                 setEdit(null);
-                setForm({ rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+                setForm({ class: selectedClass, rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
                 loadStudents(selectedClass);
+                if (targetClassId !== selectedClass) {
+                  setSelectedClass(targetClassId);
+                }
                 setRollConflictDialog({ open: false, conflict: null, onConfirm: null });
               } catch (err) {
                 toast.error(err.response?.data?.message || 'Failed to add student');
@@ -228,10 +253,19 @@ export default function ManageStudents() {
     
     // No conflicts or conflict check failed, proceed normally
     try {
-      const payload = { ...form, class: selectedClass };
+      const payload = { ...form, class: targetClassId };
       if (edit) {
         await api.put(`/students/${edit._id}`, payload);
-        toast.success('Student updated');
+        const targetClassName = classes.find(c => c._id === targetClassId);
+        const classNameText = targetClassName ? `${targetClassName.className}-${targetClassName.section}` : '';
+        toast.success(isClassChanged ? `Student shifted to Class ${classNameText} successfully` : 'Student updated');
+        setOpen(false);
+        setEdit(null);
+        setForm({ class: selectedClass, rollNo: '', name: '', admissionNo: '', gender: '', admissionDate: new Date().toISOString().split('T')[0], parentName: '', parentPhone: '+91', parentEmail: '' });
+        loadStudents(selectedClass);
+        if (isClassChanged && targetClassId !== selectedClass) {
+          setSelectedClass(targetClassId);
+        }
       } else {
         const response = await api.post('/students', payload);
         
@@ -469,6 +503,18 @@ export default function ManageStudents() {
                   setLimitDialogOpen(true);
                   return;
                 }
+                setEdit(null);
+                setForm({
+                  class: selectedClass,
+                  rollNo: '',
+                  name: '',
+                  admissionNo: '',
+                  gender: '',
+                  admissionDate: new Date().toISOString().split('T')[0],
+                  parentName: '',
+                  parentPhone: '+91',
+                  parentEmail: '',
+                });
                 setOpen(true);
               })) return;
             }} 
@@ -568,15 +614,23 @@ export default function ManageStudents() {
                           variant="outline"
                           disabled={isArchived}
                           onClick={() => {
+                            const studentClassId = s.class?._id || s.class || selectedClass;
+                            const rawPhone = String(s.parent?.phone || s.parentPhone || '').trim();
+                            const cleanDigits = rawPhone.replace(/\D/g, '');
+                            const normalizedPhone = rawPhone.startsWith('+')
+                              ? rawPhone
+                              : (cleanDigits.length === 10 ? `+91${cleanDigits}` : (cleanDigits ? `+${cleanDigits}` : '+91'));
+
                             setEdit(s);
                             setForm({ 
+                              class: studentClassId,
                               rollNo: s.rollNo, 
                               name: s.name, 
                               admissionNo: s.admissionNo || '',
                               gender: s.gender || '', 
                               admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                               parentName: s.parent?.parentName || s.parentName || '', 
-                              parentPhone: s.parent?.phone || s.parentPhone || '', 
+                              parentPhone: normalizedPhone, 
                               parentEmail: s.parent?.email || s.parentEmail || '' 
                             });
                             setOpen(true);
@@ -628,6 +682,38 @@ export default function ManageStudents() {
             <form className="space-y-4" onSubmit={submit}>
               {/* Student Details Grid */}
               <div className="space-y-3.5">
+                {/* Class & Section Selector */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Class & Section *</label>
+                    {edit && form.class && form.class !== (edit.class?._id || edit.class) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                        ⚡ Shifting to {formatClassName(classes.find(c => c._id === form.class)?.className)}-{classes.find(c => c._id === form.class)?.section}
+                      </span>
+                    )}
+                  </div>
+                  <Select 
+                    value={form.class || selectedClass} 
+                    onValueChange={(val) => setForm((f) => ({ ...f, class: val }))}
+                  >
+                    <SelectTrigger className="h-9 rounded-md text-sm bg-white border-slate-200">
+                      <SelectValue placeholder="Select Class" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {classes.map((c) => (
+                        <SelectItem key={c._id} value={c._id}>
+                          {formatClassName(c.className)}-{c.section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {edit && form.class && form.class !== (edit.class?._id || edit.class) && (
+                    <p className="mt-1.5 text-[11px] text-amber-700 leading-tight">
+                      Note: Changing class will shift this student. If the roll number already exists in the new class, you'll be prompted to resolve the conflict.
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-3.5">
                   <FormField label="Admission No" required>
                     <Input

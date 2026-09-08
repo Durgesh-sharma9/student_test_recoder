@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Student from '../models/Student.js';
 import User from '../models/User.js';
 import Class from '../models/Class.js';
@@ -249,9 +250,11 @@ export const updateStudent = asyncHandler(async (req, res) => {
   const targetClass = updates.class || current.class;
   const targetRoll = updates.rollNo || current.rollNo;
   const currentRoll = current.rollNo;
+  const isClassChanged = updates.class && String(updates.class) !== String(current.class);
+  const isRollChanged = updates.rollNo !== undefined && String(updates.rollNo).trim() !== String(currentRoll).trim();
 
-  // Only check for duplicates if rollNo is being changed
-  if (updates.rollNo && updates.rollNo !== currentRoll) {
+  // Check for duplicates if rollNo is changed OR if student class is changed
+  if (isRollChanged || isClassChanged) {
     const duplicate = await Student.findOne({
       _id: { $ne: req.params.id },
       school: current.school,
@@ -299,7 +302,7 @@ export const deleteStudent = asyncHandler(async (req, res) => {
 });
 
 export const checkRollConflicts = asyncHandler(async (req, res) => {
-  const { classId, rollNumbers } = req.body;
+  const { classId, rollNumbers, excludeStudentId } = req.body;
   const schoolId = req.user.school?._id ?? req.user.school;
 
   if (!classId || !rollNumbers || !Array.isArray(rollNumbers)) {
@@ -310,12 +313,17 @@ export const checkRollConflicts = asyncHandler(async (req, res) => {
   const activeSession = await getActiveSession(schoolId);
 
   const conflicts = [];
-  const existingStudents = await Student.find({
+  const query = {
     school: schoolId,
     class: classId,
     academicSession: activeSession._id,
     isActive: true,
-  });
+  };
+  if (excludeStudentId && mongoose.Types.ObjectId.isValid(excludeStudentId)) {
+    query._id = { $ne: excludeStudentId };
+  }
+
+  const existingStudents = await Student.find(query);
 
   const existingRolls = new Set(existingStudents.map(s => s.rollNo));
 
