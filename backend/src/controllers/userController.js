@@ -1,7 +1,12 @@
 import User from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { sendTeacherCreationEmail, sendTeacherAssignmentEmail } from '../services/emailService.js';
+import { 
+  sendTeacherCreationEmail, 
+  sendTeacherAssignmentEmail,
+  sendTeacherDeactivationEmail,
+  sendTeacherReactivationEmail
+} from '../services/emailService.js';
 import { sendTeacherWhatsAppCredentials } from '../services/whatsappService.js';
 import { parseTeacherImportFile } from '../services/excelService.js';
 import School from '../models/School.js';
@@ -84,7 +89,12 @@ export const getUsers = asyncHandler(async (req, res) => {
   
   
   
-  const users = await User.find({ ...filter, ...schoolFilter, isActive: true })
+  // If role is teacher, return both active and inactive teachers so ManageUsers can show Active and Inactive tabs
+  const activeCondition = req.query.isActive !== undefined 
+    ? { isActive: req.query.isActive === 'true' } 
+    : (role === 'teacher' ? {} : { isActive: true });
+
+  const users = await User.find({ ...filter, ...schoolFilter, ...activeCondition })
     .select('-password')
     .populate('assignedClasses', 'className section')
     .populate('assignments.class', 'className section')
@@ -457,13 +467,13 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
 
           
 
-          const emailResult = await sendTeacherCreationEmail(
+          const emailResult = await sendTeacherReactivationEmail({
             schoolName,
             teacherName,
-            email,
-            generatedPassword,
-            loginUrl
-          );
+            teacherEmail: email,
+            password: generatedPassword,
+            loginUrl,
+          });
 
           if (emailResult.success) {
             
@@ -560,6 +570,20 @@ export const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found.');
   }
 
+  const prevStatus = user.status;
+  const prevIsActive = user.isActive;
+
+  // Sync status and isActive fields
+  if (updates.status === 'Inactive') {
+    updates.isActive = false;
+  } else if (updates.status === 'Active') {
+    updates.isActive = true;
+  } else if (updates.isActive === false) {
+    updates.status = 'Inactive';
+  } else if (updates.isActive === true) {
+    updates.status = 'Active';
+  }
+
   Object.assign(user, updates);
   if (updates.teacherName && user.role === 'teacher') {
     user.name = updates.teacherName;
@@ -570,6 +594,46 @@ export const updateUser = asyncHandler(async (req, res) => {
   }
 
   await user.save();
+
+  // Trigger emails on status change for teachers
+  if (user.role === 'teacher') {
+    const wasActive = prevStatus !== 'Inactive' && prevIsActive !== false;
+    const isNowInactive = user.status === 'Inactive' || user.isActive === false;
+    const wasInactive = prevStatus === 'Inactive' || prevIsActive === false;
+    const isNowActive = user.status === 'Active' && user.isActive === true;
+
+    if (wasActive && isNowInactive) {
+      try {
+        const school = await School.findById(user.school);
+        const schoolName = school?.schoolName || 'Your School';
+        sendTeacherDeactivationEmail({
+          schoolName,
+          teacherName: user.teacherName || user.name || 'Teacher',
+          teacherEmail: user.email,
+        }).catch((err) => console.error('[User Controller] Failed to send teacher deactivation email:', err));
+      } catch (emailErr) {
+        console.error('[User Controller] Email Error on deactivation:', emailErr);
+      }
+    } else if (wasInactive && isNowActive) {
+      try {
+        const school = await School.findById(user.school);
+        const schoolName = school?.schoolName || 'Your School';
+        const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+          ? `${process.env.CLIENT_URL}/login`
+          : 'https://testmaster.webncode.in/login';
+
+        sendTeacherReactivationEmail({
+          schoolName,
+          teacherName: user.teacherName || user.name || 'Teacher',
+          teacherEmail: user.email,
+          password: password || null,
+          loginUrl,
+        }).catch((err) => console.error('[User Controller] Failed to send teacher reactivation email:', err));
+      } catch (emailErr) {
+        console.error('[User Controller] Email Error on reactivation:', emailErr);
+      }
+    }
+  }
 
   const userObj = user.toObject();
 
@@ -595,10 +659,27 @@ export const deleteUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found.');
   }
 
-  // Soft delete
+  const wasActive = user.isActive !== false && user.status !== 'Inactive';
+
+  // Soft delete / deactivate
   user.isActive = false;
+  user.status = 'Inactive';
 
   await user.save();
+
+  if (wasActive && user.role === 'teacher') {
+    try {
+      const school = await School.findById(user.school);
+      const schoolName = school?.schoolName || 'Your School';
+      sendTeacherDeactivationEmail({
+        schoolName,
+        teacherName: user.teacherName || user.name || 'Teacher',
+        teacherEmail: user.email,
+      }).catch((err) => console.error('[User Controller] Failed to send teacher deactivation email on delete:', err));
+    } catch (emailErr) {
+      console.error('[User Controller] Email Error on delete:', emailErr);
+    }
+  }
 
   res.json({
     success: true,

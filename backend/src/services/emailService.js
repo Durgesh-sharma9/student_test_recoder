@@ -1023,3 +1023,216 @@ ${schoolName}
 
   return await sendWithRetry(mailOptions, "Attender Creation Email");
 };
+
+export const sendTeacherDeactivationEmail = async ({
+  schoolName = 'Your School',
+  teacherName = 'Teacher',
+  teacherEmail,
+}) => {
+  if (!teacherEmail) return { success: false, error: 'Teacher email is required.' };
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: teacherEmail,
+    subject: `Notice: Teacher Account Deactivated - ${schoolName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Deactivated - ${schoolName}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 26px; margin: 0 0 6px; font-weight: 700; letter-spacing: 0.5px;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.92); font-size: 15px; margin: 0; font-weight: 500;">${schoolName}</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 35px 30px;">
+            <div style="display: inline-block; background-color: #fee2e2; color: #dc2626; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; margin-bottom: 15px;">Account Status Notice</div>
+            
+            <h2 style="color: #1e293b; font-size: 22px; margin: 0 0 15px; font-weight: 700;">Account Deactivated</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 18px;">
+              Dear <strong>${teacherName}</strong>,
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+              This is to inform you that your teacher account associated with <strong>${schoolName}</strong> on <strong>Test Master Pro</strong> has been <strong>deactivated / marked as inactive</strong> by the school administration.
+            </p>
+
+            <!-- Warning Card -->
+            <div style="background-color: #fff1f2; border-left: 4px solid #f43f5e; border-radius: 6px; padding: 18px 20px; margin: 20px 0;">
+              <p style="color: #9f1239; font-size: 14px; margin: 0; font-weight: 600;">Access Suspended</p>
+              <p style="color: #be123c; font-size: 13.5px; margin: 6px 0 0; line-height: 1.5;">
+                You will temporarily be unable to log in to the portal or manage attendance and tests while your account is inactive.
+              </p>
+            </div>
+
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 20px 0 0;">
+              If you believe this was done in error or have any questions, please reach out directly to your school administrator.
+            </p>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 6px;">
+                Regards,<br>
+                <strong>${schoolName} Administration</strong>
+              </p>
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Notice: Teacher Account Deactivated - ${schoolName}
+
+Dear ${teacherName},
+
+This is to inform you that your teacher account associated with ${schoolName} on Test Master Pro has been deactivated / marked as inactive by the school administration.
+
+Your access to the portal has been temporarily suspended.
+
+If you have any questions or believe this was done in error, please contact your school administrator.
+
+Regards,
+${schoolName} Administration
+Powered by Test Master Pro
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Teacher Deactivation Email");
+};
+
+export const sendTeacherReactivationEmail = async ({
+  schoolName = 'Your School',
+  teacherName = 'Teacher',
+  teacherEmail,
+  password = null,
+  loginUrl,
+}) => {
+  if (!teacherEmail) return { success: false, error: 'Teacher email is required.' };
+
+  const targetLoginUrl = (loginUrl && !loginUrl.includes('localhost') && !loginUrl.includes('127.0.0.1'))
+    ? loginUrl
+    : 'https://testmaster.webncode.in/login';
+  const displayPortalUrl = 'testmaster.webncode.in';
+
+  const passwordInfoHtml = password
+    ? `
+      <div style="margin-bottom: 15px;">
+        <p style="color: #64748b; font-size: 13px; margin: 0 0 4px; font-weight: 500;">Password</p>
+        <p style="color: #4f46e5; font-size: 17px; margin: 0; font-weight: 700; letter-spacing: 1px;">${password}</p>
+      </div>
+    `
+    : `
+      <div style="margin-bottom: 15px;">
+        <p style="color: #64748b; font-size: 13px; margin: 0 0 4px; font-weight: 500;">Password</p>
+        <p style="color: #059669; font-size: 14px; margin: 0; font-weight: 600;">Your previous password is active and working.</p>
+        <p style="color: #94a3b8; font-size: 12px; margin: 3px 0 0;">(If you have forgotten your password, use the "Forgot Password" link on the login page).</p>
+      </div>
+    `;
+
+  const passwordInfoText = password
+    ? `Password: ${password}`
+    : `Password: Your previous password is active and working. (Use "Forgot Password" on the portal if needed).`;
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: teacherEmail,
+    subject: `Account Reactivated - ${schoolName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Account Reactivated - ${schoolName}</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 26px; margin: 0 0 6px; font-weight: 700; letter-spacing: 0.5px;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.92); font-size: 15px; margin: 0; font-weight: 500;">${schoolName}</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 35px 30px;">
+            <div style="display: inline-block; background-color: #d1fae5; color: #059669; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; margin-bottom: 15px;">Account Status: Active</div>
+            
+            <h2 style="color: #1e293b; font-size: 22px; margin: 0 0 15px; font-weight: 700;">Account Reactivated Successfully</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 18px;">
+              Dear <strong>${teacherName}</strong>,
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 20px;">
+              We are pleased to inform you that your teacher account at <strong>${schoolName}</strong> has been <strong>reactivated</strong>. You can now log in to the portal to take attendance, enter test marks, and access your teaching records.
+            </p>
+
+            <!-- Credentials Box -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 22px; margin: 22px 0;">
+              <h3 style="color: #1e293b; font-size: 15px; margin: 0 0 16px; font-weight: 700; border-bottom: 1px solid #e2e8f0; pb: 8px;">Login Details</h3>
+              
+              <div style="margin-bottom: 15px;">
+                <p style="color: #64748b; font-size: 13px; margin: 0 0 4px; font-weight: 500;">Email</p>
+                <p style="color: #0f172a; font-size: 15px; margin: 0; font-weight: 600;">${teacherEmail}</p>
+              </div>
+
+              ${passwordInfoHtml}
+
+              <div style="margin-bottom: 15px;">
+                <p style="color: #64748b; font-size: 13px; margin: 0 0 4px; font-weight: 500;">Login Portal</p>
+                <p style="margin: 0;">
+                  <a href="${targetLoginUrl}" style="color: #2563eb; font-size: 15px; font-weight: 600; text-decoration: underline;">${displayPortalUrl}</a>
+                </p>
+              </div>
+
+              <div>
+                <p style="color: #64748b; font-size: 13px; margin: 0 0 4px; font-weight: 500;">School</p>
+                <p style="color: #0f172a; font-size: 15px; margin: 0; font-weight: 600;">${schoolName}</p>
+              </div>
+            </div>
+
+            <!-- Login Button -->
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${targetLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);">Login To Portal</a>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 6px;">
+                Regards,<br>
+                <strong>${schoolName} Administration</strong>
+              </p>
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Account Reactivated - ${schoolName}
+
+Dear ${teacherName},
+
+Your teacher account at ${schoolName} has been reactivated. You can now log in to the portal.
+
+Login Details:
+Email: ${teacherEmail}
+${passwordInfoText}
+Login Portal: ${targetLoginUrl}
+School: ${schoolName}
+
+Regards,
+${schoolName} Administration
+Powered by Test Master Pro
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "Teacher Reactivation Email");
+};
