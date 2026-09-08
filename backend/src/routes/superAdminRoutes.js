@@ -5,6 +5,7 @@ import {
   getPlans,
   upsertPlan,
   getSchools,
+  createSchool,
   getSchoolDetails,
   updateSchoolStatus,
   extendSchoolPlan,
@@ -27,6 +28,7 @@ router.get('/dashboard', dashboard);
 router.get('/plans', getPlans);
 router.post('/plans', upsertPlan);
 router.get('/schools', getSchools);
+router.post('/schools', createSchool);
 router.get('/schools/:id', getSchoolDetails);
 router.patch('/schools/:id/status', updateSchoolStatus);
 router.patch('/schools/:id/plan', extendSchoolPlan);

@@ -4,10 +4,14 @@ import User from '../models/User.js';
 import Class from '../models/Class.js';
 import Student from '../models/Student.js';
 import SubscriptionRequest from '../models/SubscriptionRequest.js';
+import SubscriptionHistory from '../models/SubscriptionHistory.js';
+import AcademicSession from '../models/AcademicSession.js';
+import TrialSettings from '../models/TrialSettings.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendCsv, sendPdfTable } from '../utils/exportService.js';
 import { normalizePlanPricing } from '../utils/planPricing.js';
+import { sendSchoolAdminCredentialsEmail } from '../services/emailService.js';
 
 export const dashboard = asyncHandler(async (req, res) => {
   const now = new Date();
@@ -291,3 +295,178 @@ export const downloadSchoolData = asyncHandler(async (req, res) => {
   if (format === 'pdf') return sendPdfTable(res, filename, title, headers, data);
   return sendCsv(res, filename, headers, data);
 });
+
+export const createSchool = asyncHandler(async (req, res) => {
+  const {
+    schoolName,
+    adminName,
+    email,
+    password,
+    phone,
+    schoolCode,
+    address,
+    city,
+    state,
+    pincode,
+    planId,
+    durationDays,
+  } = req.body;
+
+  if (!email || !password) {
+    throw new ApiError(400, 'Email and password are required.');
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const cleanPassword = String(password).trim();
+
+  if (cleanPassword.length < 6) {
+    throw new ApiError(400, 'Password must be at least 6 characters long.');
+  }
+
+  // Check for duplicate school or user email
+  const existingSchool = await School.findOne({ email: cleanEmail });
+  if (existingSchool) {
+    throw new ApiError(400, 'A school with this email already exists.');
+  }
+
+  const existingUser = await User.findOne({ email: cleanEmail });
+  if (existingUser) {
+    throw new ApiError(400, 'A user account with this email already exists.');
+  }
+
+  if (phone) {
+    const existingPhoneSchool = await School.findOne({ phone: phone.trim() });
+    const existingPhoneUser = await User.findOne({ phoneNo: phone.trim() });
+    if (existingPhoneSchool || existingPhoneUser) {
+      throw new ApiError(400, 'This phone number is already associated with another account.');
+    }
+  }
+
+  // Default school name if not entered
+  const emailPrefix = cleanEmail.split('@')[0];
+  const formattedPrefix = emailPrefix
+    .replace(/[._-]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const finalSchoolName = schoolName?.trim() || `${formattedPrefix} School`;
+  const finalAdminName = adminName?.trim() || `${finalSchoolName} Admin`;
+
+  const trialSettings = await TrialSettings.getSettings().catch(() => ({ durationDays: 14 }));
+  let chosenPlan = null;
+  if (planId) {
+    chosenPlan = await Plan.findById(planId);
+  }
+  if (!chosenPlan) {
+    chosenPlan =
+      (await Plan.findOne({ slug: 'trial' })) ||
+      (await Plan.findOne({ planType: 'trial' })) ||
+      (await Plan.findOne({ name: /trial/i })) ||
+      (await Plan.findOne());
+  }
+
+  if (!chosenPlan) {
+    chosenPlan = await Plan.create({
+      name: 'Trial',
+      slug: 'trial',
+      planType: 'trial',
+      durationDays: trialSettings?.durationDays || 14,
+      maxTeachers: 10,
+      maxStudents: 50,
+    });
+  }
+
+  const defaultDuration = chosenPlan.durationDays || trialSettings?.durationDays || 14;
+  const days = Number(durationDays) || defaultDuration;
+  const planExpiresAt = new Date();
+  planExpiresAt.setDate(planExpiresAt.getDate() + days);
+
+  // 1. Create School document
+  const school = await School.create({
+    schoolName: finalSchoolName,
+    adminName: finalAdminName,
+    email: cleanEmail,
+    phone: phone?.trim() || undefined,
+    schoolCode: schoolCode?.trim() || undefined,
+    address: address?.trim() || undefined,
+    city: city?.trim() || undefined,
+    state: state?.trim() || undefined,
+    pincode: pincode?.trim() || undefined,
+    plan: chosenPlan._id,
+    planExpiresAt,
+    isActive: true,
+    trialUsed: chosenPlan.planType === 'trial',
+  });
+
+  // 2. Create SubscriptionHistory entry
+  await SubscriptionHistory.create({
+    school: school._id,
+    plan: chosenPlan._id,
+    action: chosenPlan.planType === 'trial' ? 'trial_started' : 'plan_activated',
+    expiryDate: planExpiresAt,
+  });
+
+  // 3. Create School Admin User document
+  // isEmailVerified: true so the school can log in immediately with credentials
+  await User.create({
+    school: school._id,
+    name: finalAdminName,
+    email: cleanEmail,
+    password: cleanPassword, // hashed by User pre-save hook
+    role: 'school_admin',
+    phoneNo: phone?.trim() || undefined,
+    isEmailVerified: true,
+    isActive: true,
+    status: 'Active',
+  });
+
+  // 4. Create Active Academic Session for the school
+  try {
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    const sessionName = `${currentYear}-${nextYear.toString().slice(-2)}`;
+    const startDate = new Date(currentYear, 5, 1);
+    const endDate = new Date(nextYear, 2, 31);
+
+    await AcademicSession.create({
+      school: school._id,
+      sessionName,
+      startDate,
+      endDate,
+      status: 'active',
+    });
+  } catch (sessErr) {
+    console.error('[AcademicSession] Error creating initial session:', sessErr.message);
+  }
+
+  // 5. Send credentials email to School Admin
+  try {
+    const frontendUrl = process.env.CLIENT_URL || 'https://testmaster.webncode.in';
+    const loginUrl = `${frontendUrl}/login`;
+    await sendSchoolAdminCredentialsEmail(
+      finalSchoolName,
+      finalAdminName,
+      cleanEmail,
+      cleanPassword,
+      loginUrl,
+      chosenPlan.name
+    );
+  } catch (emailErr) {
+    console.error('[Email Error] Failed to send credentials email to school admin:', emailErr.message);
+  }
+
+  const populatedSchool = await School.findById(school._id).populate('plan');
+
+  res.status(201).json({
+    success: true,
+    message: 'School created successfully.',
+    school: populatedSchool,
+    credentials: {
+      schoolName: finalSchoolName,
+      adminName: finalAdminName,
+      email: cleanEmail,
+      password: cleanPassword,
+      planName: chosenPlan.name,
+      planExpiresAt,
+    },
+  });
+});
+

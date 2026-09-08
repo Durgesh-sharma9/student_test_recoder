@@ -1236,3 +1236,131 @@ Powered by Test Master Pro
 
   return await sendWithRetry(mailOptions, "Teacher Reactivation Email");
 };
+
+export const sendSchoolAdminCredentialsEmail = async (
+  schoolName,
+  adminName,
+  adminEmail,
+  password,
+  loginUrl,
+  planName = 'Trial'
+) => {
+  const targetLoginUrl = (loginUrl && !loginUrl.includes('localhost') && !loginUrl.includes('127.0.0.1'))
+    ? loginUrl
+    : 'https://testmaster.webncode.in/login';
+  const displayPortalUrl = 'testmaster.webncode.in';
+
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('[Email Service] Cannot send email - missing SMTP configuration');
+    return { success: false, error: 'Missing SMTP configuration' };
+  }
+
+  const mailOptions = {
+    from: MAIL_FROM,
+    to: adminEmail,
+    subject: `Your School Administrator Credentials - ${schoolName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your School Admin Credentials</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc;">
+        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 32px 24px; text-align: center;">
+            <h1 style="color: #ffffff; font-size: 26px; margin: 0 0 6px; font-weight: 700; letter-spacing: -0.5px;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 15px; margin: 0;">School Management & Examination Platform</p>
+          </div>
+
+          <!-- Body -->
+          <div style="padding: 36px 28px;">
+            <h2 style="color: #0f172a; font-size: 20px; margin: 0 0 16px; font-weight: 700;">
+              Welcome, ${adminName}!
+            </h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+              Your school administrator account for <strong>${schoolName}</strong> has been provisioned successfully by Super Admin. You can now log in to the portal and start managing your school.
+            </p>
+
+            <!-- Credentials Box -->
+            <div style="background: #f1f5f9; border-radius: 10px; padding: 22px; margin: 20px 0; border: 1px solid #cbd5e1;">
+              <h3 style="color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 16px; font-weight: 700;">
+                Your Login Credentials
+              </h3>
+
+              <div style="margin-bottom: 12px;">
+                <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 3px;">School Name:</span>
+                <span style="color: #0f172a; font-size: 15px; font-weight: 600;">${schoolName}</span>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 3px;">Login Email:</span>
+                <span style="color: #0f172a; font-size: 15px; font-weight: 600; font-family: monospace;">${adminEmail}</span>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 3px;">Password:</span>
+                <span style="color: #4f46e5; font-size: 16px; font-weight: 700; font-family: monospace; background: #e0e7ff; padding: 3px 8px; border-radius: 6px; display: inline-block;">${password}</span>
+              </div>
+
+              <div>
+                <span style="color: #64748b; font-size: 13px; display: block; margin-bottom: 3px;">Assigned Plan:</span>
+                <span style="color: #059669; font-size: 14px; font-weight: 600;">${planName}</span>
+              </div>
+            </div>
+
+            <!-- Login CTA -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${targetLoginUrl}" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);">
+                Login To Portal
+              </a>
+              <div style="margin-top: 14px;">
+                <p style="color: #64748b; font-size: 13px; margin: 0 0 3px;">Portal Address:</p>
+                <a href="${targetLoginUrl}" style="color: #4f46e5; font-size: 14px; font-weight: 600; text-decoration: underline;">https://${displayPortalUrl}</a>
+              </div>
+            </div>
+
+            <!-- Security Notice -->
+            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 14px 16px; margin: 20px 0;">
+              <p style="color: #92400e; font-size: 13px; margin: 0; line-height: 1.5;">
+                <strong>Security Tip:</strong> For security reasons, please change your password after logging in for the first time.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 28px;">
+              <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 8px;">
+                If you did not request this account or have questions, please contact platform support.
+              </p>
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Powered by Test Master Pro</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Welcome to Test Master Pro - School Administrator Account
+
+Hello ${adminName},
+
+Your school administrator account for ${schoolName} has been created successfully.
+
+Login Details:
+School: ${schoolName}
+Email: ${adminEmail}
+Password: ${password}
+Assigned Plan: ${planName}
+Login URL: https://${displayPortalUrl} (${targetLoginUrl})
+
+Security Tip: Please change your password after your first login.
+
+Regards,
+Test Master Pro Support
+    `,
+  };
+
+  return await sendWithRetry(mailOptions, "School Admin Credentials Email");
+};
