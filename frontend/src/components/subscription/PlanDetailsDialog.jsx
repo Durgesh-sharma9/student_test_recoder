@@ -168,7 +168,7 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       });
       
       const { order, keyId } = res.data;
-      const razorpayKey = keyId || settings?.razorpayKeyId || 'rzp_test_TNFrLSunBdtmcv';
+      const razorpayKey = keyId || settings?.razorpayKeyId || 'rzp_live_TPDNwSvBxQ2qSF';
 
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
