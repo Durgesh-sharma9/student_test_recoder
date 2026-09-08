@@ -27,11 +27,13 @@ function ClassStrengthTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
-    <div className="rounded-xl border border-slate-100 bg-white/95 backdrop-blur-sm px-3 py-2.5 shadow-xl">
-      <div className="mb-1.5 text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">{data.name}</div>
+    <div className="rounded-xl border border-slate-100 bg-white/95 backdrop-blur-sm px-3.5 py-2.5 shadow-xl">
+      <div className="mb-1.5 text-xs font-bold text-slate-800 border-b border-slate-100 pb-1">
+        {data.shortName || data.name}
+      </div>
       <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">👨‍🎓</span> 
-        Students: <span className="font-bold text-slate-900">{data.studentCount}</span>
+        Total Students: <span className="font-bold text-slate-900">{data.studentCount}</span>
       </div>
     </div>
   );
@@ -61,25 +63,53 @@ export default function AdminDashboard() {
     { name: 'Sessions', value: data.stats?.sessions || 0 },
   ];
 
-  const CLASS_ORDER_MAP = {
-    'NURSERY': 0, 'LKG': 1, 'UKG': 2, 'PREP': 3,
-    'CLASS 1': 4, '1': 4, 'CLASS 2': 5, '2': 5,
-    'CLASS 3': 6, '3': 6, 'CLASS 4': 7, '4': 7,
-    'CLASS 5': 8, '5': 8, 'CLASS 6': 9, '6': 9,
-    'CLASS 7': 10, '7': 10, 'CLASS 8': 11, '8': 11,
-    'CLASS 9': 12, '9': 12, 'CLASS 10': 13, '10': 13,
-    'CLASS 11': 14, '11': 14, 'CLASS 12': 15, '12': 15
+  const getSortOrder = (className) => {
+    const clean = String(className || '').toUpperCase().trim();
+    if (clean.includes('KINDERGARTEN-I') || clean.includes('KINDERGARTEN 1') || clean.includes('KG-I') || clean.includes('KG 1')) return 1;
+    if (clean.includes('KINDERGARTEN-II') || clean.includes('KINDERGARTEN 2') || clean.includes('KG-II') || clean.includes('KG 2')) return 2;
+    if (clean.includes('PRE PRIMARY 3') || clean.includes('PP.3') || clean.includes('PP 3') || clean.includes('PP-3') || clean === 'NURSERY') return 3;
+    if (clean.includes('PRE PRIMARY 4') || clean.includes('PP.4') || clean.includes('PP 4') || clean.includes('PP-4') || clean === 'LKG') return 4;
+    if (clean.includes('PRE PRIMARY 5') || clean.includes('PP.5') || clean.includes('PP 5') || clean.includes('PP-5') || clean === 'UKG' || clean === 'PREP') return 5;
+    
+    // Numerical classes 1 to 12
+    const numMatch = clean.match(/\b(1[0-2]|[1-9])\b/);
+    if (numMatch) {
+      return 10 + parseInt(numMatch[1], 10);
+    }
+    return 99;
   };
 
   const formatShortClassName = (className, section) => {
-    let cName = String(className || '').toUpperCase().trim();
-    if (cName.startsWith('CLASS ')) cName = cName.replace('CLASS ', '');
-    if (cName === 'NURSERY') cName = 'Nur';
-    let sec = String(section || '').toUpperCase().trim();
-    if (sec === 'SCIENCE') sec = 'Sci';
-    if (sec === 'COMMERCE') sec = 'Com';
-    if (sec === 'ARTS') sec = 'Arts';
-    return `${cName}-${sec}`;
+    const c = String(className || '').toUpperCase().trim();
+    const s = String(section || '').toUpperCase().trim();
+    
+    if (/^(1[0-2]|[1-9])$/.test(c)) {
+      return `Class ${c}${s}`;
+    }
+    if (c.startsWith('CLASS ')) {
+      const num = c.replace('CLASS ', '').trim();
+      return `Class ${num}${s}`;
+    }
+    if (c.includes('KINDERGARTEN-II') || c.includes('KINDERGARTEN 2')) {
+      return `KG-II${s ? ` (${s})` : ''}`;
+    }
+    if (c.includes('KINDERGARTEN-I') || c.includes('KINDERGARTEN 1')) {
+      return `KG-I${s ? ` (${s})` : ''}`;
+    }
+    if (c.includes('PRE PRIMARY 3') || c.includes('PP.3') || c.includes('PP 3') || c.includes('PP-3')) {
+      return `PP 3+${s ? ` (${s})` : ''}`;
+    }
+    if (c.includes('PRE PRIMARY 4') || c.includes('PP.4') || c.includes('PP 4') || c.includes('PP-4')) {
+      return `PP 4+${s ? ` (${s})` : ''}`;
+    }
+    if (c.includes('PRE PRIMARY 5') || c.includes('PP.5') || c.includes('PP 5') || c.includes('PP-5')) {
+      return `PP 5+${s ? ` (${s})` : ''}`;
+    }
+    if (c === 'NURSERY') return `Nur${s ? ` (${s})` : ''}`;
+    if (c === 'LKG') return `LKG${s ? ` (${s})` : ''}`;
+    if (c === 'UKG') return `UKG${s ? ` (${s})` : ''}`;
+    
+    return `${c}${s ? ` ${s}` : ''}`;
   };
 
   const classStrengthData = (data.classPerformance || [])
@@ -93,8 +123,8 @@ export default function AdminDashboard() {
       section: cp.section,
     }))
     .sort((a, b) => {
-      const orderA = CLASS_ORDER_MAP[String(a.className || '').toUpperCase().trim()] ?? 99;
-      const orderB = CLASS_ORDER_MAP[String(b.className || '').toUpperCase().trim()] ?? 99;
+      const orderA = getSortOrder(a.className);
+      const orderB = getSortOrder(b.className);
       if (orderA !== orderB) return orderA - orderB;
       return String(a.section || '').localeCompare(String(b.section || ''));
     });
@@ -163,22 +193,22 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <div className="mt-1 sm:mt-2 w-full overflow-x-auto pb-2 scrollbar-thin">
-            <div style={{ minWidth: `${Math.max(780, classStrengthData.length * 32)}px`, height: '240px' }}>
+            <div style={{ minWidth: `${Math.max(900, classStrengthData.length * 52)}px`, height: '280px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={classStrengthData} margin={{ top: 15, right: 10, left: -20, bottom: 25 }}>
+                <BarChart data={classStrengthData} margin={{ top: 15, right: 15, left: -15, bottom: 50 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis 
                     dataKey="shortName" 
                     interval={0}
-                    angle={-45}
+                    angle={-40}
                     textAnchor="end"
-                    tick={{ fontSize: 10, fill: '#475569', fontWeight: 600 }} 
+                    tick={{ fontSize: 11, fill: '#334155', fontWeight: 600 }} 
                     axisLine={{ stroke: '#e2e8f0' }} 
                     tickLine={false}
-                    height={40}
+                    height={55}
                   />
                   <YAxis 
-                    tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} 
+                    tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }} 
                     axisLine={false} 
                     tickLine={false} 
                     dx={-5}
@@ -186,8 +216,8 @@ export default function AdminDashboard() {
                   <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} content={<ClassStrengthTooltip />} />
                   <Bar 
                     dataKey="value" 
-                    radius={[4, 4, 0, 0]} 
-                    maxBarSize={28} 
+                    radius={[5, 5, 0, 0]} 
+                    maxBarSize={30} 
                     className="cursor-pointer transition-opacity hover:opacity-80"
                     onClick={(data) => handleClassClick(data)}
                   >
