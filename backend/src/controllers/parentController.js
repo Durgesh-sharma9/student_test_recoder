@@ -1131,7 +1131,7 @@ export const getParentExamDetails = asyncHandler(async (req, res) => {
 
 export const getAdminParents = asyncHandler(async (req, res) => {
   const schoolId = req.user.school?._id ?? req.user.school;
-  const { search, searchParent, status, classId } = req.query;
+  const { search, searchParent, status, classId, page, limit } = req.query;
   
   const filter = { school: schoolId, isActive: true };
   
@@ -1164,9 +1164,30 @@ export const getAdminParents = asyncHandler(async (req, res) => {
   if (status) {
     filteredStudents = filteredStudents.filter(s => s.parent && s.parent.status === status);
   }
+
+  // Consistent numerical/alphanumerical sorting by roll number
+  filteredStudents.sort((a, b) => {
+    const aRoll = Number(a.rollNo);
+    const bRoll = Number(b.rollNo);
+    if (!Number.isNaN(aRoll) && !Number.isNaN(bRoll) && aRoll !== bRoll) return aRoll - bRoll;
+    return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
+  });
+
+  const total = filteredStudents.length;
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10) || 30;
+  
+  let paginatedStudents = filteredStudents;
+  let hasMore = false;
+  
+  if (pageNum && pageNum > 0) {
+    const startIndex = (pageNum - 1) * limitNum;
+    paginatedStudents = filteredStudents.slice(startIndex, startIndex + limitNum);
+    hasMore = startIndex + paginatedStudents.length < total;
+  }
   
   // Transform to student-centric format
-  const studentParentData = filteredStudents.map(student => ({
+  const studentParentData = paginatedStudents.map(student => ({
     _id: student._id,
     studentName: student.name,
     rollNo: student.rollNo,
@@ -1184,7 +1205,14 @@ export const getAdminParents = asyncHandler(async (req, res) => {
   
   res.json({
     success: true,
-    students: studentParentData
+    students: studentParentData,
+    pagination: {
+      total,
+      page: pageNum || 1,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      hasMore
+    }
   });
 });
 

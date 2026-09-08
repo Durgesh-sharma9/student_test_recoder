@@ -13,6 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/
 export default function ManageParents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchParent, setSearchParent] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -24,6 +28,7 @@ export default function ManageParents() {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const latestRequestRef = useRef(0);
+  const observerRef = useRef(null);
 
   const debouncedSearchStudent = useDebouncedValue(searchStudent, 400);
   const debouncedSearchParent = useDebouncedValue(searchParent, 400);
@@ -33,7 +38,7 @@ export default function ManageParents() {
       [...students].sort((a, b) => {
         const aRoll = Number(a.rollNo);
         const bRoll = Number(b.rollNo);
-        if (!Number.isNaN(aRoll) && !Number.isNaN(bRoll)) return aRoll - bRoll;
+        if (!Number.isNaN(aRoll) && !Number.isNaN(bRoll) && aRoll !== bRoll) return aRoll - bRoll;
         return String(a.rollNo || '').localeCompare(String(b.rollNo || ''), undefined, { numeric: true });
       }),
     [students]
@@ -42,10 +47,6 @@ export default function ManageParents() {
   useEffect(() => {
     loadClasses();
   }, []);
-
-  useEffect(() => {
-    loadStudents();
-  }, [debouncedSearchStudent, debouncedSearchParent, classFilter, statusFilter]);
 
   const loadClasses = async () => {
     try {
@@ -56,13 +57,21 @@ export default function ManageParents() {
     }
   };
 
-  const loadStudents = async () => {
+  const fetchStudents = async (targetPage = 1, isLoadMore = false) => {
     const requestId = latestRequestRef.current + 1;
     latestRequestRef.current = requestId;
-    setLoading(true);
-    setError('');
+
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError('');
+    }
+
     try {
       const params = new URLSearchParams();
+      params.append('page', String(targetPage));
+      params.append('limit', '25');
       
       if (debouncedSearchStudent) params.append('search', debouncedSearchStudent);
       if (debouncedSearchParent) params.append('searchParent', debouncedSearchParent);
@@ -73,22 +82,67 @@ export default function ManageParents() {
       
       const res = await api.get(`/parents/admin/list?${params}`);
       if (requestId !== latestRequestRef.current) return;
-      if (res.data && Array.isArray(res.data.students)) {
-        setStudents(res.data.students);
+
+      const newStudents = Array.isArray(res.data?.students) ? res.data.students : [];
+      const pagination = res.data?.pagination || {};
+
+      if (isLoadMore) {
+        setStudents(prev => {
+          const existingIds = new Set(prev.map(s => s._id));
+          const unique = newStudents.filter(s => !existingIds.has(s._id));
+          return [...prev, ...unique];
+        });
       } else {
-        setStudents([]);
+        setStudents(newStudents);
       }
+
+      setPage(targetPage);
+      setHasMore(Boolean(pagination.hasMore));
+      setTotalCount(pagination.total ?? newStudents.length);
     } catch (err) {
       if (requestId !== latestRequestRef.current) return;
       console.error('Failed to load students:', err);
-      setError(err.response?.data?.message || 'Failed to load students');
-      setStudents([]);
+      if (!isLoadMore) {
+        setError(err.response?.data?.message || 'Failed to load students');
+        setStudents([]);
+      }
     } finally {
       if (requestId === latestRequestRef.current) {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
   };
+
+  // Reset and fetch page 1 when filters change
+  useEffect(() => {
+    fetchStudents(1, false);
+  }, [debouncedSearchStudent, debouncedSearchParent, classFilter, statusFilter]);
+
+  // Infinite scroll trigger via IntersectionObserver
+  useEffect(() => {
+    if (loading || !hasMore || loadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchStudents(page + 1, true);
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' }
+    );
+
+    const currentTarget = observerRef.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [loading, hasMore, loadingMore, page, debouncedSearchStudent, debouncedSearchParent, classFilter, statusFilter]);
 
   const handleToggleStatus = async (student) => {
     if (!student.parentId) {
@@ -99,7 +153,10 @@ export default function ManageParents() {
       const newStatus = student.parentStatus === 'Active' ? 'Inactive' : 'Active';
       await api.put(`/parents/admin/${student.parentId}/status`, { status: newStatus });
       toast.success(`Parent status updated to ${newStatus}`);
-      loadStudents();
+      // Update in place so user doesn't lose their scroll position
+      setStudents(prev =>
+        prev.map(s => (s.parentId === student.parentId ? { ...s, parentStatus: newStatus } : s))
+      );
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
     }
@@ -205,10 +262,15 @@ export default function ManageParents() {
 
       {/* Main Table Section */}
       <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
-        <div className="bg-slate-50/80 dark:bg-slate-800/50 px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-700">
+        <div className="bg-slate-50/80 dark:bg-slate-800/50 px-5 py-3.5 border-b border-slate-200/80 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300 text-sm">
-            <Users className="h-4 w-4" />
-            Students with Parents
+            <Users className="h-4 w-4 text-orange-500" />
+            <span>Students with Parents</span>
+            {totalCount > 0 && (
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded-full ml-1">
+                {students.length} of {totalCount}
+              </span>
+            )}
           </div>
         </div>
 
@@ -330,6 +392,38 @@ export default function ManageParents() {
                 }))}
               </TableBody>
             </Table>
+
+            {/* Invisible sentinel for automatic infinite scroll */}
+            <div ref={observerRef} className="h-4 w-full" />
+
+            {/* Loading more indicator */}
+            {loadingMore && (
+              <div className="py-4 flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 text-xs font-medium border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+                Loading more parents...
+              </div>
+            )}
+
+            {/* Manual fallback load button */}
+            {hasMore && !loadingMore && !loading && (
+              <div className="py-3 text-center border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fetchStudents(page + 1, true)}
+                  className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-slate-800 font-medium"
+                >
+                  Load More ({totalCount - students.length} remaining)
+                </Button>
+              </div>
+            )}
+
+            {/* Reached end message */}
+            {!hasMore && students.length > 0 && (
+              <div className="py-3 text-center text-xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/30">
+                All {totalCount} student-parent records loaded
+              </div>
+            )}
           </div>
         )}
       </div>
