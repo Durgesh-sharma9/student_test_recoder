@@ -68,13 +68,23 @@ async function restoreBackup() {
     const docs = JSON.parse(content, parseMongoJSON);
 
     if (Array.isArray(docs) && docs.length > 0) {
-      // Fix _id if stored as string/object
-      const processedDocs = docs.map(doc => {
-        if (doc._id && typeof doc._id === 'string' && doc._id.length === 24) {
-          doc._id = new mongoose.Types.ObjectId(doc._id);
+      const is24Hex = (v) => typeof v === 'string' && /^[0-9a-fA-F]{24}$/.test(v);
+      const convertDoc = (d) => {
+        if (!d || typeof d !== 'object') return d;
+        for (const k of Object.keys(d)) {
+          const v = d[k];
+          if (is24Hex(v) && (k === '_id' || k === 'school' || k === 'class' || k === 'student' || k === 'user' || k === 'academicSession' || k === 'session' || k === 'plan' || k === 'parent' || k.endsWith('Id'))) {
+            d[k] = new mongoose.Types.ObjectId(v);
+          } else if (Array.isArray(v)) {
+            d[k] = v.map(item => is24Hex(item) ? new mongoose.Types.ObjectId(item) : (item && typeof item === 'object' ? convertDoc(item) : item));
+          } else if (v && typeof v === 'object' && !(v instanceof mongoose.Types.ObjectId) && !(v instanceof Date)) {
+            d[k] = convertDoc(v);
+          }
         }
-        return doc;
-      });
+        return d;
+      };
+
+      const processedDocs = docs.map(doc => convertDoc({ ...doc }));
 
       const col = db.collection(colName);
       await col.deleteMany({}); // replace collection content with backup
