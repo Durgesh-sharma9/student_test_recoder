@@ -267,8 +267,8 @@ export default function ManageParents() {
             <Users className="h-4 w-4 text-orange-500" />
             <span>Students with Parents</span>
             {totalCount > 0 && (
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded-full ml-1">
-                {students.length} of {totalCount}
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800 px-2 py-0.5 rounded-full ml-1">
+                {totalCount}
               </span>
             )}
           </div>
@@ -413,7 +413,7 @@ export default function ManageParents() {
                   onClick={() => fetchStudents(page + 1, true)}
                   className="text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-slate-800 font-medium"
                 >
-                  Load More ({totalCount - students.length} remaining)
+                  Load More Records
                 </Button>
               </div>
             )}
