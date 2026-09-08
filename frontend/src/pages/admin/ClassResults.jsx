@@ -642,25 +642,44 @@ export default function ClassResults() {
         
         <div className="p-4">
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Class</label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full h-9 text-sm shadow-sm rounded-lg">
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {formatClassName(c.className)}-{c.section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Class</label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="w-full h-9 text-sm shadow-sm rounded-lg">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {formatClassName(c.className)}-{c.section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-full h-9 text-sm shadow-sm rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rollNo_asc">Roll No (Ascending)</SelectItem>
+                    <SelectItem value="rollNo_desc">Roll No (Descending)</SelectItem>
+                    <SelectItem value="name_asc">Student Name (A-Z)</SelectItem>
+                    <SelectItem value="name_desc">Student Name (Z-A)</SelectItem>
+                    <SelectItem value="marks_desc">Marks (High to Low)</SelectItem>
+                    <SelectItem value="marks_asc">Marks (Low to High)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
               <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Show Results (Select Multiple)</label>
-              <div className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2 h-24 overflow-y-auto space-y-1 shadow-inner custom-scrollbar">
+              <div className="w-full rounded-lg border border-slate-200 bg-slate-50/50 p-2 h-[126px] overflow-y-auto space-y-1 shadow-inner custom-scrollbar">
                 {EXAM_TYPES.map((type) => {
                   const isChecked = selectedExamTypes.includes(type);
                   return (
@@ -723,23 +742,6 @@ export default function ClassResults() {
                 )}
               </div>
             )}
-
-            <div>
-              <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sort By</label>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full h-9 text-sm shadow-sm rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rollNo_asc">Roll No (Ascending)</SelectItem>
-                  <SelectItem value="rollNo_desc">Roll No (Descending)</SelectItem>
-                  <SelectItem value="name_asc">Student Name (A-Z)</SelectItem>
-                  <SelectItem value="name_desc">Student Name (Z-A)</SelectItem>
-                  <SelectItem value="marks_desc">Marks (High to Low)</SelectItem>
-                  <SelectItem value="marks_asc">Marks (Low to High)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <div className="mt-5 flex flex-col sm:flex-row flex-wrap gap-2 relative z-0">
