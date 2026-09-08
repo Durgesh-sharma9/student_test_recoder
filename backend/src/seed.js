@@ -38,8 +38,8 @@ const seed = async () => {
     merchantName: 'School Daily Test',
     qrExpiryMinutes: 5,
     razorpayEnabled: true,
-    razorpayKeyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_TNFrLSunBdtmcv',
-    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || 'rYqvnc8Q8GqIpXT6ZSNKp7Ly',
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
     updatedBy: superAdmin._id,
   });
 

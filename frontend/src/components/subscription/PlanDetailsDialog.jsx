@@ -168,7 +168,13 @@ export default function PlanDetailsDialog({ open, onOpenChange, planId }) {
       });
       
       const { order, keyId } = res.data;
-      const razorpayKey = keyId || settings?.razorpayKeyId || 'rzp_live_TPDNwSvBxQ2qSF';
+      const razorpayKey = keyId || settings?.razorpayKeyId;
+
+      if (!razorpayKey) {
+        toast.error('Razorpay key not configured in environment');
+        setLoading(false);
+        return;
+      }
 
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {

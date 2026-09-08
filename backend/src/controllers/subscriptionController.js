@@ -97,7 +97,7 @@ export const getPlanDetails = asyncHandler(async (req, res) => {
 
 export const getPaymentSettings = asyncHandler(async (req, res) => {
   const settings = await PaymentSettings.findOne().sort('-updatedAt -createdAt');
-  const razorpayKeyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '';
+  const razorpayKeyId = process.env.RAZORPAY_KEY_ID || settings?.razorpayKeyId || '';
   res.json({
     success: true,
     settings: {
@@ -456,10 +456,10 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     PaymentSettings.findOne().sort('-updatedAt -createdAt'),
   ]);
 
-  const keyId = settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID;
-  const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
+  const keyId = process.env.RAZORPAY_KEY_ID || settings?.razorpayKeyId;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || settings?.razorpayKeySecret;
 
-  if (!keyId || !keySecret) throw new ApiError(500, 'Razorpay is not fully configured (missing Key ID or Secret)');
+  if (!keyId || !keySecret) throw new ApiError(500, 'Razorpay is not fully configured (missing Key ID or Secret in environment)');
 
   // Calculate pricing exactly same as UPI QR code flow
   let basePrice = Number(plan.basePrice ?? plan.price ?? 0);
@@ -553,8 +553,8 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   if (!requestedPlan || !requestedPlan.isActive) throw new ApiError(404, 'Requested plan not found');
   if (!school) throw new ApiError(400, 'School not found');
 
-  const keySecret = settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET;
-  if (!keySecret) throw new ApiError(500, 'Razorpay Key Secret is not configured');
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || settings?.razorpayKeySecret;
+  if (!keySecret) throw new ApiError(500, 'Razorpay Key Secret is not configured in environment');
 
   // Verify signature
   const body = razorpay_order_id + '|' + razorpay_payment_id;

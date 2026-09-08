@@ -17,8 +17,8 @@ export const getPaymentSettings = asyncHandler(async (req, res) => {
       merchantName: settings?.merchantName || '',
       qrExpiryMinutes: settings?.qrExpiryMinutes || 5,
       razorpayEnabled: settings ? Boolean(settings.razorpayEnabled) : Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
-      razorpayKeyId: settings?.razorpayKeyId || process.env.RAZORPAY_KEY_ID || '',
-      razorpayKeySecret: settings?.razorpayKeySecret || process.env.RAZORPAY_KEY_SECRET || '',
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID || settings?.razorpayKeyId || '',
+      razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || settings?.razorpayKeySecret || '',
       allowTeacherImpersonation: settings?.allowTeacherImpersonation || false,
     },
   });
