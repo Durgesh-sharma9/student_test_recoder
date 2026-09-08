@@ -13,18 +13,7 @@ import { FormField } from '@/components/erp/PagePrimitives';
 import { useAuth } from '@/context/AuthContext';
 import BrandLogo from '@/components/brand/BrandLogo';
 
-const COUNTRY_CODES = [
-  { code: '+91', iso: 'in', name: 'India', flag: '🇮🇳' },
-  { code: '+1', iso: 'us', name: 'US / Canada', flag: '🇺🇸' },
-  { code: '+44', iso: 'gb', name: 'UK', flag: '🇬🇧' },
-  { code: '+971', iso: 'ae', name: 'UAE', flag: '🇦🇪' },
-  { code: '+966', iso: 'sa', name: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: '+977', iso: 'np', name: 'Nepal', flag: '🇳🇵' },
-  { code: '+880', iso: 'bd', name: 'Bangladesh', flag: '🇧🇩' },
-  { code: '+61', iso: 'au', name: 'Australia', flag: '🇦🇺' },
-  { code: '+65', iso: 'sg', name: 'Singapore', flag: '🇸🇬' },
-  { code: '+60', iso: 'my', name: 'Malaysia', flag: '🇲🇾' },
-];
+import CountryCodeSelect from '@/components/common/CountryCodeSelect';
 
 export default function Signup() {
   const { setSession } = useAuth();
@@ -48,12 +37,16 @@ export default function Signup() {
     }
 
     const cleanPhone = phoneNumber.trim();
-    if (cleanPhone && cleanPhone.length !== 10) {
+    if (cleanPhone && countryCode === '+91' && cleanPhone.length !== 10) {
       toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
+    if (cleanPhone && (cleanPhone.length < 6 || cleanPhone.length > 15)) {
+      toast.error('Please enter a valid mobile number');
+      return;
+    }
 
-    const fullPhone = cleanPhone ? `${countryCode} ${cleanPhone}` : '';
+    const fullPhone = cleanPhone ? `${countryCode}${cleanPhone}` : '';
 
     setSendingOTP(true);
     try {
@@ -263,23 +256,17 @@ export default function Signup() {
                 
                 <FormField label="Mobile Number">
                 <div className="flex gap-2">
-                  <select
+                  <CountryCodeSelect
                     value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-bold text-slate-700 focus:border-indigo-500 focus:outline-none shrink-0"
-                  >
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.code + c.iso} value={c.code}>
-                        {c.flag} {c.code}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(code) => setCountryCode(code)}
+                    buttonClassName="h-10 rounded-xl"
+                  />
                   <Input
                     type="tel"
-                    placeholder="10-digit mobile number"
+                    placeholder={countryCode === '+91' ? "10-digit mobile number" : "Mobile number"}
                     value={phoneNumber}
-                    maxLength={10}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    maxLength={countryCode === '+91' ? 10 : 15}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 15))}
                     className="flex-1 h-10 text-sm"
                   />
                 </div>

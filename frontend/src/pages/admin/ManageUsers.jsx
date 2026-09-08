@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PlanLimitReachedDialog from '@/components/subscription/PlanLimitReachedDialog';
 import SubscriptionExpiredDialog from '@/components/subscription/SubscriptionExpiredDialog';
+import PhoneInputField from '@/components/common/PhoneInputField';
 
 export default function ManageUsers() {
   const { isArchived } = useSession();
@@ -52,46 +53,6 @@ export default function ManageUsers() {
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [credentialsModal, setCredentialsModal] = useState({ open: false, data: null });
 
-  const COUNTRY_CODES = [
-    { code: '+91', iso: 'in', name: 'India' },
-    { code: '+1', iso: 'us', name: 'US' },
-    { code: '+44', iso: 'gb', name: 'UK' },
-    { code: '+971', iso: 'ae', name: 'UAE' },
-    { code: '+966', iso: 'sa', name: 'Saudi' },
-    { code: '+977', iso: 'np', name: 'Nepal' },
-    { code: '+880', iso: 'bd', name: 'Bangladesh' },
-    { code: '+61', iso: 'au', name: 'Australia' },
-  ];
-
-  const renderFlag = (iso) => {
-    if (!iso) return null;
-    return (
-      <img
-        src={`https://flagcdn.com/w20/${iso}.png`}
-        width="18"
-        alt=""
-        className="rounded-sm object-contain"
-      />
-    );
-  };
-
-  const parsePhone = (phoneString) => {
-    const phone = phoneString || '';
-    const match = COUNTRY_CODES.find(c => phone.startsWith(c.code));
-    if (match) {
-      return {
-        countryCode: match.code,
-        number: phone.slice(match.code.length)
-      };
-    }
-    return { countryCode: '+91', number: phone.replace(/^\+/, '') };
-  };
-
-  const { countryCode: teacherPhoneCode, number: teacherPhoneNumber } = parsePhone(form.phoneNo);
-
-  const handleTeacherPhoneChange = (code, num) => {
-    setForm(f => ({ ...f, phoneNo: code + num }));
-  };
 
   useEffect(() => {
     api.get('/users?role=teacher').then((res) => {
@@ -647,40 +608,12 @@ export default function ManageUsers() {
                 </FormField>
 
                 <FormField label="Phone No" required>
-                  <div className="flex gap-2">
-                    <Select
-                      value={teacherPhoneCode}
-                      onValueChange={(val) => handleTeacherPhoneChange(val, teacherPhoneNumber)}
-                    >
-                      <SelectTrigger className="w-[100px] h-9 text-xs bg-white border-slate-200">
-                        <span className="flex items-center gap-1.5">
-                          {renderFlag(COUNTRY_CODES.find(c => c.code === teacherPhoneCode)?.iso)}
-                          <span>{teacherPhoneCode}</span>
-                        </span>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRY_CODES.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>
-                            <span className="flex items-center gap-2">
-                              {renderFlag(c.iso)}
-                              <span>{c.code} ({c.name})</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="tel"
-                      placeholder="e.g. 9876543210"
-                      value={teacherPhoneNumber}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '');
-                        handleTeacherPhoneChange(teacherPhoneCode, digits);
-                      }}
-                      className="flex-1 h-9 text-sm rounded-lg bg-white border-slate-200 shadow-sm"
-                      required
-                    />
-                  </div>
+                  <PhoneInputField
+                    value={form.phoneNo}
+                    onChange={(val) => setForm({ ...form, phoneNo: val })}
+                    placeholder="e.g. 9876543210"
+                    required
+                  />
                 </FormField>
               </div>
 
