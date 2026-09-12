@@ -662,24 +662,24 @@ export const sendParentCreationEmail = async (
   parentName,
   parentEmail,
   password,
-  loginUrl
+  loginUrl,
+  parentPhone = null
 ) => {
-  
-  
-  
-  
+  const targetUrl = (loginUrl && !loginUrl.includes('localhost'))
+    ? (loginUrl.endsWith('/parent-login') ? loginUrl : `${loginUrl}/parent-login`)
+    : 'https://testmaster.webncode.in/parent-login';
 
   const mailOptions = {
     from: MAIL_FROM,
     to: parentEmail,
-    subject: "Welcome to Test Master - Your Parent Account Credentials",
+    subject: `Welcome to ${schoolName} - Test Master Pro - Parent Account Credentials`,
     html: `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to Test Master</title>
+        <title>Welcome to ${schoolName} - Test Master Pro</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -688,8 +688,8 @@ export const sendParentCreationEmail = async (
             <div style="display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; background-color: rgba(255,255,255,0.2); border-radius: 12px; margin-bottom: 15px;">
               <span style="font-size: 32px; color: #ffffff;">👨‍👩‍👧‍👦</span>
             </div>
-            <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 700;">Test Master</h1>
-            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 5px 0 0;">Professional School Management</p>
+            <h1 style="color: #ffffff; font-size: 28px; margin: 0; font-weight: 700;">Test Master Pro</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 5px 0 0;">School Management System</p>
           </div>
 
           <!-- Content -->
@@ -699,22 +699,30 @@ export const sendParentCreationEmail = async (
               Hello <strong>${parentName}</strong>,
             </p>
             <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 25px;">
-              Your parent account has been successfully created. Below are your login credentials to access the Test Master platform and monitor your child's academic progress.
+              Your parent account has been successfully created. Below are your login credentials to access the Test Master Pro platform and monitor your child's academic progress.
             </p>
 
             <!-- Credentials Box -->
             <div style="background-color: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 25px; margin: 25px 0;">
               <h3 style="color: #495057; font-size: 18px; margin: 0 0 20px; font-weight: 600;">Your Account Details</h3>
+              <p style="color: #0284c7; font-size: 13px; margin: 0 0 15px; font-weight: 600;">ℹ️ You can log in using either your Mobile Number or Email Address</p>
               
               <div style="margin-bottom: 15px;">
                 <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Parent Name</p>
                 <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${parentName}</p>
               </div>
+
+              ${parentPhone ? `
+              <div style="margin-bottom: 15px;">
+                <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Registered Mobile / Username</p>
+                <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${parentPhone}</p>
+              </div>` : ''}
               
+              ${parentEmail ? `
               <div style="margin-bottom: 15px;">
                 <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Email Address</p>
                 <p style="color: #212529; font-size: 16px; margin: 0; font-weight: 600;">${parentEmail}</p>
-              </div>
+              </div>` : ''}
               
               <div style="margin-bottom: 15px;">
                 <p style="color: #6c757d; font-size: 14px; margin: 0 0 5px; font-weight: 500;">Temporary Password</p>
@@ -722,7 +730,7 @@ export const sendParentCreationEmail = async (
               </div>
               
               <div>
-                <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-top: 10px;">Login to Your Account</a>
+                <a href="${targetUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 12px 30px; border-radius: 8px; font-weight: 600; font-size: 16px; margin-top: 10px;">Login to Parent Portal</a>
               </div>
             </div>
 
@@ -730,12 +738,12 @@ export const sendParentCreationEmail = async (
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin: 25px 0;">
               <p style="color: #856404; font-size: 15px; margin: 0; font-weight: 600;">⚠️ Important Security Notice</p>
               <p style="color: #856404; font-size: 14px; margin: 8px 0 0; line-height: 1.5;">
-                This is a temporary password. For your account security, please change your password immediately after your first login from the Settings page.
+                This is a temporary password. For your account security, please change your password immediately after your first login.
               </p>
             </div>
 
             <p style="color: #666666; font-size: 15px; line-height: 1.6; margin: 25px 0 0;">
-              With Test Master, you can:
+              With Test Master Pro, you can:
             </p>
             <ul style="color: #666666; font-size: 15px; line-height: 1.8; margin: 10px 0 25px; padding-left: 20px;">
               <li>View your child's test results and academic performance</li>

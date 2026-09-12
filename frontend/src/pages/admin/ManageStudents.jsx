@@ -177,21 +177,7 @@ export default function ManageStudents() {
               try {
                 const payload = { ...form, class: targetClassId, shiftOption };
                 const response = await api.post('/students', payload);
-                
-                if (response.data.parentData && response.data.parentData.isNew && response.data.parentData.parent.email) {
-                  try {
-                    await api.post('/parents/send-credentials', {
-                      parentId: response.data.parentData.parent._id,
-                      schoolName: 'Your School',
-                      loginUrl: window.location.origin
-                    });
-                    toast.success('Student added and parent credentials sent');
-                  } catch (emailErr) {
-                    toast.success('Student added (parent email failed)');
-                  }
-                } else {
-                  toast.success('Student added');
-                }
+                toast.success('Student added successfully');
                 
                 setOpen(false);
                 setEdit(null);
@@ -229,22 +215,8 @@ export default function ManageStudents() {
           setSelectedClass(targetClassId);
         }
       } else {
-        const response = await api.post('/students', payload);
-        
-        if (response.data.parentData && response.data.parentData.isNew && response.data.parentData.parent.email) {
-          try {
-            await api.post('/parents/send-credentials', {
-              parentId: response.data.parentData.parent._id,
-              schoolName: 'Your School',
-              loginUrl: window.location.origin
-            });
-            toast.success('Student added and parent credentials sent');
-          } catch (emailErr) {
-            toast.success('Student added (parent email failed)');
-          }
-        } else {
-          toast.success('Student added');
-        }
+        await api.post('/students', payload);
+        toast.success('Student added successfully');
       }
       setOpen(false); 
       setEdit(null); 

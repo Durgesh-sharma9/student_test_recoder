@@ -520,22 +520,6 @@ export const bulkImportStudents = asyncHandler(async (req, res) => {
         
         if (parentResult.isNew) {
           results.parentsCreated++;
-          
-          // Send credential email if parent email exists
-          if (row.parentEmail) {
-            try {
-              await sendParentCreationEmail(
-                school?.schoolName || 'Your School',
-                parentResult.parent.parentName,
-                parentResult.parent.email,
-                parentResult.password,
-                process.env.CLIENT_URL || 'http://localhost:5173/parent-login'
-              );
-            } catch (emailError) {
-              // Log email error but don't fail the import
-              console.error('Failed to send parent credential email:', emailError);
-            }
-          }
         } else {
           results.existingParentsLinked++;
         }

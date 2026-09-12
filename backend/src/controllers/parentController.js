@@ -11,6 +11,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { withSchool } from '../utils/tenantQuery.js';
 import crypto from 'crypto';
 import { sendParentCreationEmail } from '../services/emailService.js';
+import { sendParentWhatsAppCredentials } from '../services/whatsappService.js';
 import { startOfDay, endOfDay } from 'date-fns';
 
 const round2 = (v) => Math.round(v * 100) / 100;
@@ -35,6 +36,57 @@ const generatePassword = () => {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
+};
+
+// Central helper to notify parent on first-time account creation
+export const notifyNewParentCredentials = async ({ schoolId, parent, plainPassword }) => {
+  try {
+    if (!parent || !plainPassword) return;
+
+    let schoolName = 'Test Master Pro';
+    if (schoolId) {
+      const school = await School.findById(schoolId);
+      if (school?.schoolName) {
+        schoolName = school.schoolName;
+      }
+    }
+
+    const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
+      ? `${process.env.CLIENT_URL}/parent-login`
+      : 'https://testmaster.webncode.in/parent-login';
+
+    // 1. Send WhatsApp FIRST (primary instant delivery)
+    if (parent.phone && String(parent.phone).trim()) {
+      try {
+        await sendParentWhatsAppCredentials({
+          phoneNo: parent.phone,
+          parentName: parent.parentName,
+          email: parent.email,
+          password: plainPassword,
+          schoolName,
+          loginUrl,
+        });
+      } catch (waErr) {
+        console.error('[Parent Notification] Failed to send credentials WhatsApp:', waErr.message);
+      }
+    }
+
+    // 2. Send Email in background if parent has email address (non-blocking)
+    if (parent.email && String(parent.email).trim()) {
+      sendParentCreationEmail(
+        schoolName,
+        parent.parentName,
+        parent.email.trim(),
+        plainPassword,
+        loginUrl,
+        parent.phone
+      ).catch((emailErr) => {
+        console.warn('[Parent Notification] Email delivery failed/skipped:', emailErr.message);
+      });
+    }
+  } catch (err) {
+    console.error('[Parent Notification Error]:', err.message);
+  }
 };
 
 // Helper function to find or create parent
@@ -76,6 +128,17 @@ export const findOrCreateParent = async (schoolId, parentData) => {
     status: 'Active',
     linkedStudents: []
   });
+
+  // Notify new parent via WhatsApp and Email (first time only)
+  try {
+    await notifyNewParentCredentials({
+      schoolId,
+      parent,
+      plainPassword: password,
+    });
+  } catch (notifyErr) {
+    console.error('[Parent Creation Notification Error]:', notifyErr.message);
+  }
   
   return { parent, isNew: true, password };
 };
@@ -143,6 +206,13 @@ export const createParent = asyncHandler(async (req, res) => {
     password,
     status: 'Active',
     linkedStudents: []
+  });
+
+  // Notify new parent via WhatsApp and Email (first time only)
+  await notifyNewParentCredentials({
+    schoolId,
+    parent,
+    plainPassword: password,
   });
 
   const parentObj = parent.toObject();
