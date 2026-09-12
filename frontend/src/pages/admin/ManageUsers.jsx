@@ -51,7 +51,6 @@ export default function ManageUsers() {
     priority: 'normal',
   });
   const [attachmentFile, setAttachmentFile] = useState(null);
-  const [credentialsModal, setCredentialsModal] = useState({ open: false, data: null });
 
 
   useEffect(() => {
@@ -205,23 +204,11 @@ export default function ManageUsers() {
         if (inactiveTeacher) {
           setReactivateDialog({ open: true, teacher: inactiveTeacher });
         } else {
-          const res = await api.post('/users', { ...form, role: 'teacher' });
+          await api.post('/users', { ...form, role: 'teacher' });
           toast.success('Teacher created successfully');
           setOpen(false);
           setForm({ teacherName: '', email: '', phoneNo: '+91' });
           refresh();
-          
-          if (res.data.user?.tempPassword) {
-            setCredentialsModal({
-              open: true,
-              data: {
-                name: res.data.user.teacherName || res.data.user.name,
-                email: res.data.user.email,
-                password: res.data.user.tempPassword,
-                phone: res.data.user.phoneNo,
-              },
-            });
-          }
         }
       }
     } catch (err) {
@@ -287,22 +274,6 @@ export default function ManageUsers() {
     }
   };
 
-  const handleWhatsAppShare = () => {
-    const { name, email, password, phone } = credentialsModal.data;
-    const siteUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
-    const message = `School Login Credentials\n\nName: ${name}\nEmail: ${email}\nPassword: ${password}\n\nLogin URL:\n${siteUrl}/login`;
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
-  const handleCopyCredentials = () => {
-    const { name, email, password } = credentialsModal.data;
-    const siteUrl = import.meta.env.VITE_API_URL || 'http://localhost:5173';
-    const message = `School Login Credentials\n\nName: ${name}\nEmail: ${email}\nPassword: ${password}\n\nLogin URL:\n${siteUrl}/login`;
-    navigator.clipboard.writeText(message);
-    toast.success('Credentials copied to clipboard');
-  };
 
   return (
     <PageStack>
@@ -581,6 +552,9 @@ export default function ManageUsers() {
             <DialogTitle className="text-lg font-bold text-slate-800">
               {edit ? 'Edit Teacher' : 'Add Teacher'}
             </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-0.5">
+              {edit ? 'Update teacher information.' : 'Register a new teacher to your school.'}
+            </DialogDescription>
           </DialogHeader>
 
           <DialogBody className="p-6">
@@ -654,9 +628,9 @@ export default function ManageUsers() {
                 </>
               )}
             </DialogTitle>
-            <p className="text-xs text-slate-500 mt-1">
+            <DialogDescription className="text-xs text-slate-500 mt-1">
               {importing ? 'Please wait while teachers are being imported...' : importResults ? 'Import summary' : 'Upload teacher records using CSV or XLSX files'}
-            </p>
+            </DialogDescription>
           </DialogHeader>
 
           <DialogBody>
@@ -848,6 +822,9 @@ export default function ManageUsers() {
               <AlertCircle className="h-4 w-4" />
               Reactivate Teacher
             </DialogTitle>
+            <DialogDescription className="text-xs text-amber-700/80 mt-0.5">
+              Restore access for an existing teacher account.
+            </DialogDescription>
           </DialogHeader>
           <DialogBody className="p-5 space-y-4">
             <p className="text-xs text-slate-600">
@@ -961,52 +938,6 @@ export default function ManageUsers() {
         </DialogContent>
       </Dialog>
 
-      {/* Credentials Modal */}
-      <Dialog open={credentialsModal.open} onOpenChange={(open) => setCredentialsModal({ ...credentialsModal, open })}>
-        <DialogContent className="sm:max-w-sm rounded-xl p-0 overflow-hidden shadow-lg bg-white border border-slate-200">
-          <DialogHeader className="bg-emerald-50 border-b border-emerald-100 px-5 py-4">
-            <DialogTitle className="text-base font-bold text-emerald-800 flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Account Created
-            </DialogTitle>
-            <DialogDescription className="text-xs text-emerald-700/80 mt-1">
-              Please share these credentials securely.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody className="p-5">
-            {credentialsModal.data && (
-              <div className="space-y-4">
-                <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 space-y-2">
-                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
-                    <span className="text-[11px] font-medium text-slate-500 uppercase">Name</span>
-                    <span className="text-xs font-semibold text-slate-800">{credentialsModal.data.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
-                    <span className="text-[11px] font-medium text-slate-500 uppercase">Email</span>
-                    <span className="text-xs font-semibold text-slate-800">{credentialsModal.data.email}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-0.5">
-                    <span className="text-[11px] font-medium text-slate-500 uppercase">Temp Password</span>
-                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{credentialsModal.data.password}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {credentialsModal.data.phone && (
-                    <Button size="sm" onClick={handleWhatsAppShare} className="flex-1 h-8 text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
-                      <MessageCircle className="mr-1.5 h-3 w-3" />
-                      WhatsApp
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={handleCopyCredentials} variant="outline" className="flex-1 h-8 text-[10px] bg-white shadow-sm">
-                    <Copy className="mr-1.5 h-3 w-3" />
-                    Copy
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
 
       <PlanLimitReachedDialog
         open={limitDialogOpen}

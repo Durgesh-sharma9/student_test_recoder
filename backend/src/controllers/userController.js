@@ -255,7 +255,7 @@ export const createUser = asyncHandler(async (req, res) => {
       
       try {
         const school = await School.findById(schoolId);
-        const schoolName = school?.schoolName || 'Your School';
+        const schoolName = school?.schoolName || 'Test Master Pro';
         
         const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
           ? `${process.env.CLIENT_URL}/login`
@@ -273,14 +273,18 @@ export const createUser = asyncHandler(async (req, res) => {
 
         // Also send WhatsApp message to Teacher if phone number is provided
         if (phoneNo) {
-          sendTeacherWhatsAppCredentials({
-            phoneNo,
-            teacherName: teacherName || name || 'Teacher',
-            email,
-            password: generatedPassword,
-            schoolName,
-            loginUrl,
-          }).catch((err) => console.error('[WhatsApp Service Error]:', err));
+          try {
+            await sendTeacherWhatsAppCredentials({
+              phoneNo,
+              teacherName: teacherName || name || 'Teacher',
+              email,
+              password: generatedPassword,
+              schoolName,
+              loginUrl,
+            });
+          } catch (waErr) {
+            console.error('[User Controller] WhatsApp dispatch error:', waErr.message);
+          }
         }
 
         if (emailResult.success) {
@@ -460,7 +464,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
         // Send email to reactivated teacher
         try {
           const school = await School.findById(schoolId);
-          const schoolName = school?.schoolName || 'Your School';
+          const schoolName = school?.schoolName || 'Test Master Pro';
           const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
             ? `${process.env.CLIENT_URL}/login`
             : 'https://testmaster.webncode.in/login';
@@ -512,7 +516,7 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
 
       try {
         const school = await School.findById(schoolId);
-        const schoolName = school?.schoolName || 'Your School';
+        const schoolName = school?.schoolName || 'Test Master Pro';
         const loginUrl = (process.env.CLIENT_URL && !process.env.CLIENT_URL.includes('localhost'))
           ? `${process.env.CLIENT_URL}/login`
           : 'https://testmaster.webncode.in/login';
@@ -808,18 +812,6 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
       generatedPassword,
       loginUrl
     );
-
-    // Also send WhatsApp message to Teacher
-    if (teacher.phoneNo) {
-      sendTeacherWhatsAppCredentials({
-        phoneNo: teacher.phoneNo,
-        teacherName: teacher.teacherName || teacher.name,
-        email: teacher.email,
-        password: generatedPassword,
-        schoolName,
-        loginUrl,
-      }).catch((err) => console.error('[WhatsApp Service Error]:', err));
-    }
 
     if (emailResult.success) {
       

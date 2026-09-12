@@ -49,7 +49,11 @@ export const sendTeacherWhatsAppCredentials = async ({
     const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
     const url = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
 
-    const messageText = `🏫 *Welcome to ${schoolName}!*
+    const displaySchool = schoolName && schoolName !== 'Your School' && schoolName !== 'TestMaster Academy'
+      ? (schoolName.toLowerCase().includes('test master') ? schoolName : `${schoolName} - Test Master Pro`)
+      : 'Test Master Pro';
+
+    const messageText = `🏫 *Welcome to ${displaySchool}!*
 
 Dear *${teacherName}*,
 Your Teacher account has been created successfully. Below are your login credentials:
@@ -108,7 +112,7 @@ Please keep your login credentials safe and secure.`;
       to: cleanPhone,
       type: 'text',
       text: {
-        preview_url: true,
+        preview_url: false,
         body: messageText,
       },
     };
