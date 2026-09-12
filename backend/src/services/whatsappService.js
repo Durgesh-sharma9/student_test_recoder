@@ -46,6 +46,8 @@ export const sendTeacherWhatsAppCredentials = async ({
     }
 
     const targetUrl = loginUrl || 'https://testmaster.webncode.in/login';
+    const templateName = process.env.WHATSAPP_TEMPLATE_NAME;
+    const url = `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`;
 
     const messageText = `🏫 *Welcome to ${schoolName}!*
 
@@ -54,13 +56,53 @@ Your Teacher account has been created successfully. Below are your login credent
 
 📧 *Email:* ${email}
 🔑 *Password:* ${password}
-🌐 *Login Portal:* ${targetUrl} (testmaster.webncode.in)
+🌐 *Login Portal:* ${targetUrl}
 
 Please keep your login credentials safe and secure.`;
 
-    const url = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
+    // 1. If a template is configured, try sending via Template first
+    if (templateName) {
+      try {
+        console.log(`[WhatsApp Service] Sending template '${templateName}' to ${cleanPhone}...`);
+        const templatePayload = {
+          messaging_product: 'whatsapp',
+          to: cleanPhone,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: 'en_US' },
+            components: [
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: teacherName },
+                  { type: 'text', text: schoolName },
+                  { type: 'text', text: email },
+                  { type: 'text', text: password },
+                ],
+              },
+            ],
+          },
+        };
 
-    const payload = {
+        const response = await axios.post(url, templatePayload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        });
+
+        console.log('[WhatsApp Service] Template message sent successfully:', response.data);
+        return { success: true, data: response.data };
+      } catch (templateError) {
+        console.warn('[WhatsApp Service] Template send failed, attempting direct text message fallback:', templateError.response?.data?.error?.message || templateError.message);
+      }
+    }
+
+    // 2. Direct text message fallback
+    console.log(`[WhatsApp Service] Sending text message to ${cleanPhone}...`);
+    const textPayload = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to: cleanPhone,
@@ -71,9 +113,7 @@ Please keep your login credentials safe and secure.`;
       },
     };
 
-    console.log(`[WhatsApp Service] Sending credentials to ${cleanPhone}...`);
-
-    const response = await axios.post(url, payload, {
+    const response = await axios.post(url, textPayload, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -81,7 +121,7 @@ Please keep your login credentials safe and secure.`;
       timeout: 10000,
     });
 
-    console.log('[WhatsApp Service] Message sent successfully:', response.data);
+    console.log('[WhatsApp Service] Text message sent successfully:', response.data);
     return { success: true, data: response.data };
   } catch (error) {
     const errorData = error.response?.data || error.message;

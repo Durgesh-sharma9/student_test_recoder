@@ -425,6 +425,18 @@ export const resetTeacherPassword = asyncHandler(async (req, res) => {
       newPassword,
       loginUrl
     );
+
+    if (teacher.phoneNo) {
+      const { sendTeacherWhatsAppCredentials } = await import('../services/whatsappService.js');
+      sendTeacherWhatsAppCredentials({
+        phoneNo: teacher.phoneNo,
+        teacherName: teacher.teacherName || teacher.name,
+        email: teacher.email,
+        password: newPassword,
+        schoolName,
+        loginUrl,
+      }).catch((err) => console.error('[WhatsApp Service Error in Reset Password]:', err));
+    }
   } catch (emailError) {
     console.error('[Email Error] Failed to send password reset email:', emailError.message);
   }

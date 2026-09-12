@@ -527,6 +527,18 @@ export const bulkImportTeachers = asyncHandler(async (req, res) => {
           loginUrl
         );
 
+        // Also send WhatsApp message to Teacher if phone number is provided
+        if (phoneNo) {
+          sendTeacherWhatsAppCredentials({
+            phoneNo,
+            teacherName,
+            email,
+            password: generatedPassword,
+            schoolName,
+            loginUrl,
+          }).catch((err) => console.error('[WhatsApp Service Error in Bulk Upload]:', err));
+        }
+
         if (emailResult.success) {
           
         } else {
