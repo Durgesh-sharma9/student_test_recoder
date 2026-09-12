@@ -418,21 +418,45 @@ export const resetTeacherPassword = asyncHandler(async (req, res) => {
       ? `${process.env.CLIENT_URL}/login`
       : 'https://testmaster.webncode.in/login';
 
-    await sendTeacherCreationEmail(
-      schoolName,
-      teacher.teacherName || teacher.name,
-      teacher.email,
-      newPassword,
-      loginUrl
-    );
-  } catch (emailError) {
-    console.error('[Email Error] Failed to send password reset email:', emailError.message);
-  }
+    let emailSent = false;
+    let emailError = null;
 
-  res.json({ 
-    success: true, 
-    message: 'Password reset successfully. New temporary password has been sent to the teacher.' 
-  });
+    try {
+      const emailResult = await sendTeacherCreationEmail(
+        schoolName,
+        teacher.teacherName || teacher.name,
+        teacher.email,
+        newPassword,
+        loginUrl
+      );
+
+      if (emailResult && emailResult.success) {
+        emailSent = true;
+      } else {
+        emailError = emailResult?.error || 'SMTP delivery failed';
+      }
+    } catch (err) {
+      console.error('[Email Error] Failed to send password reset email:', err.message);
+      emailError = err.message;
+    }
+
+    if (!emailSent) {
+      return res.json({ 
+        success: true, 
+        emailSent: false,
+        message: 'Password reset successfully, but could not send email to teacher right now.' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      emailSent: true,
+      message: 'Password reset successfully. New temporary password has been sent to the teacher via email.' 
+    });
+  } catch (outerError) {
+    console.error('[Reset Password Error]:', outerError.message);
+    throw outerError;
+  }
 });
 
 export const impersonateTeacher = asyncHandler(async (req, res) => {

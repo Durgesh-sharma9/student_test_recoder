@@ -313,7 +313,7 @@ export const createUser = asyncHandler(async (req, res) => {
         userRole === 'teacher'
           ? (emailSent 
               ? 'Teacher created successfully. Credentials email sent.'
-              : 'Teacher created successfully but email could not be delivered. Please check SMTP configuration.')
+              : 'Teacher created successfully, but email could not be delivered.')
           : 'User created successfully.',
       user: userObj,
       emailSent,
@@ -833,7 +833,7 @@ export const resendTeacherCredentials = asyncHandler(async (req, res) => {
     success: true,
     message: emailSent 
       ? 'Credentials email sent successfully.' 
-      : 'Credentials email could not be delivered. Please check SMTP configuration.',
+      : 'Credentials email could not be delivered.',
     user: userObj,
     emailSent,
     emailError: emailError || undefined,

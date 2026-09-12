@@ -204,8 +204,12 @@ export default function ManageUsers() {
         if (inactiveTeacher) {
           setReactivateDialog({ open: true, teacher: inactiveTeacher });
         } else {
-          await api.post('/users', { ...form, role: 'teacher' });
-          toast.success('Teacher created successfully');
+          const res = await api.post('/users', { ...form, role: 'teacher' });
+          if (res.data?.emailSent === false) {
+            toast.warning(res.data.message || 'Teacher created successfully, but could not send email right now.');
+          } else {
+            toast.success('Teacher created successfully');
+          }
           setOpen(false);
           setForm({ teacherName: '', email: '', phoneNo: '+91' });
           refresh();
@@ -463,8 +467,12 @@ export default function ManageUsers() {
                                 onClick={async () => {
                                   if (confirm('Reset Password?\n\nA new temporary password will be generated and sent to the teacher via email.')) {
                                     try {
-                                      await api.post(`/auth/reset-teacher-password/${t._id}`);
-                                      toast.success('Password reset successfully. New password sent to teacher.');
+                                      const res = await api.post(`/auth/reset-teacher-password/${t._id}`);
+                                      if (res.data?.emailSent === false) {
+                                        toast.warning(res.data.message || 'Password reset successfully, but could not send email to teacher right now.');
+                                      } else {
+                                        toast.success(res.data?.message || 'Password reset successfully. New password sent to teacher.');
+                                      }
                                     } catch (err) {
                                       toast.error(err.response?.data?.message || 'Failed to reset password');
                                     }
